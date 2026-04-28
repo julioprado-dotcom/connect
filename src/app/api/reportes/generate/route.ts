@@ -7,11 +7,13 @@ export async function POST(request: NextRequest) {
     const { personaId, tipo } = body;
     const tipoReporte = tipo || 'semanal';
 
-    // Calcular rango de fechas
+    // Calcular rango de fechas según tipo
     const fechaFin = new Date();
     const fechaInicio = new Date();
 
-    if (tipoReporte === 'semanal') {
+    if (tipoReporte === 'diario' || tipoReporte === 'boletin_diario') {
+      fechaInicio.setDate(fechaFin.getDate() - 1);
+    } else if (tipoReporte === 'semanal') {
       fechaInicio.setDate(fechaFin.getDate() - 7);
     } else if (tipoReporte === 'mensual') {
       fechaInicio.setMonth(fechaFin.getMonth() - 1);
@@ -29,64 +31,87 @@ export async function POST(request: NextRequest) {
     const menciones = await db.mencion.findMany({
       where,
       include: {
-        persona: { select: { nombre: true, partidoSigla: true, camara: true } },
-        medio: { select: { nombre: true, tipo: true } },
+        persona: { select: { nombre: true, partidoSigla: true, camara: true, departamento: true } },
+        medio: { select: { nombre: true, tipo: true, nivel: true } },
+        ejesTematicos: { include: { ejeTematico: { select: { nombre: true, slug: true, color: true } } } },
       },
       orderBy: { fechaCaptura: 'desc' },
     });
 
     const totalMenciones = menciones.length;
 
-    // Calcular sentimiento promedio
+    // ─── Sentimiento ───
     const sentimientoMap: Record<string, number> = {
-      elogioso: 5,
-      positivo: 4,
-      neutral: 3,
-      negativo: 2,
-      critico: 1,
-      no_clasificado: 3,
+      elogioso: 5, positivo: 4, neutral: 3, negativo: 2, critico: 1, no_clasificado: 3,
     };
 
     let sentimientoSum = 0;
     let sentimientoCount = 0;
-    const temasCount: Record<string, number> = {};
-
-    const mencionesPorMedio: Record<string, number> = {};
-    const mencionesPorPersona: Record<string, number> = {};
-
-    const mencionIds = menciones.map((m) => m.id);
+    const sentimientoDistribucion: Record<string, number> = {};
 
     for (const m of menciones) {
-      // Sentimiento
       const sentVal = sentimientoMap[m.sentimiento] || 3;
       sentimientoSum += sentVal;
       sentimientoCount++;
-
-      // Temas
-      if (m.temas) {
-        for (const tema of m.temas.split(',').map((t: string) => t.trim()).filter(Boolean)) {
-          temasCount[tema] = (temasCount[tema] || 0) + 1;
-        }
-      }
-
-      // Por medio
-      const medioNombre = m.medio?.nombre || 'Desconocido';
-      mencionesPorMedio[medioNombre] = (mencionesPorMedio[medioNombre] || 0) + 1;
-
-      // Por persona
-      const personaNombre = m.persona?.nombre || 'Desconocido';
-      mencionesPorPersona[personaNombre] = (mencionesPorPersona[personaNombre] || 0) + 1;
+      const sentKey = m.sentimiento || 'no_clasificado';
+      sentimientoDistribucion[sentKey] = (sentimientoDistribucion[sentKey] || 0) + 1;
     }
 
     const sentimientoPromedio = sentimientoCount > 0 ? sentimientoSum / sentimientoCount : 0;
 
-    // Contar comentarios y analizar sentimiento de comentarios
+    // ─── Ejes temáticos ───
+    const ejesCount: Record<string, { nombre: string; slug: string; color: string; count: number }> = {};
+    for (const m of menciones) {
+      if (m.ejesTematicos) {
+        for (const mt of m.ejesTematicos) {
+          const eje = mt.ejeTematico;
+          if (eje) {
+            if (!ejesCount[eje.slug]) {
+              ejesCount[eje.slug] = { nombre: eje.nombre, slug: eje.slug, color: eje.color, count: 0 };
+            }
+            ejesCount[eje.slug].count++;
+          }
+        }
+      }
+    }
+
+    const clasificadores = Object.values(ejesCount)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 11)
+      .map(e => ({ nombre: e.nombre, slug: e.slug, color: e.color, menciones: e.count }));
+
+    const temasPrincipales = clasificadores.map(c => c.slug);
+
+    // ─── Por medio y persona ───
+    const mencionesPorMedio: Record<string, number> = {};
+    const mencionesPorPersona: Record<string, { nombre: string; partido: string; camara: string; count: number }> = {};
+
+    for (const m of menciones) {
+      const medioNombre = m.medio?.nombre || 'Desconocido';
+      mencionesPorMedio[medioNombre] = (mencionesPorMedio[medioNombre] || 0) + 1;
+
+      if (m.persona) {
+        const pKey = m.persona.id;
+        if (!mencionesPorPersona[pKey]) {
+          mencionesPorPersona[pKey] = {
+            nombre: m.persona.nombre,
+            partido: m.persona.partidoSigla,
+            camara: m.persona.camara,
+            count: 0,
+          };
+        }
+        mencionesPorPersona[pKey].count++;
+      }
+    }
+
+    // ─── Comentarios ───
+    const mencionIds = menciones.map(m => m.id);
     let totalComentarios = 0;
     const comentariosSentimientoCount: Record<string, number> = {};
 
     if (mencionIds.length > 0) {
       const comentariosStats = await db.comentario.groupBy({
-        by: ['mencionId', 'sentimiento'],
+        by: ['sentimiento'],
         where: { mencionId: { in: mencionIds } },
         _count: { id: true },
       });
@@ -98,7 +123,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generar resumen de sentimiento de comentarios
     let sentimientoComentarios = '';
     if (totalComentarios > 0) {
       const partes: string[] = [];
@@ -110,33 +134,30 @@ export async function POST(request: NextRequest) {
       sentimientoComentarios = partes.join(', ');
     }
 
-    // Enlaces rotos
+    // ─── Enlaces rotos ───
     const enlacesRotos = await db.mencion.count({
-      where: {
-        ...where,
-        enlaceActivo: false,
-      },
+      where: { ...where, enlaceActivo: false },
     });
 
-    // Top 5 medios
+    // ─── Rankings ───
     const topMedios = Object.entries(mencionesPorMedio)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([nombre, count]) => ({ nombre, count }));
 
-    // Top 5 personas
-    const topPersonas = Object.entries(mencionesPorPersona)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([nombre, count]) => ({ nombre, count }));
-
-    // Temas principales
-    const temasPrincipales = Object.entries(temasCount)
-      .sort((a, b) => b[1] - a[1])
+    const topPersonas = Object.values(mencionesPorPersona)
+      .sort((a, b) => b.count - a.count)
       .slice(0, 10)
-      .map(([tema]) => tema);
+      .map(p => ({ nombre: p.nombre, partido: p.partido, camara: p.camara, count: p.count }));
 
-    // Generar resumen textual
+    // ─── Brecha de visibilidad por nivel de medio ───
+    const mencionesPorNivel: Record<string, number> = {};
+    for (const m of menciones) {
+      const nivel = String(m.medio?.nivel || '0');
+      mencionesPorNivel[nivel] = (mencionesPorNivel[nivel] || 0) + 1;
+    }
+
+    // ─── Generar resumen textual ───
     const personaTarget = personaId
       ? await db.persona.findUnique({ where: { id: personaId }, select: { nombre: true } })
       : null;
@@ -146,18 +167,36 @@ export async function POST(request: NextRequest) {
       personaNombre: personaTarget?.nombre,
       totalMenciones,
       sentimientoPromedio,
-      temasPrincipales,
+      clasificadores,
       topMedios,
       topPersonas: personaId ? null : topPersonas,
       totalComentarios,
       sentimientoComentarios,
       enlacesRotos,
+      mencionesPorNivel,
     });
 
-    // Crear registro del reporte
+    // ─── Contenido estructurado JSON ───
+    const contenidoEstructurado = JSON.stringify({
+      clasificadores,
+      sentimiento: {
+        promedio: sentimientoPromedio,
+        distribucion: sentimientoDistribucion,
+      },
+      topMedios,
+      topPersonas,
+      comentarios: {
+        total: totalComentarios,
+        sentimiento: sentimientoComentarios,
+      },
+      enlacesRotos,
+      mencionesPorNivel,
+    });
+
+    // ─── Crear registro del reporte ───
     const reporte = await db.reporte.create({
       data: {
-        tipo: tipoReporte,
+        tipo: tipoReporte === 'boletin_diario' ? 'boletin_diario' : tipoReporte,
         personaId: personaId || null,
         fechaInicio,
         fechaFin,
@@ -168,6 +207,8 @@ export async function POST(request: NextRequest) {
         totalComentarios,
         sentimientoComentarios,
         enlacesRotos,
+        contenido: contenidoEstructurado,
+        clasificadores: JSON.stringify(clasificadores),
       },
       include: {
         persona: { select: { nombre: true, partidoSigla: true } },
@@ -179,12 +220,13 @@ export async function POST(request: NextRequest) {
       datos: {
         totalMenciones,
         sentimientoPromedio,
-        temasPrincipales,
+        clasificadores,
         topMedios,
         topPersonas,
         totalComentarios,
         sentimientoComentarios,
         enlacesRotos,
+        mencionesPorNivel,
       },
     });
   } catch (error: unknown) {
@@ -198,63 +240,75 @@ function generarResumen(params: {
   personaNombre?: string | null;
   totalMenciones: number;
   sentimientoPromedio: number;
-  temasPrincipales: string[];
+  clasificadores: Array<{ nombre: string; slug: string; color: string; menciones: number }>;
   topMedios: Array<{ nombre: string; count: number }>;
-  topPersonas: Array<{ nombre: string; count: number }> | null;
+  topPersonas: Array<{ nombre: string; partido: string; camara: string; count: number }> | null;
   totalComentarios: number;
   sentimientoComentarios: string;
   enlacesRotos: number;
+  mencionesPorNivel: Record<string, number>;
 }): string {
   const target = params.personaNombre
     ? `el legislador ${params.personaNombre}`
     : 'los legisladores bolivianos';
 
-  const periodoLabel = params.tipo === 'semanal' ? 'la última semana' : 'el último mes';
+  const periodoLabels: Record<string, string> = {
+    boletin_diario: 'las últimas 24 horas',
+    diario: 'las últimas 24 horas',
+    semanal: 'la última semana',
+    mensual: 'el último mes',
+  };
+  const periodoLabel = periodoLabels[params.tipo] || 'el período analizado';
 
   let resumen = `Reporte ${params.tipo} de presencia mediática de ${target}.\n\n`;
   resumen += `Durante ${periodoLabel}, se registraron ${params.totalMenciones} menciones en medios de comunicación bolivianos.\n\n`;
 
   if (params.totalMenciones > 0) {
     const sentLabel =
-      params.sentimientoPromedio >= 4
-        ? 'positivo'
-        : params.sentimientoPromedio >= 3
-          ? 'neutral'
-          : 'negativo';
+      params.sentimientoPromedio >= 4 ? 'positivo' :
+      params.sentimientoPromedio >= 3 ? 'neutral' : 'negativo';
 
-    resumen += `El sentimiento promedio fue ${sentLabel} (${params.sentimientoPromedio.toFixed(1)}/5).\n\n`;
+    resumen += `Sentimiento promedio: ${sentLabel} (${params.sentimientoPromedio.toFixed(1)}/5).\n\n`;
 
-    if (params.temasPrincipales.length > 0) {
-      resumen += `Temas principales: ${params.temasPrincipales.join(', ')}.\n\n`;
+    // Clasificadores
+    if (params.clasificadores.length > 0) {
+      resumen += `Ejes temáticos principales:\n`;
+      for (const c of params.clasificadores.slice(0, 5)) {
+        resumen += `  - ${c.nombre}: ${c.menciones} menciones\n`;
+      }
+      resumen += '\n';
+    }
+
+    // Brecha de visibilidad
+    const nivel1 = params.mencionesPorNivel['1'] || 0;
+    const nivel3 = params.mencionesPorNivel['3'] || 0;
+    const nivel4 = params.mencionesPorNivel['4'] || 0;
+    if (nivel1 > 0 && (nivel3 > 0 || nivel4 > 0)) {
+      const corporativos = nivel1 + (params.mencionesPorNivel['2'] || 0);
+      const alternativos = nivel3 + nivel4;
+      resumen += `Brecha de visibilidad: medios corporativos/regionales registraron ${corporativos} menciones vs ${alternativos} en medios alternativos/redes.\n\n`;
     }
 
     if (params.topMedios.length > 0) {
-      const mediosStr = params.topMedios
-        .map((m) => `${m.nombre} (${m.count})`)
-        .join(', ');
+      const mediosStr = params.topMedios.map(m => `${m.nombre} (${m.count})`).join(', ');
       resumen += `Medios con más presencia: ${mediosStr}.\n\n`;
     }
 
     if (params.topPersonas && params.topPersonas.length > 0) {
-      const personasStr = params.topPersonas
-        .map((p) => `${p.nombre} (${p.count})`)
-        .join(', ');
+      const personasStr = params.topPersonas.slice(0, 5).map(p => `${p.nombre} (${p.count})`).join(', ');
       resumen += `Legisladores más mencionados: ${personasStr}.\n\n`;
     }
   } else {
     resumen += 'No se registraron menciones en el período analizado.\n\n';
   }
 
-  // Sección de comentarios
   if (params.totalComentarios > 0) {
-    resumen += `Se analizaron ${params.totalComentarios} comentarios en total.\n`;
-    resumen += `Distribución de sentimiento en comentarios: ${params.sentimientoComentarios}.\n\n`;
+    resumen += `Comentarios analizados: ${params.totalComentarios}. `;
+    resumen += `Sentimiento: ${params.sentimientoComentarios}.\n\n`;
   }
 
-  // Sección de enlaces
   if (params.enlacesRotos > 0) {
-    resumen += `Se detectaron ${params.enlacesRotos} enlaces que ya no están disponibles, `;
-    resumen += `pero el texto completo está respaldado en el sistema.\n`;
+    resumen += `Enlaces rotos detectados: ${params.enlacesRotos}. Texto completo respaldado en el sistema.\n`;
   }
 
   return resumen;

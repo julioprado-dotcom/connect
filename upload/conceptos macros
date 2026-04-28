@@ -1,0 +1,56 @@
+CONNECT es una herramienta de lectura de señales de medios.
+
+ACTA_NACIMENTO_CONNECT_BOLIVIA.md
+
+Identidad del Producto
+
+    Empresa / Sello de Garantía: News Connect (El paraguas institucional).
+    Marca del Producto: Connect ("Conectate con inteligencia de señales del Sur Global").
+    Subtítulo en la UI: "Análisis de señales del Sur Global - Conecte su entorno" (En lugar de usar "Bolivia" o "LATAM" para no limitar el alcance futuro).
+    Motor Interno: ONION200 (Sistema de capas de procesamiento de datos).
+    Definición Visual: "Traduciendo señales en patrones de poder". Una definición clara y poderosa que debe estar visible en la documentación y en algún lugar visible para el usuario, porque define qué es la herramienta antes de que el usuario la use.
+    **Identidad Visual (No es un manual): "Connect" no es un manual de usuario. Es una plataforma de inteligencia comercial. El contenido del manual de usuario se llama "CONNECT: Guía de uso", no "Manual de Connect".
+
+Nota sobre "Bolivia": "Bolivia" se mantiene como la región física de referencia para el MVP (base de datos de medios de Prisma) y se menciona en el tagline de la plataforma o en la documentación base, pero no va en el nombre del producto. El mercado no es solo para Bolivia, es para el mundo, empezando por el Sur.
+
+
+
+
+
+
+
+
+
+
+
+LA ARQUITECTURA FINAL DEFINITIVA (El Mapa Completo) 
+
+Aquí tienes el acta de nacimiento oficial de todo el ecosistema. Este es el documento maestro que le vas a entregar al agente de Z.ai para que ordene el GitHub y escriba los prompts: 
+
+[ECOSISTEMA NEWS CONNECT — BOLIVIA] 
+
+1. La Marca Comercial:  
+
+     CONNECT (Detección de tendencias y monitoreo mediático con IA)
+     
+
+2. El Motor Tecnológico (Uso interno / Código / GitHub): 
+
+     ONION200 (El sistema de capas de procesamiento de datos)
+     
+
+3. Los Productos de Contenido (Lo que recibe el cliente): 
+
+     [GRATUITO] Voz y Voto (Resumen legislativo semanal).
+     [GRATUITO] El Hilo (Recuento narrativo semanal).
+     [PREMIUM] El Termómetro (Boletín matutino 7:00 a.m. con indicador de clima).
+     [PREMIUM] El Saldo (Cierre vespertino 6:30 p.m.).
+     [PREMIUM] El Informe Cerrado (Análisis profundo semanal + prospectiva).
+     
+
+4. Las Instalaciones (White-label para clientes específicos): 
+
+     ENERGÍA CONNECT (Ej. Para la ABEN).
+     HIDROCARBUROS CONNECT (Ej. Para YPFB).
+     MACRO CONNECT (Ej. Para CAINCO).
+     

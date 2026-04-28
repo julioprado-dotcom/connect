@@ -7,7 +7,19 @@ export async function GET() {
     const totalPersonas = await db.persona.count({ where: { activa: true } });
 
     // Total medios activos
-    const totalMedios = await db.medio.count({ where: { activo: true } });
+    const fuentesActivas = await db.medio.count({ where: { activo: true } });
+
+    // Menciones hoy
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const manana = new Date(hoy);
+    manana.setDate(manana.getDate() + 1);
+
+    const mencionesHoy = await db.mencion.count({
+      where: {
+        fechaCaptura: { gte: hoy, lt: manana },
+      },
+    });
 
     // Menciones esta semana
     const inicioSemana = new Date();
@@ -28,6 +40,9 @@ export async function GET() {
 
     // Total comentarios
     const totalComentarios = await db.comentario.count();
+
+    // Total ejes activos
+    const totalEjes = await db.ejeTematico.count({ where: { activo: true } });
 
     // Top 10 personas con más menciones esta semana
     const topPersonas = await db.mencion.groupBy({
@@ -52,7 +67,7 @@ export async function GET() {
     );
 
     // Menciones por partido
-    const mencionesPorPartido = await db.mencion.findMany({
+    const mencionesPorPartidoRaw = await db.mencion.findMany({
       where: { fechaCaptura: { gte: inicioSemana } },
       include: {
         persona: { select: { partidoSigla: true } },
@@ -60,18 +75,18 @@ export async function GET() {
     });
 
     const partidoCount: Record<string, number> = {};
-    for (const m of mencionesPorPartido) {
+    for (const m of mencionesPorPartidoRaw) {
       const sigla = m.persona.partidoSigla || 'Sin partido';
       partidoCount[sigla] = (partidoCount[sigla] || 0) + 1;
     }
 
-    const mencionesPorPartidoArray = Object.entries(partidoCount)
+    const mencionesPorPartido = Object.entries(partidoCount)
       .map(([partido, count]) => ({ partido, count }))
       .sort((a, b) => b.count - a.count);
 
     // Últimas menciones
     const ultimasMenciones = await db.mencion.findMany({
-      take: 10,
+      take: 15,
       orderBy: { fechaCaptura: 'desc' },
       include: {
         persona: { select: { id: true, nombre: true, partidoSigla: true, camara: true } },
@@ -81,17 +96,21 @@ export async function GET() {
 
     // Distribución por cámara
     const diputados = await db.persona.count({ where: { camara: 'Diputados', activa: true } });
-    const senadores = await db.persona.count({ where: { camara: 'Senado', activa: true } });
+    const senadores = await db.persona.count({ where: { camara: 'Senadores', activa: true } });
+
+    // Fuentes activas — últimas capturas
 
     return NextResponse.json({
       totalPersonas,
-      totalMedios,
+      totalMedios: fuentesActivas,
+      mencionesHoy,
       mencionesSemana,
       totalReportes,
       enlacesRotos,
       totalComentarios,
+      totalEjes,
       topPersonas: topPersonasData,
-      mencionesPorPartido: mencionesPorPartidoArray,
+      mencionesPorPartido,
       ultimasMenciones,
       distribucionCamara: { diputados, senadores },
     });

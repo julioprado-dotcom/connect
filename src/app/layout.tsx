@@ -14,8 +14,26 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Monitor de Presencia en Medios",
-  description: "Sistema de inteligencia mediática que monitorea la presencia de legisladores bolivianos en medios de comunicación.",
+  title: "Monitor de Presencia en Medios | Bolivia 2025-2030",
+  description:
+    "Sistema de inteligencia mediática que monitorea la presencia de legisladores bolivianos en medios de comunicación. Pluralismo y transparencia conforme a la Constitución Política del Estado.",
+  keywords: [
+    "Bolivia",
+    "legisladores",
+    "medios",
+    "monitoreo",
+    "prensa",
+    "Asamblea Legislativa",
+    "2025-2030",
+  ],
+  authors: [{ name: "Monitor de Presencia en Medios" }],
+  openGraph: {
+    title: "Monitor de Presencia en Medios | Bolivia",
+    description:
+      "Inteligencia mediática sobre legisladores bolivianos — Periodo 2025-2030",
+    type: "website",
+    locale: "es_BO",
+  },
 };
 
 export default function RootLayout({

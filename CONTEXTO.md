@@ -344,38 +344,38 @@ Indicadores derivados:
     v0.2.0 — Dark mode, motor de captura diaria, analisis IA, reportes, 5 tabs
     v0.3.0 — Decisiones arquitectonicas: captura texto completo, analisis automatico GLM
     v0.4.0 — Comentarios, verificacion enlaces, dashboard gestion
-    v0.5.0 — IN PROGRESS: Nuevo contexto politico (Paz/PDC), 11 clasificadores, 5 niveles
-             de fuentes, marco filosofico pluralismo+CPE2009, productos de informacion
-             (boletin/resumen/informe), dashboard cliente, actualizacion legisladores
+    v0.5.0 — Base de datos actualizada: 173 legisladores 2025-2030, 30 medios en 5 niveles,
+             11 ejes tematicos con keywords, seed mejorado con datos ricos.
+             Pendiente: rediseño visual, dashboard cliente, motor GLM, reportes
 
 14. ESTADO DEL SISTEMA
 
     Componente           | Estado        | Detalle
     ---------------------|---------------|---------------------------
-    Base de datos        | POR ACTUALIZAR| Legisladores (173 obsoletos → 166 nuevos)
-    Fuentes              | POR ACTUALIZAR| 15 medios → 40+ fuentes en 5 niveles
-    Clasificadores       | NUEVO         | 11 ejes tematicos (antes no existian)
-    Modelo de datos      | POR ACTUALIZAR| Agregar modelo EjeTematico, niveles de medios
-    Dashboard admin      | v0.4.0        | 6 tabs (por rediseñar visual)
-    Dashboard cliente    | NUEVO         | Vista suscriptores con acceso desde admin
-    API Routes           | 11 endpoints  | (por expandir con clasificadores y reportes)
+    Base de datos        | ACTUALIZADO   | 173 legisladores (137 dip + 36 sen) periodo 2025-2030
+    Fuentes              | ACTUALIZADO   | 30 medios en 5 niveles (corporativos/regionales/alternativos)
+    Clasificadores       | ACTUALIZADO   | 11 ejes tematicos con keywords para GLM
+    Modelo de datos      | ACTUALIZADO   | EjeTematico, MencionTema, niveles de medios
+    Dashboard admin      | v0.5.0        | Sidebar + 8 vistas (Resumen, Menciones, Personas, Medios, etc.)
+    Dashboard cliente    | v0.5.0        | Vista publica en /dashboard con ranking + reportes
+    API Routes           | 15 endpoints  | +medios +ejes +mejorado stats/analyze/reportes
     Motor de captura     | v0.2.0        | (por adaptar a 5 niveles de fuentes)
-    Analisis IA          | v0.3.0        | (por agregar clasificacion tematica)
-    Reportes             | POR REDESAR   | Boletín diario + resumen semanal + informe mensual
+    Analisis IA          | v0.5.0        | GLM clasifica por 11 ejes tematicos + tipo + sentimiento
+    Reportes             | v0.5.0        | Boletin diario + semanal + mensual con ejes y brecha visibilidad
     Verif. enlaces       | v0.4.0        | Funcional
     Comentarios          | v0.4.0        | Funcional
     Envio automatico     | Pendiente     | Email + WhatsApp
 
 15. TAREAS PENDIENTES
 
-Prioridad 1 — EN CURSO:
+Prioridad 1 — COMPLETADO:
 
-    [v0.5.0] Actualizar CONTEXTO.md con nuevas decisiones ← ACTUAL
-    [v0.5.0] Actualizar Prisma schema (EjeTematico, niveles de medios)
-    [v0.5.0] Actualizar medios.json (5 niveles, 40+ fuentes)
-    [v0.5.0] Obtener y cargar legisladores actuales (130 dip + 36 sen) del TSE
-    [v0.5.0] Rediseño visual del dashboard admin
-    [v0.5.0] Crear dashboard cliente
+    [v0.5.0] ✅ Actualizar CONTEXTO.md con nuevas decisiones
+    [v0.5.0] ✅ Actualizar Prisma schema (EjeTematico, niveles de medios)
+    [v0.5.0] ✅ Actualizar medios.json (5 niveles, 30 fuentes)
+    [v0.5.0] ✅ Obtener y cargar legisladores actuales (137 dip + 36 sen) del TSE
+    [v0.5.0] ⏳ Rediseño visual del dashboard admin ← PROXIMO
+    [v0.5.0] ⏳ Crear dashboard cliente
 
 Prioridad 2 — POSTERIOR:
 

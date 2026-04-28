@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import {
   Table,
   TableBody,
@@ -19,32 +19,34 @@ import {
   Users,
   Newspaper,
   FileText,
-  Search,
   TrendingUp,
   Radio,
   Loader2,
   Eye,
   AlertCircle,
   Database,
-  ArrowUpRight,
   Zap,
   FileBarChart,
-  Brain,
   CheckCircle2,
-  RefreshCw,
-  UsersRound,
   XCircle,
   ExternalLink,
-  MessageSquare,
-  ChevronDown,
-  ChevronUp,
-  Link2,
-  ShieldCheck,
-  ShieldX,
+  ChevronLeft,
+  ChevronRight,
+  Menu,
+  X,
+  RefreshCw,
+  Tag,
+  Settings,
+  Activity,
+  Globe,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
+import Link from 'next/link';
 
-/* ─── types ─── */
+/* ═══════════════════════════════════════════════════════════
+   TYPES
+   ═══════════════════════════════════════════════════════════ */
+
 interface PersonaStat {
   id: string;
   nombre: string;
@@ -80,37 +82,16 @@ interface MencionRow {
 interface DashboardData {
   totalPersonas: number;
   totalMedios: number;
+  mencionesHoy: number;
   mencionesSemana: number;
   totalReportes: number;
   enlacesRotos: number;
   totalComentarios: number;
+  totalEjes: number;
   topPersonas: PersonaStat[];
   mencionesPorPartido: PartidoStat[];
   ultimasMenciones: MencionRow[];
   distribucionCamara: { diputados: number; senadores: number };
-}
-
-interface CaptureResult {
-  busquedas: number;
-  mencionesNuevas: number;
-  errores: number;
-  detalles: string[];
-}
-
-interface ReporteRow {
-  id: string;
-  tipo: string;
-  fechaInicio: string;
-  fechaFin: string;
-  resumen: string;
-  totalMenciones: number;
-  sentimientoPromedio: number;
-  temasPrincipales: string;
-  fechaCreacion: string;
-  totalComentarios?: number;
-  sentimientoComentarios?: string;
-  enlacesRotos?: number;
-  persona?: { nombre: string } | null;
 }
 
 interface PersonaListItem {
@@ -122,53 +103,33 @@ interface PersonaListItem {
   partidoSigla: string;
 }
 
-interface PersonaDetail {
-  persona: {
-    id: string;
-    nombre: string;
-    camara: string;
-    departamento: string;
-    partido: string;
-    partidoSigla: string;
-    tipo: string;
-    cargoDirectiva: string | null;
-    email: string | null;
-    activa: boolean;
-  };
-  stats: {
-    totalMenciones: number;
-    mencionesSemana: number;
-    mencionesMes: number;
-    sentimientoPromedio: number;
-    temasPrincipales: string[];
-  };
-  menciones: MencionRow[];
-  mediosStats: Array<{ medio: string; count: number }>;
-}
-
-interface ComentarioRow {
+interface MedioItem {
   id: string;
-  autor: string;
-  texto: string;
-  sentimiento: string;
-  fechaComentario: string | null;
+  nombre: string;
+  url: string;
+  tipo: string;
+  nivel: string;
+  departamento: string | null;
+  plataformas: string;
+  activo: boolean;
+  mencionesCount: number;
 }
 
-interface VerifyStats {
-  total: number;
-  activos: number;
-  rotos: number;
-  sinVerificar: number;
-  recientes: Array<{
-    id: string;
-    url: string;
-    enlaceActivo: boolean;
-    fechaVerificacion: string | null;
-    titulo: string;
-  }>;
+interface EjeItem {
+  id: string;
+  nombre: string;
+  slug: string;
+  icono: string;
+  color: string;
+  descripcion: string;
+  keywords: string;
+  mencionesCount: number;
 }
 
-/* ─── constants ─── */
+/* ═══════════════════════════════════════════════════════════
+   CONSTANTS
+   ═══════════════════════════════════════════════════════════ */
+
 const PARTIDO_COLORS: Record<string, string> = {
   PDC: 'bg-red-600',
   LIBRE: 'bg-emerald-600',
@@ -178,6 +139,17 @@ const PARTIDO_COLORS: Record<string, string> = {
   'APB SUMATE': 'bg-purple-600',
   'MAS IPSP': 'bg-orange-500',
   'BIA YUQUI': 'bg-teal-600',
+};
+
+const PARTIDO_TEXT_COLORS: Record<string, string> = {
+  PDC: 'text-red-600',
+  LIBRE: 'text-emerald-600',
+  UNIDAD: 'text-sky-700',
+  AP: 'text-amber-600',
+  'APB SÚMATE': 'text-purple-600',
+  'APB SUMATE': 'text-purple-600',
+  'MAS IPSP': 'text-orange-500',
+  'BIA YUQUI': 'text-teal-600',
 };
 
 const SENTIMIENTO_STYLES: Record<string, string> = {
@@ -197,115 +169,220 @@ const TIPO_MENCION_LABELS: Record<string, string> = {
   foto_video: 'Foto/Video',
 };
 
-/* ─── component ─── */
+const NIVEL_LABELS: Record<string, string> = {
+  '1': 'Corporativos',
+  '2': 'Regionales',
+  '3': 'Alternativos',
+  '4': 'Redes',
+  '5': 'Extendidos',
+};
+
+const NIVEL_COLORS: Record<string, string> = {
+  '1': 'bg-primary text-primary-foreground',
+  '2': 'bg-sky-600 text-white',
+  '3': 'bg-amber-600 text-white',
+  '4': 'bg-purple-600 text-white',
+  '5': 'bg-stone-500 text-white',
+};
+
+const CAMARAS = ['Todas', 'Diputados', 'Senado'];
+const DEPARTAMENTOS = [
+  'Todos', 'La Paz', 'Santa Cruz', 'Cochabamba', 'Potosí', 'Tarija',
+  'Oruro', 'Beni', 'Chuquisaca', 'Pando',
+];
+const PARTIDOS = [
+  'Todos', 'PDC', 'LIBRE', 'UNIDAD', 'AP', 'APB SÚMATE', 'MAS IPSP', 'BIA YUQUI',
+];
+
+/* ═══════════════════════════════════════════════════════════
+   NAV ITEMS
+   ═══════════════════════════════════════════════════════════ */
+
+const NAV_ITEMS = [
+  { id: 'resumen', label: 'Resumen', icon: BarChart3 },
+  { id: 'menciones', label: 'Menciones', icon: Newspaper },
+  { id: 'personas', label: 'Personas', icon: Users },
+  { id: 'medios', label: 'Medios', icon: Radio },
+  { id: 'clasificadores', label: 'Clasificadores', icon: Tag },
+  { id: 'reportes', label: 'Reportes', icon: FileBarChart },
+  { id: 'captura', label: 'Captura', icon: Zap },
+  { id: 'configuracion', label: 'Configuración', icon: Settings },
+];
+
+/* ═══════════════════════════════════════════════════════════
+   MAIN COMPONENT
+   ═══════════════════════════════════════════════════════════ */
+
 export default function Dashboard() {
+  // ─── State ───
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [seedLoading, setSeedLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchResults, setSearchResults] = useState<unknown[]>([]);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('resumen');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeView, setActiveView] = useState('resumen');
 
-  // Capture state
+  // Stats
+  const [seedLoading, setSeedLoading] = useState(false);
+
+  // Personas
+  const [personaList, setPersonaList] = useState<PersonaListItem[]>([]);
+  const [personaTotal, setPersonaTotal] = useState(0);
+  const [personaPage, setPersonaPage] = useState(1);
+  const [personaLoading, setPersonaLoading] = useState(false);
+  const [filtroCamara, setFiltroCamara] = useState('Todas');
+  const [filtroDepto, setFiltroDepto] = useState('Todos');
+  const [filtroPartido, setFiltroPartido] = useState('Todos');
+  const [personaSearch, setPersonaSearch] = useState('');
+
+  // Medios
+  const [medios, setMedios] = useState<MedioItem[]>([]);
+  const [mediosLoading, setMediosLoading] = useState(false);
+  const [mediosNivel, setMediosNivel] = useState('todos');
+
+  // Ejes
+  const [ejes, setEjes] = useState<EjeItem[]>([]);
+  const [ejesLoading, setEjesLoading] = useState(false);
+
+  // Captura
   const [captureCount, setCaptureCount] = useState(5);
   const [captureLoading, setCaptureLoading] = useState(false);
-  const [captureResult, setCaptureResult] = useState<CaptureResult | null>(null);
-  const [captureMenciones, setCaptureMenciones] = useState<MencionRow[]>([]);
+  const [captureResult, setCaptureResult] = useState<{
+    busquedas: number;
+    mencionesNuevas: number;
+    errores: number;
+    detalles: string[];
+  } | null>(null);
 
-  // Analyze state
-  const [analyzeLoading, setAnalyzeLoading] = useState(false);
-  const [analyzeResult, setAnalyzeResult] = useState<{ analizadas: number } | null>(null);
+  // Menciones
+  const [menciones, setMenciones] = useState<MencionRow[]>([]);
+  const [mencionesTotal, setMencionesTotal] = useState(0);
+  const [mencionesPage, setMencionesPage] = useState(1);
+  const [mencionesLoading, setMencionesLoading] = useState(false);
 
-  // Reportes state
-  const [reportes, setReportes] = useState<ReporteRow[]>([]);
-  const [reporteLoading, setReporteLoading] = useState(false);
+  // Reportes
+  const [reportes, setReportes] = useState<Record<string, unknown>[]>([]);
+  const [reportesLoading, setReportesLoading] = useState(false);
   const [generarReporteLoading, setGenerarReporteLoading] = useState(false);
-  const [selectedReporte, setSelectedReporte] = useState<ReporteRow | null>(null);
 
-  // Gestión state — Person Detail
-  const [personaSearch, setPersonaSearch] = useState('');
-  const [personaList, setPersonaList] = useState<PersonaListItem[]>([]);
-  const [personaListLoading, setPersonaListLoading] = useState(false);
-  const [selectedPersona, setSelectedPersona] = useState<PersonaDetail | null>(null);
-  const [personaDetailLoading, setPersonaDetailLoading] = useState(false);
-  const [personaMencionesPage, setPersonaMencionesPage] = useState(1);
+  // ─── Fetch data ───
+  // Track which views have been loaded
+  const loadedViews = useRef<Set<string>>(new Set());
 
-  // Gestión state — Expanded texto completo
-  const [expandedTexto, setExpandedTexto] = useState<string | null>(null);
+  // ─── Load functions ───
+  const loadPersonas = useCallback(async () => {
+    setPersonaLoading(true);
+    try {
+      const params = new URLSearchParams({ page: String(personaPage), limit: '20' });
+      if (filtroCamara !== 'Todas') params.set('camara', filtroCamara);
+      if (filtroDepto !== 'Todos') params.set('departamento', filtroDepto);
+      if (filtroPartido !== 'Todos') params.set('partido', filtroPartido);
+      if (personaSearch) params.set('search', personaSearch);
+      const res = await fetch(`/api/personas?${params}`);
+      const json = await res.json();
+      setPersonaList(json.personas || []);
+      setPersonaTotal(json.total || 0);
+    } catch {
+      // silent
+    } finally {
+      setPersonaLoading(false);
+    }
+  }, [personaPage, filtroCamara, filtroDepto, filtroPartido, personaSearch]);
 
-  // Gestión state — Comments modal
-  const [selectedMencionComments, setSelectedMencionComments] = useState<{
-    mencionId: string;
-    titulo: string;
-    comentarios: ComentarioRow[];
-  } | null>(null);
-  const [commentsLoading, setCommentsLoading] = useState(false);
+  const loadMedios = useCallback(async () => {
+    setMediosLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (mediosNivel !== 'todos') params.set('nivel', mediosNivel);
+      const res = await fetch(`/api/medios?${params}`);
+      const json = await res.json();
+      setMedios(json.medios || []);
+    } catch {
+      // silent
+    } finally {
+      setMediosLoading(false);
+    }
+  }, [mediosNivel]);
 
-  // Gestión state — Link verification
-  const [verifyStats, setVerifyStats] = useState<VerifyStats | null>(null);
-  const [verifyLoading, setVerifyLoading] = useState(false);
-  const [verifyResult, setVerifyResult] = useState<{
-    verified: number;
-    activos: number;
-    rotos: number;
-  } | null>(null);
+  const loadEjes = useCallback(async () => {
+    setEjesLoading(true);
+    try {
+      const res = await fetch('/api/ejes');
+      const json = await res.json();
+      setEjes(json.ejes || []);
+    } catch {
+      // silent
+    } finally {
+      setEjesLoading(false);
+    }
+  }, []);
 
+  const loadMenciones = useCallback(async () => {
+    setMencionesLoading(true);
+    try {
+      const res = await fetch(`/api/menciones?page=${mencionesPage}&limit=15`);
+      const json = await res.json();
+      setMenciones(json.menciones || []);
+      setMencionesTotal(json.total || 0);
+    } catch {
+      // silent
+    } finally {
+      setMencionesLoading(false);
+    }
+  }, [mencionesPage]);
+
+  const loadReportes = useCallback(async () => {
+    setReportesLoading(true);
+    try {
+      const res = await fetch('/api/reportes');
+      const json = await res.json();
+      setReportes(json.reportes || json || []);
+    } catch {
+      // silent
+    } finally {
+      setReportesLoading(false);
+    }
+  }, []);
+
+  // Initial data load
   useEffect(() => {
-    let cancelled = false;
-
-    const fetchDashboardData = async () => {
+    const controller = new AbortController();
+    const loadInitial = async () => {
       try {
-        const res = await fetch('/api/stats');
+        const res = await fetch('/api/stats', { signal: controller.signal });
         if (!res.ok) throw new Error('Error al cargar datos');
         const json = await res.json();
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setData(json);
           setError('');
         }
       } catch (err) {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setError(err instanceof Error ? err.message : 'Error desconocido');
         }
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
-
-    fetchDashboardData();
-
-    return () => {
-      cancelled = true;
-    };
+    loadInitial();
+    return () => controller.abort();
   }, []);
 
-  const refreshData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/stats');
-      if (!res.ok) throw new Error('Error al cargar datos');
-      const json = await res.json();
-      setData(json);
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  // ─── Handlers ───
   const handleSeed = async () => {
     setSeedLoading(true);
     try {
       const res = await fetch('/api/seed', { method: 'POST' });
       const json = await res.json();
-      if (json.error) {
-        setError(json.error);
-      } else {
-        await refreshData();
+      if (json.error) setError(json.error);
+      else {
+        try {
+          const statsRes = await fetch('/api/stats');
+          if (statsRes.ok) {
+            const statsJson = await statsRes.json();
+            setData(statsJson);
+            setError('');
+          }
+        } catch { /* silent */ }
       }
     } catch {
       setError('Error al ejecutar seed');
@@ -314,42 +391,24 @@ export default function Dashboard() {
     }
   };
 
-  const handleSearch = async () => {
-    if (!searchTerm.trim()) return;
-    setSearchLoading(true);
-    try {
-      const res = await fetch('/api/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ personaNombre: searchTerm }),
-      });
-      const json = await res.json();
-      setSearchResults(json?.results || json || []);
-    } catch {
-      setError('Error en la búsqueda');
-    } finally {
-      setSearchLoading(false);
-    }
-  };
-
-  // Capture handler
   const handleCapture = async () => {
     setCaptureLoading(true);
     setCaptureResult(null);
-    setCaptureMenciones([]);
-    setAnalyzeResult(null);
     setError('');
     try {
       const res = await fetch(`/api/capture?count=${captureCount}`, { method: 'POST' });
       const json = await res.json();
-      if (json.error) {
-        setError(json.error);
-      } else {
+      if (json.error) setError(json.error);
+      else {
         setCaptureResult(json);
-        const mencionesRes = await fetch('/api/menciones?limit=20');
-        const mencionesJson = await mencionesRes.json();
-        setCaptureMenciones(mencionesJson.menciones || []);
-        await refreshData();
+        // Refresh stats
+        try {
+          const statsRes = await fetch('/api/stats');
+          if (statsRes.ok) {
+            const statsJson = await statsRes.json();
+            setData(statsJson);
+          }
+        } catch { /* silent */ }
       }
     } catch {
       setError('Error al ejecutar captura');
@@ -358,49 +417,6 @@ export default function Dashboard() {
     }
   };
 
-  // Analyze handler
-  const handleAnalyze = async () => {
-    setAnalyzeLoading(true);
-    setAnalyzeResult(null);
-    setError('');
-    try {
-      const res = await fetch('/api/analyze/batch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ limit: 10 }),
-      });
-      const json = await res.json();
-      if (json.error) {
-        setError(json.error);
-      } else {
-        setAnalyzeResult(json);
-        await refreshData();
-        const mencionesRes = await fetch('/api/menciones?limit=20');
-        const mencionesJson = await mencionesRes.json();
-        setCaptureMenciones(mencionesJson.menciones || []);
-      }
-    } catch {
-      setError('Error al analizar menciones');
-    } finally {
-      setAnalyzeLoading(false);
-    }
-  };
-
-  // Load reportes
-  const loadReportes = useCallback(async () => {
-    setReporteLoading(true);
-    try {
-      const res = await fetch('/api/reportes');
-      const json = await res.json();
-      setReportes(json.reportes || json || []);
-    } catch {
-      // silently fail
-    } finally {
-      setReporteLoading(false);
-    }
-  }, []);
-
-  // Generate reporte
   const handleGenerarReporte = async () => {
     setGenerarReporteLoading(true);
     setError('');
@@ -411,15 +427,8 @@ export default function Dashboard() {
         body: JSON.stringify({ tipo: 'semanal' }),
       });
       const json = await res.json();
-      if (json.error) {
-        setError(json.error);
-      } else {
-        await loadReportes();
-        await refreshData();
-        if (json.reporte) {
-          setSelectedReporte(json.reporte);
-        }
-      }
+      if (json.error) setError(json.error);
+      else await loadReportes();
     } catch {
       setError('Error al generar reporte');
     } finally {
@@ -427,122 +436,32 @@ export default function Dashboard() {
     }
   };
 
-  // Load personas list for gestión tab
-  const loadPersonas = useCallback(async (search?: string) => {
-    setPersonaListLoading(true);
-    try {
-      const params = new URLSearchParams({ limit: '173' });
-      if (search) params.set('search', search);
-      const res = await fetch(`/api/personas?${params}`);
-      const json = await res.json();
-      setPersonaList(json.personas || []);
-    } catch {
-      // silently fail
-    } finally {
-      setPersonaListLoading(false);
-    }
-  }, []);
-
-  // Load persona detail
-  const loadPersonaDetail = useCallback(async (personaId: string) => {
-    setPersonaDetailLoading(true);
-    setSelectedPersona(null);
-    setPersonaMencionesPage(1);
-    try {
-      const res = await fetch(`/api/personas/${personaId}`);
-      const json = await res.json();
-      if (json.error) {
-        setError(json.error);
-      } else {
-        setSelectedPersona(json);
-      }
-    } catch {
-      setError('Error al cargar detalle de persona');
-    } finally {
-      setPersonaDetailLoading(false);
-    }
-  }, []);
-
-  // Load comments for a mencion
-  const loadComments = useCallback(async (mencionId: string, titulo: string) => {
-    setCommentsLoading(true);
-    setSelectedMencionComments({ mencionId, titulo, comentarios: [] });
-    try {
-      const res = await fetch(`/api/menciones/${mencionId}`);
-      const json = await res.json();
-      setSelectedMencionComments({
-        mencionId,
-        titulo,
-        comentarios: json.comentarios || [],
-      });
-    } catch {
-      setError('Error al cargar comentarios');
-    } finally {
-      setCommentsLoading(false);
-    }
-  }, []);
-
-  // Verify links
-  const handleVerifyLinks = async () => {
-    setVerifyLoading(true);
-    setVerifyResult(null);
-    setError('');
-    try {
-      const res = await fetch('/api/verify-links?batch=20', { method: 'POST' });
-      const json = await res.json();
-      if (json.error) {
-        setError(json.error);
-      } else {
-        setVerifyResult({ verified: json.verified, activos: json.activos, rotos: json.rotos });
-        await refreshData();
-        await loadVerifyStats();
-      }
-    } catch {
-      setError('Error al verificar enlaces');
-    } finally {
-      setVerifyLoading(false);
+  const handleViewChange = (viewId: string) => {
+    setActiveView(viewId);
+    setSidebarOpen(false);
+    // Reset page for mentions when switching to menciones view
+    if (viewId === 'menciones') setMencionesPage(1);
+    // Load data for the view if not yet loaded
+    if (!loadedViews.current.has(viewId)) {
+      loadedViews.current.add(viewId);
+      if (viewId === 'personas') loadPersonas();
+      else if (viewId === 'medios') loadMedios();
+      else if (viewId === 'clasificadores') loadEjes();
+      else if (viewId === 'menciones') loadMenciones();
+      else if (viewId === 'reportes') loadReportes();
     }
   };
 
-  const loadVerifyStats = useCallback(async () => {
-    try {
-      const res = await fetch('/api/verify-links');
-      const json = await res.json();
-      setVerifyStats(json);
-    } catch {
-      // silently fail
-    }
-  }, []);
-
-  // Tab change handler
-  const handleTabChange = useCallback((value: string) => {
-    setActiveTab(value);
-    if (value === 'reportes' && reportes.length === 0) {
-      loadReportes();
-    }
-    if (value === 'gestion') {
-      loadPersonas();
-      loadVerifyStats();
-    }
-  }, [reportes.length, loadReportes, loadPersonas, loadVerifyStats]);
-
-  // Persona search handler
-  useEffect(() => {
-    if (activeTab === 'gestion') {
-      const timer = setTimeout(() => {
-        loadPersonas(personaSearch || undefined);
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [personaSearch, activeTab, loadPersonas]);
-
-  /* ─── loading skeleton ─── */
+  // ─── Loading state ───
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-          <p className="text-muted-foreground text-lg font-medium">Cargando dashboard...</p>
+          <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center">
+            <Radio className="h-6 w-6 text-primary-foreground" />
+          </div>
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <p className="text-muted-foreground text-sm font-medium">Cargando dashboard...</p>
         </div>
       </div>
     );
@@ -551,1369 +470,942 @@ export default function Dashboard() {
   const maxPartidoCount = data?.mencionesPorPartido?.[0]?.count || 1;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      {/* ─── Header ─── */}
-      <header className="border-b border-border bg-card">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="min-h-screen flex bg-background">
+      {/* ═══ MOBILE OVERLAY ═══ */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* ═══ SIDEBAR ═══ */}
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-50 w-64 bg-sidebar text-sidebar-foreground
+          transform transition-transform duration-200 ease-in-out
+          lg:translate-x-0 lg:static lg:z-auto
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
+        <div className="flex flex-col h-full">
+          {/* Logo */}
+          <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border">
+            <div className="h-9 w-9 rounded-lg bg-sidebar-primary flex items-center justify-center">
+              <Radio className="h-4.5 w-4.5 text-sidebar-primary-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-sm font-bold text-sidebar-foreground truncate leading-tight">
+                Monitor de Presencia
+              </h2>
+              <p className="text-[10px] text-sidebar-foreground/60">en Medios — Bolivia</p>
+            </div>
+            <button
+              className="lg:hidden p-1 rounded hover:bg-sidebar-accent"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Nav */}
+          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeView === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleViewChange(item.id)}
+                  className={`
+                    w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                    transition-colors duration-150
+                    ${
+                      isActive
+                        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                        : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                    }
+                  `}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Footer */}
+          <div className="px-3 py-4 border-t border-sidebar-border">
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
+            >
+              <Globe className="h-4 w-4 shrink-0" />
+              Vista cliente
+            </Link>
+            <div className="mt-2 px-3">
+              <p className="text-[10px] text-sidebar-foreground/40">
+                Pluralismo · Constitución 2009
+              </p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* ═══ MAIN AREA ═══ */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-sm border-b border-border">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-foreground flex items-center justify-center">
-                <Radio className="h-5 w-5 text-background" />
-              </div>
+              <button
+                className="lg:hidden p-2 rounded-lg hover:bg-muted"
+                onClick={() => setSidebarOpen(true)}
+              >
+                <Menu className="h-5 w-5" />
+              </button>
               <div>
-                <h1 className="text-xl font-bold tracking-tight text-foreground">
-                  Monitor de Presencia en Medios
+                <h1 className="text-base sm:text-lg font-bold text-foreground">
+                  {NAV_ITEMS.find((n) => n.id === activeView)?.label || 'Resumen'}
                 </h1>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[11px] text-muted-foreground hidden sm:block">
                   Legisladores bolivianos — Periodo 2025-2030
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {data && data.totalPersonas === 0 && (
-                <Button
-                  onClick={handleSeed}
-                  disabled={seedLoading}
-                  variant="outline"
-                  size="sm"
-                  className="text-xs"
-                >
-                  {seedLoading ? (
-                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                  ) : (
-                    <Database className="h-3 w-3 mr-1" />
-                  )}
-                  Cargar datos
-                </Button>
-              )}
+              {/* Status indicator */}
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/30">
+                <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400 hidden sm:inline">
+                  Sistema activo
+                </span>
+              </div>
               <ThemeToggle />
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* ─── Main ─── */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 dark:bg-red-950/30 dark:border-red-900/40 flex items-center gap-2 text-red-700 dark:text-red-300 text-sm">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            {error}
-            <button onClick={() => setError('')} className="ml-auto hover:opacity-70">
-              <XCircle className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="bg-card border border-border flex-wrap">
-            <TabsTrigger value="resumen" className="text-xs sm:text-sm">
-              <BarChart3 className="h-4 w-4 mr-1.5 hidden sm:block" />
-              Resumen
-            </TabsTrigger>
-            <TabsTrigger value="busqueda" className="text-xs sm:text-sm">
-              <Search className="h-4 w-4 mr-1.5 hidden sm:block" />
-              Búsqueda
-            </TabsTrigger>
-            <TabsTrigger value="menciones" className="text-xs sm:text-sm">
-              <Newspaper className="h-4 w-4 mr-1.5 hidden sm:block" />
-              Menciones
-            </TabsTrigger>
-            <TabsTrigger value="captura" className="text-xs sm:text-sm">
-              <Zap className="h-4 w-4 mr-1.5 hidden sm:block" />
-              Captura
-            </TabsTrigger>
-            <TabsTrigger value="reportes" className="text-xs sm:text-sm">
-              <FileBarChart className="h-4 w-4 mr-1.5 hidden sm:block" />
-              Reportes
-            </TabsTrigger>
-            <TabsTrigger value="gestion" className="text-xs sm:text-sm">
-              <UsersRound className="h-4 w-4 mr-1.5 hidden sm:block" />
-              Gestión
-            </TabsTrigger>
-          </TabsList>
-
-          {/* ═══ TAB RESUMEN ═══ */}
-          <TabsContent value="resumen" className="space-y-6">
-            {/* KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="border-border">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                      <Users className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-foreground">
-                        {data?.totalPersonas || 0}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Personas monitoreadas</p>
-                    </div>
-                  </div>
-                  <div className="mt-2 flex gap-2 text-[10px] text-muted-foreground/70">
-                    <span>{data?.distribucionCamara?.diputados || 0} Dip.</span>
-                    <span>·</span>
-                    <span>{data?.distribucionCamara?.senadores || 0} Sen.</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                      <Newspaper className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-foreground">
-                        {data?.mencionesSemana || 0}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Menciones esta semana</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                      <FileText className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-foreground">
-                        {data?.totalReportes || 0}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Reportes generados</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                      <Radio className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-foreground">
-                        {data?.totalMedios || 0}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Medios monitoreados</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+        {/* Content */}
+        <main className="flex-1 p-4 sm:p-6 overflow-auto">
+          {error && (
+            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 dark:bg-red-950/30 dark:border-red-900/40 flex items-center gap-2 text-red-700 dark:text-red-300 text-sm">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {error}
+              <button onClick={() => setError('')} className="ml-auto hover:opacity-70">
+                <XCircle className="h-4 w-4" />
+              </button>
             </div>
+          )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Top 10 Personas */}
-              <Card className="border-border">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    Top 10 con más menciones
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Legisladores más mencionados esta semana
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  {data?.topPersonas && data.topPersonas.length > 0 ? (
-                    <div className="space-y-2 max-h-96 overflow-y-auto">
-                      {data.topPersonas.map((p, i) => (
-                        <div
-                          key={p.id}
-                          className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                        >
-                          <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground shrink-0">
-                            {i + 1}
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">
-                              {p.nombre}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground">
-                              {p.camara} · {p.partidoSigla}
-                            </p>
-                          </div>
-                          <Badge
-                            variant="secondary"
-                            className="bg-foreground text-background text-xs shrink-0"
-                          >
-                            {p.mencionesCount}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      Sin menciones registradas esta semana
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Gráfico por Partido (CSS bars) */}
-              <Card className="border-border">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                    Menciones por partido
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Distribución semanal por agrupación política
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  {data?.mencionesPorPartido && data.mencionesPorPartido.length > 0 ? (
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {data.mencionesPorPartido.map((p) => (
-                        <div key={p.partido}>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-medium text-foreground">
-                              {p.partido}
-                            </span>
-                            <span className="text-sm font-bold text-foreground">
-                              {p.count}
-                            </span>
-                          </div>
-                          <div className="h-6 bg-muted rounded overflow-hidden">
-                            <div
-                              className={`h-full rounded transition-all duration-500 ${
-                                PARTIDO_COLORS[p.partido] || 'bg-stone-600'
-                              }`}
-                              style={{
-                                width: `${Math.max((p.count / maxPartidoCount) * 100, 4)}%`,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      <BarChart3 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      Sin datos de menciones por partido
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Últimas Menciones */}
-            <Card className="border-border">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <Newspaper className="h-4 w-4 text-muted-foreground" />
-                  Últimas menciones registradas
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                {data?.ultimasMenciones && data.ultimasMenciones.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="hover:bg-transparent">
-                          <TableHead className="text-xs text-muted-foreground">Legislador</TableHead>
-                          <TableHead className="text-xs text-muted-foreground">Medio</TableHead>
-                          <TableHead className="text-xs text-muted-foreground hidden md:table-cell">
-                            Título
-                          </TableHead>
-                          <TableHead className="text-xs text-muted-foreground">Tipo</TableHead>
-                          <TableHead className="text-xs text-muted-foreground hidden sm:table-cell">
-                            Sentimiento
-                          </TableHead>
-                          <TableHead className="text-xs text-muted-foreground hidden lg:table-cell">
-                            Fecha
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {data.ultimasMenciones.map((m) => (
-                          <TableRow key={m.id}>
-                            <TableCell className="py-2.5">
-                              <div>
-                                <p className="text-sm font-medium text-foreground max-w-[160px] truncate">
-                                  {m.persona?.nombre || '—'}
-                                </p>
-                                <p className="text-[11px] text-muted-foreground">
-                                  {m.persona?.partidoSigla}
-                                </p>
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-2.5">
-                              <span className="text-sm text-muted-foreground">{m.medio?.nombre || '—'}</span>
-                            </TableCell>
-                            <TableCell className="py-2.5 hidden md:table-cell">
-                              <p className="text-sm text-foreground/80 max-w-[220px] truncate">
-                                {m.titulo || m.texto?.substring(0, 80) || '—'}
-                              </p>
-                            </TableCell>
-                            <TableCell className="py-2.5">
-                              <Badge variant="secondary" className="text-[10px] px-2 py-0.5">
-                                {TIPO_MENCION_LABELS[m.tipoMencion] || m.tipoMencion}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="py-2.5 hidden sm:table-cell">
-                              <span
-                                className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                                  SENTIMIENTO_STYLES[m.sentimiento] || SENTIMIENTO_STYLES.no_clasificado
-                                }`}
-                              >
-                                {m.sentimiento.replace('_', ' ')}
-                              </span>
-                            </TableCell>
-                            <TableCell className="py-2.5 hidden lg:table-cell text-xs text-muted-foreground">
-                              {m.fechaCaptura
-                                ? new Date(m.fechaCaptura).toLocaleDateString('es-BO', {
-                                    day: '2-digit',
-                                    month: 'short',
-                                  })
-                                : '—'}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Newspaper className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                    <p className="text-sm">Aún no hay menciones registradas</p>
-                    <p className="text-xs mt-1">
-                      Usa la pestaña de Captura para buscar menciones automáticamente
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* ═══ TAB BÚSQUEDA ═══ */}
-          <TabsContent value="busqueda" className="space-y-6">
-            <Card className="border-border">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                  Buscar en medios bolivianos
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Busca menciones de legisladores en periódicos, portales y agencias de Bolivia
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 pt-0 space-y-4">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Nombre del legislador, ej: María Elena Vildozo"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    className="flex-1"
-                  />
-                  <Button
-                    onClick={handleSearch}
-                    disabled={searchLoading || !searchTerm.trim()}
-                    className="bg-foreground hover:bg-foreground/90 text-background"
-                  >
-                    {searchLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Search className="h-4 w-4" />
-                    )}
+          {/* ═══════════════════════════════════════════════════════
+              VIEW: RESUMEN
+              ═══════════════════════════════════════════════════════ */}
+          {activeView === 'resumen' && (
+            <div className="space-y-6">
+              {/* Seed button if no data */}
+              {data && data.totalPersonas === 0 && (
+                <div className="flex justify-center">
+                  <Button onClick={handleSeed} disabled={seedLoading} className="gap-2">
+                    {seedLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
+                    Cargar datos de ejemplo
                   </Button>
                 </div>
+              )}
 
-                <div className="text-[11px] text-muted-foreground">
-                  Fuentes: La Razón, Página Siete, El Deber, Los Tiempos, Opinión, Correo del Sur,
-                  El Potosí, La Patria, El Diario, Jornada, Unitel, Red Uno, ATB Digital, Bolivia
-                  Verifica, ABI
-                </div>
-              </CardContent>
-            </Card>
+              {/* KPI Cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <KPICard
+                  icon={<Users className="h-5 w-5" />}
+                  value={data?.totalPersonas || 0}
+                  label="Legisladores"
+                  subtext={`${data?.distribucionCamara?.diputados || 0} dip. · ${data?.distribucionCamara?.senadores || 0} sen.`}
+                  colorClass="text-primary"
+                />
+                <KPICard
+                  icon={<Newspaper className="h-5 w-5" />}
+                  value={data?.mencionesHoy || 0}
+                  label="Menciones hoy"
+                  subtext={`${data?.mencionesSemana || 0} esta semana`}
+                  colorClass="text-emerald-600 dark:text-emerald-400"
+                />
+                <KPICard
+                  icon={<Radio className="h-5 w-5" />}
+                  value={data?.totalMedios || 0}
+                  label="Medios monitoreados"
+                  subtext={`${data?.totalEjes || 0} ejes temáticos`}
+                  colorClass="text-sky-600 dark:text-sky-400"
+                />
+                <KPICard
+                  icon={<FileText className="h-5 w-5" />}
+                  value={data?.totalReportes || 0}
+                  label="Reportes generados"
+                  subtext={data?.enlacesRotos ? `${data.enlacesRotos} enlaces rotos` : ''}
+                  colorClass="text-amber-600 dark:text-amber-400"
+                />
+              </div>
 
-            {searchResults.length > 0 && (
-              <Card className="border-border">
+              {/* Distribution + Top personas */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {/* Menciones por partido */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                      Distribución por partido
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Menciones esta semana por agrupación política
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    {data?.mencionesPorPartido && data.mencionesPorPartido.length > 0 ? (
+                      <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
+                        {data.mencionesPorPartido.map((p) => (
+                          <div key={p.partido}>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className={`text-xs font-semibold ${PARTIDO_TEXT_COLORS[p.partido] || 'text-foreground'}`}>
+                                {p.partido}
+                              </span>
+                              <span className="text-xs font-bold text-foreground">{p.count}</span>
+                            </div>
+                            <div className="h-5 bg-muted rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${
+                                  PARTIDO_COLORS[p.partido] || 'bg-stone-500'
+                                }`}
+                                style={{
+                                  width: `${Math.max((p.count / maxPartidoCount) * 100, 3)}%`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState icon={<BarChart3 className="h-8 w-8" />} text="Sin menciones por partido esta semana" />
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Top 10 */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                      Top 10 presencia mediática
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Legisladores más mencionados esta semana
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    {data?.topPersonas && data.topPersonas.length > 0 ? (
+                      <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
+                        {data.topPersonas.map((p, i) => (
+                          <div key={p.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
+                            <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground shrink-0">
+                              {i + 1}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">{p.nombre}</p>
+                              <p className="text-[11px] text-muted-foreground">{p.camara} · {p.partidoSigla}</p>
+                            </div>
+                            <Badge variant="secondary" className="text-[10px] shrink-0">{p.mencionesCount}</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState icon={<Users className="h-8 w-8" />} text="Sin menciones registradas esta semana" />
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Últimas menciones */}
+              <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold">
-                    Resultados de búsqueda ({searchResults.length})
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                      <Newspaper className="h-4 w-4 text-muted-foreground" />
+                      Últimas menciones capturadas
+                    </CardTitle>
+                    <Button variant="ghost" size="sm" onClick={() => setActiveView('menciones')} className="text-xs text-muted-foreground">
+                      Ver todas <ChevronRight className="h-3 w-3 ml-1" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  {data?.ultimasMenciones && data.ultimasMenciones.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="hover:bg-transparent">
+                            <TableHead className="text-xs">Legislador</TableHead>
+                            <TableHead className="text-xs hidden sm:table-cell">Medio</TableHead>
+                            <TableHead className="text-xs hidden md:table-cell">Título</TableHead>
+                            <TableHead className="text-xs">Tipo</TableHead>
+                            <TableHead className="text-xs hidden lg:table-cell">Sentimiento</TableHead>
+                            <TableHead className="text-xs hidden xl:table-cell">Fecha</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {data.ultimasMenciones.slice(0, 8).map((m) => (
+                            <TableRow key={m.id}>
+                              <TableCell className="py-2.5">
+                                <div>
+                                  <p className="text-sm font-medium text-foreground max-w-[140px] truncate">{m.persona?.nombre || '—'}</p>
+                                  <p className="text-[10px] text-muted-foreground">{m.persona?.partidoSigla}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-2.5 hidden sm:table-cell">
+                                <span className="text-xs text-muted-foreground">{m.medio?.nombre || '—'}</span>
+                              </TableCell>
+                              <TableCell className="py-2.5 hidden md:table-cell">
+                                <p className="text-xs text-foreground/80 max-w-[200px] truncate">{m.titulo || m.texto?.substring(0, 60) || '—'}</p>
+                              </TableCell>
+                              <TableCell className="py-2.5">
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                  {TIPO_MENCION_LABELS[m.tipoMencion] || m.tipoMencion}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="py-2.5 hidden lg:table-cell">
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${SENTIMIENTO_STYLES[m.sentimiento] || SENTIMIENTO_STYLES.no_clasificado}`}>
+                                  {m.sentimiento.replace('_', ' ')}
+                                </span>
+                              </TableCell>
+                              <TableCell className="py-2.5 hidden xl:table-cell text-xs text-muted-foreground">
+                                {m.fechaCaptura ? new Date(m.fechaCaptura).toLocaleDateString('es-BO', { day: '2-digit', month: 'short' }) : '—'}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <EmptyState icon={<Newspaper className="h-10 w-10" />} text="Aún no hay menciones registradas" subtext="Usa la sección de Captura para buscar menciones automáticamente" />
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Fuentes status */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-muted-foreground" />
+                    Estado de fuentes
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {(searchResults as Array<Record<string, string>>).map((result, i) => (
-                      <div
-                        key={i}
-                        className="p-3 rounded-lg border border-border hover:border-foreground/20 transition-colors"
-                      >
-                        <a
-                          href={result.url || result.link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block"
-                        >
-                          <p className="text-sm font-medium text-foreground hover:text-foreground/70 line-clamp-2">
-                            {result.title || result.titulo || 'Sin título'}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground mt-1 line-clamp-1">
-                            {result.snippet || result.description || ''}
-                          </p>
-                          <div className="flex items-center gap-1 mt-1.5 text-[10px] text-muted-foreground">
-                            <ArrowUpRight className="h-3 w-3" />
-                            {(result.url || result.link || '').replace(/https?:\/\//, '').substring(0, 50)}
-                          </div>
-                        </a>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                    {['1', '2', '3', '4', '5'].map((n) => (
+                      <div key={n} className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                        <div>
+                          <p className="text-xs font-medium text-foreground">{NIVEL_LABELS[n]}</p>
+                          <p className="text-[10px] text-muted-foreground">Nivel {n}</p>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </CardContent>
               </Card>
-            )}
-          </TabsContent>
+            </div>
+          )}
 
-          {/* ═══ TAB MENCIONES ═══ */}
-          <TabsContent value="menciones" className="space-y-6">
-            <Card className="border-border">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <Eye className="h-4 w-4 text-muted-foreground" />
-                  Todas las menciones
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Registro completo de apariciones en medios
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                {data?.ultimasMenciones && data.ultimasMenciones.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="hover:bg-transparent">
-                          <TableHead className="text-xs text-muted-foreground">Legislador</TableHead>
-                          <TableHead className="text-xs text-muted-foreground">Cámara</TableHead>
-                          <TableHead className="text-xs text-muted-foreground">Partido</TableHead>
-                          <TableHead className="text-xs text-muted-foreground">Medio</TableHead>
-                          <TableHead className="text-xs text-muted-foreground hidden md:table-cell">
-                            Título
-                          </TableHead>
-                          <TableHead className="text-xs text-muted-foreground">Tipo</TableHead>
-                          <TableHead className="text-xs text-muted-foreground">Sentimiento</TableHead>
-                          <TableHead className="text-xs text-muted-foreground hidden sm:table-cell">
-                            Estado
-                          </TableHead>
-                          <TableHead className="text-xs text-muted-foreground hidden lg:table-cell">
-                            Fecha
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {data.ultimasMenciones.map((m) => (
-                          <TableRow key={m.id}>
-                            <TableCell className="py-2.5">
-                              <p className="text-sm font-medium text-foreground max-w-[160px] truncate">
-                                {m.persona?.nombre || '—'}
-                              </p>
-                            </TableCell>
-                            <TableCell className="py-2.5 text-sm text-muted-foreground">
-                              {m.persona?.camara || '—'}
-                            </TableCell>
-                            <TableCell className="py-2.5">
-                              <Badge variant="secondary" className="text-[10px] px-2 py-0.5">
-                                {m.persona?.partidoSigla || '—'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="py-2.5 text-sm text-muted-foreground">
-                              {m.medio?.nombre || '—'}
-                            </TableCell>
-                            <TableCell className="py-2.5 hidden md:table-cell">
-                              <p className="text-sm text-foreground/80 max-w-[200px] truncate">
-                                {m.titulo || m.texto?.substring(0, 60) || '—'}
-                              </p>
-                            </TableCell>
-                            <TableCell className="py-2.5">
-                              <span className="text-[10px] text-muted-foreground">
-                                {TIPO_MENCION_LABELS[m.tipoMencion] || m.tipoMencion}
-                              </span>
-                            </TableCell>
-                            <TableCell className="py-2.5">
-                              <span
-                                className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                                  SENTIMIENTO_STYLES[m.sentimiento] || SENTIMIENTO_STYLES.no_clasificado
-                                }`}
-                              >
-                                {m.sentimiento.replace('_', ' ')}
-                              </span>
-                            </TableCell>
-                            <TableCell className="py-2.5 hidden sm:table-cell">
-                              <div className="flex items-center gap-1">
-                                <div
-                                  className={`w-2 h-2 rounded-full shrink-0 ${
-                                    m.fechaVerificacion
-                                      ? (m.enlaceActivo ? 'bg-emerald-500' : 'bg-red-500')
-                                      : 'bg-stone-300 dark:bg-stone-600'
-                                  }`}
-                                />
-                                <span className="text-[10px] text-muted-foreground">
-                                  {m.fechaVerificacion
-                                    ? (m.enlaceActivo ? 'Activo' : 'Roto')
-                                    : '—'}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-2.5 hidden lg:table-cell text-xs text-muted-foreground">
-                              {m.fechaCaptura
-                                ? new Date(m.fechaCaptura).toLocaleDateString('es-BO', {
-                                    day: '2-digit',
-                                    month: 'short',
-                                    year: 'numeric',
-                                  })
-                                : '—'}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Newspaper className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                    <p className="text-sm">No hay menciones registradas aún</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* ═══ TAB CAPTURA ═══ */}
-          <TabsContent value="captura" className="space-y-6">
-            <Card className="border-border">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-muted-foreground" />
-                  Captura automática
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Busca menciones de legisladores en medios bolivianos y las registra automáticamente
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 pt-0 space-y-4">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm text-muted-foreground whitespace-nowrap">
-                      Cantidad:
-                    </label>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={20}
-                      value={captureCount}
-                      onChange={(e) => setCaptureCount(Math.min(20, Math.max(1, parseInt(e.target.value) || 1)))}
-                      className="w-20"
-                    />
-                    <span className="text-[11px] text-muted-foreground">
-                      personas (1-20)
-                    </span>
-                  </div>
-                  <Button
-                    onClick={handleCapture}
-                    disabled={captureLoading}
-                    className="bg-foreground hover:bg-foreground/90 text-background"
-                  >
-                    {captureLoading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Capturando...
-                      </>
-                    ) : (
-                      <>
-                        <Zap className="h-4 w-4 mr-2" />
-                        Ejecutar captura
-                      </>
-                    )}
-                  </Button>
-                </div>
-
-                {captureLoading && (
-                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
-                    <div className="flex items-center gap-3">
-                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Buscando en medios...</p>
-                        <p className="text-xs text-muted-foreground">
-                          Esto puede tomar unos momentos. Se están consultando {captureCount} legisladores.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {captureResult && (
-                  <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900/40">
-                    <div className="flex items-center gap-2 mb-2">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                      <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300">
-                        Captura completada
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                      <div>
-                        <p className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{captureResult.busquedas}</p>
-                        <p className="text-[11px] text-emerald-600 dark:text-emerald-500">Búsquedas</p>
-                      </div>
-                      <div>
-                        <p className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{captureResult.mencionesNuevas}</p>
-                        <p className="text-[11px] text-emerald-600 dark:text-emerald-500">Menciones nuevas</p>
-                      </div>
-                      <div>
-                        <p className="text-lg font-bold text-red-600 dark:text-red-400">{captureResult.errores}</p>
-                        <p className="text-[11px] text-red-500 dark:text-red-400">Errores</p>
-                      </div>
-                    </div>
-                    {captureResult.detalles && captureResult.detalles.length > 0 && (
-                      <div className="mt-3 space-y-1">
-                        {captureResult.detalles.slice(0, 5).map((d, i) => (
-                          <p key={i} className="text-[11px] text-muted-foreground">{d}</p>
-                        ))}
-                        {captureResult.detalles.length > 5 && (
-                          <p className="text-[11px] text-muted-foreground">
-                            ... y {captureResult.detalles.length - 5} más
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Analyze Button */}
-            {captureMenciones.length > 0 && (
-              <Card className="border-border">
+          {/* ═══════════════════════════════════════════════════════
+              VIEW: MENCIONES
+              ═══════════════════════════════════════════════════════ */}
+          {activeView === 'menciones' && (
+            <div className="space-y-4">
+              <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <Brain className="h-4 w-4 text-muted-foreground" />
-                    Análisis con IA
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                        Registro de menciones
+                      </CardTitle>
+                      <CardDescription className="text-xs mt-1">
+                        Total: {mencionesTotal} menciones
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={loadMenciones} className="text-xs gap-1">
+                        <RefreshCw className="h-3 w-3" /> Actualizar
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  {mencionesLoading ? (
+                    <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+                  ) : menciones.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="hover:bg-transparent">
+                            <TableHead className="text-xs">Legislador</TableHead>
+                            <TableHead className="text-xs hidden sm:table-cell">Cámara</TableHead>
+                            <TableHead className="text-xs hidden md:table-cell">Partido</TableHead>
+                            <TableHead className="text-xs">Medio</TableHead>
+                            <TableHead className="text-xs hidden lg:table-cell">Título</TableHead>
+                            <TableHead className="text-xs">Tipo</TableHead>
+                            <TableHead className="text-xs hidden sm:table-cell">Sentimiento</TableHead>
+                            <TableHead className="text-xs hidden lg:table-cell">Fecha</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {menciones.map((m) => (
+                            <TableRow key={m.id}>
+                              <TableCell className="py-2.5">
+                                <p className="text-sm font-medium text-foreground max-w-[140px] truncate">{m.persona?.nombre || '—'}</p>
+                              </TableCell>
+                              <TableCell className="py-2.5 text-xs text-muted-foreground hidden sm:table-cell">{m.persona?.camara || '—'}</TableCell>
+                              <TableCell className="py-2.5 hidden md:table-cell">
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{m.persona?.partidoSigla || '—'}</Badge>
+                              </TableCell>
+                              <TableCell className="py-2.5 text-xs text-muted-foreground">{m.medio?.nombre || '—'}</TableCell>
+                              <TableCell className="py-2.5 hidden lg:table-cell">
+                                <p className="text-xs text-foreground/80 max-w-[180px] truncate">{m.titulo || m.texto?.substring(0, 50) || '—'}</p>
+                              </TableCell>
+                              <TableCell className="py-2.5">
+                                <span className="text-[10px] text-muted-foreground">{TIPO_MENCION_LABELS[m.tipoMencion] || m.tipoMencion}</span>
+                              </TableCell>
+                              <TableCell className="py-2.5 hidden sm:table-cell">
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${SENTIMIENTO_STYLES[m.sentimiento] || SENTIMIENTO_STYLES.no_clasificado}`}>
+                                  {m.sentimiento.replace('_', ' ')}
+                                </span>
+                              </TableCell>
+                              <TableCell className="py-2.5 text-xs text-muted-foreground hidden lg:table-cell">
+                                {m.fechaCaptura ? new Date(m.fechaCaptura).toLocaleDateString('es-BO', { day: '2-digit', month: 'short' }) : '—'}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <EmptyState icon={<Newspaper className="h-10 w-10" />} text="No hay menciones registradas" />
+                  )}
+                  {/* Pagination */}
+                  {mencionesTotal > 15 && (
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                      <p className="text-xs text-muted-foreground">
+                        Página {mencionesPage} de {Math.ceil(mencionesTotal / 15)}
+                      </p>
+                      <div className="flex gap-1">
+                        <Button variant="outline" size="sm" disabled={mencionesPage <= 1} onClick={() => setMencionesPage((p) => p - 1)} className="text-xs">
+                          <ChevronLeft className="h-3 w-3" />
+                        </Button>
+                        <Button variant="outline" size="sm" disabled={mencionesPage >= Math.ceil(mencionesTotal / 15)} onClick={() => setMencionesPage((p) => p + 1)} className="text-xs">
+                          <ChevronRight className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════
+              VIEW: PERSONAS
+              ═══════════════════════════════════════════════════════ */}
+          {activeView === 'personas' && (
+            <div className="space-y-4">
+              {/* Filters */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Input
+                      placeholder="Buscar legislador..."
+                      value={personaSearch}
+                      onChange={(e) => setPersonaSearch(e.target.value)}
+                      className="sm:max-w-xs"
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <FilterSelect value={filtroCamara} onChange={setFiltroCamara} options={CAMARAS} />
+                      <FilterSelect value={filtroDepto} onChange={setFiltroDepto} options={DEPARTAMENTOS} />
+                      <FilterSelect value={filtroPartido} onChange={setFiltroPartido} options={PARTIDOS} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        Legisladores registrados
+                      </CardTitle>
+                      <CardDescription className="text-xs mt-1">
+                        Total: {personaTotal} personas
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  {personaLoading ? (
+                    <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+                  ) : personaList.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="hover:bg-transparent">
+                            <TableHead className="text-xs">Nombre</TableHead>
+                            <TableHead className="text-xs hidden sm:table-cell">Cámara</TableHead>
+                            <TableHead className="text-xs hidden md:table-cell">Departamento</TableHead>
+                            <TableHead className="text-xs">Partido</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {personaList.map((p) => (
+                            <TableRow key={p.id}>
+                              <TableCell className="py-2.5">
+                                <p className="text-sm font-medium text-foreground">{p.nombre}</p>
+                              </TableCell>
+                              <TableCell className="py-2.5 text-xs text-muted-foreground hidden sm:table-cell">{p.camara}</TableCell>
+                              <TableCell className="py-2.5 text-xs text-muted-foreground hidden md:table-cell">{p.departamento}</TableCell>
+                              <TableCell className="py-2.5">
+                                <Badge
+                                  variant="secondary"
+                                  className={`text-[10px] ${
+                                    PARTIDO_COLORS[p.partidoSigla]
+                                      ? `${PARTIDO_COLORS[p.partidoSigla]} text-white`
+                                      : ''
+                                  }`}
+                                >
+                                  {p.partidoSigla}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <EmptyState icon={<Users className="h-10 w-10" />} text="No se encontraron legisladores" />
+                  )}
+                  {/* Pagination */}
+                  {personaTotal > 20 && (
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                      <p className="text-xs text-muted-foreground">
+                        Página {personaPage} de {Math.ceil(personaTotal / 20)}
+                      </p>
+                      <div className="flex gap-1">
+                        <Button variant="outline" size="sm" disabled={personaPage <= 1} onClick={() => setPersonaPage((p) => p - 1)} className="text-xs">
+                          <ChevronLeft className="h-3 w-3" />
+                        </Button>
+                        <Button variant="outline" size="sm" disabled={personaPage >= Math.ceil(personaTotal / 20)} onClick={() => setPersonaPage((p) => p + 1)} className="text-xs">
+                          <ChevronRight className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════
+              VIEW: MEDIOS
+              ═══════════════════════════════════════════════════════ */}
+          {activeView === 'medios' && (
+            <div className="space-y-4">
+              {/* Level tabs */}
+              <div className="flex flex-wrap gap-2">
+                <LevelTab active={mediosNivel === 'todos'} onClick={() => setMediosNivel('todos')} label="Todos" />
+                {['1', '2', '3', '4', '5'].map((n) => (
+                  <LevelTab key={n} active={mediosNivel === n} onClick={() => setMediosNivel(n)} label={NIVEL_LABELS[n]} nivel={n} />
+                ))}
+              </div>
+
+              <Card>
+                <CardContent className="p-4">
+                  {mediosLoading ? (
+                    <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+                  ) : medios.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {medios.map((m) => (
+                        <div key={m.id} className="p-3 rounded-lg border border-border hover:border-primary/30 transition-colors">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">{m.nombre}</p>
+                              <p className="text-[11px] text-muted-foreground mt-0.5">{m.tipo}</p>
+                            </div>
+                            <Badge variant="secondary" className={`text-[10px] shrink-0 ${NIVEL_COLORS[m.nivel]}`}>
+                              N{m.nivel}
+                            </Badge>
+                          </div>
+                          {m.departamento && (
+                            <p className="text-[11px] text-muted-foreground mt-1">{m.departamento}</p>
+                          )}
+                          {m.plataformas && (
+                            <p className="text-[10px] text-muted-foreground mt-1 truncate">{m.plataformas}</p>
+                          )}
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-[10px] text-muted-foreground">{m.mencionesCount} menciones</span>
+                            {m.url && (
+                              <a href={m.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
+                                Visitar <ExternalLink className="h-2.5 w-2.5" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState icon={<Radio className="h-10 w-10" />} text="No hay medios registrados" />
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════
+              VIEW: CLASIFICADORES
+              ═══════════════════════════════════════════════════════ */}
+          {activeView === 'clasificadores' && (
+            <div className="space-y-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Tag className="h-4 w-4 text-muted-foreground" />
+                    Ejes temáticos
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Clasifica las menciones capturadas por tipo, sentimiento y temas
+                    {ejes.length} clasificadores activos para análisis de menciones
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  {ejesLoading ? (
+                    <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+                  ) : ejes.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {ejes.map((eje) => (
+                        <div key={eje.id} className="p-4 rounded-lg border border-border hover:border-primary/30 transition-colors">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                {eje.color && (
+                                  <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: eje.color }} />
+                                )}
+                                <p className="text-sm font-semibold text-foreground truncate">{eje.nombre}</p>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">{eje.descripcion || eje.slug}</p>
+                            </div>
+                            <Badge variant="secondary" className="text-[10px] shrink-0 bg-primary/10 text-primary">
+                              {eje.mencionesCount}
+                            </Badge>
+                          </div>
+                          {eje.keywords && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {eje.keywords.split(',').slice(0, 4).map((kw, i) => (
+                                <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                  {kw.trim()}
+                                </span>
+                              ))}
+                              {eje.keywords.split(',').length > 4 && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                  +{eje.keywords.split(',').length - 4}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState icon={<Tag className="h-10 w-10" />} text="No hay clasificadores registrados" />
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════
+              VIEW: REPORTES
+              ═══════════════════════════════════════════════════════ */}
+          {activeView === 'reportes' && (
+            <div className="space-y-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                        <FileBarChart className="h-4 w-4 text-muted-foreground" />
+                        Reportes generados
+                      </CardTitle>
+                    </div>
+                    <Button onClick={handleGenerarReporte} disabled={generarReporteLoading} size="sm" className="gap-2 text-xs">
+                      {generarReporteLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+                      Generar reporte semanal
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  {reportesLoading ? (
+                    <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+                  ) : reportes.length > 0 ? (
+                    <div className="space-y-3 max-h-[500px] overflow-y-auto custom-scrollbar">
+                      {reportes.map((r: Record<string, unknown>, i: number) => (
+                        <div key={String(r.id || i)} className="flex items-center gap-4 p-3 rounded-lg border border-border">
+                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <FileText className="h-5 w-5 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground capitalize">
+                              {(r.tipo as string)?.replace(/_/g, ' ') || 'Reporte'}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              {r.totalMenciones ? `${r.totalMenciones} menciones · ` : ''}
+                              {r.fechaCreacion ? new Date(r.fechaCreacion as string).toLocaleDateString('es-BO') : ''}
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="text-[10px] shrink-0">
+                            {r.totalMenciones || 0}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState icon={<FileBarChart className="h-10 w-10" />} text="No hay reportes generados" subtext="Genera tu primer reporte semanal" />
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════
+              VIEW: CAPTURA
+              ═══════════════════════════════════════════════════════ */}
+          {activeView === 'captura' && (
+            <div className="space-y-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-muted-foreground" />
+                    Captura de menciones
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Busca menciones de legisladores en medios bolivianos automáticamente
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-4 pt-0 space-y-4">
-                  <Button
-                    onClick={handleAnalyze}
-                    disabled={analyzeLoading}
-                    variant="outline"
-                  >
-                    {analyzeLoading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Analizando...
-                      </>
-                    ) : (
-                      <>
-                        <Brain className="h-4 w-4 mr-2" />
-                        Analizar con IA
-                      </>
-                    )}
-                  </Button>
-
-                  {analyzeResult && (
-                    <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900/40">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                        <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300">
-                          {analyzeResult.analizadas} menciones analizadas correctamente
-                        </p>
-                      </div>
+                  <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-foreground">Cantidad de búsquedas</label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={20}
+                        value={captureCount}
+                        onChange={(e) => setCaptureCount(parseInt(e.target.value) || 5)}
+                        className="w-32"
+                      />
                     </div>
-                  )}
+                    <Button onClick={handleCapture} disabled={captureLoading} className="gap-2">
+                      {captureLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                      Ejecutar captura
+                    </Button>
+                  </div>
 
-                  {captureMenciones.length > 0 && (
-                    <div className="mt-4">
-                      <p className="text-sm font-medium text-foreground mb-2">
-                        Menciones más recientes
-                      </p>
-                      <div className="space-y-2 max-h-96 overflow-y-auto">
-                        {captureMenciones.slice(0, 15).map((m) => (
-                          <div
-                            key={m.id}
-                            className="p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-foreground truncate">
-                                  {m.titulo || m.texto?.substring(0, 80) || 'Sin título'}
-                                </p>
-                                <p className="text-[11px] text-muted-foreground mt-0.5">
-                                  {m.persona?.nombre || '—'} · {m.medio?.nombre || '—'}
-                                </p>
-                                {m.temas && (
-                                  <div className="flex flex-wrap gap-1 mt-1.5">
-                                    {m.temas.split(',').map((t, i) => (
-                                      <Badge key={i} variant="secondary" className="text-[9px] px-1.5 py-0">
-                                        {t.trim()}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex flex-col items-end gap-1 shrink-0">
-                                <span
-                                  className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
-                                    SENTIMIENTO_STYLES[m.sentimiento] || SENTIMIENTO_STYLES.no_clasificado
-                                  }`}
-                                >
-                                  {m.sentimiento.replace('_', ' ')}
-                                </span>
-                                <Badge variant="secondary" className="text-[9px] px-1.5 py-0">
-                                  {TIPO_MENCION_LABELS[m.tipoMencion] || m.tipoMencion}
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          {/* ═══ TAB REPORTES ═══ */}
-          <TabsContent value="reportes" className="space-y-6">
-            <Card className="border-border">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <FileBarChart className="h-4 w-4 text-muted-foreground" />
-                  Reportes
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Genera reportes semanales y mensuales de presencia mediática
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 pt-0 space-y-4">
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleGenerarReporte}
-                    disabled={generarReporteLoading}
-                    className="bg-foreground hover:bg-foreground/90 text-background"
-                  >
-                    {generarReporteLoading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Generando...
-                      </>
-                    ) : (
-                      <>
-                        <FileBarChart className="h-4 w-4 mr-2" />
-                        Generar reporte semanal
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    onClick={loadReportes}
-                    disabled={reporteLoading}
-                    variant="outline"
-                    size="sm"
-                  >
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                    Actualizar
-                  </Button>
-                </div>
-
-                {reportes.length > 0 ? (
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {reportes.map((r) => (
-                      <div
-                        key={r.id}
-                        className={`p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer ${
-                          selectedReporte?.id === r.id ? 'ring-2 ring-foreground/20' : ''
-                        }`}
-                        onClick={() => setSelectedReporte(r)}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground">
-                              {r.persona?.nombre
-                                ? `Reporte: ${r.persona.nombre}`
-                                : `Reporte global ${r.tipo}`}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">
-                              {r.totalMenciones} menciones · Sentimiento promedio: {r.sentimientoPromedio.toFixed(1)}
-                              {r.totalComentarios !== undefined && r.totalComentarios > 0 && (
-                                <> · {r.totalComentarios} comentarios</>
-                              )}
-                              {r.enlacesRotos !== undefined && r.enlacesRotos > 0 && (
-                                <> · {r.enlacesRotos} enlaces rotos</>
-                              )}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">
-                              {new Date(r.fechaCreacion).toLocaleDateString('es-BO', {
-                                day: '2-digit',
-                                month: 'long',
-                                year: 'numeric',
-                              })}
-                            </p>
-                          </div>
-                          <Badge variant="secondary" className="text-[10px] px-2 py-0.5 shrink-0">
-                            {r.tipo}
-                          </Badge>
+                  {captureResult && (
+                    <div className="p-4 rounded-lg bg-muted/50 border border-border space-y-3">
+                      <p className="text-sm font-semibold text-foreground">Resultado de la captura</p>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="text-center">
+                          <p className="text-xl font-bold text-primary">{captureResult.busquedas}</p>
+                          <p className="text-[11px] text-muted-foreground">Búsquedas</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xl font-bold text-emerald-600">{captureResult.mencionesNuevas}</p>
+                          <p className="text-[11px] text-muted-foreground">Nuevas</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xl font-bold text-red-600">{captureResult.errores}</p>
+                          <p className="text-[11px] text-muted-foreground">Errores</p>
                         </div>
                       </div>
-                    ))}
+                      {captureResult.detalles && captureResult.detalles.length > 0 && (
+                        <div className="max-h-40 overflow-y-auto custom-scrollbar">
+                          {captureResult.detalles.map((d, i) => (
+                            <p key={i} className="text-[11px] text-muted-foreground py-0.5">{d}</p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="text-[11px] text-muted-foreground">
+                    <p className="font-medium mb-1">Fuentes disponibles:</p>
+                    <p>La Razón, Página Siete, El Deber, Los Tiempos, Opinión, Correo del Sur, El Potosí, La Patria, El Diario, Jornada, Unitel, Red Uno, ATB Digital, Bolivia Verifica, ABI</p>
                   </div>
-                ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                    <p className="text-sm">No hay reportes generados aún</p>
-                    <p className="text-xs mt-1">
-                      Haz clic en &quot;Generar reporte semanal&quot; para crear el primero
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════
+              VIEW: CONFIGURACIÓN
+              ═══════════════════════════════════════════════════════ */}
+          {activeView === 'configuracion' && (
+            <div className="space-y-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Settings className="h-4 w-4 text-muted-foreground" />
+                    Configuración del sistema
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 space-y-4">
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                    <h3 className="text-sm font-semibold text-foreground mb-2">Marco filosófico</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Este sistema opera bajo los principios de pluralismo político y libertad de expresión
+                      consagrados en la Constitución Política del Estado Plurinacional de Bolivia (2009).
+                      No emitimos juicios de valor sobre las opiniones de legisladores ni partidos.
+                      Nuestro objetivo es proporcionar datos objetivos sobre la presencia mediática.
                     </p>
                   </div>
-                )}
-              </CardContent>
-            </Card>
 
-            {/* Reporte Preview */}
-            {selectedReporte && (
-              <Card className="border-border">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                    Vista previa del reporte
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-sm font-semibold text-foreground mb-1">
-                          {selectedReporte.persona?.nombre
-                            ? `Reporte de ${selectedReporte.persona.nombre}`
-                            : 'Reporte Global de Presencia Mediática'}
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                          Período: {new Date(selectedReporte.fechaInicio).toLocaleDateString('es-BO', {
-                            day: '2-digit',
-                            month: 'long',
-                            year: 'numeric',
-                          })} — {new Date(selectedReporte.fechaFin).toLocaleDateString('es-BO', {
-                            day: '2-digit',
-                            month: 'long',
-                            year: 'numeric',
-                          })}
-                        </p>
-                      </div>
+                  <Separator />
 
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        <div className="p-3 rounded-lg bg-muted">
-                          <p className="text-lg font-bold text-foreground">{selectedReporte.totalMenciones}</p>
-                          <p className="text-[11px] text-muted-foreground">Total menciones</p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-muted">
-                          <p className="text-lg font-bold text-foreground">{selectedReporte.sentimientoPromedio.toFixed(1)}</p>
-                          <p className="text-[11px] text-muted-foreground">Sentimiento promedio</p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-muted">
-                          <Badge variant="secondary" className="text-xs">
-                            {selectedReporte.tipo}
-                          </Badge>
-                          <p className="text-[11px] text-muted-foreground mt-1">Tipo de reporte</p>
-                        </div>
-                      </div>
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                    <h3 className="text-sm font-semibold text-foreground mb-2">Datos del sistema</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+                      <StatItem label="Legisladores" value={String(data?.totalPersonas || 0)} />
+                      <StatItem label="Medios" value={String(data?.totalMedios || 0)} />
+                      <StatItem label="Ejes temáticos" value={String(data?.totalEjes || 0)} />
+                      <StatItem label="Reportes" value={String(data?.totalReportes || 0)} />
+                    </div>
+                  </div>
 
-                      {/* New KPIs for v0.4.0 */}
-                      {(selectedReporte.totalComentarios !== undefined || selectedReporte.enlacesRotos !== undefined) && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                          {(selectedReporte.totalComentarios ?? 0) > 0 && (
-                            <div className="p-3 rounded-lg bg-muted">
-                              <p className="text-lg font-bold text-foreground">{selectedReporte.totalComentarios}</p>
-                              <p className="text-[11px] text-muted-foreground">Total comentarios</p>
-                            </div>
-                          )}
-                          {selectedReporte.sentimientoComentarios && (
-                            <div className="p-3 rounded-lg bg-muted col-span-2">
-                              <p className="text-sm font-medium text-foreground">Sentimiento comentarios</p>
-                              <p className="text-[11px] text-muted-foreground mt-0.5">{selectedReporte.sentimientoComentarios}</p>
-                            </div>
-                          )}
-                          {(selectedReporte.enlacesRotos ?? 0) > 0 && (
-                            <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40">
-                              <div className="flex items-center gap-1.5">
-                                <ShieldX className="h-4 w-4 text-red-500" />
-                                <p className="text-lg font-bold text-red-700 dark:text-red-400">{selectedReporte.enlacesRotos}</p>
-                              </div>
-                              <p className="text-[11px] text-red-600 dark:text-red-400">Enlaces rotos</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                  <Separator />
 
-                      {selectedReporte.temasPrincipales && (
-                        <div>
-                          <h4 className="text-sm font-medium text-foreground mb-2">Temas principales</h4>
-                          <div className="flex flex-wrap gap-1.5">
-                            {selectedReporte.temasPrincipales.split(',').map((t, i) => (
-                              <Badge key={i} variant="secondary" className="text-xs">
-                                {t.trim()}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {selectedReporte.resumen && (
-                        <div>
-                          <h4 className="text-sm font-medium text-foreground mb-1">Resumen</h4>
-                          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
-                            {selectedReporte.resumen}
-                          </p>
-                        </div>
-                      )}
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                    <h3 className="text-sm font-semibold text-foreground mb-3">Acciones de administración</h3>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" size="sm" onClick={handleSeed} disabled={seedLoading} className="text-xs gap-1">
+                        {seedLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Database className="h-3 w-3" />}
+                        Cargar datos de ejemplo
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            )}
-          </TabsContent>
-
-          {/* ═══ TAB GESTIÓN ═══ */}
-          <TabsContent value="gestion" className="space-y-6">
-            {/* Section A: Link Verification */}
-            <Card className="border-border">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <Link2 className="h-4 w-4 text-muted-foreground" />
-                  Verificación de enlaces
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Verifica que los enlaces a notas periodísticas sigan activos
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 pt-0 space-y-4">
-                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-                  <Button
-                    onClick={handleVerifyLinks}
-                    disabled={verifyLoading}
-                    variant="outline"
-                  >
-                    {verifyLoading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Verificando...
-                      </>
-                    ) : (
-                      <>
-                        <ShieldCheck className="h-4 w-4 mr-2" />
-                        Verificar enlaces (20)
-                      </>
-                    )}
-                  </Button>
-                </div>
-
-                {verifyResult && (
-                  <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900/40">
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                      <div>
-                        <p className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{verifyResult.verified}</p>
-                        <p className="text-[11px] text-emerald-600 dark:text-emerald-500">Verificados</p>
-                      </div>
-                      <div>
-                        <p className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{verifyResult.activos}</p>
-                        <p className="text-[11px] text-emerald-600 dark:text-emerald-500">Activos</p>
-                      </div>
-                      <div>
-                        <p className="text-lg font-bold text-red-600 dark:text-red-400">{verifyResult.rotos}</p>
-                        <p className="text-[11px] text-red-500 dark:text-red-400">Rotos</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {verifyStats && (
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="p-3 rounded-lg bg-muted text-center">
-                      <p className="text-lg font-bold text-foreground">{verifyStats.total}</p>
-                      <p className="text-[11px] text-muted-foreground">Total enlaces</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted text-center">
-                      <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{verifyStats.activos}</p>
-                      <p className="text-[11px] text-muted-foreground">Activos</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted text-center">
-                      <p className="text-lg font-bold text-red-600 dark:text-red-400">{verifyStats.rotos}</p>
-                      <p className="text-[11px] text-muted-foreground">Rotos</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted text-center">
-                      <p className="text-lg font-bold text-stone-500">{verifyStats.sinVerificar}</p>
-                      <p className="text-[11px] text-muted-foreground">Sin verificar</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Recently verified links table */}
-                {verifyStats && verifyStats.recientes.length > 0 && (
-                  <div className="mt-2">
-                    <p className="text-sm font-medium text-foreground mb-2">Enlaces verificados recientemente</p>
-                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                      {verifyStats.recientes.slice(0, 10).map((link) => (
-                        <div key={link.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 text-xs">
-                          {link.enlaceActivo ? (
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                          ) : (
-                            <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />
-                          )}
-                          <span className="flex-1 truncate text-foreground/70">
-                            {link.titulo || link.url}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground shrink-0">
-                            {link.fechaVerificacion
-                              ? new Date(link.fechaVerificacion).toLocaleDateString('es-BO', { day: '2-digit', month: 'short' })
-                              : ''}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Section B: Person Detail Panel */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Person list */}
-              <Card className="border-border lg:col-span-1">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <UsersRound className="h-4 w-4 text-muted-foreground" />
-                    Legisladores
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    {personaList.length} legisladores registrados
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 pt-0 space-y-3">
-                  <Input
-                    placeholder="Buscar por nombre..."
-                    value={personaSearch}
-                    onChange={(e) => setPersonaSearch(e.target.value)}
-                    className="text-sm"
-                  />
-
-                  {personaListLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : (
-                    <div className="space-y-1 max-h-[500px] overflow-y-auto">
-                      {personaList.map((p) => (
-                        <button
-                          key={p.id}
-                          onClick={() => loadPersonaDetail(p.id)}
-                          className={`w-full text-left p-2 rounded-lg hover:bg-muted/50 transition-colors flex items-center justify-between gap-2 ${
-                            selectedPersona?.persona.id === p.id ? 'bg-muted ring-1 ring-foreground/20' : ''
-                          }`}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-foreground truncate">{p.nombre}</p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {p.camara} · {p.partidoSigla}
-                            </p>
-                          </div>
-                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 shrink-0">
-                            {p.departamento}
-                          </Badge>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Person detail */}
-              <Card className="border-border lg:col-span-2">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold">
-                    Detalle del legislador
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  {personaDetailLoading ? (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : selectedPersona ? (
-                    <div className="space-y-4">
-                      {/* Person info */}
-                      <div className="p-4 rounded-lg bg-muted/50 space-y-2">
-                        <div className="flex items-start justify-between gap-4">
-                          <div>
-                            <h3 className="text-lg font-bold text-foreground">{selectedPersona.persona.nombre}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {selectedPersona.persona.camara} · {selectedPersona.persona.partidoSigla} — {selectedPersona.persona.partido}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              Departamento: {selectedPersona.persona.departamento} · Tipo: {selectedPersona.persona.tipo}
-                            </p>
-                            {selectedPersona.persona.cargoDirectiva && (
-                              <p className="text-sm text-muted-foreground">
-                                Cargo directiva: {selectedPersona.persona.cargoDirectiva}
-                              </p>
-                            )}
-                            {selectedPersona.persona.email && (
-                              <p className="text-sm text-muted-foreground">
-                                Email: {selectedPersona.persona.email}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
-                          <div className="p-2 rounded bg-background text-center">
-                            <p className="text-lg font-bold text-foreground">{selectedPersona.stats.totalMenciones}</p>
-                            <p className="text-[10px] text-muted-foreground">Total menciones</p>
-                          </div>
-                          <div className="p-2 rounded bg-background text-center">
-                            <p className="text-lg font-bold text-foreground">{selectedPersona.stats.mencionesSemana}</p>
-                            <p className="text-[10px] text-muted-foreground">Esta semana</p>
-                          </div>
-                          <div className="p-2 rounded bg-background text-center">
-                            <p className="text-lg font-bold text-foreground">{selectedPersona.stats.mencionesMes}</p>
-                            <p className="text-[10px] text-muted-foreground">Este mes</p>
-                          </div>
-                          <div className="p-2 rounded bg-background text-center">
-                            <p className="text-lg font-bold text-foreground">{selectedPersona.stats.sentimientoPromedio.toFixed(1)}</p>
-                            <p className="text-[10px] text-muted-foreground">Sentimiento prom.</p>
-                          </div>
-                        </div>
-
-                        {selectedPersona.stats.temasPrincipales.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {selectedPersona.stats.temasPrincipales.map((t, i) => (
-                              <Badge key={i} variant="secondary" className="text-[10px] px-1.5 py-0">
-                                {t}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Medios stats */}
-                      {selectedPersona.mediosStats.length > 0 && (
-                        <div>
-                          <p className="text-sm font-medium text-foreground mb-2">Medios con más presencia</p>
-                          <div className="flex flex-wrap gap-2">
-                            {selectedPersona.mediosStats.slice(0, 8).map((ms) => (
-                              <div key={ms.medio} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-muted text-xs">
-                                <span className="font-medium text-foreground">{ms.medio}</span>
-                                <Badge variant="secondary" className="text-[9px] px-1 py-0">{ms.count}</Badge>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Menciones list */}
-                      <div>
-                        <p className="text-sm font-medium text-foreground mb-2">
-                          Menciones ({selectedPersona.menciones.length})
-                        </p>
-                        {selectedPersona.menciones.length > 0 ? (
-                          <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                            {selectedPersona.menciones.map((m) => (
-                              <div
-                                key={m.id}
-                                className="p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors"
-                              >
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-foreground line-clamp-1">
-                                      {m.titulo || m.texto?.substring(0, 80) || 'Sin título'}
-                                    </p>
-                                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                                      {m.medio?.nombre || '—'} ·{' '}
-                                      {m.fechaCaptura
-                                        ? new Date(m.fechaCaptura).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' })
-                                        : '—'}
-                                    </p>
-                                  </div>
-                                  <div className="flex items-center gap-1.5 shrink-0">
-                                    {/* Link status indicator */}
-                                    <div className="flex items-center gap-1" title={m.fechaVerificacion
-                                      ? (m.enlaceActivo ? 'Enlace activo' : 'Enlace roto')
-                                      : 'Sin verificar'}>
-                                      <div
-                                        className={`w-2 h-2 rounded-full ${
-                                          m.fechaVerificacion
-                                            ? (m.enlaceActivo ? 'bg-emerald-500' : 'bg-red-500')
-                                            : 'bg-stone-300 dark:bg-stone-600'
-                                        }`}
-                                      />
-                                    </div>
-                                    {/* Sentimiento badge */}
-                                    <span
-                                      className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
-                                        SENTIMIENTO_STYLES[m.sentimiento] || SENTIMIENTO_STYLES.no_clasificado
-                                      }`}
-                                    >
-                                      {m.sentimiento.replace('_', ' ')}
-                                    </span>
-                                    {/* Tipo badge */}
-                                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0">
-                                      {TIPO_MENCION_LABELS[m.tipoMencion] || m.tipoMencion}
-                                    </Badge>
-                                  </div>
-                                </div>
-
-                                {/* Action buttons */}
-                                <div className="flex flex-wrap gap-1.5 mt-2">
-                                  {m.url && (
-                                    <a
-                                      href={m.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-muted hover:bg-muted/80 text-muted-foreground transition-colors"
-                                    >
-                                      <ExternalLink className="h-3 w-3" />
-                                      Verificar enlace
-                                    </a>
-                                  )}
-                                  {m.textoCompleto && (
-                                    <button
-                                      onClick={() => setExpandedTexto(expandedTexto === m.id ? null : m.id)}
-                                      className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-muted hover:bg-muted/80 text-muted-foreground transition-colors"
-                                    >
-                                      {expandedTexto === m.id ? (
-                                        <>
-                                          <ChevronUp className="h-3 w-3" />
-                                          Ocultar texto
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Eye className="h-3 w-3" />
-                                          Ver nota completa
-                                        </>
-                                      )}
-                                    </button>
-                                  )}
-                                  <button
-                                    onClick={() => loadComments(m.id, m.titulo || 'Nota')}
-                                    className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-muted hover:bg-muted/80 text-muted-foreground transition-colors"
-                                  >
-                                    <MessageSquare className="h-3 w-3" />
-                                    Comentarios ({m.comentariosCount || 0})
-                                  </button>
-                                </div>
-
-                                {/* Expanded full text */}
-                                {expandedTexto === m.id && m.textoCompleto && (
-                                  <div className="mt-2 p-3 rounded-lg bg-muted/50 border border-border text-xs text-muted-foreground max-h-48 overflow-y-auto whitespace-pre-wrap leading-relaxed">
-                                    {m.textoCompleto}
-                                  </div>
-                                )}
-
-                                {/* Comments summary */}
-                                {m.comentariosResumen && (
-                                  <p className="text-[10px] text-muted-foreground mt-1.5 italic">
-                                    Resumen comentarios: {m.comentariosResumen}
-                                  </p>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground text-center py-6">
-                            No hay menciones registradas para este legislador
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <UsersRound className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                      <p className="text-sm">Selecciona un legislador para ver su detalle</p>
-                      <p className="text-xs mt-1">
-                        Usa el panel de la izquierda para buscar y seleccionar
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
             </div>
-          </TabsContent>
-        </Tabs>
-      </main>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}
 
-      {/* ─── Comments Modal ─── */}
-      {selectedMencionComments && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedMencionComments(null)}>
-          <div className="bg-background rounded-xl border border-border shadow-lg max-w-lg w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="p-4 border-b border-border flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-foreground">Comentarios</h3>
-                <p className="text-xs text-muted-foreground truncate max-w-md">{selectedMencionComments.titulo}</p>
-              </div>
-              <button onClick={() => setSelectedMencionComments(null)} className="hover:opacity-70">
-                <XCircle className="h-5 w-5 text-muted-foreground" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4">
-              {commentsLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : selectedMencionComments.comentarios.length > 0 ? (
-                <div className="space-y-3">
-                  {selectedMencionComments.comentarios.map((c) => (
-                    <div key={c.id} className="p-3 rounded-lg border border-border">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <span className="text-xs font-medium text-foreground">{c.autor || 'Anónimo'}</span>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
-                              SENTIMIENTO_STYLES[c.sentimiento] || SENTIMIENTO_STYLES.no_clasificado
-                            }`}
-                          >
-                            {c.sentimiento.replace('_', ' ')}
-                          </span>
-                          {c.fechaComentario && (
-                            <span className="text-[10px] text-muted-foreground">
-                              {new Date(c.fechaComentario).toLocaleDateString('es-BO', { day: '2-digit', month: 'short' })}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed">{c.texto}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No hay comentarios registrados para esta nota</p>
-                </div>
-              )}
-            </div>
+/* ═══════════════════════════════════════════════════════════
+   SUB-COMPONENTS
+   ═══════════════════════════════════════════════════════════ */
+
+function KPICard({
+  icon,
+  value,
+  label,
+  subtext,
+  colorClass,
+}: {
+  icon: React.ReactNode;
+  value: number;
+  label: string;
+  subtext?: string;
+  colorClass?: string;
+}) {
+  return (
+    <Card className="hover:shadow-sm transition-shadow">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3">
+          <div className={`h-10 w-10 rounded-lg bg-muted flex items-center justify-center ${colorClass || 'text-muted-foreground'}`}>
+            {icon}
+          </div>
+          <div className="min-w-0">
+            <p className="text-2xl font-bold text-foreground leading-tight">{value}</p>
+            <p className="text-xs text-muted-foreground truncate">{label}</p>
           </div>
         </div>
-      )}
+        {subtext && (
+          <p className="mt-2 text-[10px] text-muted-foreground/70 truncate">{subtext}</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
-      {/* ─── Footer ─── */}
-      <footer className="border-t border-border bg-card mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <p className="text-xs text-muted-foreground">
-              Monitor de Presencia en Medios · Asamblea Legislativa Plurinacional de Bolivia ·
-              Periodo 2025-2030
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {data?.totalPersonas || 0} legisladores · {data?.totalMedios || 0} medios
-            </p>
-          </div>
-        </div>
-      </footer>
+function EmptyState({ icon, text, subtext }: { icon: React.ReactNode; text: string; subtext?: string }) {
+  return (
+    <div className="flex flex-col items-center py-10 text-muted-foreground">
+      <div className="opacity-40">{icon}</div>
+      <p className="text-sm mt-2">{text}</p>
+      {subtext && <p className="text-xs mt-1 text-muted-foreground/60">{subtext}</p>}
+    </div>
+  );
+}
+
+function FilterSelect({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="h-9 rounded-md border border-input bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+    >
+      {options.map((opt) => (
+        <option key={opt} value={opt}>{opt}</option>
+      ))}
+    </select>
+  );
+}
+
+function LevelTab({
+  active,
+  onClick,
+  label,
+  nivel,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  nivel?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`
+        px-3 py-1.5 rounded-full text-xs font-medium transition-colors
+        ${active
+          ? nivel ? NIVEL_COLORS[nivel] : 'bg-primary text-primary-foreground'
+          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+        }
+      `}
+    >
+      {label}
+    </button>
+  );
+}
+
+function StatItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="p-2 rounded bg-background">
+      <p className="text-lg font-bold text-foreground">{value}</p>
+      <p className="text-[10px] text-muted-foreground">{label}</p>
     </div>
   );
 }
