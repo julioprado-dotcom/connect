@@ -1,0 +1,1514 @@
+[
+  {
+    "data": {
+      "bancada_id": 2,
+      "nombre": "LEONARDO",
+      "apellidos": "ROCA EGUEZ",
+      "foto_perfil": "images/a0812cb7-c456-4e1d-a613-02f1f405ef23_1764766614.jpg",
+      "fecha_nacimiento": "1980-06-04",
+      "brigada": "79",
+      "email": "leonardo.roca2@gmail.com",
+      "lugar_nacimiento": "SANTA CRUZ - ANDRES IBAÑEZ - SANTA CRUZ DE LA SIERRA",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 75,
+        "nombre": "KHATIA LISBETH",
+        "apellidos": "QUIROGA FERNÁNDEZ"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 109,
+      "cv": null,
+      "bancada": {
+        "id": 2,
+        "sigla": "LIBRE",
+        "image": "images/a06fb008-a10a-42e7-b91b-7ff3e7c52a2d_1764015551.png",
+        "brigada_color": "#E62155",
+        "nombre": "ALIANZA LIBRE"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 79,
+        "name": "Santa Cruz"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 2,
+      "nombre": "HUGO MARCELO",
+      "apellidos": "CORTREZ CALVIMONTES",
+      "foto_perfil": "images/a12c33a0-d36b-47e8-aca3-814e591dd6d4_1772112168.png",
+      "fecha_nacimiento": "1974-01-26",
+      "brigada": "74",
+      "email": "marcelo.cortez2@gmail.com",
+      "lugar_nacimiento": "CHUQUISACA - OROPEZA - SUCRE",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 93,
+        "nombre": "TOMASA",
+        "apellidos": "YARHUI JACOME"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 111,
+      "cv": null,
+      "bancada": {
+        "id": 2,
+        "sigla": "LIBRE",
+        "image": "images/a06fb008-a10a-42e7-b91b-7ff3e7c52a2d_1764015551.png",
+        "brigada_color": "#E62155",
+        "nombre": "ALIANZA LIBRE"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 74,
+        "name": "Chuquisaca"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 1,
+      "nombre": "MANFRED LEO",
+      "apellidos": "PEREZ HASSENTEUFEL",
+      "foto_perfil": "images/a12c6761-fb13-4967-a671-6f31edcdc95c_1772120851.png",
+      "fecha_nacimiento": "1971-11-14",
+      "brigada": "74",
+      "email": "manfred.perez2@gmail.com",
+      "lugar_nacimiento": "CHUQUISACA-LUIS CALVO-MUYUPAMPA",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 83,
+        "nombre": "BERTHA",
+        "apellidos": "CARTAGENA SÁNCHEZ"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 113,
+      "cv": null,
+      "bancada": {
+        "id": 1,
+        "sigla": "PDC",
+        "image": "images/a06faf7b-840a-4292-8e94-54a4dc4a43aa_1764015459.png",
+        "brigada_color": "#143A83",
+        "nombre": "PARTIDO DEMOCRATA CRISTIANO"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 74,
+        "name": "Chuquisaca"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 2,
+      "nombre": "HUGO MARCELO",
+      "apellidos": "CORTEZ CALVIMONTES",
+      "foto_perfil": "images/a08037be-5156-40fd-afd2-3062ba859278_1764725514.jpg",
+      "fecha_nacimiento": "1974-01-26",
+      "brigada": "74",
+      "email": "hugo.cortez2@gmail.com",
+      "lugar_nacimiento": "CHUQUISACA - OROPEZA - SUCRE",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 93,
+        "nombre": "TOMASA",
+        "apellidos": "YARHUI JACOME"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 108,
+      "cv": null,
+      "bancada": {
+        "id": 2,
+        "sigla": "LIBRE",
+        "image": "images/a06fb008-a10a-42e7-b91b-7ff3e7c52a2d_1764015551.png",
+        "brigada_color": "#E62155",
+        "nombre": "ALIANZA LIBRE"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 74,
+        "name": "Chuquisaca"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 1,
+      "nombre": "JESUS HUMBERTO",
+      "apellidos": "SUAREZ EGUEZ",
+      "foto_perfil": "images/a12c40e3-662f-4b3e-80b7-02b03d7b63bc_1772114392.png",
+      "fecha_nacimiento": "1980-05-29",
+      "brigada": "77",
+      "email": "jesus.suarez2@gmail.com",
+      "lugar_nacimiento": "BENI-CERCADO-TRINIDAD",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 106,
+        "nombre": "CINTIA MONICA",
+        "apellidos": "PUERTA CAMPOS"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 112,
+      "cv": null,
+      "bancada": {
+        "id": 1,
+        "sigla": "PDC",
+        "image": "images/a06faf7b-840a-4292-8e94-54a4dc4a43aa_1764015459.png",
+        "brigada_color": "#143A83",
+        "nombre": "PARTIDO DEMOCRATA CRISTIANO"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 77,
+        "name": "Pando"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 3,
+      "nombre": "LORGIO FERNANDO",
+      "apellidos": "PAREJA SAUCEDO",
+      "foto_perfil": "images/a12c6981-a122-4626-9a41-51f406d1773d_1772121207.png",
+      "fecha_nacimiento": "1985-12-06",
+      "brigada": "79",
+      "email": "lorgio.pareja2@gmail.com",
+      "lugar_nacimiento": "SANTA CRUZ-ANDRÉS IBÁÑEZ-SANTA CRUZ DE LA SIERRA",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 74,
+        "nombre": "ROSA TATIANA",
+        "apellidos": "AÑEZ CARRASCO"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 115,
+      "cv": null,
+      "bancada": {
+        "id": 3,
+        "sigla": "UNIDAD",
+        "image": "images/a06fb0a2-0668-4c4a-bfca-459d6f13f1de_1764015652.png",
+        "brigada_color": "#FE6517",
+        "nombre": "ALIANZA UNIDAD"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 79,
+        "name": "Santa Cruz"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 1,
+      "nombre": "VILLMA",
+      "apellidos": "COLQUE CAMACHO",
+      "foto_perfil": "images/a12c6b23-c4a4-4855-b157-498f3f6aed35_1772121481.png",
+      "fecha_nacimiento": "1983-05-10",
+      "brigada": "76",
+      "email": "villma.colque2@senado.gob.bo",
+      "lugar_nacimiento": "LA PAZ-INQUISIVI-CHOQUETANGA",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 95,
+        "nombre": "FREDDY",
+        "apellidos": "CASTILLO CHAVEZ"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 116,
+      "cv": null,
+      "bancada": {
+        "id": 1,
+        "sigla": "PDC",
+        "image": "images/a06faf7b-840a-4292-8e94-54a4dc4a43aa_1764015459.png",
+        "brigada_color": "#143A83",
+        "nombre": "PARTIDO DEMOCRATA CRISTIANO"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 76,
+        "name": "Oruro"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 1,
+      "nombre": "LENNY MAYRA",
+      "apellidos": "AYALA JUSTINIANO",
+      "foto_perfil": "images/a12c6d51-8f85-453a-b8f2-60e10d64ed22_1772121846.png",
+      "fecha_nacimiento": "1990-01-19",
+      "brigada": "72",
+      "email": "lenny.ayala2@senado.gob.bo",
+      "lugar_nacimiento": "COCHABAMBA-CERCADO-COCHABAMBA",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 96,
+        "nombre": "WILDER VELIZ ARMAS",
+        "apellidos": "VELIZ ARMAS"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 118,
+      "cv": null,
+      "bancada": {
+        "id": 1,
+        "sigla": "PDC",
+        "image": "images/a06faf7b-840a-4292-8e94-54a4dc4a43aa_1764015459.png",
+        "brigada_color": "#143A83",
+        "nombre": "PARTIDO DEMOCRATA CRISTIANO"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 72,
+        "name": "Cochabamba"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 1,
+      "nombre": "ROXANA",
+      "apellidos": "MAMANI COLQUEHUANCA",
+      "foto_perfil": "images/a12c6849-b909-403a-83d6-3b4f864116b7_1772121002.png",
+      "fecha_nacimiento": "1976-09-26",
+      "brigada": "75",
+      "email": "roxana.mamani2@gmail.com",
+      "lugar_nacimiento": "LA PAZ-MURILLO-SEÑORA DE LA PAZ",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 107,
+        "nombre": "NICANOR GONZALO",
+        "apellidos": "COCHI CONDORI"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 114,
+      "cv": null,
+      "bancada": {
+        "id": 1,
+        "sigla": "PDC",
+        "image": "images/a06faf7b-840a-4292-8e94-54a4dc4a43aa_1764015459.png",
+        "brigada_color": "#143A83",
+        "nombre": "PARTIDO DEMOCRATA CRISTIANO"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 75,
+        "name": "La Paz"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 2,
+      "nombre": "ALDO SERGIO",
+      "apellidos": "VILLEGAS MORA",
+      "foto_perfil": "images/a12c6bff-d36f-4a11-b939-741ad5e22607_1772121625.png",
+      "fecha_nacimiento": "1979-08-20",
+      "brigada": "72",
+      "email": "aldo.villegas2@senado.gob.bo",
+      "lugar_nacimiento": "ORURO-CERCADO-ORURO",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 88,
+        "nombre": "WANDA XIMENA",
+        "apellidos": "MEDRANO HERVAS"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 117,
+      "cv": null,
+      "bancada": {
+        "id": 2,
+        "sigla": "LIBRE",
+        "image": "images/a06fb008-a10a-42e7-b91b-7ff3e7c52a2d_1764015551.png",
+        "brigada_color": "#E62155",
+        "nombre": "ALIANZA LIBRE"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 72,
+        "name": "Cochabamba"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 1,
+      "nombre": "RICHARD",
+      "apellidos": "ESPADA UGARTE",
+      "foto_perfil": "images/a12c7025-dc80-4a8b-8055-f696b8940bf2_1772122321.png",
+      "fecha_nacimiento": "1986-02-06",
+      "brigada": "79",
+      "email": "richard.espada2@senado.gob.bo",
+      "lugar_nacimiento": "SANTA CRUZ-ANDRÉS IBÁÑEZ-SANTA CRUZ DE LA SIERRA",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 99,
+        "nombre": "PAOLA LIMBANIA",
+        "apellidos": "LÓPEZ ZEBALLOS"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 119,
+      "cv": null,
+      "bancada": {
+        "id": 1,
+        "sigla": "PDC",
+        "image": "images/a06faf7b-840a-4292-8e94-54a4dc4a43aa_1764015459.png",
+        "brigada_color": "#143A83",
+        "nombre": "PARTIDO DEMOCRATA CRISTIANO"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 79,
+        "name": "Santa Cruz"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 1,
+      "nombre": "REINA ISABEL",
+      "apellidos": "PALLARES MORALES",
+      "foto_perfil": "images/a12c7368-1776-414d-8cbe-920ac2e0d69e_1772122868.png",
+      "fecha_nacimiento": "1963-11-16",
+      "brigada": "74",
+      "email": "reina.pallares2@senado.gob.bo",
+      "lugar_nacimiento": "POTOSÍ-CHAYANTA-RAVELO",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 84,
+        "nombre": "DANIEL ANTONIO",
+        "apellidos": "ORTIZ VELÁSQUEZ"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 121,
+      "cv": null,
+      "bancada": {
+        "id": 1,
+        "sigla": "PDC",
+        "image": "images/a06faf7b-840a-4292-8e94-54a4dc4a43aa_1764015459.png",
+        "brigada_color": "#143A83",
+        "nombre": "PARTIDO DEMOCRATA CRISTIANO"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 74,
+        "name": "Chuquisaca"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 2,
+      "nombre": "ILSE FÁTIMA",
+      "apellidos": "DAVILA ARANCIBIA",
+      "foto_perfil": "images/a12c7271-ea90-418f-b61a-8c711e1b3ecf_1772122707.png",
+      "fecha_nacimiento": "1984-05-13",
+      "brigada": "74",
+      "email": "ilse.davila2@senado.gob.bo",
+      "lugar_nacimiento": "CHUQUISACA-OROPEZA-SUCRE",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 104,
+        "nombre": "ABDON",
+        "apellidos": "PORCEL ARANCIBIA"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 120,
+      "cv": null,
+      "bancada": {
+        "id": 2,
+        "sigla": "LIBRE",
+        "image": "images/a06fb008-a10a-42e7-b91b-7ff3e7c52a2d_1764015551.png",
+        "brigada_color": "#E62155",
+        "nombre": "ALIANZA LIBRE"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 74,
+        "name": "Chuquisaca"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 1,
+      "nombre": "EDWIN",
+      "apellidos": "LÓPEZ QUIROGA",
+      "foto_perfil": "images/a12c74b9-adc4-4657-96be-ad80fe4970a8_1772123089.png",
+      "fecha_nacimiento": "1957-06-14",
+      "brigada": "76",
+      "email": "edwin.quiroga2@senado.gob.bo",
+      "lugar_nacimiento": "ORURO-CERCAD-ORURO",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 98,
+        "nombre": "MARÍA ANTONIETA",
+        "apellidos": "ALCÓN SÁNCHEZ"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 122,
+      "cv": null,
+      "bancada": {
+        "id": 1,
+        "sigla": "PDC",
+        "image": "images/a06faf7b-840a-4292-8e94-54a4dc4a43aa_1764015459.png",
+        "brigada_color": "#143A83",
+        "nombre": "PARTIDO DEMOCRATA CRISTIANO"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 76,
+        "name": "Oruro"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 2,
+      "nombre": "CLAUDIA",
+      "apellidos": "CARDENAS VELÁSQUEZ",
+      "foto_perfil": "images/a12c75e5-81ba-4172-98d8-f6154a6f72f8_1772123286.png",
+      "fecha_nacimiento": "1969-07-02",
+      "brigada": "73",
+      "email": "claudia.cardenas2@senado.gob.bo",
+      "lugar_nacimiento": "COCHABAMBA-CERCADO-COCHABAMBA",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 79,
+        "nombre": "ERNESTO",
+        "apellidos": "SUAREZ SATTORI"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 123,
+      "cv": null,
+      "bancada": {
+        "id": 2,
+        "sigla": "LIBRE",
+        "image": "images/a06fb008-a10a-42e7-b91b-7ff3e7c52a2d_1764015551.png",
+        "brigada_color": "#E62155",
+        "nombre": "ALIANZA LIBRE"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 73,
+        "name": "Beni"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 3,
+      "nombre": "MARCELO MATIAS",
+      "apellidos": "CARDONA IBAÑEZ",
+      "foto_perfil": "images/a12c77c5-c88d-404f-94fd-2812b0a71fc5_1772123600.png",
+      "fecha_nacimiento": "1982-01-05",
+      "brigada": "73",
+      "email": "marcelo.cardona2@senado.gob.bo",
+      "lugar_nacimiento": "COCHABAMBA-CERCADO-COCHABAMBA",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 94,
+        "nombre": "ANA KARINA",
+        "apellidos": "VELASCO AÑEZ"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 125,
+      "cv": null,
+      "bancada": {
+        "id": 3,
+        "sigla": "UNIDAD",
+        "image": "images/a06fb0a2-0668-4c4a-bfca-459d6f13f1de_1764015652.png",
+        "brigada_color": "#FE6517",
+        "nombre": "ALIANZA UNIDAD"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 73,
+        "name": "Beni"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 1,
+      "nombre": "FREDDY",
+      "apellidos": "RIOJA MELGAR",
+      "foto_perfil": "images/a12c76df-6f70-4cb3-bd4b-4ba842bdf528_1772123449.png",
+      "fecha_nacimiento": "1957-04-20",
+      "brigada": "78",
+      "email": "freddy.rioja2@senado.gob.bo",
+      "lugar_nacimiento": "SANTA CRUZ-CORDILLERA-CAMIRI",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 92,
+        "nombre": "BERTHA NURMY",
+        "apellidos": "GUTIERREZ MENESES"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 124,
+      "cv": null,
+      "bancada": {
+        "id": 1,
+        "sigla": "PDC",
+        "image": "images/a06faf7b-840a-4292-8e94-54a4dc4a43aa_1764015459.png",
+        "brigada_color": "#143A83",
+        "nombre": "PARTIDO DEMOCRATA CRISTIANO"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 78,
+        "name": "Potosí"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 2,
+      "nombre": "CAROLINA",
+      "apellidos": "GIESE URRESTI",
+      "foto_perfil": "images/a12c788a-6d9f-4d6b-bed5-91c040d47856_1772123729.png",
+      "fecha_nacimiento": "1996-11-09",
+      "brigada": "77",
+      "email": "carolina.giese2@senado.gob.bo",
+      "lugar_nacimiento": "PANDO-NICOLAS SUAREZ-COBIJA",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 77,
+        "nombre": "JULIO DIEGO",
+        "apellidos": "ROMAÑA GALINDO"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 126,
+      "cv": null,
+      "bancada": {
+        "id": 2,
+        "sigla": "LIBRE",
+        "image": "images/a06fb008-a10a-42e7-b91b-7ff3e7c52a2d_1764015551.png",
+        "brigada_color": "#E62155",
+        "nombre": "ALIANZA LIBRE"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 77,
+        "name": "Pando"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 4,
+      "nombre": "APOLINAR",
+      "apellidos": "RIVERA MUÑOZ",
+      "foto_perfil": "images/a12c79d9-c102-4ab7-88a3-8424bf0ccf5c_1772123949.png",
+      "fecha_nacimiento": "1966-09-03",
+      "brigada": "72",
+      "email": "apolina.rivera2@senado.gob.bo",
+      "lugar_nacimiento": "POTOSÍ-TOMASA FRIAS-POTOSÍ",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 103,
+        "nombre": "CLAUDIA",
+        "apellidos": "MALLON VARGAS"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 127,
+      "cv": null,
+      "bancada": {
+        "id": 4,
+        "sigla": "APB-SÚMATE",
+        "image": "images/a0802a28-9297-46a1-b897-7c8278adb969_1764723235.jpg",
+        "brigada_color": "#00000",
+        "nombre": "AUTONOMÍA PARA BOLIVIA SÚMATE"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 72,
+        "name": "Cochabamba"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 3,
+      "nombre": "MABEL",
+      "apellidos": "GIORDANO SONNENSCHEIN",
+      "foto_perfil": "images/a12c7aaa-eb9a-4456-a2f5-262d03e53ca4_1772124086.png",
+      "fecha_nacimiento": "1985-01-15",
+      "brigada": "73",
+      "email": "mabel.giordano2@senado.gob.bo",
+      "lugar_nacimiento": "BENI-VACA DIEZ-RIBERALTA",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 85,
+        "nombre": "JOSE",
+        "apellidos": "ROCA HAENSEL"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 128,
+      "cv": null,
+      "bancada": {
+        "id": 3,
+        "sigla": "UNIDAD",
+        "image": "images/a06fb0a2-0668-4c4a-bfca-459d6f13f1de_1764015652.png",
+        "brigada_color": "#FE6517",
+        "nombre": "ALIANZA UNIDAD"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 73,
+        "name": "Beni"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 1,
+      "nombre": "RAMIRO",
+      "apellidos": "MAMANI RAMIREZ",
+      "foto_perfil": "images/a12c7cf5-af33-4886-8bee-b611c5cd2861_1772124471.png",
+      "fecha_nacimiento": "1990-08-01",
+      "brigada": "76",
+      "email": "ramiro.mamani2@senado.gob.bo",
+      "lugar_nacimiento": "POTOSÍ-ALONSO DE IBAÑEZ-CHOJLLA",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 76,
+        "nombre": "YASMIN",
+        "apellidos": "ESTIVARIZ  VILLARROEL"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 130,
+      "cv": null,
+      "bancada": {
+        "id": 1,
+        "sigla": "PDC",
+        "image": "images/a06faf7b-840a-4292-8e94-54a4dc4a43aa_1764015459.png",
+        "brigada_color": "#143A83",
+        "nombre": "PARTIDO DEMOCRATA CRISTIANO"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 76,
+        "name": "Oruro"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 1,
+      "nombre": "SUSANA GABRIELA",
+      "apellidos": "RUIZ ZULETA",
+      "foto_perfil": "images/a12c7df6-edea-449d-a839-21097ba72eea_1772124639.png",
+      "fecha_nacimiento": "1984-12-12",
+      "brigada": "78",
+      "email": "susana.rivera2@senado.gob.bo",
+      "lugar_nacimiento": "POTOSÍ-TOMAS FRIAS-POTOSÍ",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 101,
+        "nombre": "MARCELINO",
+        "apellidos": "FLORES ORDOÑEZ"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 131,
+      "cv": null,
+      "bancada": {
+        "id": 1,
+        "sigla": "PDC",
+        "image": "images/a06faf7b-840a-4292-8e94-54a4dc4a43aa_1764015459.png",
+        "brigada_color": "#143A83",
+        "nombre": "PARTIDO DEMOCRATA CRISTIANO"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 78,
+        "name": "Potosí"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 3,
+      "nombre": "MARCO ANTONIO",
+      "apellidos": "SEGOVIA VARGAS",
+      "foto_perfil": "images/a12c7bde-c684-484f-a981-0667ea4d777a_1772124288.png",
+      "fecha_nacimiento": "1963-08-30",
+      "brigada": "80",
+      "email": "marco.segovia2@senado.gob.bo",
+      "lugar_nacimiento": "TARIJA-CERCADO-TARIJA",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 87,
+        "nombre": "LEONOR ROSALVA",
+        "apellidos": "ROMERO GUTIERREZ"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 129,
+      "cv": null,
+      "bancada": {
+        "id": 3,
+        "sigla": "UNIDAD",
+        "image": "images/a06fb0a2-0668-4c4a-bfca-459d6f13f1de_1764015652.png",
+        "brigada_color": "#FE6517",
+        "nombre": "ALIANZA UNIDAD"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 80,
+        "name": "Tarija"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 2,
+      "nombre": "CINTHYA  INGA",
+      "apellidos": "GUTIERREZ GÚZMAN",
+      "foto_perfil": "images/a12c7ea7-2880-4acd-a518-8f1407946da9_1772124755.png",
+      "fecha_nacimiento": "1981-11-15",
+      "brigada": "76",
+      "email": "cinthya.gutierrez2@senado.gob.bo",
+      "lugar_nacimiento": "ORURO-CERCADO-ORURO",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 105,
+        "nombre": "JOSÉ",
+        "apellidos": "SÁNCHEZ AGUILAR"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 132,
+      "cv": null,
+      "bancada": {
+        "id": 2,
+        "sigla": "LIBRE",
+        "image": "images/a06fb008-a10a-42e7-b91b-7ff3e7c52a2d_1764015551.png",
+        "brigada_color": "#E62155",
+        "nombre": "ALIANZA LIBRE"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 76,
+        "name": "Oruro"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 3,
+      "nombre": "SICHARD HANS",
+      "apellidos": "SORAIDE CASTEDO",
+      "foto_perfil": "images/a12c7f89-7d51-4ab9-a450-702eb049b3dd_1772124903.png",
+      "fecha_nacimiento": "1983-10-18",
+      "brigada": "77",
+      "email": "sichard.soraide2@senado.gob.bo",
+      "lugar_nacimiento": "SANTA CRUZ-ANDRES IBAÑEZ-SANTA CRUZ DE LA SIERRA",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 100,
+        "nombre": "ELIANA RINA",
+        "apellidos": "ACOSTA QUISPE"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 133,
+      "cv": null,
+      "bancada": {
+        "id": 3,
+        "sigla": "UNIDAD",
+        "image": "images/a06fb0a2-0668-4c4a-bfca-459d6f13f1de_1764015652.png",
+        "brigada_color": "#FE6517",
+        "nombre": "ALIANZA UNIDAD"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 77,
+        "name": "Pando"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 2,
+      "nombre": "ROGER",
+      "apellidos": "MAMANI CORONADO",
+      "foto_perfil": "images/a12c8051-715d-422b-bc15-f6366b6cf14e_1772125034.png",
+      "fecha_nacimiento": "1977-06-24",
+      "brigada": "78",
+      "email": "roger.mamani2@senado.gob.bo",
+      "lugar_nacimiento": "POTOSÍ-TOMAS FRIAS-POTOSÍ",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 90,
+        "nombre": "BETTY",
+        "apellidos": "CANAVIRI VILLANUEVA"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 134,
+      "cv": null,
+      "bancada": {
+        "id": 2,
+        "sigla": "LIBRE",
+        "image": "images/a06fb008-a10a-42e7-b91b-7ff3e7c52a2d_1764015551.png",
+        "brigada_color": "#E62155",
+        "nombre": "ALIANZA LIBRE"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 78,
+        "name": "Potosí"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 1,
+      "nombre": "LUZMAYA",
+      "apellidos": "ZELAYA VEGA",
+      "foto_perfil": "images/a12c8135-a653-4adf-8538-a1b3d42c80f0_1772125184.png",
+      "fecha_nacimiento": "1987-02-10",
+      "brigada": "80",
+      "email": "luzmaya.vega2@senado.gob.bo",
+      "lugar_nacimiento": "CHUQUISACA - HERNANDO SILEZ-  SAN PABLO DE HUACARETA",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 78,
+        "nombre": "DIEGO ESTEBAN MATEO",
+        "apellidos": "ÁVILA NAVAJAS"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 135,
+      "cv": null,
+      "bancada": {
+        "id": 1,
+        "sigla": "PDC",
+        "image": "images/a06faf7b-840a-4292-8e94-54a4dc4a43aa_1764015459.png",
+        "brigada_color": "#143A83",
+        "nombre": "PARTIDO DEMOCRATA CRISTIANO"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 80,
+        "name": "Tarija"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 3,
+      "nombre": "MARCELA",
+      "apellidos": "GUERRERO VILLCA",
+      "foto_perfil": "images/a12c81e5-2d7c-4d6f-be7f-5361a8fa76f9_1772125299.png",
+      "fecha_nacimiento": "1988-10-10",
+      "brigada": "80",
+      "email": "marcela.guerrero2@senado.gob.bo",
+      "lugar_nacimiento": "TARIJA-CERCADO-TARIJA",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 81,
+        "nombre": "CESAR",
+        "apellidos": "MENTASTI PADILLA"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 136,
+      "cv": null,
+      "bancada": {
+        "id": 3,
+        "sigla": "UNIDAD",
+        "image": "images/a06fb0a2-0668-4c4a-bfca-459d6f13f1de_1764015652.png",
+        "brigada_color": "#FE6517",
+        "nombre": "ALIANZA UNIDAD"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 80,
+        "name": "Tarija"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 3,
+      "nombre": "NILTON",
+      "apellidos": "CONDORI ALANOCA",
+      "foto_perfil": "images/a12c8299-da06-4b91-98d5-8a1a415ee20f_1772125417.png",
+      "fecha_nacimiento": "1968-10-12",
+      "brigada": "75",
+      "email": "nilton.condori2@senado.gob.bo",
+      "lugar_nacimiento": "LA PAZ- OMASUYOS-TOJOCACHI",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 73,
+        "nombre": "CARMEN SOLEDAD",
+        "apellidos": "CHAPETON TANCARA"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 137,
+      "cv": null,
+      "bancada": {
+        "id": 3,
+        "sigla": "UNIDAD",
+        "image": "images/a06fb0a2-0668-4c4a-bfca-459d6f13f1de_1764015652.png",
+        "brigada_color": "#FE6517",
+        "nombre": "ALIANZA UNIDAD"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 75,
+        "name": "La Paz"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 2,
+      "nombre": "MARÍA ELENA",
+      "apellidos": "PACHACUTE TICONA",
+      "foto_perfil": "images/a12c8374-e099-42f1-8db5-f015f7bdbab8_1772125561.png",
+      "fecha_nacimiento": "1990-12-05",
+      "brigada": "75",
+      "email": "maría.pachacute2@senado.gob.bo",
+      "lugar_nacimiento": "LA PAZ-MURILLO-SEÑORA DE LA PAZ",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 102,
+        "nombre": "JOSÉ MANUEL",
+        "apellidos": "ORMACHEA MENDIETA"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 138,
+      "cv": null,
+      "bancada": {
+        "id": 2,
+        "sigla": "LIBRE",
+        "image": "images/a06fb008-a10a-42e7-b91b-7ff3e7c52a2d_1764015551.png",
+        "brigada_color": "#E62155",
+        "nombre": "ALIANZA LIBRE"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 75,
+        "name": "La Paz"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 2,
+      "nombre": "ROLANDO",
+      "apellidos": "VACAFLOR GABRIEL ARANA",
+      "foto_perfil": "images/a12c8489-da8f-4ce4-a722-60db571adb28_1772125742.png",
+      "fecha_nacimiento": "1994-05-18",
+      "brigada": "80",
+      "email": "rolando.vacaflor2@senado.gob.bo",
+      "lugar_nacimiento": "TARIJA-CERCADO-TARIJA",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 86,
+        "nombre": "MARÍA ISABEL",
+        "apellidos": "MORENO CORTEZ"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 139,
+      "cv": null,
+      "bancada": {
+        "id": 2,
+        "sigla": "LIBRE",
+        "image": "images/a06fb008-a10a-42e7-b91b-7ff3e7c52a2d_1764015551.png",
+        "brigada_color": "#E62155",
+        "nombre": "ALIANZA LIBRE"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 80,
+        "name": "Tarija"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 1,
+      "nombre": "ROYER IVÁN",
+      "apellidos": "MAMANI GARCÍA",
+      "foto_perfil": "images/a12c8542-d77f-41c7-a23b-d9e0b4074dc8_1772125863.png",
+      "fecha_nacimiento": "1991-10-15",
+      "brigada": "72",
+      "email": "royer.mamani2@senado.gob.bo",
+      "lugar_nacimiento": "COCHABAMBA - CERCADO - COCHABAMBA",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 97,
+        "nombre": "JUDITH ROSARIO",
+        "apellidos": "GARCIA COCA"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 140,
+      "cv": null,
+      "bancada": {
+        "id": 1,
+        "sigla": "PDC",
+        "image": "images/a06faf7b-840a-4292-8e94-54a4dc4a43aa_1764015459.png",
+        "brigada_color": "#143A83",
+        "nombre": "PARTIDO DEMOCRATA CRISTIANO"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 72,
+        "name": "Cochabamba"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 2,
+      "nombre": "JORGE ANTONIO",
+      "apellidos": "QUISPE FLORES",
+      "foto_perfil": "images/a12c85f2-e756-4f4e-8bf3-f7d7fba5d002_1772125979.png",
+      "fecha_nacimiento": "1991-01-15",
+      "brigada": "77",
+      "email": "jorge.quispe2@senado.gob.bo",
+      "lugar_nacimiento": "PANDO-NICOLAS SUAREA-COBIJA",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 80,
+        "nombre": "CAROL",
+        "apellidos": "CARLO DURAN"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 141,
+      "cv": null,
+      "bancada": {
+        "id": 2,
+        "sigla": "LIBRE",
+        "image": "images/a06fb008-a10a-42e7-b91b-7ff3e7c52a2d_1764015551.png",
+        "brigada_color": "#E62155",
+        "nombre": "ALIANZA LIBRE"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 77,
+        "name": "Pando"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 2,
+      "nombre": "KATHIA NATALIA",
+      "apellidos": "MISERENDINO ROMERO",
+      "foto_perfil": "images/a12d15ea-2b30-41e7-8c73-01f5cf844282_1772150132.png",
+      "fecha_nacimiento": "1993-12-15",
+      "brigada": "79",
+      "email": "kathia.miserendino2@senado.gob.bo",
+      "lugar_nacimiento": "SANTA CRUZ-SANDRÉS IBÁÑEZ-SANTA CRUZ DE LA SIERRA",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 110,
+        "nombre": "BRANKO  GORAN",
+        "apellidos": "MARINKOVIC JOVICEVIC"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 142,
+      "cv": null,
+      "bancada": {
+        "id": 2,
+        "sigla": "LIBRE",
+        "image": "images/a06fb008-a10a-42e7-b91b-7ff3e7c52a2d_1764015551.png",
+        "brigada_color": "#E62155",
+        "nombre": "ALIANZA LIBRE"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 79,
+        "name": "Santa Cruz"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 1,
+      "nombre": "VICTOR SEVERO",
+      "apellidos": "QUISPE SANTANDER",
+      "foto_perfil": "images/a12d176a-5186-4d97-aca0-60d3d2965c39_1772150384.png",
+      "fecha_nacimiento": "1971-02-01",
+      "brigada": "75",
+      "email": "victor.quispe2@senado.gob.bo",
+      "lugar_nacimiento": "LA PAZ-MURILLO-NUESTRA SEÑORA DE LA PAZ",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 91,
+        "nombre": "ANA MARÍA",
+        "apellidos": "CRISPIN CHOQUE"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 143,
+      "cv": null,
+      "bancada": {
+        "id": 1,
+        "sigla": "PDC",
+        "image": "images/a06faf7b-840a-4292-8e94-54a4dc4a43aa_1764015459.png",
+        "brigada_color": "#143A83",
+        "nombre": "PARTIDO DEMOCRATA CRISTIANO"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 75,
+        "name": "La Paz"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  },
+  {
+    "data": {
+      "bancada_id": 1,
+      "nombre": "CESIA",
+      "apellidos": "ROCA ESCALANTE",
+      "foto_perfil": "images/a12d2f5c-dfa5-4408-94bd-13d9224b13f4_1772154402.png",
+      "fecha_nacimiento": "1971-07-30",
+      "brigada": "73",
+      "email": "secia.escalanate2@senado.gob.bo",
+      "lugar_nacimiento": "BENI-VACA DIEZ-RIBERALTA",
+      "es_titular": 84,
+      "titular_id": {
+        "id": 82,
+        "nombre": "ERICK NELSON",
+        "apellidos": "SORUCO ALPIRE"
+      },
+      "suplente_id": null,
+      "cargo_directiva_id": null,
+      "id": 144,
+      "cv": null,
+      "bancada": {
+        "id": 1,
+        "sigla": "PDC",
+        "image": "images/a06faf7b-840a-4292-8e94-54a4dc4a43aa_1764015459.png",
+        "brigada_color": "#143A83",
+        "nombre": "PARTIDO DEMOCRATA CRISTIANO"
+      },
+      "redes": [],
+      "brigada_catalogo": {
+        "id": 73,
+        "name": "Beni"
+      },
+      "cargo_directiva_catalogo": null,
+      "titular": {
+        "id": 84,
+        "name": "No"
+      }
+    },
+    "message": "La operación fue exitosa",
+    "state": true,
+    "code": 201
+  }
+]
