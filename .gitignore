@@ -1,0 +1,21 @@
+# Z.ai Sandbox
+.zscripts/
+worklog.md
+download/
+node_modules/
+
+# Environment
+.env
+.env.local
+
+# Next.js
+.next/
+out/
+
+# Prisma
+prisma/migrations/
+
+# Misc
+.DS_Store
+*.log
+tmp/
