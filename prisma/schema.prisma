@@ -154,6 +154,49 @@ model CapturaLog {
   medio Medio @relation(fields: [medioId], references: [id])
 }
 
+// ─── ONION200: Clientes y Contratos ──────────────────────────
+
+model Cliente {
+  id               String   @id @default(cuid())
+  nombre           String
+  nombreContacto   String   @default("")
+  email            String
+  telefono         String   @default("")
+  whatsapp         String   @default("")
+  organizacion     String   @default("")
+  segmento         String   @default("otro") // "partido_politico", "movimiento_social", "ong", "embajada", "legislador", "medio", "academico", "otro"
+  plan             String   @default("basico") // "basico", "avanzado", "institucional"
+  estado           String   @default("activo") // "activo", "suspendido", "cancelado"
+  parlamentarios   String   @default("") // JSON: lista de IDs de Persona asignadas al cliente
+  ejesContratados  String   @default("") // JSON: lista de slugs de EjeTematico contratados
+  notas            String   @default("")
+  fechaCreacion    DateTime @default(now())
+  fechaActualizacion DateTime @updatedAt
+
+  contratos Contrato[]
+}
+
+model Contrato {
+  id               String   @id @default(cuid())
+  clienteId        String
+  tipoProducto     String                       // ONION200: "EL_TERMOMETRO", "SALDO_DEL_DIA", "EL_FOCO", "EL_ESPECIALIZADO", etc.
+  mediosAsignados  String   @default("")         // JSON: lista de IDs de Medio monitoreados para este contrato
+  ejesTematicos    String   @default("")         // JSON: lista de slugs de EjeTematico incluidos
+  parlamentarios   String   @default("")         // JSON: lista de IDs de Persona monitoreados
+  frecuencia       String   @default("diario")   // "diario", "semanal", "quincenal", "mensual"
+  formatoEntrega   String   @default("whatsapp") // "whatsapp", "email", "ambos"
+  fechaInicio      DateTime
+  fechaFin         DateTime?
+  montoMensual     Float    @default(0)
+  moneda           String   @default("Bs")
+  estado           String   @default("activo")   // "activo", "pausado", "vencido", "cancelado"
+  notas            String   @default("")
+  fechaCreacion    DateTime @default(now())
+  fechaActualizacion DateTime @updatedAt
+
+  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+}
+
 // ─── ONION200: Capa de Indicadores ───────────────────────────────
 
 model Indicador {

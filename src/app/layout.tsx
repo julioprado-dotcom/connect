@@ -14,23 +14,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Monitor de Presencia en Medios | Bolivia 2025-2030",
+  title: "CONNECT Bolivia — Inteligencia Mediática",
   description:
-    "Sistema de inteligencia mediática que monitorea la presencia de legisladores bolivianos en medios de comunicación. Pluralismo y transparencia conforme a la Constitución Política del Estado.",
+    "CONNECT Bolivia: SaaS de inteligencia mediática que monitorea presencia de legisladores en medios. Pluralismo y transparencia conforme a la Constitución Política del Estado.",
   keywords: [
+    "CONNECT Bolivia",
+    "inteligencia mediática",
     "Bolivia",
     "legisladores",
     "medios",
     "monitoreo",
-    "prensa",
+    "ONION200",
     "Asamblea Legislativa",
     "2025-2030",
   ],
-  authors: [{ name: "Monitor de Presencia en Medios" }],
+  authors: [{ name: "CONNECT Bolivia" }],
   openGraph: {
-    title: "Monitor de Presencia en Medios | Bolivia",
+    title: "CONNECT Bolivia — Inteligencia Mediática",
     description:
-      "Inteligencia mediática sobre legisladores bolivianos — Periodo 2025-2030",
+      "Conectate con inteligencia de señales del Sur Global — Periodo 2025-2030",
     type: "website",
     locale: "es_BO",
   },
@@ -47,7 +49,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="min-h-full flex flex-col bg-background text-foreground" style={{'--brand-mint': '#00E5A0', '--brand-navy': '#0A1628', '--brand-night': '#1A2744', '--brand-sand': '#F5F5F0', '--brand-amber': '#F59E0B'} as React.CSSProperties}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           {children}
         </ThemeProvider>

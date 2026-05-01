@@ -41,7 +41,7 @@ Arquitectura del Sandbox Z.ai
 
 Nombre: CONNECT — News Connect Bolivia
 Motor Interno: ONION200
-Version: 0.6.0 (en desarrollo)
+Version: 0.7.0 (en desarrollo)
 Repositorio: https://github.com/julioprado-dotcom/connect
 Descripcion: SaaS de inteligencia mediatica que monitorea la presencia de legisladores bolivianos en medios de comunicacion y redes sociales. Proporciona boletines especializados con datos duros, indicadores macroeconomicos y analisis de tendencias. Orientado al pluralismo y la Constitucion del 2009.
 Subtitulo: "Conectate con inteligencia de senales del Sur Global"
@@ -390,21 +390,29 @@ Indicadores derivados:
              IndicadorValor + SuscriptorGratuito en Prisma, capturer Tier 1 (TC, LME),
              injector de indicadores en prompts GLM, API routes para captura y generación
              del Saldo del Día, 4 protocolos de producto documentados, combo pricing.
+    v0.7.0 — Branding CONNECT Bolivia, modelos Cliente + Contrato en Prisma, sidebar
+             con 8 items (+Clientes, +Contratos), vista Clientes con lista de parlamentarios,
+             vista Contratos con panel de medios y toggle ON/OFF, 5 API routes nuevas,
+             23 rutas totales.
 
 14. ESTADO DEL SISTEMA
 
     Componente           | Estado        | Detalle
     ---------------------|---------------|---------------------------
-    Base de datos        | v0.6.0        | 11 modelos: Persona, Medio, EjeTematico, Mencion, MencionTema,
+    Base de datos        | v0.7.0        | 13 modelos: Persona, Medio, EjeTematico, Mencion, MencionTema,
                        |               | Reporte, Comentario, Suscriptor, CapturaLog,
-                       |               | Indicador, IndicadorValor, SuscriptorGratuito
+                       |               | Indicador, IndicadorValor, SuscriptorGratuito,
+                       |               | Cliente, Contrato
     Fuentes              | ACTUALIZADO   | 30 medios en 5 niveles (corporativos/regionales/alternativos)
     Clasificadores       | ACTUALIZADO   | 11 ejes tematicos con keywords para GLM
     Productos ONION200    | v0.6.0        | 9 tipos de boletín definidos (tipos + constantes + generator)
     Indicadores          | v0.6.0        | Capturer Tier 1 (TC, LME) + Injector en prompts GLM
-    Dashboard admin      | v0.5.0        | Sidebar + 8 vistas (Resumen, Menciones, Personas, Medios, etc.)
+    Dashboard admin      | v0.7.0        | Sidebar 8 items + vistas (Resumen, Clientes, Contratos,
+                       |               | Menciones, Clasificadores, Reportes, Captura, Config)
+                       |               | Branding CONNECT Bolivia, toggle medios ON/OFF
     Dashboard cliente    | v0.5.0        | Vista publica en /dashboard con ranking + reportes
-    API Routes           | 18 endpoints  | +indicadores/capture, +admin/bulletins/generate-saldo
+    API Routes           | 23 endpoints  | +indicadores/capture, +admin/bulletins/generate-saldo,
+                       |               | +clientes, +clientes/[id], +contratos, +contratos/[id], +medios/[id]
     Motor de captura     | v0.2.0        | (por adaptar a 5 niveles de fuentes)
     Analisis IA          | v0.5.0        | GLM clasifica por 11 ejes tematicos + tipo + sentimiento
     Reportes             | v0.6.0        | Tipos ONION200, generation con indicadores, Saldo del Día
