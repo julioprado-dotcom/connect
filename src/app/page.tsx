@@ -201,8 +201,6 @@ const PARTIDOS = [
 const NAV_ITEMS = [
   { id: 'resumen', label: 'Resumen', icon: BarChart3 },
   { id: 'menciones', label: 'Menciones', icon: Newspaper },
-  { id: 'personas', label: 'Personas', icon: Users },
-  { id: 'medios', label: 'Medios', icon: Radio },
   { id: 'clasificadores', label: 'Clasificadores', icon: Tag },
   { id: 'reportes', label: 'Reportes', icon: FileBarChart },
   { id: 'captura', label: 'Captura', icon: Zap },
