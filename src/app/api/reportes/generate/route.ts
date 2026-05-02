@@ -32,6 +32,16 @@ export async function POST(request: NextRequest) {
 
       fechaFin = new Date(selectedDate);
       fechaFin.setHours(19, 0, 0, 0);
+    } else if (tipoReporte === 'EL_FOCO' && fecha) {
+      // Día completo: 00:00 a 23:59 del día seleccionado
+      const [year, month, day] = fecha.split('-').map(Number);
+      const selectedDate = new Date(year, month - 1, day);
+
+      fechaInicio = new Date(selectedDate);
+      fechaInicio.setHours(0, 0, 0, 0);
+
+      fechaFin = new Date(selectedDate);
+      fechaFin.setHours(23, 59, 59, 999);
     } else if (tipoReporte === 'diario' || tipoReporte === 'boletin_diario') {
       fechaInicio.setDate(fechaFin.getDate() - 1);
       fechaInicio.setHours(0, 0, 0, 0);
@@ -224,6 +234,10 @@ export async function POST(request: NextRequest) {
     } else if (tipoReporte === 'SALDO_DEL_DIA' && fecha) {
       const fechaStr = new Date(fecha + 'T12:00:00').toLocaleDateString('es-BO', { day: '2-digit', month: 'long', year: 'numeric' });
       ventanaLabel = `la jornada diurna (07:00 — 19:00) del ${fechaStr}`;
+    } else if (tipoReporte === 'EL_FOCO' && fecha) {
+      const fechaStr = new Date(fecha + 'T12:00:00').toLocaleDateString('es-BO', { day: '2-digit', month: 'long', year: 'numeric' });
+      const ejeNombre = ejesSlugs.length > 0 ? `eje «${ejesSlugs[0]}»` : 'eje temático';
+      ventanaLabel = `el día completo del ${fechaStr} para el ${ejeNombre}`;
     }
 
     const resumen = generarResumen({
@@ -327,6 +341,9 @@ function generarResumen(params: {
   }
   if (params.tipo === 'SALDO_DEL_DIA') {
     return generarResumenSaldoDelDia(params);
+  }
+  if (params.tipo === 'EL_FOCO') {
+    return generarResumenElFoco(params);
   }
 
   const periodoLabels: Record<string, string> = {
@@ -518,6 +535,81 @@ function generarResumenSaldoDelDia(params: {
   if (params.topMedios.length > 0) {
     const mediosStr = params.topMedios.slice(0, 3).map(m => `${m.nombre} (${m.count})`).join(', ');
     resumen += `Medios con mayor cobertura: ${mediosStr}.\n\n`;
+  }
+
+  // Comentarios
+  if (params.totalComentarios > 0) {
+    resumen += `Reacción ciudadana: ${params.totalComentarios} comentarios. `;
+    resumen += `Sentimiento: ${params.sentimientoComentarios}.\n\n`;
+  }
+
+  if (params.enlacesRotos > 0) {
+    resumen += `Nota: ${params.enlacesRotos} enlace(s) roto(s) detectados.\n`;
+  }
+
+  return resumen;
+}
+
+function generarResumenElFoco(params: {
+  totalMenciones: number;
+  sentimientoPromedio: number;
+  clasificadores: Array<{ nombre: string; slug: string; color: string; menciones: number }>;
+  topActores: Array<{ nombre: string; partido: string; camara: string; count: number }> | null;
+  topMedios: Array<{ nombre: string; count: number }>;
+  totalComentarios: number;
+  sentimientoComentarios: string;
+  enlacesRotos: number;
+  mencionesPorNivel: Record<string, number>;
+  ventanaLabel?: string;
+  ejesSlugs?: string[];
+}): string {
+  const ventana = params.ventanaLabel || 'el día analizado';
+  const ejeNombre = params.ejesSlugs && params.ejesSlugs.length > 0 ? params.ejesSlugs[0] : 'eje temático';
+
+  let resumen = `EL FOCO — Análisis Profundo: ${ejeNombre}\n\n`;
+  resumen += `Ventana de análisis: ${ventana}\n\n`;
+
+  if (params.totalMenciones === 0) {
+    resumen += `No se registraron menciones para este eje temático en el período analizado.\n\n`;
+    return resumen;
+  }
+
+  // Sentimiento del eje
+  const sentLabel =
+    params.sentimientoPromedio >= 4 ? 'FAVORABLE ✦' :
+    params.sentimientoPromedio >= 3.5 ? 'MODERADAMENTE FAVORABLE' :
+    params.sentimientoPromedio >= 3 ? 'NEUTRO ○' :
+    params.sentimientoPromedio >= 2 ? 'DESFAVORABLE ✗' :
+    'CRÍTICO ⚠';
+
+  resumen += `SENTIMIENTO DEL EJE: ${sentLabel} (${params.sentimientoPromedio.toFixed(1)}/5)\n`;
+  resumen += `Total de menciones registradas: ${params.totalMenciones}\n\n`;
+
+  // Actores dentro del eje
+  if (params.topActores && params.topActores.length > 0) {
+    resumen += `Actores principales en el eje:\n`;
+    for (const a of params.topActores.slice(0, 5)) {
+      resumen += `  - ${a.nombre} (${a.partido}): ${a.count} menciones\n`;
+    }
+    resumen += '\n';
+  }
+
+  // Fuentes que cubrieron el eje
+  if (params.topMedios.length > 0) {
+    resumen += `Fuentes que cubrieron el eje:\n`;
+    for (const m of params.topMedios.slice(0, 5)) {
+      resumen += `  - ${m.nombre}: ${m.count} menciones\n`;
+    }
+    resumen += '\n';
+  }
+
+  // Sub-ejes o clasificadores relacionados
+  if (params.clasificadores.length > 0) {
+    resumen += `Sub-temas relacionados:\n`;
+    for (const c of params.clasificadores.slice(0, 5)) {
+      resumen += `  - ${c.nombre}: ${c.menciones} menciones\n`;
+    }
+    resumen += '\n';
   }
 
   // Comentarios
