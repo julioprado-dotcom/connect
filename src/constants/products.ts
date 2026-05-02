@@ -131,6 +131,38 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     activo: true,
   },
 
+  // ── Gratuitos (Awareness Temático) ──
+  FOCO_DE_LA_SEMANA: {
+    tipo: 'FOCO_DE_LA_SEMANA',
+    nombre: 'Foco de la Semana',
+    nombreCorto: 'Foco Semanal',
+    descripcion: 'Radar temático semanal gratuito. Cada semana un eje diferente: qué pasó, quién dijo qué, qué sigue. Puerta de entrada a los productos temáticos premium.',
+    categoria: 'gratuito',
+    frecuencia: 'semanal',
+    horarioEnvio: 'Lunes 08:00 AM',
+    longitudPaginas: 0.5,
+    longitudMinLectura: 2,
+    canales: ['email', 'web'],
+    periodoDefault: 7,
+    activo: true,
+  },
+
+  // ── Alertas en tiempo real ──
+  ALERTA_TEMPRANA: {
+    tipo: 'ALERTA_TEMPRANA',
+    nombre: 'Alerta Temprana',
+    nombreCorto: 'Alerta',
+    descripcion: 'Alertas en tiempo real por WhatsApp. Detección temprana de crisis, picos de sentimiento negativo y eventos relevantes. Solo para clientes premium.',
+    categoria: 'premium_alta',
+    frecuencia: 'tiempo_real',
+    horarioEnvio: 'Inmediata',
+    longitudPaginas: 0,
+    longitudMinLectura: 1,
+    canales: ['whatsapp'],
+    periodoDefault: 30,
+    activo: true,
+  },
+
   // ── A solicitud ──
   FICHA_LEGISLADOR: {
     tipo: 'FICHA_LEGISLADOR',
@@ -241,6 +273,14 @@ export const ETIQUETAS_ENTREGA: Record<TipoBoletin, { whatsapp: string; email: s
   FICHA_LEGISLADOR: {
     whatsapp: '📋 FICHA — {legislador} | News Connect',
     email: 'Ficha del Legislador: {legislador} | News Connect',
+  },
+  FOCO_DE_LA_SEMANA: {
+    whatsapp: '🔍 FOCO DE LA SEMANA — {eje} — Semana {semana}',
+    email: 'Foco de la Semana: {eje} — Semana {semana} | News Connect',
+  },
+  ALERTA_TEMPRANA: {
+    whatsapp: '🚨 ALERTA TEMPRANA — {evento}',
+    email: 'Alerta Temprana: {evento} | News Connect',
   },
 }
 

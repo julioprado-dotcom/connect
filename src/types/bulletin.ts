@@ -15,6 +15,8 @@ export type TipoBoletin =
   | 'VOZ_Y_VOTO'          // Resumen legislativo semanal — gratuito
   | 'EL_HILO'             // Recuento narrativo semanal — gratuito
   | 'FICHA_LEGISLADOR'    // Ficha individual — a solicitud
+  | 'FOCO_DE_LA_SEMANA'   // Radar temático semanal gratuito — awareness
+  | 'ALERTA_TEMPRANA'     // Alertas en tiempo real por WhatsApp — premium alta
 
 // ─── Categorías de Boletín ─────────────────────────────────────────
 
@@ -22,7 +24,7 @@ export type CategoriaBoletin = 'gratuito' | 'premium' | 'premium_mid' | 'premium
 
 // ─── Frecuencias ──────────────────────────────────────────────────
 
-export type FrecuenciaBoletin = 'diario_am' | 'diario_pm' | 'diario' | 'semanal' | 'mensual' | 'bajo_demanda'
+export type FrecuenciaBoletin = 'diario_am' | 'diario_pm' | 'diario' | 'semanal' | 'mensual' | 'bajo_demanda' | 'tiempo_real'
 
 // ─── Canal de Entrega ─────────────────────────────────────────────
 

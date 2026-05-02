@@ -41,8 +41,23 @@ import {
   Globe,
   UserCircle,
   FileCheck,
+  Bell,
+  Mail,
+  Rocket,
+  Target,
+  Thermometer,
+  Scale,
+  Search,
+  UserCheck,
+  GraduationCap,
+  Link2,
+  ListChecks,
+  Package,
+  ArrowRight,
+  AlertTriangle,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { PRODUCTOS, COMBOS } from '@/constants/products';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -207,10 +222,62 @@ const NAV_ITEMS = [
   { id: 'contratos', label: 'Contratos', icon: FileCheck },
   { id: 'menciones', label: 'Menciones', icon: Newspaper },
   { id: 'clasificadores', label: 'Clasificadores', icon: Tag },
+  { id: 'personas', label: 'Personas', icon: Users },
+  { id: 'medios', label: 'Medios', icon: Radio },
+  { id: 'boletines', label: 'Boletines', icon: Mail },
+  { id: 'alertas', label: 'Alertas', icon: Bell },
+  { id: 'estrategia', label: 'Estrategia', icon: Rocket },
   { id: 'reportes', label: 'Reportes', icon: FileBarChart },
   { id: 'captura', label: 'Captura', icon: Zap },
+  { id: 'indicadores', label: 'Indicadores', icon: TrendingUp },
+  { id: 'productos', label: 'Productos', icon: Package },
   { id: 'configuracion', label: 'Configuración', icon: Settings },
 ];
+
+/* ═══════════════════════════════════════════════════════════
+   ALL PRODUCTS
+   ═══════════════════════════════════════════════════════════ */
+
+const ALL_PRODUCTS = [
+  // Premium
+  { tipo: 'EL_TERMOMETRO' as const, nombre: 'El Termómetro', icon: Thermometer, color: '#3B82F6', categoria: 'premium', estado: 'operativo' },
+  { tipo: 'SALDO_DEL_DIA' as const, nombre: 'Saldo del Día', icon: Scale, color: '#8B5CF6', categoria: 'premium', estado: 'operativo' },
+  { tipo: 'EL_FOCO' as const, nombre: 'El Foco', icon: Search, color: '#F59E0B', categoria: 'premium', estado: 'operativo' },
+  { tipo: 'EL_INFORME_CERRADO' as const, nombre: 'El Informe Cerrado', icon: FileText, color: '#10B981', categoria: 'premium', estado: 'definido' },
+  { tipo: 'FICHA_LEGISLADOR' as const, nombre: 'Ficha del Legislador', icon: UserCheck, color: '#06B6D4', categoria: 'premium', estado: 'definido' },
+  { tipo: 'EL_ESPECIALIZADO' as const, nombre: 'El Especializado', icon: GraduationCap, color: '#EC4899', categoria: 'premium_mid', estado: 'definido' },
+  // Premium Alta
+  { tipo: 'ALERTA_TEMPRANA' as const, nombre: 'Alerta Temprana', icon: Bell, color: '#EF4444', categoria: 'premium_alta', estado: 'definido' },
+  // Gratuitos
+  { tipo: 'EL_RADAR' as const, nombre: 'El Radar', icon: Radio, color: '#22C55E', categoria: 'gratuito', estado: 'operativo' },
+  { tipo: 'VOZ_Y_VOTO' as const, nombre: 'Voz y Voto', icon: ListChecks, color: '#6366F1', categoria: 'gratuito', estado: 'definido' },
+  { tipo: 'EL_HILO' as const, nombre: 'El Hilo', icon: Link2, color: '#14B8A6', categoria: 'gratuito', estado: 'definido' },
+  { tipo: 'FOCO_DE_LA_SEMANA' as const, nombre: 'Foco de la Semana', icon: Target, color: '#10B981', categoria: 'gratuito', estado: 'definido' },
+];
+
+const PRODUCT_CATEGORIES = [
+  { id: 'premium', label: 'Premium', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' },
+  { id: 'premium_mid', label: 'Premium Mid', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300' },
+  { id: 'premium_alta', label: 'Premium Alta', color: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' },
+  { id: 'gratuito', label: 'Gratuito', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300' },
+];
+
+const CANAL_LABELS: Record<string, string> = {
+  whatsapp: 'WhatsApp',
+  email: 'Email',
+  web: 'Web',
+  pdf: 'PDF',
+};
+
+const FRECUENCIA_LABELS: Record<string, string> = {
+  diario_am: 'Diario (AM)',
+  diario_pm: 'Diario (PM)',
+  diario: 'Diario',
+  semanal: 'Semanal',
+  mensual: 'Mensual',
+  bajo_demanda: 'Bajo demanda',
+  tiempo_real: 'Tiempo real',
+};
 
 /* ═══════════════════════════════════════════════════════════
    MAIN COMPONENT
@@ -875,6 +942,57 @@ export default function Dashboard() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Productos Vigentes */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                      <Package className="h-4 w-4 text-muted-foreground" />
+                      Productos Vigentes
+                    </CardTitle>
+                    <Button variant="ghost" size="sm" onClick={() => setActiveView('productos')} className="text-xs text-muted-foreground">
+                      Ver todos <ArrowRight className="h-3 w-3 ml-1" />
+                    </Button>
+                  </div>
+                  <CardDescription className="text-xs">
+                    {ALL_PRODUCTS.filter(p => p.estado === 'operativo').length} operativos · {ALL_PRODUCTS.length} productos totales
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                    {ALL_PRODUCTS.map((prod) => {
+                      const ProdIcon = prod.icon;
+                      const prodConfig = PRODUCTOS[prod.tipo];
+                      return (
+                        <div key={prod.tipo} className="flex items-center gap-2.5 p-2.5 rounded-lg border border-border hover:border-primary/30 transition-colors">
+                          <div
+                            className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
+                            style={{ backgroundColor: prod.color + '20' }}
+                          >
+                            <ProdIcon className="h-4 w-4" style={{ color: prod.color }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-foreground truncate">{prod.nombre}</p>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                                prod.estado === 'operativo'
+                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                                  : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                              }`}>
+                                {prod.estado === 'operativo' ? '✅ Op.' : '⚠️ Def.'}
+                              </span>
+                              {prodConfig && (
+                                <span className="text-[9px] text-muted-foreground">{prodConfig.horarioEnvio}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
@@ -1578,6 +1696,517 @@ export default function Dashboard() {
                   <div className="text-[11px] text-muted-foreground">
                     <p className="font-medium mb-1">Fuentes disponibles:</p>
                     <p>La Razón, Página Siete, El Deber, Los Tiempos, Opinión, Correo del Sur, El Potosí, La Patria, El Diario, Jornada, Unitel, Red Uno, ATB Digital, Bolivia Verifica, ABI</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════
+              VIEW: BOLETINES
+              ═══════════════════════════════════════════════════════ */}
+          {activeView === 'boletines' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                <KPICard
+                  icon={<Mail className="h-5 w-5" />}
+                  value={ALL_PRODUCTS.length}
+                  label="Productos totales"
+                  colorClass="text-primary"
+                />
+                <KPICard
+                  icon={<CheckCircle2 className="h-5 w-5" />}
+                  value={ALL_PRODUCTS.filter(p => p.estado === 'operativo').length}
+                  label="Operativos"
+                  colorClass="text-emerald-600 dark:text-emerald-400"
+                />
+                <KPICard
+                  icon={<AlertTriangle className="h-5 w-5" />}
+                  value={ALL_PRODUCTS.filter(p => p.estado === 'definido').length}
+                  label="Por definir"
+                  colorClass="text-amber-600 dark:text-amber-400"
+                />
+                <KPICard
+                  icon={<Users className="h-5 w-5" />}
+                  value={COMBOS.length}
+                  label="Combos disponibles"
+                  colorClass="text-purple-600 dark:text-purple-400"
+                />
+              </div>
+
+              {/* Products by category */}
+              {PRODUCT_CATEGORIES.map((cat) => {
+                const catProducts = ALL_PRODUCTS.filter(p => p.categoria === cat.id);
+                if (catProducts.length === 0) return null;
+                return (
+                  <Card key={cat.id}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${cat.color}`}>{cat.label}</span>
+                          Boletines ({catProducts.length})
+                        </CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {catProducts.map((prod) => {
+                          const ProdIcon = prod.icon;
+                          const prodConfig = PRODUCTOS[prod.tipo];
+                          return (
+                            <div key={prod.tipo} className="p-4 rounded-lg border border-border hover:border-primary/30 transition-colors">
+                              <div className="flex items-start gap-3">
+                                <div
+                                  className="h-10 w-10 rounded-lg flex items-center justify-center shrink-0"
+                                  style={{ backgroundColor: prod.color + '20' }}
+                                >
+                                  <ProdIcon className="h-5 w-5" style={{ color: prod.color }} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-foreground">{prod.nombre}</p>
+                                  <div className="flex items-center gap-1.5 mt-1">
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                                      prod.estado === 'operativo'
+                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                                    }`}>
+                                      {prod.estado === 'operativo' ? '✅ Operativo' : '⚠️ Definido'}
+                                    </span>
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${cat.color}`}>
+                                      {cat.label}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              {prodConfig && (
+                                <div className="mt-3 space-y-2">
+                                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{prodConfig.descripcion}</p>
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-[10px] text-muted-foreground">
+                                      🕐 {prodConfig.horarioEnvio}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground">
+                                      📋 {prodConfig.longitudPaginas} pág.
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground">
+                                      ⏱ {prodConfig.longitudMinLectura} min.
+                                    </span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {prodConfig.canales.map((canal) => (
+                                      <Badge key={canal} variant="secondary" className="text-[9px] px-1.5 py-0">
+                                        {CANAL_LABELS[canal] || canal}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+
+              {/* Combos */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                    Combos de Productos ({COMBOS.length})
+                  </CardTitle>
+                  <CardDescription className="text-xs">Paquetes con precio especial para suscriptores</CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {COMBOS.map((combo) => (
+                      <div key={combo.id} className="p-4 rounded-lg border-2 border-primary/20 hover:border-primary/40 transition-colors bg-primary/[0.02]">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-sm font-semibold text-foreground">{combo.nombre}</p>
+                          <Badge className="text-[10px] bg-primary text-primary-foreground">
+                            Bs {combo.precioMensual.toLocaleString()}/mes
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-3">{combo.descripcion}</p>
+                        <div className="flex flex-wrap gap-1">
+                          {combo.productos.map((tipo) => {
+                            const prodInfo = ALL_PRODUCTS.find(p => p.tipo === tipo);
+                            const ProdIcon = prodInfo?.icon || FileText;
+                            return (
+                              <span key={tipo} className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                <ProdIcon className="h-3 w-3" />
+                                {PRODUCTOS[tipo]?.nombreCorto || tipo.replace(/_/g, ' ')}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════
+              VIEW: ALERTAS
+              ═══════════════════════════════════════════════════════ */}
+          {activeView === 'alertas' && (
+            <div className="space-y-6">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Bell className="h-4 w-4 text-red-500" />
+                    Alerta Temprana
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Detección en tiempo real de crisis y picos de sentimiento negativo
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 space-y-4">
+                  {/* Product info card */}
+                  <div className="p-4 rounded-lg border-2 border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/20">
+                    <div className="flex items-start gap-3">
+                      <div className="h-12 w-12 rounded-xl bg-red-100 dark:bg-red-900/40 flex items-center justify-center shrink-0">
+                        <Bell className="h-6 w-6 text-red-600 dark:text-red-400" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-base font-bold text-foreground">Alerta Temprana</h3>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300">Premium Alta</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">⚠️ Definido</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Alertas en tiempo real por WhatsApp. Detección temprana de crisis, picos de sentimiento negativo y eventos relevantes. Solo para clientes premium.
+                        </p>
+                        <div className="flex items-center gap-4 mt-2">
+                          <span className="text-[10px] text-muted-foreground">🕐 Inmediata</span>
+                          <span className="text-[10px] text-muted-foreground">📱 WhatsApp</span>
+                          <span className="text-[10px] text-muted-foreground">⏱ 1 min lectura</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Placeholder section */}
+                  <div className="p-6 rounded-lg border border-dashed border-border text-center space-y-3">
+                    <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center mx-auto">
+                      <AlertTriangle className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-foreground">Monitoreo de alertas en tiempo real</h4>
+                      <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
+                        Próximamente: detección automática de picos de sentimiento negativo y crisis.
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground">
+                      <div className="h-2 w-2 rounded-full bg-amber-500" />
+                      En desarrollo
+                    </div>
+                  </div>
+
+                  {/* Configuration placeholder */}
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border space-y-3">
+                    <h4 className="text-xs font-semibold text-foreground">Configuración futura</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="p-3 rounded-lg border border-border">
+                        <p className="text-[11px] font-medium text-foreground">Umbral de sentimiento</p>
+                        <p className="text-[10px] text-muted-foreground">Configurar nivel de alerta: negativo, crítico, elogioso</p>
+                      </div>
+                      <div className="p-3 rounded-lg border border-border">
+                        <p className="text-[11px] font-medium text-foreground">Sujetos monitoreados</p>
+                        <p className="text-[10px] text-muted-foreground">Seleccionar legisladores y temas para alertas</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════
+              VIEW: ESTRATEGIA
+              ═══════════════════════════════════════════════════════ */}
+          {activeView === 'estrategia' && (
+            <div className="space-y-6">
+              {/* Key metrics */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <KPICard
+                  icon={<Package className="h-5 w-5" />}
+                  value={11}
+                  label="Productos"
+                  colorClass="text-primary"
+                />
+                <KPICard
+                  icon={<FileBarChart className="h-5 w-5" />}
+                  value={6}
+                  label="Combos"
+                  colorClass="text-purple-600 dark:text-purple-400"
+                />
+                <KPICard
+                  icon={<Users className="h-5 w-5" />}
+                  value={7}
+                  label="Segmentos"
+                  colorClass="text-emerald-600 dark:text-emerald-400"
+                />
+                <KPICard
+                  icon={<TrendingUp className="h-5 w-5" />}
+                  value={400}
+                  label="Bs K/mes mercado"
+                  subtext="Estimación TAM Bolivia"
+                  colorClass="text-amber-600 dark:text-amber-400"
+                />
+              </div>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Rocket className="h-4 w-4 text-muted-foreground" />
+                    Estrategia Comercial
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Hoja de ruta CONNECT Bolivia — Productos, segmentos y modelo de negocio
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 space-y-4">
+                  {/* Strategy overview */}
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                    <div className="flex items-start gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <Rocket className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground">Modelo de negocio CONNECT</h3>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                          Ecosistema de 11 productos de inteligencia mediática organizados en 4 categorías
+                          (Premium, Premium Mid, Premium Alta, Gratuito) con 6 combos de venta
+                          dirigidos a 7 segmentos del mercado boliviano.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Segmentos */}
+                  <div>
+                    <h4 className="text-xs font-semibold text-foreground mb-3">Segmentos objetivo</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                      {[
+                        { nombre: 'Embajadas', icon: Globe, desc: 'Diplomáticos en Bolivia' },
+                        { nombre: 'Organismos Int.', icon: FileCheck, desc: 'ONU, BID, Banco Mundial' },
+                        { nombre: 'Corporaciones', icon: Activity, desc: 'Grandes empresas' },
+                        { nombre: 'Legisladores', icon: Users, desc: 'Diputados y Senadores' },
+                        { nombre: 'Partidos Políticos', icon: BarChart3, desc: 'Direcciones de comunicación' },
+                        { nombre: 'Medios', icon: Radio, desc: 'Periodistas y editores' },
+                        { nombre: 'ONGs / Academia', icon: GraduationCap, desc: 'Investigación y advocacy' },
+                      ].map((seg) => {
+                        const SegIcon = seg.icon;
+                        return (
+                          <div key={seg.nombre} className="p-3 rounded-lg border border-border hover:border-primary/30 transition-colors">
+                            <div className="flex items-center gap-2 mb-1">
+                              <SegIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <p className="text-[11px] font-semibold text-foreground">{seg.nombre}</p>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground">{seg.desc}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Document reference */}
+                  <div className="p-4 rounded-lg border-2 border-primary/20 bg-primary/[0.02]">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FileText className="h-4 w-4 text-primary" />
+                      <h4 className="text-xs font-semibold text-foreground">Documento completo</h4>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Documento completo disponible: <span className="font-medium text-foreground">CONNECT_Bolivia_Estrategia_Comercial.pdf</span>
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════
+              VIEW: INDICADORES
+              ═══════════════════════════════════════════════════════ */}
+          {activeView === 'indicadores' && (
+            <div className="space-y-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    Indicadores de Métricas
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Estadísticas de uso y rendimiento del sistema CONNECT
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <StatItem label="Total menciones" value={String(data?.mencionesSemana || 0)} />
+                    <StatItem label="Medios activos" value={String(data?.totalMedios || 0)} />
+                    <StatItem label="Ejes temáticos" value={String(data?.totalEjes || 0)} />
+                    <StatItem label="Legisladores" value={String(data?.totalPersonas || 0)} />
+                  </div>
+                  <div className="p-4 rounded-lg border border-dashed border-border text-center space-y-2">
+                    <TrendingUp className="h-8 w-8 text-muted-foreground mx-auto" />
+                    <p className="text-xs text-muted-foreground">Próximamente: indicadores macroeconómicos y de mercado</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════
+              VIEW: PRODUCTOS (Full catalog)
+              ═══════════════════════════════════════════════════════ */}
+          {activeView === 'productos' && (
+            <div className="space-y-6">
+              {/* Overview KPIs */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <KPICard
+                  icon={<Package className="h-5 w-5" />}
+                  value={ALL_PRODUCTS.length}
+                  label="Productos totales"
+                  colorClass="text-primary"
+                />
+                <KPICard
+                  icon={<CheckCircle2 className="h-5 w-5" />}
+                  value={ALL_PRODUCTS.filter(p => p.estado === 'operativo').length}
+                  label="Operativos"
+                  colorClass="text-emerald-600 dark:text-emerald-400"
+                />
+                <KPICard
+                  icon={<FileBarChart className="h-5 w-5" />}
+                  value={COMBOS.length}
+                  label="Combos"
+                  colorClass="text-purple-600 dark:text-purple-400"
+                />
+                <KPICard
+                  icon={<Mail className="h-5 w-5" />}
+                  value={4}
+                  label="Canales"
+                  subtext="WhatsApp, Email, Web, PDF"
+                  colorClass="text-sky-600 dark:text-sky-400"
+                />
+              </div>
+
+              {/* Products by category */}
+              {PRODUCT_CATEGORIES.map((cat) => {
+                const catProducts = ALL_PRODUCTS.filter(p => p.categoria === cat.id);
+                if (catProducts.length === 0) return null;
+                return (
+                  <Card key={cat.id}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${cat.color}`}>{cat.label}</span>
+                        <CardTitle className="text-sm font-semibold">{catProducts.length} producto{catProducts.length > 1 ? 's' : ''}</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {catProducts.map((prod) => {
+                          const ProdIcon = prod.icon;
+                          const prodConfig = PRODUCTOS[prod.tipo];
+                          return (
+                            <div key={prod.tipo} className="p-4 rounded-lg border border-border hover:border-primary/30 transition-all hover:shadow-sm">
+                              <div className="flex items-start gap-3">
+                                <div
+                                  className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0"
+                                  style={{ backgroundColor: prod.color + '20' }}
+                                >
+                                  <ProdIcon className="h-5 w-5" style={{ color: prod.color }} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <p className="text-sm font-semibold text-foreground">{prod.nombre}</p>
+                                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                                      prod.estado === 'operativo'
+                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                                        : prod.estado === 'definido'
+                                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                                          : 'bg-stone-100 text-stone-500'
+                                    }`}>
+                                      {prod.estado === 'operativo' ? '✅ Operativo' : prod.estado === 'definido' ? '⚠️ Definido' : '📋 Pendiente'}
+                                    </span>
+                                  </div>
+                                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium mt-1 inline-block ${cat.color}`}>
+                                    {cat.label}
+                                  </span>
+                                </div>
+                              </div>
+                              {prodConfig && (
+                                <div className="mt-3 space-y-2">
+                                  <p className="text-xs text-muted-foreground leading-relaxed">{prodConfig.descripcion}</p>
+                                  <div className="flex items-center flex-wrap gap-3 text-[10px] text-muted-foreground">
+                                    <span>🕐 {prodConfig.horarioEnvio}</span>
+                                    <span>📋 {prodConfig.longitudPaginas} pág.</span>
+                                    <span>⏱ {prodConfig.longitudMinLectura} min lectura</span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {prodConfig.canales.map((canal) => (
+                                      <Badge key={canal} variant="secondary" className="text-[9px] px-1.5 py-0">
+                                        {CANAL_LABELS[canal] || canal}
+                                      </Badge>
+                                    ))}
+                                    <Badge variant="outline" className="text-[9px] px-1.5 py-0">
+                                      {FRECUENCIA_LABELS[prodConfig.frecuencia] || prodConfig.frecuencia}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+
+              {/* Combos section */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <FileBarChart className="h-4 w-4 text-muted-foreground" />
+                    Combos de Productos
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    {COMBOS.length} combos disponibles — desde Bs {Math.min(...COMBOS.map(c => c.precioMensual)).toLocaleString()} hasta Bs {Math.max(...COMBOS.map(c => c.precioMensual)).toLocaleString()}/mes
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {COMBOS.map((combo) => (
+                      <div key={combo.id} className="p-4 rounded-xl border-2 border-primary/20 hover:border-primary/40 transition-all bg-gradient-to-br from-primary/[0.02] to-transparent">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-sm font-bold text-foreground">{combo.nombre}</h4>
+                          <Badge className="text-[10px] bg-primary text-primary-foreground font-bold">
+                            Bs {combo.precioMensual.toLocaleString()}/mes
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-3">{combo.descripcion}</p>
+                        <Separator className="my-3" />
+                        <div className="flex flex-wrap gap-1.5">
+                          {combo.productos.map((tipo) => {
+                            const prodInfo = ALL_PRODUCTS.find(p => p.tipo === tipo);
+                            const ProdIcon = prodInfo?.icon || FileText;
+                            return (
+                              <span key={tipo} className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-muted font-medium text-muted-foreground">
+                                <ProdIcon className="h-3 w-3" style={{ color: prodInfo?.color }} />
+                                {PRODUCTOS[tipo]?.nombreCorto || tipo.replace(/_/g, ' ')}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
