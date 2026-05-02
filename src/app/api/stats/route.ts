@@ -98,6 +98,20 @@ export async function GET() {
     const diputados = await db.persona.count({ where: { camara: 'Diputados', activa: true } });
     const senadores = await db.persona.count({ where: { camara: 'Senadores', activa: true } });
 
+    // Clientes activos
+    const clientesActivos = await db.cliente.count({ where: { estado: 'activo' } });
+
+    // Contratos vigentes
+    const contratosVigentes = await db.contrato.count({ where: { estado: 'activo' } });
+
+    // Entregas hoy (enviadas en las últimas 24h)
+    const entregasHoy = await db.entrega.count({
+      where: {
+        estado: 'enviado',
+        fechaEnvio: { gte: hoy, lt: manana },
+      },
+    });
+
     // Fuentes activas — últimas capturas
 
     return NextResponse.json({
@@ -113,6 +127,9 @@ export async function GET() {
       mencionesPorPartido,
       ultimasMenciones,
       distribucionCamara: { diputados, senadores },
+      clientesActivos,
+      contratosVigentes,
+      entregasHoy,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Error desconocido';

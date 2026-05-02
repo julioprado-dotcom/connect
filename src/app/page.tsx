@@ -110,6 +110,9 @@ interface DashboardData {
   mencionesPorPartido: PartidoStat[];
   ultimasMenciones: MencionRow[];
   distribucionCamara: { diputados: number; senadores: number };
+  clientesActivos: number;
+  contratosVigentes: number;
+  entregasHoy: number;
 }
 
 interface PersonaListItem {
@@ -222,8 +225,6 @@ const NAV_ITEMS = [
   { id: 'contratos', label: 'Contratos', icon: FileCheck },
   { id: 'menciones', label: 'Menciones', icon: Newspaper },
   { id: 'clasificadores', label: 'Clasificadores', icon: Tag },
-  { id: 'personas', label: 'Personas', icon: Users },
-  { id: 'medios', label: 'Medios', icon: Radio },
   { id: 'boletines', label: 'Boletines', icon: Mail },
   { id: 'alertas', label: 'Alertas', icon: Bell },
   { id: 'estrategia', label: 'Estrategia', icon: Rocket },
@@ -748,113 +749,36 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* KPI Cards */}
+              {/* KPI Cards — Centro de Comando */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <KPICard
-                  icon={<Users className="h-5 w-5" />}
-                  value={data?.totalPersonas || 0}
-                  label="Legisladores"
-                  subtext={`${data?.distribucionCamara?.diputados || 0} dip. · ${data?.distribucionCamara?.senadores || 0} sen.`}
+                  icon={<UserCircle className="h-5 w-5" />}
+                  value={data?.clientesActivos || 0}
+                  label="Clientes activos"
+                  subtext={`${data?.contratosVigentes || 0} contratos vigentes`}
                   colorClass="text-primary"
+                />
+                <KPICard
+                  icon={<Mail className="h-5 w-5" />}
+                  value={data?.entregasHoy || 0}
+                  label="Entregas hoy"
+                  subtext="Boletines enviados"
+                  colorClass="text-emerald-600 dark:text-emerald-400"
                 />
                 <KPICard
                   icon={<Newspaper className="h-5 w-5" />}
                   value={data?.mencionesHoy || 0}
                   label="Menciones hoy"
                   subtext={`${data?.mencionesSemana || 0} esta semana`}
-                  colorClass="text-emerald-600 dark:text-emerald-400"
+                  colorClass="text-sky-600 dark:text-sky-400"
                 />
                 <KPICard
                   icon={<Radio className="h-5 w-5" />}
                   value={data?.totalMedios || 0}
-                  label="Medios monitoreados"
-                  subtext={`${data?.totalEjes || 0} ejes temáticos`}
-                  colorClass="text-sky-600 dark:text-sky-400"
-                />
-                <KPICard
-                  icon={<FileText className="h-5 w-5" />}
-                  value={data?.totalReportes || 0}
-                  label="Reportes generados"
-                  subtext={data?.enlacesRotos ? `${data.enlacesRotos} enlaces rotos` : ''}
+                  label="Medios activos"
+                  subtext={`${data?.totalEjes || 0} ejes · ${data?.totalPersonas || 0} legisladores`}
                   colorClass="text-amber-600 dark:text-amber-400"
                 />
-              </div>
-
-              {/* Distribution + Top personas */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                {/* Menciones por partido */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                      <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                      Distribución por partido
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      Menciones esta semana por agrupación política
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0">
-                    {data?.mencionesPorPartido && data.mencionesPorPartido.length > 0 ? (
-                      <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
-                        {data.mencionesPorPartido.map((p) => (
-                          <div key={p.partido}>
-                            <div className="flex items-center justify-between mb-1">
-                              <span className={`text-xs font-semibold ${PARTIDO_TEXT_COLORS[p.partido] || 'text-foreground'}`}>
-                                {p.partido}
-                              </span>
-                              <span className="text-xs font-bold text-foreground">{p.count}</span>
-                            </div>
-                            <div className="h-5 bg-muted rounded-full overflow-hidden">
-                              <div
-                                className={`h-full rounded-full ${
-                                  PARTIDO_COLORS[p.partido] || 'bg-stone-500'
-                                }`}
-                                style={{
-                                  width: `${Math.max((p.count / maxPartidoCount) * 100, 3)}%`,
-                                }}
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <EmptyState icon={<BarChart3 className="h-8 w-8" />} text="Sin menciones por partido esta semana" />
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Top 10 */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                      Top 10 presencia mediática
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      Legisladores más mencionados esta semana
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0">
-                    {data?.topPersonas && data.topPersonas.length > 0 ? (
-                      <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
-                        {data.topPersonas.map((p, i) => (
-                          <div key={p.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
-                            <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground shrink-0">
-                              {i + 1}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-foreground truncate">{p.nombre}</p>
-                              <p className="text-[11px] text-muted-foreground">{p.camara} · {p.partidoSigla}</p>
-                            </div>
-                            <Badge variant="secondary" className="text-[10px] shrink-0">{p.mencionesCount}</Badge>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <EmptyState icon={<Users className="h-8 w-8" />} text="Sin menciones registradas esta semana" />
-                    )}
-                  </CardContent>
-                </Card>
               </div>
 
               {/* Últimas menciones */}
@@ -2037,26 +1961,116 @@ export default function Dashboard() {
               ═══════════════════════════════════════════════════════ */}
           {activeView === 'indicadores' && (
             <div className="space-y-4">
+              {/* Métricas del sistema */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    Indicadores de Métricas
+                    Indicadores del Sistema
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Estadísticas de uso y rendimiento del sistema CONNECT
+                    Métricas operacionales de CONNECT Bolivia
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-4 pt-0 space-y-4">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <StatItem label="Total menciones" value={String(data?.mencionesSemana || 0)} />
+                    <StatItem label="Menciones (semana)" value={String(data?.mencionesSemana || 0)} />
+                    <StatItem label="Legisladores" value={String(data?.totalPersonas || 0)} />
                     <StatItem label="Medios activos" value={String(data?.totalMedios || 0)} />
                     <StatItem label="Ejes temáticos" value={String(data?.totalEjes || 0)} />
-                    <StatItem label="Legisladores" value={String(data?.totalPersonas || 0)} />
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Distribución por partido — migrado desde Resumen */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                    Distribución por partido
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Menciones esta semana por agrupación política
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  {data?.mencionesPorPartido && data.mencionesPorPartido.length > 0 ? (
+                    <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
+                      {data.mencionesPorPartido.map((p) => (
+                        <div key={p.partido}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className={`text-xs font-semibold ${PARTIDO_TEXT_COLORS[p.partido] || 'text-foreground'}`}>
+                              {p.partido}
+                            </span>
+                            <span className="text-xs font-bold text-foreground">{p.count}</span>
+                          </div>
+                          <div className="h-5 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${
+                                PARTIDO_COLORS[p.partido] || 'bg-stone-500'
+                              }`}
+                              style={{
+                                width: `${Math.max((p.count / maxPartidoCount) * 100, 3)}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState icon={<BarChart3 className="h-8 w-8" />} text="Sin menciones por partido esta semana" />
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Top 10 presencia mediática — migrado desde Resumen */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    Top 10 presencia mediática
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Legisladores más mencionados esta semana
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  {data?.topPersonas && data.topPersonas.length > 0 ? (
+                    <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
+                      {data.topPersonas.map((p, i) => (
+                        <div key={p.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
+                          <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground shrink-0">
+                            {i + 1}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{p.nombre}</p>
+                            <p className="text-[11px] text-muted-foreground">{p.camara} · {p.partidoSigla}</p>
+                          </div>
+                          <Badge variant="secondary" className="text-[10px] shrink-0">{p.mencionesCount}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState icon={<Users className="h-8 w-8" />} text="Sin menciones registradas esta semana" />
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Indicadores macroeconómicos — próximamente */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-muted-foreground" />
+                    Indicadores Macroeconómicos ONION200
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Tipo de cambio, materias primas y conflictividad social
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
                   <div className="p-4 rounded-lg border border-dashed border-border text-center space-y-2">
-                    <TrendingUp className="h-8 w-8 text-muted-foreground mx-auto" />
-                    <p className="text-xs text-muted-foreground">Próximamente: indicadores macroeconómicos y de mercado</p>
+                    <Activity className="h-8 w-8 text-muted-foreground mx-auto" />
+                    <p className="text-xs text-muted-foreground">Próximamente: TC Oficial, LME (Zn, Sn, Ag, Pb), RIN, Índice de conflictividad</p>
                   </div>
                 </CardContent>
               </Card>
