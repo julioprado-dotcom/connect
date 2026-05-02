@@ -746,13 +746,13 @@ export default function Dashboard() {
 
   const handleGenerarProducto = async (tipo: string) => {
     // El Termómetro, Saldo del Día y El Foco abren panel dedicado
-    if (tipo === 'EL_TERMOMETRO' || tipo === 'SALDO_DEL_DIA' || tipo === 'EL_FOCO') {
+    if (tipo === 'EL_TERMOMETRO' || tipo === 'SALDO_DEL_DIA' || tipo === 'EL_FOCO' || tipo === 'EL_RADAR') {
       const today = new Date().toISOString().slice(0, 10);
       setSelectedGenerator(tipo);
       setGeneratorFecha(today);
       setGeneratorFiltros({});
       setGeneratorData(null);
-      // Load generator data directly (EL_FOCO without ejeSlug → shows axis selection)
+      // Load generator data directly (EL_FOCO without ejeSlug → shows axis selection; EL_RADAR → shows weekly radar)
       loadGeneratorData(tipo, today);
       return;
     }
@@ -2589,26 +2589,31 @@ export default function Dashboard() {
                           style={{
                             backgroundColor: selectedGenerator === 'EL_TERMOMETRO' ? '#3B82F620'
                               : selectedGenerator === 'SALDO_DEL_DIA' ? '#8B5CF620'
-                              : '#F59E0B20',
+                              : selectedGenerator === 'EL_FOCO' ? '#F59E0B20'
+                              : '#22C55E20',
                           }}
                         >
                           {selectedGenerator === 'EL_TERMOMETRO'
                             ? <Thermometer className="h-5 w-5" style={{ color: '#3B82F6' }} />
                             : selectedGenerator === 'SALDO_DEL_DIA'
                             ? <Scale className="h-5 w-5" style={{ color: '#8B5CF6' }} />
-                            : <Search className="h-5 w-5" style={{ color: '#F59E0B' }} />
+                            : selectedGenerator === 'EL_FOCO'
+                            ? <Search className="h-5 w-5" style={{ color: '#F59E0B' }} />
+                            : <Radio className="h-5 w-5" style={{ color: '#22C55E' }} />
                           }
                         </div>
                         <div>
                           <h3 className="text-sm font-bold text-foreground">
                             {selectedGenerator === 'EL_TERMOMETRO' ? 'El Termómetro'
                               : selectedGenerator === 'SALDO_DEL_DIA' ? 'Saldo del Día'
-                              : 'El Foco'} — Generador
+                              : selectedGenerator === 'EL_FOCO' ? 'El Foco'
+                              : 'El Radar'} — Generador
                           </h3>
                           <p className="text-[10px] text-muted-foreground">
                             {selectedGenerator === 'EL_TERMOMETRO' && 'Boletín matutino · Clima mediático nocturno'}
                             {selectedGenerator === 'SALDO_DEL_DIA' && 'Boletín vespertino · Balance de jornada'}
                             {selectedGenerator === 'EL_FOCO' && 'Análisis profundo de eje temático'}
+                            {selectedGenerator === 'EL_RADAR' && 'Radar semanal · 11 ejes temáticos'}
                           </p>
                         </div>
                       </div>
@@ -2887,8 +2892,209 @@ export default function Dashboard() {
                             </>
                           )}
 
+                          {/* ═══ EL_RADAR: Radar semanal ═══ */}
+                          {selectedGenerator === 'EL_RADAR' && (
+                            <>
+                              {/* Fecha + ventana semanal */}
+                              <div className="space-y-2">
+                                <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                  <Activity className="h-3.5 w-3.5 text-muted-foreground" />
+                                  Semana del reporte
+                                </label>
+                                <div className="flex items-center gap-3">
+                                  <Input
+                                    type="date"
+                                    value={generatorFecha}
+                                    onChange={(e) => handleGeneratorFechaChange(e.target.value)}
+                                    className="max-w-[200px] text-sm h-9"
+                                  />
+                                  {(generatorData.windowLabel as string) && (
+                                    <span className="text-[10px] text-muted-foreground">
+                                      {(generatorData.windowLabel as string)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Hallazgo clave */}
+                              {(generatorData.hallazgoClave as string) && (
+                                <div className="p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 space-y-1">
+                                  <p className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                                    <Radio className="h-3 w-3" /> Hallazgo clave
+                                  </p>
+                                  <p className="text-[11px] text-foreground leading-relaxed">{generatorData.hallazgoClave as string}</p>
+                                </div>
+                              )}
+
+                              {/* KPIs rápidos */}
+                              <div className="grid grid-cols-3 gap-2">
+                                <div className="p-3 rounded-lg border border-border text-center">
+                                  <p className="text-lg font-bold text-foreground">{generatorData.totalMenciones as number || 0}</p>
+                                  <p className="text-[9px] text-muted-foreground">Menciones</p>
+                                </div>
+                                <div className="p-3 rounded-lg border border-border text-center">
+                                  <p className="text-lg font-bold text-foreground">{generatorData.totalEjesActivos as number || 0}</p>
+                                  <p className="text-[9px] text-muted-foreground">Ejes activos</p>
+                                </div>
+                                <div className="p-3 rounded-lg border border-border text-center">
+                                  <div className="text-lg font-bold text-foreground">
+                                    {(generatorData.sentimientoGlobal as { promedio: number })?.promedio?.toFixed(1) || '—'}
+                                  </div>
+                                  <p className="text-[9px] text-muted-foreground">
+                                    {(generatorData.sentimientoGlobal as { label: string })?.label || 'N/D'}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Evolución diaria */}
+                              {(generatorData.evolucionDiaria as Array<{ dia: string; count: number }>)?.length > 0 && (
+                                <div className="space-y-2">
+                                  <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                    <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
+                                    Evolución diaria
+                                  </p>
+                                  <div className="flex items-end gap-2 h-20">
+                                    {(generatorData.evolucionDiaria as Array<{ fecha: string; dia: string; count: number }>).map((d) => {
+                                      const maxDay = Math.max(...(generatorData.evolucionDiaria as Array<{ count: number }>).map(x => x.count), 1);
+                                      const h = Math.max((d.count / maxDay) * 100, 4);
+                                      return (
+                                        <div key={d.fecha} className="flex-1 flex flex-col items-center gap-1">
+                                          <span className="text-[9px] font-bold text-foreground">{d.count}</span>
+                                          <div className="w-full rounded-t-sm bg-emerald-500/80 transition-all" style={{ height: `${h}%` }} />
+                                          <span className="text-[8px] text-muted-foreground">{d.dia}</span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Radar de 11 ejes */}
+                              {(generatorData.radarEjes as Array<{
+                                nombre: string; slug: string; color: string; menciones: number;
+                                sentimientoProm: number; sentimientoLabel: string;
+                                topActor: string | null; hallazgo: string;
+                                tendencia: 'ascendente' | 'estable' | 'descendente';
+                              }>)?.length > 0 && (
+                                <div className="space-y-2">
+                                  <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                    <Radio className="h-3.5 w-3.5 text-emerald-500" />
+                                    Radar de ejes temáticos
+                                    <span className="text-[9px] font-normal text-muted-foreground">
+                                      {(generatorData.radarEjes as unknown[]).length} ejes
+                                    </span>
+                                  </p>
+                                  <div className="space-y-1.5 max-h-72 overflow-y-auto custom-scrollbar">
+                                    {(generatorData.radarEjes as Array<{
+                                      nombre: string; slug: string; color: string; menciones: number;
+                                      sentimientoProm: number; sentimientoLabel: string;
+                                      topActor: string | null; hallazgo: string;
+                                      tendencia: 'ascendente' | 'estable' | 'descendente';
+                                    }>).map((eje) => {
+                                      const maxMenc = Math.max(...(generatorData.radarEjes as Array<{ menciones: number }>).map(e => e.menciones), 1);
+                                      const barWidth = Math.max((eje.menciones / maxMenc) * 100, 2);
+                                      const tendenciaIcon = eje.tendencia === 'ascendente' ? '↑' : eje.tendencia === 'descendente' ? '↓' : '→';
+                                      const tendenciaColor = eje.tendencia === 'ascendente' ? 'text-emerald-500' : eje.tendencia === 'descendente' ? 'text-red-500' : 'text-muted-foreground';
+                                      return (
+                                        <div key={eje.slug} className="p-2.5 rounded-lg border border-border hover:border-primary/20 transition-all">
+                                          <div className="flex items-center gap-2 mb-1.5">
+                                            <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: eje.color || '#22C55E' }} />
+                                            <p className="text-[11px] font-bold text-foreground flex-1 truncate">{eje.nombre}</p>
+                                            <span className={`text-[10px] font-mono font-bold ${tendenciaColor}`}>{tendenciaIcon}</span>
+                                            <Badge variant="secondary" className="text-[8px] shrink-0">{eje.menciones} menc.</Badge>
+                                          </div>
+                                          <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-1.5">
+                                            <div className="h-full rounded-full transition-all" style={{ width: `${barWidth}%`, backgroundColor: eje.color || '#22C55E' }} />
+                                          </div>
+                                          <div className="flex items-center gap-3 text-[9px] text-muted-foreground">
+                                            <span>Sentimiento: <span className={`font-medium ${eje.sentimientoLabel === 'positivo' ? 'text-emerald-600 dark:text-emerald-400' : eje.sentimientoLabel === 'negativo' ? 'text-red-600 dark:text-red-400' : ''}`}>{eje.sentimientoProm.toFixed(1)}</span></span>
+                                            {eje.topActor && <span>Actor: <span className="font-medium text-foreground">{eje.topActor}</span></span>}
+                                          </div>
+                                          <p className="text-[9px] text-muted-foreground mt-1 line-clamp-1">{eje.hallazgo}</p>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Top actores de la semana */}
+                              {(generatorData.topActores as Array<{ nombre: string; partidoSigla: string; count: number; ejesPrincipales: string[] }>)?.length > 0 && (
+                                <div className="space-y-2">
+                                  <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                    <Target className="h-3.5 w-3.5 text-muted-foreground" />
+                                    Actores de la semana
+                                  </p>
+                                  <div className="space-y-1.5">
+                                    {(generatorData.topActores as Array<{ nombre: string; partidoSigla: string; camara: string; count: number; ejesPrincipales: string[] }>).slice(0, 5).map((actor, i) => (
+                                      <div key={actor.nombre} className="flex items-center gap-2 text-[10px]">
+                                        <span className={`font-bold w-4 text-center ${i === 0 ? 'text-amber-500' : i === 1 ? 'text-stone-400' : 'text-amber-700'}`}>
+                                          #{i + 1}
+                                        </span>
+                                        <span className="text-foreground font-medium truncate">{actor.nombre}</span>
+                                        <span className="text-muted-foreground shrink-0">{actor.partidoSigla}</span>
+                                        {actor.ejesPrincipales.length > 0 && (
+                                          <div className="flex items-center gap-0.5 ml-auto shrink-0">
+                                            {actor.ejesPrincipales.slice(0, 2).map(ej => {
+                                              const ejeInfo = (generatorData.radarEjes as Array<{ slug: string; color: string; nombre: string }>)?.find(e => e.slug === ej);
+                                              return ejeInfo ? (
+                                                <span key={ej} className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: ejeInfo.color }} title={ejeInfo.nombre} />
+                                              ) : null;
+                                            })}
+                                            {actor.ejesPrincipales.length > 2 && <span className="text-[8px] text-muted-foreground">+{actor.ejesPrincipales.length - 2}</span>}
+                                          </div>
+                                        )}
+                                        <Badge variant="secondary" className="text-[8px] shrink-0">{actor.count}</Badge>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Preview menciones */}
+                              {(generatorData.mencionesPreview as Array<{ id: string; titulo: string; sentimiento: string; persona: { nombre: string } | null; fechaCaptura: string; medio: { nombre: string }; ejes: Array<{ nombre: string; color: string }> }>)?.length > 0 && (
+                                <div className="space-y-2">
+                                  <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                    <Newspaper className="h-3.5 w-3.5 text-muted-foreground" />
+                                    Menciones recientes
+                                    <span className="text-[9px] font-normal text-muted-foreground">
+                                      (máx. 15 de {(generatorData.totalMenciones as number)})
+                                    </span>
+                                  </p>
+                                  <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+                                    {(generatorData.mencionesPreview as Array<{ id: string; titulo: string; sentimiento: string; persona: { nombre: string } | null; fechaCaptura: string; medio: { nombre: string }; ejes: Array<{ nombre: string; color: string }> }>).map((m) => (
+                                      <div key={m.id} className="flex items-start gap-2 p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                                        <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-medium shrink-0 mt-0.5 ${SENTIMIENTO_STYLES[m.sentimiento] || ''}`}>
+                                          {(m.sentimiento || '').replace('_', ' ')}
+                                        </span>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-[11px] text-foreground font-medium truncate">{m.titulo}</p>
+                                          <div className="flex items-center gap-1 mt-0.5">
+                                            {m.persona?.nombre && <span className="text-[9px] text-muted-foreground">{m.persona.nombre}</span>}
+                                            {m.medio?.nombre && <span className="text-[9px] text-muted-foreground">· {m.medio.nombre}</span>}
+                                            <span className="text-[9px] text-muted-foreground">
+                                              <Clock className="h-2 w-2 inline mr-0.5" />
+                                              {new Date(m.fechaCaptura).toLocaleDateString('es-BO', { day: '2-digit', month: 'short' })}
+                                            </span>
+                                          </div>
+                                          {m.ejes?.length > 0 && (
+                                            <div className="flex items-center gap-0.5 mt-0.5">
+                                              {m.ejes.slice(0, 3).map(ej => (
+                                                <span key={ej.nombre} className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: ej.color }} title={ej.nombre} />
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          )}
+
                           {/* ═══ EL_TERMOMETRO / SALDO_DEL_DIA: Panel original ═══ */}
-                          {selectedGenerator !== 'EL_FOCO' && (
+                          {selectedGenerator !== 'EL_FOCO' && selectedGenerator !== 'EL_RADAR' && (
                             <>
                               {/* Fecha */}
                               <div className="space-y-2">
@@ -3130,6 +3336,19 @@ export default function Dashboard() {
                           {generatorGenerating
                             ? <><Loader2 className="h-3 w-3 animate-spin" /> Generando...</>
                             : <><Search className="h-3 w-3" /> Generar El Foco{generatorData?.ejeSeleccionado ? `: ${(generatorData.ejeSeleccionado as { nombre: string }).nombre}` : ''}</>
+                          }
+                        </Button>
+                      ) : selectedGenerator === 'EL_RADAR' ? (
+                        <Button
+                          size="sm"
+                          onClick={handleGenerateFromPanel}
+                          disabled={generatorGenerating || generatorDataLoading || !generatorData}
+                          className="text-xs gap-1.5"
+                          style={{ backgroundColor: '#22C55E', borderColor: '#22C55E' }}
+                        >
+                          {generatorGenerating
+                            ? <><Loader2 className="h-3 w-3 animate-spin" /> Generando...</>
+                            : <><Radio className="h-3 w-3" /> Generar El Radar</>
                           }
                         </Button>
                       ) : (
