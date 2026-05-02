@@ -1,5 +1,5 @@
 /**
- * Product Generator — ONION200 / News Connect Bolivia
+ * Product Generator — ONION200 / DECODEX Bolivia
  * Genera la configuración necesaria para producir cada tipo de boletín.
  */
 

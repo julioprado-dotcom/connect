@@ -256,7 +256,7 @@ const ESTRATEGIA_SECCIONES = [
     id: 'resumen',
     titulo: 'Resumen Ejecutivo',
     icon: BarChart3,
-    contenido: 'CONNECT Bolivia es una plataforma de monitoreo mediático inteligente impulsada por el motor ONION200, diseñada para capturar, analizar y distribuir información estratégica sobre la presencia en medios de actores públicos, instituciones y temas de interés en Bolivia. La plataforma procesa diariamente datos de más de 30 fuentes mediáticas nacionales, generando alertas, boletines analíticos y dashboards interactivos que permiten a los tomadores de decisiones anticipar tendencias, gestionar crisis y optimizar su visibilidad pública.',
+    contenido: 'DECODEX es una plataforma de monitoreo mediático inteligente impulsada por el motor ONION200, diseñada para capturar, analizar y distribuir información estratégica sobre la presencia en medios de actores públicos, instituciones y temas de interés en Bolivia. La plataforma procesa diariamente datos de más de 30 fuentes mediáticas nacionales, generando alertas, boletines analíticos y dashboards interactivos que permiten a los tomadores de decisiones anticipar tendencias, gestionar crisis y optimizar su visibilidad pública.',
     kpis: [
       { label: 'Fuentes monitoreadas', value: '30+' },
       { label: 'Personas en radar', value: '173' },
@@ -270,7 +270,7 @@ const ESTRATEGIA_SECCIONES = [
     icon: Target,
     secciones: [
       { subtitulo: 'Misión', texto: 'Transformar la inteligencia mediática en Bolivia mediante tecnología de análisis en tiempo real, proporcionando a tomadores de decisiones información accionable, oportuna y precisa sobre presencia en medios, sentimiento público y dinámicas de conflictividad.' },
-      { subtitulo: 'Propuesta de valor diferenciada', texto: 'A diferencia de los servicios de recorte de prensa tradicionales, CONNECT Bolivia incorpora capas de IA que permiten clasificación automática por sentimiento, detección de conflictividad, seguimiento de ejes temáticos y generación de boletines con prospectiva. El motor ONION200 procesa múltiples fuentes en paralelo con tiempos de respuesta en minutos.' },
+      { subtitulo: 'Propuesta de valor diferenciada', texto: 'A diferencia de los servicios de recorte de prensa tradicionales, DECODEX incorpora capas de IA que permiten clasificación automática por sentimiento, detección de conflictividad, seguimiento de ejes temáticos y generación de boletines con prospectiva. El motor ONION200 procesa múltiples fuentes en paralelo con tiempos de respuesta en minutos.' },
       { subtitulo: 'Posicionamiento competitivo', texto: 'Segmento premium de inteligencia mediática, espacio dominado por servicios genéricos de clipping sin análisis de sentimiento. El modelo freemium con productos gratuitos de alto valor (El Radar, Voz y Voto, El Hilo, Foco de la Semana) sirve como motor de adquisición que alimenta el embudo de conversión.' },
     ],
   },
@@ -1098,13 +1098,13 @@ export default function Dashboard() {
           {/* Logo */}
           <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border">
             <div className="h-9 w-9 rounded-lg flex items-center justify-center overflow-hidden" style={{backgroundColor: '#0A1628'}}>
-              <Image src="/logo.png" alt="CONNECT" width={36} height={36} className="object-cover" />
+              <Image src="/logo.png" alt="DECODEX" width={36} height={36} className="object-cover" />
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="text-sm font-bold text-sidebar-foreground truncate leading-tight">
-                CONNECT
+                DECODEX
               </h2>
-              <p className="text-[10px] text-sidebar-foreground/60">Bolivia · Inteligencia Mediática</p>
+              <p className="text-[10px] text-sidebar-foreground/60">Bolivia · Inteligencia de Señales</p>
             </div>
             <button
               className="lg:hidden p-1 rounded hover:bg-sidebar-accent"
@@ -1151,7 +1151,7 @@ export default function Dashboard() {
             </Link>
             <div className="mt-2 px-3">
               <p className="text-[10px] text-sidebar-foreground/40">
-                Pluralismo · ONION200 · Bolivia
+                DECODEX · ONION200 · Bolivia
               </p>
             </div>
           </div>
@@ -1175,7 +1175,7 @@ export default function Dashboard() {
                   {NAV_ITEMS.find((n) => n.id === activeView)?.label || 'Centro de Comando'}
                 </h1>
                 <p className="text-[11px] text-muted-foreground hidden sm:block">
-                  CONNECT Bolivia — Motor ONION200
+                  DECODEX — Motor ONION200
                 </p>
               </div>
             </div>
@@ -3556,7 +3556,7 @@ export default function Dashboard() {
                         })}
                       </nav>
                       <div className="mt-4 pt-3 border-t border-border">
-                        <p className="text-[9px] text-muted-foreground/60">Fuente: CONNECT_Bolivia_Estrategia_Comercial.pdf</p>
+                        <p className="text-[9px] text-muted-foreground/60">Fuente: DECODEX_Estrategia_Comercial.pdf</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -3811,7 +3811,7 @@ export default function Dashboard() {
                     Indicadores del Sistema
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Métricas operacionales de CONNECT Bolivia
+                    Métricas operacionales de DECODEX
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-4 pt-0 space-y-4">

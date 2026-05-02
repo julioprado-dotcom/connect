@@ -1,5 +1,5 @@
 /**
- * Delivery — ONION200 / News Connect Bolivia
+ * Delivery — ONION200 / DECODEX Bolivia
  * Funciones de formateo y entrega de boletines por canal.
  */
 
@@ -12,7 +12,7 @@ export function formatWhatsAppLabel(
   tipo: TipoBoletin,
   vars?: Record<string, string>
 ): string {
-  const template = ETIQUETAS_ENTREGA[tipo]?.whatsapp ?? '📰 News Connect — {fecha}'
+  const template = ETIQUETAS_ENTREGA[tipo]?.whatsapp ?? '📰 DECODEX — {fecha}'
   let result = template
 
   if (vars) {
@@ -30,7 +30,7 @@ export function formatEmailSubject(
   tipo: TipoBoletin,
   vars?: Record<string, string>
 ): string {
-  const template = ETIQUETAS_ENTREGA[tipo]?.email ?? 'News Connect — {fecha}'
+  const template = ETIQUETAS_ENTREGA[tipo]?.email ?? 'DECODEX — {fecha}'
   let result = template
 
   if (vars) {

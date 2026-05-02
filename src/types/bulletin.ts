@@ -1,6 +1,6 @@
 /**
- * Tipos de boletines ONION200 — News Connect Bolivia
- * Define la taxonomía completa de productos del ecosistema CONNECT.
+ * Tipos de boletines ONION200 — DECODEX Bolivia
+ * Define la taxonomía completa de productos del ecosistema DECODEX.
  */
 
 // ─── Tipos de Boletín ──────────────────────────────────────────────

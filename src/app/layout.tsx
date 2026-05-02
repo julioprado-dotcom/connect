@@ -14,14 +14,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CONNECT Bolivia — Inteligencia Mediática",
+  title: "DECODEX — Inteligencia de Señales",
   description:
-    "CONNECT Bolivia: SaaS de inteligencia mediática que monitorea presencia de legisladores en medios. Pluralismo y transparencia conforme a la Constitución Política del Estado.",
+    "DECODEX: Plataforma de inteligencia de señales mediáticas impulsada por ONION200 que monitorea presencia de legisladores en medios. Pluralismo y transparencia conforme a la Constitución Política del Estado.",
   icons: {
     icon: '/favicon.png',
   },
   keywords: [
-    "CONNECT Bolivia",
+    "DECODEX",
     "inteligencia mediática",
     "Bolivia",
     "legisladores",
@@ -31,9 +31,9 @@ export const metadata: Metadata = {
     "Asamblea Legislativa",
     "2025-2030",
   ],
-  authors: [{ name: "CONNECT Bolivia" }],
+  authors: [{ name: "DECODEX" }],
   openGraph: {
-    title: "CONNECT Bolivia — Inteligencia Mediática",
+    title: "DECODEX — Inteligencia de Señales",
     description:
       "Conectate con inteligencia de señales del Sur Global — Periodo 2025-2030",
     type: "website",

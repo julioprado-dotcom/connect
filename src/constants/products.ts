@@ -1,5 +1,5 @@
 /**
- * Definiciones de productos ONION200 — News Connect Bolivia
+ * Definiciones de productos ONION200 — DECODEX Bolivia
  * Catálogo completo de boletines con configuración estándar.
  */
 
@@ -240,47 +240,47 @@ export const COMBOS: ProductoCombo[] = [
 export const ETIQUETAS_ENTREGA: Record<TipoBoletin, { whatsapp: string; email: string }> = {
   EL_TERMOMETRO: {
     whatsapp: '🌡️ EL TERMÓMETRO — {fecha}',
-    email: 'El Termómetro — {fecha} | News Connect',
+    email: 'El Termómetro — {fecha} | DECODEX',
   },
   SALDO_DEL_DIA: {
     whatsapp: '📊 EL SALDO DEL DÍA — {fecha}',
-    email: 'El Saldo del Día — {fecha} | News Connect',
+    email: 'El Saldo del Día — {fecha} | DECODEX',
   },
   EL_FOCO: {
     whatsapp: '🔍 EL FOCO — {eje} — {fecha}',
-    email: 'El Foco: {eje} — {fecha} | News Connect',
+    email: 'El Foco: {eje} — {fecha} | DECODEX',
   },
   EL_ESPECIALIZADO: {
     whatsapp: '📋 EL ESPECIALIZADO — {sector} — {fecha}',
-    email: 'El Especializado: {sector} — {fecha} | News Connect',
+    email: 'El Especializado: {sector} — {fecha} | DECODEX',
   },
   EL_RADAR: {
     whatsapp: '📡 EL RADAR — Semana {semana}',
-    email: 'El Radar — Semana del {inicio} al {fin} | News Connect',
+    email: 'El Radar — Semana del {inicio} al {fin} | DECODEX',
   },
   EL_INFORME_CERRADO: {
     whatsapp: '📄 EL INFORME CERRADO — Semana {semana}',
-    email: 'El Informe Cerrado — Semana {semana} | News Connect',
+    email: 'El Informe Cerrado — Semana {semana} | DECODEX',
   },
   VOZ_Y_VOTO: {
     whatsapp: '🗳️ VOZ Y VOTO — Semana {semana}',
-    email: 'Voz y Voto — Semana {semana} | News Connect',
+    email: 'Voz y Voto — Semana {semana} | DECODEX',
   },
   EL_HILO: {
     whatsapp: '🧵 EL HILO — Semana {semana}',
-    email: 'El Hilo — Semana {semana} | News Connect',
+    email: 'El Hilo — Semana {semana} | DECODEX',
   },
   FICHA_LEGISLADOR: {
-    whatsapp: '📋 FICHA — {legislador} | News Connect',
-    email: 'Ficha del Legislador: {legislador} | News Connect',
+    whatsapp: '📋 FICHA — {legislador} | DECODEX',
+    email: 'Ficha del Legislador: {legislador} | DECODEX',
   },
   FOCO_DE_LA_SEMANA: {
     whatsapp: '🔍 FOCO DE LA SEMANA — {eje} — Semana {semana}',
-    email: 'Foco de la Semana: {eje} — Semana {semana} | News Connect',
+    email: 'Foco de la Semana: {eje} — Semana {semana} | DECODEX',
   },
   ALERTA_TEMPRANA: {
     whatsapp: '🚨 ALERTA TEMPRANA — {evento}',
-    email: 'Alerta Temprana: {evento} | News Connect',
+    email: 'Alerta Temprana: {evento} | DECODEX',
   },
 }
 

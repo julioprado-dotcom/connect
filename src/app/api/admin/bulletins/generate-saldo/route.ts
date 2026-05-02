@@ -14,7 +14,7 @@ import { getIndicadoresParaEjes, formatearIndicadoresPrompt } from '@/lib/indica
 
 // ─── Prompt del Sistema ───────────────────────────────────────────
 
-const SYSTEM_PROMPT = `Eres un analista de medios boliviano experto, parte del motor ONION200 de News Connect Bolivia.
+const SYSTEM_PROMPT = `Eres un analista de medios boliviano experto, parte del motor ONION200 de DECODEX Bolivia.
 Tu tarea es generar "El Saldo del Día" — el cierre de jornada de inteligencia mediática.
 
 PRINCIPIOS FUNDAMENTALES:
