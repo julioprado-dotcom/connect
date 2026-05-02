@@ -543,6 +543,33 @@ export default function Dashboard() {
   const [indicadoresLoading, setIndicadoresLoading] = useState(false);
   const [capturaIndicadoresLoading, setCapturaIndicadoresLoading] = useState(false);
 
+  // Entregas (Boletines)
+  const [entregas, setEntregas] = useState<Array<{
+    id: string;
+    tipoBoletin: string;
+    contenido: string;
+    fechaProgramada: string | null;
+    fechaEnvio: string | null;
+    estado: string;
+    canal: string;
+    destinatarios: string;
+    error: string | null;
+    fechaCreacion: string;
+    contrato: { cliente: { id: string; nombre: string; organizacion: string } } | null;
+  }> | null>(null);
+  const [entregasLoading, setEntregasLoading] = useState(false);
+  const [entregasStats, setEntregasStats] = useState<{ enviadasHoy: number; fallidasHoy: number; pendientes: number } | null>(null);
+  const [entregasFilterTipo, setEntregasFilterTipo] = useState('todos');
+  const [entregasFilterEstado, setEntregasFilterEstado] = useState('todos');
+  const [previewEntrega, setPreviewEntrega] = useState<{
+    id: string;
+    tipoBoletin: string;
+    contenido: string;
+    fechaEnvio: string | null;
+    canal: string;
+    contrato: { cliente: { nombre: string; organizacion: string } } | null;
+  } | null>(null);
+
   // Estrategia
   const [estrategiaSeccion, setEstrategiaSeccion] = useState(0);
 
@@ -688,6 +715,23 @@ export default function Dashboard() {
     }
   }, []);
 
+  const loadEntregas = useCallback(async () => {
+    setEntregasLoading(true);
+    try {
+      const params = new URLSearchParams({ page: '1', limit: '50' });
+      if (entregasFilterTipo !== 'todos') params.set('tipoBoletin', entregasFilterTipo);
+      if (entregasFilterEstado !== 'todos') params.set('estado', entregasFilterEstado);
+      const res = await fetch(`/api/entregas?${params}`);
+      const json = await res.json();
+      setEntregas(json.entregas || []);
+      setEntregasStats(json.stats || null);
+    } catch {
+      // silent
+    } finally {
+      setEntregasLoading(false);
+    }
+  }, [entregasFilterTipo, entregasFilterEstado]);
+
   const toggleMedioActivo = async (medioId: string, activo: boolean) => {
     setToggleMedioId(medioId);
     try {
@@ -817,6 +861,7 @@ export default function Dashboard() {
       else if (viewId === 'reportes') loadReportes();
       else if (viewId === 'clientes') loadClientes();
       else if (viewId === 'contratos') loadContratos();
+      else if (viewId === 'boletines') loadEntregas();
     }
   };
 
@@ -1220,6 +1265,72 @@ export default function Dashboard() {
                     <p className="text-[10px] text-muted-foreground/60 mt-3 text-center">
                       No hay alertas registradas. La captura automática de alertas está pendiente de implementación.
                     </p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Top 10 presencia mediática */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                      Top 10 presencia mediática
+                    </CardTitle>
+                    <Button variant="ghost" size="sm" onClick={() => setActiveView('indicadores')} className="text-xs text-muted-foreground">
+                      Ver indicadores <ChevronRight className="h-3 w-3 ml-1" />
+                    </Button>
+                  </div>
+                  <CardDescription className="text-xs">Legisladores más mencionados esta semana</CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  {data?.topPersonas && data.topPersonas.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+                      {data.topPersonas.slice(0, 10).map((p, i) => (
+                        <div key={p.id} className="flex items-center gap-2 p-2 rounded-lg border border-border hover:bg-muted/50 transition-colors">
+                          <span className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[9px] font-bold text-muted-foreground shrink-0">{i + 1}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-medium text-foreground truncate">{p.nombre}</p>
+                            <p className="text-[9px] text-muted-foreground">{p.partidoSigla} · {p.mencionesCount}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center py-4">Sin datos esta semana</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Distribución por partido */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                      Distribución por partido
+                    </CardTitle>
+                  </div>
+                  <CardDescription className="text-xs">Menciones esta semana por agrupación política</CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  {data?.mencionesPorPartido && data.mencionesPorPartido.length > 0 ? (
+                    <div className="space-y-2">
+                      {data.mencionesPorPartido.slice(0, 6).map((p) => (
+                        <div key={p.partido}>
+                          <div className="flex items-center justify-between mb-0.5">
+                            <span className={`text-[11px] font-semibold ${PARTIDO_TEXT_COLORS[p.partido] || 'text-foreground'}`}>{p.partido}</span>
+                            <span className="text-[11px] font-bold text-foreground">{p.count}</span>
+                          </div>
+                          <div className="h-3 bg-muted rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${PARTIDO_COLORS[p.partido] || 'bg-stone-500'}`}
+                              style={{ width: `${Math.max((p.count / maxPartidoCount) * 100, 3)}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center py-4">Sin datos esta semana</p>
                   )}
                 </CardContent>
               </Card>
@@ -2098,150 +2209,167 @@ export default function Dashboard() {
           )}
 
           {/* ═══════════════════════════════════════════════════════
-              VIEW: BOLETINES
+              VIEW: BOLETINES (Historial de Entregas)
               ═══════════════════════════════════════════════════════ */}
           {activeView === 'boletines' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                <KPICard
-                  icon={<Mail className="h-5 w-5" />}
-                  value={ALL_PRODUCTS.length}
-                  label="Productos totales"
-                  colorClass="text-primary"
-                />
-                <KPICard
-                  icon={<CheckCircle2 className="h-5 w-5" />}
-                  value={ALL_PRODUCTS.filter(p => p.estado === 'operativo').length}
-                  label="Operativos"
-                  colorClass="text-emerald-600 dark:text-emerald-400"
-                />
-                <KPICard
-                  icon={<AlertTriangle className="h-5 w-5" />}
-                  value={ALL_PRODUCTS.filter(p => p.estado === 'definido').length}
-                  label="Por definir"
-                  colorClass="text-amber-600 dark:text-amber-400"
-                />
-                <KPICard
-                  icon={<Users className="h-5 w-5" />}
-                  value={COMBOS.length}
-                  label="Combos disponibles"
-                  colorClass="text-purple-600 dark:text-purple-400"
-                />
+            <div className="space-y-4">
+              {/* KPIs */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <KPICard icon={<Mail className="h-5 w-5" />} value={ALL_PRODUCTS.length} label="Productos" colorClass="text-primary" />
+                <KPICard icon={<CheckCircle2 className="h-5 w-5" />} value={entregasStats?.enviadasHoy || 0} label="Enviadas hoy" colorClass="text-emerald-600 dark:text-emerald-400" />
+                <KPICard icon={<XCircle className="h-5 w-5" />} value={entregasStats?.fallidasHoy || 0} label="Fallidas hoy" colorClass="text-red-600 dark:text-red-400" />
+                <KPICard icon={<AlertTriangle className="h-5 w-5" />} value={entregasStats?.pendientes || 0} label="Pendientes" colorClass="text-amber-600 dark:text-amber-400" />
               </div>
 
-              {/* Products by category */}
-              {PRODUCT_CATEGORIES.map((cat) => {
-                const catProducts = ALL_PRODUCTS.filter(p => p.categoria === cat.id);
-                if (catProducts.length === 0) return null;
-                return (
-                  <Card key={cat.id}>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${cat.color}`}>{cat.label}</span>
-                          Boletines ({catProducts.length})
-                        </CardTitle>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {catProducts.map((prod) => {
-                          const ProdIcon = prod.icon;
-                          const prodConfig = PRODUCTOS[prod.tipo];
-                          return (
-                            <div key={prod.tipo} className="p-4 rounded-lg border border-border hover:border-primary/30 transition-colors">
-                              <div className="flex items-start gap-3">
-                                <div
-                                  className="h-10 w-10 rounded-lg flex items-center justify-center shrink-0"
-                                  style={{ backgroundColor: prod.color + '20' }}
-                                >
-                                  <ProdIcon className="h-5 w-5" style={{ color: prod.color }} />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-semibold text-foreground">{prod.nombre}</p>
-                                  <div className="flex items-center gap-1.5 mt-1">
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                                      prod.estado === 'operativo'
-                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
-                                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
-                                    }`}>
-                                      {prod.estado === 'operativo' ? '✅ Operativo' : '⚠️ Definido'}
-                                    </span>
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${cat.color}`}>
-                                      {cat.label}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                              {prodConfig && (
-                                <div className="mt-3 space-y-2">
-                                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{prodConfig.descripcion}</p>
-                                  <div className="flex items-center gap-3">
-                                    <span className="text-[10px] text-muted-foreground">
-                                      🕐 {prodConfig.horarioEnvio}
-                                    </span>
-                                    <span className="text-[10px] text-muted-foreground">
-                                      📋 {prodConfig.longitudPaginas} pág.
-                                    </span>
-                                    <span className="text-[10px] text-muted-foreground">
-                                      ⏱ {prodConfig.longitudMinLectura} min.
-                                    </span>
-                                  </div>
-                                  <div className="flex flex-wrap gap-1">
-                                    {prodConfig.canales.map((canal) => (
-                                      <Badge key={canal} variant="secondary" className="text-[9px] px-1.5 py-0">
-                                        {CANAL_LABELS[canal] || canal}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-
-              {/* Combos */}
+              {/* Filtros + Lista */}
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Package className="h-4 w-4 text-muted-foreground" />
-                    Combos de Productos ({COMBOS.length})
-                  </CardTitle>
-                  <CardDescription className="text-xs">Paquetes con precio especial para suscriptores</CardDescription>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        Historial de Entregas
+                      </CardTitle>
+                      <CardDescription className="text-xs mt-1">
+                        {entregas?.length || 0} entregas registradas
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={entregasFilterTipo}
+                        onChange={(e) => { setEntregasFilterTipo(e.target.value); loadedViews.current.delete('boletines'); }}
+                        className="text-xs border border-border rounded-lg px-2.5 py-1.5 bg-background text-foreground"
+                      >
+                        <option value="todos">Todos los productos</option>
+                        {ALL_PRODUCTS.map((p) => (
+                          <option key={p.tipo} value={p.tipo}>{p.nombre}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={entregasFilterEstado}
+                        onChange={(e) => { setEntregasFilterEstado(e.target.value); loadedViews.current.delete('boletines'); }}
+                        className="text-xs border border-border rounded-lg px-2.5 py-1.5 bg-background text-foreground"
+                      >
+                        <option value="todos">Todos los estados</option>
+                        <option value="enviado">Enviado</option>
+                        <option value="pendiente">Pendiente</option>
+                        <option value="fallido">Fallido</option>
+                      </select>
+                      <Button variant="outline" size="sm" onClick={() => { loadedViews.current.delete('boletines'); loadEntregas(); }} className="text-xs gap-1">
+                        <RefreshCw className="h-3 w-3" /> Actualizar
+                      </Button>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {COMBOS.map((combo) => (
-                      <div key={combo.id} className="p-4 rounded-lg border-2 border-primary/20 hover:border-primary/40 transition-colors bg-primary/[0.02]">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-sm font-semibold text-foreground">{combo.nombre}</p>
-                          <Badge className="text-[10px] bg-primary text-primary-foreground">
-                            Bs {combo.precioMensual.toLocaleString()}/mes
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground mb-3">{combo.descripcion}</p>
-                        <div className="flex flex-wrap gap-1">
-                          {combo.productos.map((tipo) => {
-                            const prodInfo = ALL_PRODUCTS.find(p => p.tipo === tipo);
-                            const ProdIcon = prodInfo?.icon || FileText;
-                            return (
-                              <span key={tipo} className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                                <ProdIcon className="h-3 w-3" />
-                                {PRODUCTOS[tipo]?.nombreCorto || tipo.replace(/_/g, ' ')}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  {entregasLoading ? (
+                    <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+                  ) : entregas && entregas.length > 0 ? (
+                    <div className="space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar">
+                      {entregas.map((e) => {
+                        const prodInfo = ALL_PRODUCTS.find(p => p.tipo === e.tipoBoletin);
+                        const ProdIcon = prodInfo?.icon || FileText;
+                        const clienteNombre = e.contrato?.cliente?.nombre || '—';
+                        return (
+                          <div key={e.id} className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
+                            <div className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: (prodInfo?.color || '#6B7280') + '20' }}>
+                              <ProdIcon className="h-4 w-4" style={{ color: prodInfo?.color || '#6B7280' }} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-xs font-semibold text-foreground">{prodInfo?.nombre || e.tipoBoletin.replace(/_/g, ' ')}</p>
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                                  e.estado === 'enviado' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                                  : e.estado === 'fallido' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                                  : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                                }`}>
+                                  {e.estado === 'enviado' ? '✓ Enviado' : e.estado === 'fallido' ? '✗ Fallido' : '⏳ Pendiente'}
+                                </span>
+                                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-muted text-muted-foreground">
+                                  {e.canal}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3 mt-0.5">
+                                <p className="text-[10px] text-muted-foreground">{clienteNombre}</p>
+                                <span className="text-[10px] text-muted-foreground/40">|</span>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {e.fechaEnvio ? new Date(e.fechaEnvio).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Sin fecha'}
+                                </p>
+                              </div>
+                              {e.error && <p className="text-[10px] text-red-500 mt-0.5">{e.error}</p>}
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {e.contenido && (
+                                <Button variant="ghost" size="sm" onClick={() => setPreviewEntrega(e as never)} className="text-[10px] gap-1 h-7 px-2">
+                                  <Eye className="h-3 w-3" /> Vista previa
+                                </Button>
+                              )}
+                              {e.contenido && (
+                                <Button variant="outline" size="sm" onClick={() => {
+                                  const blob = new Blob([e.contenido], { type: 'text/html;charset=utf-8' });
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `${e.tipoBoletin.replace(/_/g, '-')}-${e.fechaEnvio ? new Date(e.fechaEnvio).toISOString().slice(0, 10) : 'sin-fecha'}.html`;
+                                  a.click();
+                                  URL.revokeObjectURL(url);
+                                }} className="text-[10px] gap-1 h-7 px-2">
+                                  <FileText className="h-3 w-3" /> Descargar
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Mail className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                      <p className="text-sm font-medium text-foreground">No hay entregas registradas</p>
+                      <p className="text-xs text-muted-foreground mt-1">Las entregas aparecerán aquí cuando se generen y envíen boletines</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
+
+              {/* Modal Vista Previa */}
+              {previewEntrega && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setPreviewEntrega(null)}>
+                  <div className="bg-card rounded-xl shadow-xl border border-border max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground">
+                          {ALL_PRODUCTS.find(p => p.tipo === previewEntrega.tipoBoletin)?.nombre || previewEntrega.tipoBoletin.replace(/_/g, ' ')}
+                        </h3>
+                        <p className="text-[10px] text-muted-foreground">
+                          {previewEntrega.contrato?.cliente?.nombre || '—'} · {previewEntrega.canal}
+                          {previewEntrega.fechaEnvio && ` · ${new Date(previewEntrega.fechaEnvio).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`}
+                        </p>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => setPreviewEntrega(null)} className="h-7 w-7 p-0">
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4">
+                      <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: previewEntrega.contenido }} />
+                    </div>
+                    <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border">
+                      <Button variant="outline" size="sm" onClick={() => {
+                        const blob = new Blob([previewEntrega.contenido], { type: 'text/html;charset=utf-8' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${previewEntrega.tipoBoletin.replace(/_/g, '-')}-${previewEntrega.fechaEnvio ? new Date(previewEntrega.fechaEnvio).toISOString().slice(0, 10) : 'preview'}.html`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }} className="text-xs gap-1">
+                        <FileText className="h-3 w-3" /> Descargar HTML
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setPreviewEntrega(null)} className="text-xs">Cerrar</Button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -2701,22 +2829,91 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              {/* Indicadores macroeconómicos — próximamente */}
+              {/* Indicadores Macroeconómicos en Detalle */}
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-muted-foreground" />
-                    Indicadores Macroeconómicos ONION200
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Tipo de cambio, materias primas y conflictividad social
-                  </CardDescription>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                      <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        Indicadores Macroeconómicos
+                      </CardTitle>
+                      <CardDescription className="text-xs mt-0.5">Tipo de cambio, materias primas y conflictividad social · ONION200</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={handleCapturaIndicadores} disabled={capturaIndicadoresLoading} className="text-xs gap-1">
+                        {capturaIndicadoresLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                        Capturar ahora
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setActiveView('resumen')} className="text-xs text-muted-foreground">
+                        Ver resumen <ChevronRight className="h-3 w-3 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
-                  <div className="p-4 rounded-lg border border-dashed border-border text-center space-y-2">
-                    <Activity className="h-8 w-8 text-muted-foreground mx-auto" />
-                    <p className="text-xs text-muted-foreground">Próximamente: TC Oficial, LME (Zn, Sn, Ag, Pb), RIN, Índice de conflictividad</p>
-                  </div>
+                  {indicadoresLoading ? (
+                    <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+                  ) : indicadores && indicadores.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="hover:bg-transparent">
+                            <TableHead className="text-[10px]">Indicador</TableHead>
+                            <TableHead className="text-[10px] hidden sm:table-cell">Categoría</TableHead>
+                            <TableHead className="text-[10px] hidden md:table-cell">Fuente</TableHead>
+                            <TableHead className="text-[10px]">Último valor</TableHead>
+                            <TableHead className="text-[10px] hidden sm:table-cell">Unidad</TableHead>
+                            <TableHead className="text-[10px] hidden lg:table-cell">Periodicidad</TableHead>
+                            <TableHead className="text-[10px]">Conf.</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {indicadores.map((ind) => {
+                            const tieneValor = ind.ultimoValor !== null;
+                            const catLabel = ind.categoria === 'monetario' ? 'Monetario' : ind.categoria === 'minero' ? 'Minero' : ind.categoria === 'social' ? 'Social' : ind.categoria;
+                            const catColor = ind.categoria === 'monetario' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : ind.categoria === 'minero' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300';
+                            return (
+                              <TableRow key={ind.slug}>
+                                <TableCell className="py-2.5">
+                                  <p className="text-xs font-medium text-foreground">{ind.nombre}</p>
+                                </TableCell>
+                                <TableCell className="py-2.5 hidden sm:table-cell">
+                                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${catColor}`}>{catLabel}</span>
+                                </TableCell>
+                                <TableCell className="py-2.5 text-[10px] text-muted-foreground hidden md:table-cell">{ind.fuente}</TableCell>
+                                <TableCell className="py-2.5">
+                                  <p className={`text-xs font-bold ${tieneValor ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                    {tieneValor ? ind.ultimoValor!.valor : 'N/D'}
+                                  </p>
+                                  {tieneValor && ind.ultimoValor!.fechaCaptura && (
+                                    <p className="text-[9px] text-muted-foreground">
+                                      {new Date(ind.ultimoValor!.fechaCaptura).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                  )}
+                                </TableCell>
+                                <TableCell className="py-2.5 text-[10px] text-muted-foreground hidden sm:table-cell">{ind.unidad}</TableCell>
+                                <TableCell className="py-2.5 text-[10px] text-muted-foreground hidden lg:table-cell">{ind.periodicidad}</TableCell>
+                                <TableCell className="py-2.5">
+                                  {tieneValor ? (
+                                    <span className={`text-[9px] ${ind.ultimoValor!.confiable ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                      {ind.ultimoValor!.confiable ? '✓ Confiable' : '⚠ Estimado'}
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-xs text-muted-foreground">Sin datos de indicadores. Ejecuta el seed o captura indicadores.</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
