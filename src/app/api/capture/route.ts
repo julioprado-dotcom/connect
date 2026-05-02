@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import ZAI from 'z-ai-web-dev-sdk';
 
-const SITES_QUERY = 'site:la-razon.com OR site:paginasiete.bo OR site:eldeber.com.bo OR site:lostiempos.com OR site:opinion.com.bo OR site:correodelsur.com OR site:elpotosi.net OR site:lapatria.bo OR site:eldiario.net OR site:jornadanet.com OR site:unitel.bo OR site:reduno.bo OR site:atb.com.bo OR site:boliviaverifica.bo OR site:abi.bo';
+const SITES_QUERY = 'site:la-razon.com OR site:eldeber.com.bo OR site:lostiempos.com OR site:opinion.com.bo OR site:correodelsur.com OR site:elpotosi.net OR site:lapatria.bo OR site:eldiario.net OR site:jornadanet.com OR site:unitel.bo OR site:reduno.bo OR site:atb.com.bo OR site:boliviaverifica.bo OR site:abi.bo OR site:eju.tv OR site:elmundo.com.bo OR site:vision360.bo';
 
 const DOMAIN_MEDIO_MAP: Record<string, string> = {
   'la-razon.com': 'La Razón',
-  'paginasiete.bo': 'Página Siete',
   'eldeber.com.bo': 'El Deber',
   'lostiempos.com': 'Los Tiempos',
   'opinion.com.bo': 'Opinión',
@@ -20,6 +19,9 @@ const DOMAIN_MEDIO_MAP: Record<string, string> = {
   'atb.com.bo': 'ATB Digital',
   'boliviaverifica.bo': 'Bolivia Verifica',
   'abi.bo': 'ABI',
+  'eju.tv': 'eju.tv',
+  'elmundo.com.bo': 'El Mundo',
+  'vision360.bo': 'Visión 360',
 };
 
 function detectMedioByDomain(url: string): string {

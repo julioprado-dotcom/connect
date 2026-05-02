@@ -233,6 +233,12 @@ export default function Dashboard() {
     errores: number;
     detalles: string[];
   } | null>(null);
+  const [mediosHealth, setMediosHealth] = useState<{
+    resumen: { total: number; sanos: number; degradados: number; muertos: number; conErrores: number; porcentajeSalud: number };
+    porNivel: Array<{ nivel: number; label: string; total: number; sanos: number; problematicos: number }>;
+    medios: Array<{ id: string; nombre: string; url: string; tipo: string; nivel: string; nivelLabel: string; totalMenciones: number; menciones7dias: number; menciones30dias: number; errorRate: number; salud: string; alerta: string; ultimaCaptura: string | null }>;
+  } | null>(null);
+  const [mediosHealthLoading, setMediosHealthLoading] = useState(false);
 
   // Menciones
   const [menciones, setMenciones] = useState<MencionRow[]>([]);
@@ -302,6 +308,23 @@ export default function Dashboard() {
   }> | null>(null);
   const [indicadoresLoading, setIndicadoresLoading] = useState(false);
   const [capturaIndicadoresLoading, setCapturaIndicadoresLoading] = useState(false);
+  const [indicadoresPeriodo, setIndicadoresPeriodo] = useState('30d');
+  const [indicadoresCategoria, setIndicadoresCategoria] = useState('');
+  const [indicadoresHistorico, setIndicadoresHistorico] = useState<{
+    periodo: string;
+    fechaInicio: string;
+    fechaFin: string;
+    totalIndicadores: number;
+    conDatos: number;
+    porCategoria: Record<string, { total: number; conDatos: number }>;
+    indicadores: Array<{
+      slug: string; nombre: string; categoria: string; categoriaLabel: string;
+      fuente: string; periodicidad: string; unidad: string; tier: number; activo: boolean;
+      historial: Array<{ fecha: string; fechaHora: string; valor: string; valorRaw: number; confiable: boolean }>;
+      ultimoValor: { valor: string; valorRaw: number; fecha: string; confiable: boolean; fechaCaptura: string } | null;
+      estadisticas: { periodo: string; puntos: number; min: number; max: number; promedio: number; variacionPeriodo: string; tendencia: string; diffPct: number } | null;
+    }>;
+  } | null>(null);
 
   // Entregas (Boletines)
   const [entregas, setEntregas] = useState<Array<{
@@ -391,17 +414,27 @@ export default function Dashboard() {
   const loadIndicadores = useCallback(async () => {
     setIndicadoresLoading(true);
     try {
+      // Cargar datos actuales (último valor por indicador)
       const res = await fetch('/api/indicadores/capture');
       const json = await res.json();
-      if (json.exito) {
-        setIndicadores(json.indicadores || []);
-      }
-    } catch {
-      // silent
-    } finally {
+      if (json.exito) setIndicadores(json.indicadores || []);
+    } catch { /* silent */ } finally {
       setIndicadoresLoading(false);
     }
   }, []);
+
+  const loadIndicadoresHistorico = useCallback(async () => {
+    setIndicadoresLoading(true);
+    try {
+      const params = new URLSearchParams({ periodo: indicadoresPeriodo });
+      if (indicadoresCategoria) params.set('categoria', indicadoresCategoria);
+      const res = await fetch(`/api/indicadores/historico?${params}`);
+      const json = await res.json();
+      if (!json.error) setIndicadoresHistorico(json);
+    } catch { /* silent */ } finally {
+      setIndicadoresLoading(false);
+    }
+  }, [indicadoresPeriodo, indicadoresCategoria]);
 
   const handleCapturaIndicadores = async () => {
     setCapturaIndicadoresLoading(true);
@@ -410,7 +443,10 @@ export default function Dashboard() {
       const res = await fetch('/api/indicadores/capture', { method: 'POST' });
       const json = await res.json();
       if (json.error) setError(json.error);
-      else await loadIndicadores();
+      else {
+        await loadIndicadores();
+        await loadIndicadoresHistorico();
+      }
     } catch {
       setError('Error al capturar indicadores');
     } finally {
@@ -737,6 +773,20 @@ export default function Dashboard() {
     }
   };
 
+  // Cargar health check de medios
+  const loadMediosHealth = useCallback(async () => {
+    setMediosHealthLoading(true);
+    try {
+      const res = await fetch('/api/medios/health');
+      if (res.ok) {
+        const json = await res.json();
+        setMediosHealth(json);
+      }
+    } catch { /* silent */ } finally {
+      setMediosHealthLoading(false);
+    }
+  }, []);
+
   const handleGenerarReporte = async () => {
     setGenerarReporteLoading(true);
     setError('');
@@ -773,6 +823,8 @@ export default function Dashboard() {
       else if (viewId === 'clientes') loadClientes();
       else if (viewId === 'contratos') loadContratos();
       else if (viewId === 'boletines') loadEntregas();
+      else if (viewId === 'captura') loadMediosHealth();
+      else if (viewId === 'indicadores') { loadIndicadores(); loadIndicadoresHistorico(); }
     }
   };
 
@@ -3140,6 +3192,120 @@ export default function Dashboard() {
               ═══════════════════════════════════════════════════════ */}
           {activeView === 'captura' && (
             <div className="space-y-4">
+              {/* ── Health Check de Fuentes ── */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                      <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-muted-foreground" />
+                        Salud de Fuentes
+                      </CardTitle>
+                      <CardDescription className="text-xs mt-0.5">
+                        Detección de medios inactivos, degradados o con errores
+                      </CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={loadMediosHealth} disabled={mediosHealthLoading} className="text-xs gap-1">
+                      {mediosHealthLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                      Verificar
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  {mediosHealth ? (
+                    <div className="space-y-3">
+                      {/* KPIs de salud */}
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                        <div className="text-center p-2 rounded bg-background">
+                          <p className="text-lg font-bold text-foreground">{mediosHealth.resumen.total}</p>
+                          <p className="text-[10px] text-muted-foreground">Fuentes</p>
+                        </div>
+                        <div className="text-center p-2 rounded bg-emerald-50 dark:bg-emerald-950/20">
+                          <p className="text-lg font-bold text-emerald-600">{mediosHealth.resumen.sanos}</p>
+                          <p className="text-[10px] text-muted-foreground">Sanas</p>
+                        </div>
+                        <div className="text-center p-2 rounded bg-amber-50 dark:bg-amber-950/20">
+                          <p className="text-lg font-bold text-amber-600">{mediosHealth.resumen.degradados}</p>
+                          <p className="text-[10px] text-muted-foreground">Degradadas</p>
+                        </div>
+                        <div className="text-center p-2 rounded bg-red-50 dark:bg-red-950/20">
+                          <p className="text-lg font-bold text-red-600">{mediosHealth.resumen.muertos}</p>
+                          <p className="text-[10px] text-muted-foreground">Muertas</p>
+                        </div>
+                        <div className="text-center p-2 rounded bg-purple-50 dark:bg-purple-950/20">
+                          <p className="text-lg font-bold text-purple-600">{mediosHealth.resumen.conErrores}</p>
+                          <p className="text-[10px] text-muted-foreground">Con errores</p>
+                        </div>
+                      </div>
+
+                      {/* Barra de salud global */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-medium text-muted-foreground">Cobertura saludable</span>
+                          <span className="text-[10px] font-bold">{mediosHealth.resumen.porcentajeSalud}%</span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-emerald-500 transition-all"
+                            style={{ width: `${mediosHealth.resumen.porcentajeSalud}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Medios con alertas */}
+                      {mediosHealth.medios.filter(m => m.salud !== 'sano').length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                            <AlertTriangle className="h-3 w-3" /> Alertas activas
+                          </p>
+                          <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-1.5">
+                            {mediosHealth.medios.filter(m => m.salud !== 'sano').map(m => (
+                              <div key={m.id} className="p-2 rounded-lg border border-border bg-muted/30">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                                      m.salud === 'muerto' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' :
+                                      m.salud === 'degradado' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' :
+                                      'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
+                                    }`}>
+                                      {m.salud === 'muerto' ? 'MUERTA' : m.salud === 'degradado' ? 'DEGRADADA' : 'ERRORES'}
+                                    </span>
+                                    <span className="text-xs font-semibold text-foreground">{m.nombre}</span>
+                                  </div>
+                                  <span className="text-[10px] text-muted-foreground">{m.menciones30dias} menc. / 30d</span>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground mt-1">{m.alerta}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Resumen por nivel */}
+                      {mediosHealth.porNivel.length > 0 && (
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-medium text-muted-foreground">Cobertura por nivel</p>
+                          {mediosHealth.porNivel.map(n => (
+                            <div key={n.nivel} className="flex items-center gap-2">
+                              <span className="text-[9px] text-muted-foreground w-28 shrink-0 truncate">{n.label}</span>
+                              <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                                <div className="h-full rounded-full bg-emerald-500" style={{ width: `${n.total > 0 ? (n.sanos / n.total) * 100 : 0}%` }} />
+                              </div>
+                              <span className="text-[9px] font-medium text-muted-foreground w-14 text-right">{n.sanos}/{n.total}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : mediosHealthLoading ? (
+                    <div className="flex justify-center py-6"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center py-4">Presiona "Verificar" para analizar el estado de las fuentes</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* ── Captura Manual ── */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -3198,7 +3364,7 @@ export default function Dashboard() {
 
                   <div className="text-[11px] text-muted-foreground">
                     <p className="font-medium mb-1">Fuentes disponibles:</p>
-                    <p>La Razón, Página Siete, El Deber, Los Tiempos, Opinión, Correo del Sur, El Potosí, La Patria, El Diario, Jornada, Unitel, Red Uno, ATB Digital, Bolivia Verifica, ABI</p>
+                    <p>La Razón, El Deber, Los Tiempos, Opinión, Correo del Sur, El Potosí, La Patria, El Diario, Jornada, Unitel, Red Uno, ATB Digital, Bolivia Verifica, ABI, eju.tv, El Mundo, Visión 360</p>
                   </div>
                 </CardContent>
               </Card>
@@ -3731,250 +3897,176 @@ export default function Dashboard() {
               ═══════════════════════════════════════════════════════ */}
           {activeView === 'indicadores' && (
             <div className="space-y-4">
-              {/* Métricas del sistema */}
+              {/* ── Filtros de Período ── */}
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    Indicadores del Sistema
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Métricas operacionales de DECODEX
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 pt-0 space-y-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <StatItem label="Menciones (semana)" value={String(data?.mencionesSemana || 0)} />
-                    <StatItem label="Legisladores" value={String(data?.totalPersonas || 0)} />
-                    <StatItem label="Medios activos" value={String(data?.totalMedios || 0)} />
-                    <StatItem label="Ejes temáticos" value={String(data?.totalEjes || 0)} />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Distribución por partido — migrado desde Resumen */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                    Distribución por partido
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Menciones esta semana por agrupación política
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  {data?.mencionesPorPartido && data.mencionesPorPartido.length > 0 ? (
-                    <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
-                      {data.mencionesPorPartido.map((p) => (
-                        <div key={p.partido}>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className={`text-xs font-semibold ${PARTIDO_TEXT_COLORS[p.partido] || 'text-foreground'}`}>
-                              {p.partido}
-                            </span>
-                            <span className="text-xs font-bold text-foreground">{p.count}</span>
-                          </div>
-                          <div className="h-5 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${
-                                PARTIDO_COLORS[p.partido] || 'bg-stone-500'
-                              }`}
-                              style={{
-                                width: `${Math.max((p.count / maxPartidoCount) * 100, 3)}%`,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <EmptyState icon={<BarChart3 className="h-8 w-8" />} text="Sin menciones por partido esta semana" />
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Top 10 presencia mediática — enriquecido */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    Top 10 presencia mediática
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Actores con mayor presencia mediática esta semana — sentimiento, ejes y temas
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  {data?.topActores && data.topActores.length > 0 ? (
-                    <div className="space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar">
-                      {data.topActores.map((p, i) => {
-                        const sentDominante = p.sentimiento?.dominante || 'no_clasificado';
-                        const sentStyle = SENTIMIENTO_STYLES[sentDominante] || SENTIMIENTO_STYLES.no_clasificado;
-                        const sentLabel = sentDominante.replace(/_/g, ' ');
-                        const ejes = p.ejesTematicos || [];
-                        const temas = p.temasEspecificos || [];
-                        return (
-                          <div key={p.id} className="p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors">
-                            {/* Fila principal: rank, nombre, partido, menciones, sentimiento */}
-                            <div className="flex items-center gap-3">
-                              <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                                i < 3 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                              }`}>
-                                {i + 1}
-                              </span>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-foreground truncate">{p.nombre}</p>
-                                <p className="text-[11px] text-muted-foreground">{p.camara} · {p.partidoSigla} · {p.departamento}</p>
-                              </div>
-                              <div className="flex items-center gap-2 shrink-0">
-                                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${sentStyle}`}>
-                                  {sentLabel}
-                                </span>
-                                <Badge variant="secondary" className="text-[10px] font-bold">{p.mencionesCount} menciones</Badge>
-                              </div>
-                            </div>
-                            {/* Distribución de sentimiento */}
-                            {p.sentimiento?.distribucion && Object.keys(p.sentimiento.distribucion).length > 0 && (
-                              <div className="mt-2 flex items-center gap-2 pl-10">
-                                <span className="text-[9px] text-muted-foreground shrink-0">Sentimiento:</span>
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  {Object.entries(p.sentimiento.distribucion)
-                                    .sort(([, a], [, b]) => b - a)
-                                    .slice(0, 4)
-                                    .map(([s, c]) => (
-                                      <span key={s} className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${SENTIMIENTO_STYLES[s] || SENTIMIENTO_STYLES.no_clasificado}`}>
-                                        {s.replace(/_/g, ' ')} {c}
-                                      </span>
-                                    ))}
-                                </div>
-                              </div>
-                            )}
-                            {/* Ejes temáticos */}
-                            {ejes.length > 0 && (
-                              <div className="mt-1.5 flex items-center gap-2 pl-10">
-                                <span className="text-[9px] text-muted-foreground shrink-0">Ejes:</span>
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  {ejes.slice(0, 3).map((e) => (
-                                    <span
-                                      key={e.slug}
-                                      className="text-[9px] px-1.5 py-0.5 rounded-full font-medium border border-border"
-                                      style={{ backgroundColor: (e.color || '#6B7280') + '15', color: e.color || 'inherit' }}
-                                    >
-                                      {e.nombre} ({e.count})
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            {/* Temas específicos */}
-                            {temas.length > 0 && (
-                              <div className="mt-1.5 flex items-center gap-2 pl-10">
-                                <span className="text-[9px] text-muted-foreground shrink-0">Temas:</span>
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  {temas.slice(0, 4).map((t) => (
-                                    <span key={t.tema} className="text-[9px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
-                                      {t.tema} ({t.count})
-                                    </span>
-                                  ))}
-                                  {temas.length > 4 && (
-                                    <span className="text-[9px] text-muted-foreground">+{temas.length - 4}</span>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <EmptyState icon={<Users className="h-8 w-8" />} text="Sin menciones registradas esta semana" />
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Indicadores Macroeconómicos en Detalle */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
                       <CardTitle className="text-sm font-semibold flex items-center gap-2">
                         <TrendingUp className="h-4 w-4 text-muted-foreground" />
                         Indicadores Macroeconómicos
                       </CardTitle>
-                      <CardDescription className="text-xs mt-0.5">Tipo de cambio, materias primas y conflictividad social · ONION200</CardDescription>
+                      <CardDescription className="text-xs mt-0.5">
+                        {indicadoresHistorico
+                          ? `${indicadoresHistorico.conDatos} de ${indicadoresHistorico.totalIndicadores} con datos · Período: ${indicadoresPeriodo}`
+                          : 'Datos macroeconómicos del ecosistema boliviano'}
+                      </CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={handleCapturaIndicadores} disabled={capturaIndicadoresLoading} className="text-xs gap-1">
-                        {capturaIndicadoresLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-                        Capturar ahora
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setActiveView('resumen')} className="text-xs text-muted-foreground">
-                        Ver resumen <ChevronRight className="h-3 w-3 ml-1" />
+                      {/* Período */}
+                      {['7d', '30d', '90d', '1y'].map(p => (
+                        <button
+                          key={p}
+                          onClick={() => { setIndicadoresPeriodo(p); loadedViews.current.delete('indicadores'); }}
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-colors ${
+                            indicadoresPeriodo === p
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                          }`}
+                        >
+                          {p === '7d' ? '7 días' : p === '30d' ? '30 días' : p === '90d' ? '90 días' : '1 año'}
+                        </button>
+                      ))}
+                      {/* Categoría */}
+                      <select
+                        value={indicadoresCategoria}
+                        onChange={(e) => { setIndicadoresCategoria(e.target.value); loadedViews.current.delete('indicadores'); }}
+                        className="text-[10px] border border-border rounded-lg px-2 py-1 bg-background text-foreground"
+                      >
+                        <option value="">Todas las categorías</option>
+                        <option value="monetario">Monetario</option>
+                        <option value="minero">Minero</option>
+                        <option value="social">Social</option>
+                        <option value="economico">Económico</option>
+                        <option value="hidrocarburos">Hidrocarburos</option>
+                        <option value="climatico">Climático</option>
+                      </select>
+                      <Button variant="outline" size="sm" onClick={loadIndicadoresHistorico} disabled={indicadoresLoading} className="text-xs gap-1">
+                        {indicadoresLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
                       </Button>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
+                  {/* KPIs de cobertura */}
+                  {indicadoresHistorico && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                      <div className="text-center p-2 rounded bg-background">
+                        <p className="text-lg font-bold text-foreground">{indicadoresHistorico.totalIndicadores}</p>
+                        <p className="text-[10px] text-muted-foreground">Indicadores</p>
+                      </div>
+                      <div className="text-center p-2 rounded bg-emerald-50 dark:bg-emerald-950/20">
+                        <p className="text-lg font-bold text-emerald-600">{indicadoresHistorico.conDatos}</p>
+                        <p className="text-[10px] text-muted-foreground">Con datos</p>
+                      </div>
+                      {indicadoresHistorico.porCategoria && Object.entries(indicadoresHistorico.porCategoria).map(([cat, data]) => (
+                        <div key={cat} className="text-center p-2 rounded bg-background">
+                          <p className="text-lg font-bold text-foreground">{data.conDatos}</p>
+                          <p className="text-[10px] text-muted-foreground capitalize">{cat}</p>
+                        </div>
+                      )).slice(0, 2)}
+                    </div>
+                  )}
+
+                  {/* Tabla de indicadores con estadísticas */}
                   {indicadoresLoading ? (
                     <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-                  ) : indicadores && indicadores.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="hover:bg-transparent">
-                            <TableHead className="text-[10px]">Indicador</TableHead>
-                            <TableHead className="text-[10px] hidden sm:table-cell">Categoría</TableHead>
-                            <TableHead className="text-[10px] hidden md:table-cell">Fuente</TableHead>
-                            <TableHead className="text-[10px]">Último valor</TableHead>
-                            <TableHead className="text-[10px] hidden sm:table-cell">Unidad</TableHead>
-                            <TableHead className="text-[10px] hidden lg:table-cell">Periodicidad</TableHead>
-                            <TableHead className="text-[10px]">Conf.</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {indicadores.map((ind) => {
-                            const tieneValor = ind.ultimoValor !== null;
-                            const catLabel = ind.categoria === 'monetario' ? 'Monetario' : ind.categoria === 'minero' ? 'Minero' : ind.categoria === 'social' ? 'Social' : ind.categoria;
-                            const catColor = ind.categoria === 'monetario' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : ind.categoria === 'minero' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300';
-                            return (
-                              <TableRow key={ind.slug}>
-                                <TableCell className="py-2.5">
-                                  <p className="text-xs font-medium text-foreground">{ind.nombre}</p>
-                                </TableCell>
-                                <TableCell className="py-2.5 hidden sm:table-cell">
-                                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${catColor}`}>{catLabel}</span>
-                                </TableCell>
-                                <TableCell className="py-2.5 text-[10px] text-muted-foreground hidden md:table-cell">{ind.fuente}</TableCell>
-                                <TableCell className="py-2.5">
-                                  <p className={`text-xs font-bold ${tieneValor ? 'text-foreground' : 'text-muted-foreground'}`}>
-                                    {tieneValor ? ind.ultimoValor!.valor : 'N/D'}
-                                  </p>
-                                  {tieneValor && ind.ultimoValor!.fechaCaptura && (
-                                    <p className="text-[9px] text-muted-foreground">
-                                      {new Date(ind.ultimoValor!.fechaCaptura).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                                    </p>
-                                  )}
-                                </TableCell>
-                                <TableCell className="py-2.5 text-[10px] text-muted-foreground hidden sm:table-cell">{ind.unidad}</TableCell>
-                                <TableCell className="py-2.5 text-[10px] text-muted-foreground hidden lg:table-cell">{ind.periodicidad}</TableCell>
-                                <TableCell className="py-2.5">
-                                  {tieneValor ? (
-                                    <span className={`text-[9px] ${ind.ultimoValor!.confiable ? 'text-emerald-500' : 'text-amber-500'}`}>
-                                      {ind.ultimoValor!.confiable ? '✓ Confiable' : '⚠ Estimado'}
-                                    </span>
-                                  ) : (
-                                    <span className="text-[9px] text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
+                  ) : indicadoresHistorico && indicadoresHistorico.indicadores.length > 0 ? (
+                    <div className="space-y-2 max-h-[700px] overflow-y-auto custom-scrollbar">
+                      {indicadoresHistorico.indicadores.map((ind) => {
+                        const tieneValor = ind.ultimoValor !== null;
+                        const stats = ind.estadisticas;
+                        const catColor = ind.categoria === 'monetario' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                          : ind.categoria === 'minero' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                          : ind.categoria === 'social' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                          : 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300';
+
+                        return (
+                          <div key={ind.slug} className="p-3 rounded-lg border border-border hover:bg-muted/20 transition-colors">
+                            {/* Fila principal */}
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${catColor}`}>{ind.categoriaLabel}</span>
+                                <span className="text-xs font-semibold text-foreground truncate">{ind.nombre}</span>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                {stats && (
+                                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                                    stats.tendencia === 'ascendente' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                                    : stats.tendencia === 'descendente' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                                    : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'
+                                  }`}>
+                                    {stats.tendencia === 'ascendente' ? '↑' : stats.tendencia === 'descendente' ? '↓' : '→'} {stats.diffPct > 0 ? '+' : ''}{stats.diffPct}%
+                                  </span>
+                                )}
+                                <p className={`text-sm font-bold ${tieneValor ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                  {tieneValor ? ind.ultimoValor!.valor : 'N/D'}
+                                </p>
+                                <span className="text-[9px] text-muted-foreground">{ind.unidad}</span>
+                              </div>
+                            </div>
+
+                            {/* Estadísticas expandidas */}
+                            {stats && (
+                              <div className="mt-2 grid grid-cols-2 sm:grid-cols-5 gap-2 pl-1">
+                                <div className="text-[9px] text-muted-foreground">
+                                  <span className="font-medium text-foreground">{stats.puntos}</span> pts en {stats.periodo}
+                                </div>
+                                <div className="text-[9px] text-muted-foreground">
+                                  Mín: <span className="font-medium text-foreground">{stats.min}</span>
+                                </div>
+                                <div className="text-[9px] text-muted-foreground">
+                                  Máx: <span className="font-medium text-foreground">{stats.max}</span>
+                                </div>
+                                <div className="text-[9px] text-muted-foreground">
+                                  Prom: <span className="font-medium text-foreground">{stats.promedio}</span>
+                                </div>
+                                <div className="text-[9px] text-muted-foreground">
+                                  Var: <span className={`font-medium ${
+                                    stats.variacionPeriodo.startsWith('+') ? 'text-emerald-600'
+                                    : stats.variacionPeriodo.startsWith('-') ? 'text-red-600' : 'text-foreground'
+                                  }`}>{stats.variacionPeriodo}</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Mini serie temporal */}
+                            {ind.historial.length > 1 && (
+                              <div className="mt-2 flex items-end gap-px h-8 pl-1">
+                                {ind.historial.slice(-20).map((h, i) => {
+                                  const vals = ind.historial.map(v => v.valorRaw).filter(v => v > 0);
+                                  const minV = Math.min(...vals);
+                                  const maxV = Math.max(...vals);
+                                  const range = maxV - minV || 1;
+                                  const height = Math.max(4, ((h.valorRaw - minV) / range) * 100);
+                                  return (
+                                    <div
+                                      key={i}
+                                      className="flex-1 rounded-t-sm bg-primary/30 hover:bg-primary/50 transition-colors min-w-[3px] cursor-default"
+                                      style={{ height: `${height}%` }}
+                                      title={`${h.fecha}: ${h.valor} ${ind.unidad}`}
+                                    />
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {/* Fuente y última captura */}
+                            <div className="mt-1.5 flex items-center justify-between pl-1">
+                              <span className="text-[9px] text-muted-foreground">Fuente: {ind.fuente}</span>
+                              {tieneValor && ind.ultimoValor!.fechaCaptura && (
+                                <span className="text-[9px] text-muted-foreground">
+                                  {new Date(ind.ultimoValor!.fechaCaptura).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <p className="text-xs text-muted-foreground">Sin datos de indicadores. Ejecuta el seed o captura indicadores.</p>
+                      <p className="text-xs text-muted-foreground">Sin datos de indicadores para el período seleccionado.</p>
                     </div>
                   )}
                 </CardContent>
