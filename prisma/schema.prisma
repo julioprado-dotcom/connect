@@ -194,7 +194,31 @@ model Contrato {
   fechaCreacion    DateTime @default(now())
   fechaActualizacion DateTime @updatedAt
 
-  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  cliente  Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  entregas Entrega[]
+}
+
+// ─── ONION200: Entregas (Tracking de boletines enviados) ─────────
+
+model Entrega {
+  id               String    @id @default(cuid())
+  contratoId       String
+  tipoBoletin      String                       // "EL_TERMOMETRO", "SALDO_DEL_DIA", etc.
+  contenido        String    @default("")         // texto/HTML del boletín enviado
+  fechaProgramada  DateTime?                     // fecha/hora programada
+  fechaEnvio       DateTime?                     // fecha/hora real de envío
+  estado           String    @default("pendiente") // "pendiente", "enviado", "fallido"
+  canal            String    @default("whatsapp") // "whatsapp", "email", "web"
+  destinatarios    String    @default("[]")       // JSON array de strings
+  error            String?                       // null o "número inválido", etc.
+  fechaCreacion    DateTime  @default(now())
+
+  contrato Contrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+
+  @@index([contratoId])
+  @@index([tipoBoletin])
+  @@index([estado])
+  @@index([fechaEnvio])
 }
 
 // ─── ONION200: Capa de Indicadores ───────────────────────────────
