@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { PRODUCTOS, PRODUCTOS_DEDICADOS } from '@/constants/products';
+import type { TipoBoletin } from '@/types/bulletin';
 import {
   calculateWindow,
   calculateSentimiento,
@@ -7,12 +9,18 @@ import {
   calculateTopMedios,
   calculateSubTemas,
   calculateEvolucionHoraria,
-  countEnlacesRotos,
-  getSentimientoLabelExtendido,
 } from '@/lib/reportes-utils';
-import type { MencionConRelaciones } from '@/lib/reportes-utils';
 
-const VALID_TIPOS = ['EL_TERMOMETRO', 'SALDO_DEL_DIA', 'EL_FOCO', 'EL_RADAR'];
+// ─── Tipos válidos derivados del catálogo (data-driven) ───
+const VALID_TIPOS = PRODUCTOS_DEDICADOS.map(p => p.tipo);
+
+// ─── Registry de handlers por panelId (data-driven) ───
+type HandlerFn = (fecha: string, ejeSlug: string, tipo: string) => Promise<NextResponse>;
+const handlerRegistry: Record<string, HandlerFn> = {
+  termometro_saldo: handleTermometroSaldo,
+  foco: handleElFoco,
+  radar: handleElRadar,
+};
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,98 +28,109 @@ export async function GET(request: NextRequest) {
     const tipo = searchParams.get('tipo') || '';
     const fecha = searchParams.get('fecha') || new Date().toISOString().slice(0, 10);
     const ejeSlug = searchParams.get('ejeSlug') || '';
+    const config = PRODUCTOS[tipo as TipoBoletin];
 
-    if (!tipo || !VALID_TIPOS.includes(tipo)) {
+    // Validar que sea un producto dedicado con generador
+    if (!config || config.generador.tipo !== 'dedicado') {
       return NextResponse.json(
-        { error: `tipo inválido. Use ${VALID_TIPOS.join(', ')}` },
+        { error: `tipo inválido. Productos dedicados disponibles: ${VALID_TIPOS.join(', ')}` },
         { status: 400 }
       );
     }
 
-    // Ramas dedicadas
-    if (tipo === 'EL_FOCO') return handleElFoco(fecha, ejeSlug);
-    if (tipo === 'EL_RADAR') return handleElRadar(fecha);
-
-    // ─── EL_TERMOMETRO / SALDO_DEL_DIA ───
-    const { fechaInicio, fechaFin, ventanaLabel: windowLabel } = calculateWindow(tipo, fecha);
-
-    const menciones = await db.mencion.findMany({
-      where: { fechaCaptura: { gte: fechaInicio, lte: fechaFin } },
-      include: {
-        persona: { select: { id: true, nombre: true, partidoSigla: true, camara: true, departamento: true } },
-        medio: { select: { nombre: true, tipo: true, nivel: true } },
-        ejesTematicos: { include: { ejeTematico: { select: { id: true, nombre: true, slug: true, color: true, activo: true } } } },
-      },
-      orderBy: { fechaCaptura: 'desc' },
-    });
-
-    const totalMenciones = menciones.length;
-    const sentimientoResumen = calculateSentimiento(menciones);
-
-    // ─── Ejes temáticos con conteos ───
-    const ejesTematicos = await db.ejeTematico.findMany({
-      where: { activo: true },
-      orderBy: { orden: 'asc' },
-      select: { id: true, nombre: true, slug: true, color: true, icono: true, descripcion: true },
-    });
-
-    const ejesCount: Record<string, { id: string; nombre: string; slug: string; color: string; count: number }> = {};
-    for (const m of menciones) {
-      if (m.ejesTematicos) {
-        for (const mt of m.ejesTematicos) {
-          const eje = mt.ejeTematico;
-          if (eje && eje.activo) {
-            if (!ejesCount[eje.slug]) {
-              ejesCount[eje.slug] = { id: eje.id, nombre: eje.nombre, slug: eje.slug, color: eje.color, count: 0 };
-            }
-            ejesCount[eje.slug].count++;
-          }
-        }
-      }
+    // Routing por panelId del generador
+    const panelId = config.generador.panelId;
+    const handler = panelId && handlerRegistry[panelId];
+    if (handler) {
+      return handler(fecha, ejeSlug, tipo);
     }
 
-    const ejesConMenciones = Object.values(ejesCount).sort((a, b) => b.count - a.count);
-    const topEjes = ejesConMenciones.slice(0, 3);
-
-    // Top actores y medios usando utils
-    const topActores = calculateTopActores(menciones, 5)
-      .map(p => ({ nombre: p.nombre, partidoSigla: p.partido, camara: p.camara, departamento: p.departamento, count: p.count }));
-
-    return NextResponse.json({
-      tipo,
-      fecha,
-      windowLabel,
-      fechaInicio: fechaInicio.toISOString(),
-      fechaFin: fechaFin.toISOString(),
-      menciones: menciones.slice(0, 50).map(m => ({
-        id: m.id,
-        titulo: m.titulo,
-        fechaCaptura: m.fechaCaptura,
-        sentimiento: m.sentimiento,
-        persona: m.persona ? { nombre: m.persona.nombre, partidoSigla: m.persona.partidoSigla } : null,
-        medio: { nombre: m.medio?.nombre },
-      })),
-      ejesTematicos,
-      ejesConMenciones,
-      topActores,
-      topEjes,
-      totalMenciones,
-      sentimientoResumen: {
-        promedio: sentimientoResumen.promedio,
-        label: sentimientoResumen.label,
-        distribucion: sentimientoResumen.distribucion,
-      },
-    });
+    // Fallback: handler por defecto para dedicados sin panel específico
+    return handleTermometroSaldo(fecha, ejeSlug, tipo);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Error desconocido';
     return NextResponse.json({ error: 'Error al cargar datos del generador', details: message }, { status: 500 });
   }
 }
 
-// ═══ EL_FOCO Handler ═══
-async function handleElFoco(fecha: string, ejeSlug: string) {
-  const selectedDate = new Date(fecha + 'T12:00:00');
-  const { fechaInicio, fechaFin, ventanaLabel: windowLabel } = calculateWindow('EL_FOCO', fecha);
+// ═══ Handler: termometro_saldo (El Termómetro / Saldo del Día) ═══
+async function handleTermometroSaldo(fecha: string, _ejeSlug: string, tipo: string) {
+  const config = PRODUCTOS[tipo as TipoBoletin];
+  const { fechaInicio, fechaFin, ventanaLabel: windowLabel } = calculateWindow(config.generador.ventana, fecha);
+
+  const menciones = await db.mencion.findMany({
+    where: { fechaCaptura: { gte: fechaInicio, lte: fechaFin } },
+    include: {
+      persona: { select: { id: true, nombre: true, partidoSigla: true, camara: true, departamento: true } },
+      medio: { select: { nombre: true, tipo: true, nivel: true } },
+      ejesTematicos: { include: { ejeTematico: { select: { id: true, nombre: true, slug: true, color: true, activo: true } } } },
+    },
+    orderBy: { fechaCaptura: 'desc' },
+  });
+
+  const totalMenciones = menciones.length;
+  const sentimientoResumen = calculateSentimiento(menciones);
+
+  // ─── Ejes temáticos con conteos ───
+  const ejesTematicos = await db.ejeTematico.findMany({
+    where: { activo: true },
+    orderBy: { orden: 'asc' },
+    select: { id: true, nombre: true, slug: true, color: true, icono: true, descripcion: true },
+  });
+
+  const ejesCount: Record<string, { id: string; nombre: string; slug: string; color: string; count: number }> = {};
+  for (const m of menciones) {
+    if (m.ejesTematicos) {
+      for (const mt of m.ejesTematicos) {
+        const eje = mt.ejeTematico;
+        if (eje && eje.activo) {
+          if (!ejesCount[eje.slug]) {
+            ejesCount[eje.slug] = { id: eje.id, nombre: eje.nombre, slug: eje.slug, color: eje.color, count: 0 };
+          }
+          ejesCount[eje.slug].count++;
+        }
+      }
+    }
+  }
+
+  const ejesConMenciones = Object.values(ejesCount).sort((a, b) => b.count - a.count);
+  const topEjes = ejesConMenciones.slice(0, 3);
+
+  // Top actores usando utils
+  const topActores = calculateTopActores(menciones, 5)
+    .map(p => ({ nombre: p.nombre, partidoSigla: p.partido, camara: p.camara, departamento: p.departamento, count: p.count }));
+
+  return NextResponse.json({
+    tipo,
+    fecha,
+    windowLabel,
+    fechaInicio: fechaInicio.toISOString(),
+    fechaFin: fechaFin.toISOString(),
+    menciones: menciones.slice(0, 50).map(m => ({
+      id: m.id,
+      titulo: m.titulo,
+      fechaCaptura: m.fechaCaptura,
+      sentimiento: m.sentimiento,
+      persona: m.persona ? { nombre: m.persona.nombre, partidoSigla: m.persona.partidoSigla } : null,
+      medio: { nombre: m.medio?.nombre },
+    })),
+    ejesTematicos,
+    ejesConMenciones,
+    topActores,
+    topEjes,
+    totalMenciones,
+    sentimientoResumen: {
+      promedio: sentimientoResumen.promedio,
+      label: sentimientoResumen.label,
+      distribucion: sentimientoResumen.distribucion,
+    },
+  });
+}
+
+// ═══ Handler: foco (El Foco — con fases) ═══
+async function handleElFoco(fecha: string, ejeSlug: string, tipo: string) {
+  const config = PRODUCTOS[tipo as TipoBoletin];
+  const { fechaInicio, fechaFin, ventanaLabel: windowLabel } = calculateWindow(config.generador.ventana, fecha);
 
   if (!ejeSlug) {
     // ─── Fase de selección ───
@@ -143,7 +162,7 @@ async function handleElFoco(fecha: string, ejeSlug: string) {
     }));
 
     return NextResponse.json({
-      tipo: 'EL_FOCO', fecha, windowLabel,
+      tipo, fecha, windowLabel,
       fase: 'seleccion',
       totalMencionesDia: mencionesAll.length,
       ejesDisponibles,
@@ -178,11 +197,9 @@ async function handleElFoco(fecha: string, ejeSlug: string) {
   const topActores = calculateTopActores(menciones, 5)
     .map(p => ({ nombre: p.nombre, partidoSigla: p.partido, camara: p.camara, departamento: p.departamento, count: p.count }));
 
-  // Medios distribución
   const mediosDistribucion = calculateTopMedios(menciones, 5)
     .map(m => ({ nombre: m.nombre, tipo: m.tipo, nivel: m.nivel, count: m.count }));
 
-  // Sub-temas y evolución horaria
   const subTemas = calculateSubTemas(menciones, 10);
   const evolucionHoraria = calculateEvolucionHoraria(menciones, 6, 22);
 
@@ -193,7 +210,7 @@ async function handleElFoco(fecha: string, ejeSlug: string) {
   }));
 
   return NextResponse.json({
-    tipo: 'EL_FOCO', fecha, windowLabel,
+    tipo, fecha, windowLabel,
     fase: 'analisis',
     ejeSeleccionado: { id: ejeTematico.id, nombre: ejeTematico.nombre, slug: ejeTematico.slug, color: ejeTematico.color, descripcion: ejeTematico.descripcion },
     totalMenciones,
@@ -206,9 +223,10 @@ async function handleElFoco(fecha: string, ejeSlug: string) {
   });
 }
 
-// ═══ EL_RADAR Handler ═══
-async function handleElRadar(fecha: string) {
-  const { fechaInicio, fechaFin, ventanaLabel: windowLabel } = calculateWindow('EL_RADAR', fecha);
+// ═══ Handler: radar (El Radar) ═══
+async function handleElRadar(fecha: string, _ejeSlug: string, tipo: string) {
+  const config = PRODUCTOS[tipo as TipoBoletin];
+  const { fechaInicio, fechaFin, ventanaLabel: windowLabel } = calculateWindow(config.generador.ventana, fecha);
 
   const menciones = await db.mencion.findMany({
     where: { fechaCaptura: { gte: fechaInicio, lte: fechaFin } },
@@ -356,7 +374,7 @@ async function handleElRadar(fecha: string) {
   }
 
   return NextResponse.json({
-    tipo: 'EL_RADAR',
+    tipo,
     fecha,
     windowLabel,
     fechaInicio: fechaInicio.toISOString(),

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { PRODUCTOS } from '@/constants/products';
+import type { TipoBoletin } from '@/types/bulletin';
 import {
   calculateWindow,
   calculateSentimiento,
@@ -13,11 +15,8 @@ import {
 } from '@/lib/reportes-utils';
 import type { MencionConRelaciones, ResumenParams } from '@/lib/reportes-utils';
 
-// ─── Tipos válidos de producto ───
-const VALID_TIPOS = [
-  'EL_TERMOMETRO', 'SALDO_DEL_DIA', 'EL_FOCO', 'EL_RADAR',
-  'diario', 'boletin_diario', 'semanal', 'mensual',
-] as const;
+// ─── Tipos válidos derivados del catálogo (data-driven) ───
+const VALID_TIPOS = Object.keys(PRODUCTOS);
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,16 +24,18 @@ export async function POST(request: NextRequest) {
     const { personaId, tipo, fecha, ejesSeleccionados } = body;
     const tipoReporte = tipo || 'semanal';
 
-    // ─── Validación básica ───
-    if (!VALID_TIPOS.includes(tipoReporte as typeof VALID_TIPOS[number])) {
+    // ─── Validación: verificar que existe en el catálogo ───
+    const config = PRODUCTOS[tipoReporte as TipoBoletin];
+    if (!config || !VALID_TIPOS.includes(tipoReporte)) {
       return NextResponse.json(
         { error: `tipo inválido: "${tipoReporte}". Tipos válidos: ${VALID_TIPOS.join(', ')}` },
         { status: 400 }
       );
     }
 
-    // Calcular ventana de tiempo
-    const { fechaInicio, fechaFin } = calculateWindow(tipoReporte, fecha);
+    // Calcular ventana de tiempo usando config del producto
+    const ventana = config.generador.ventana;
+    const { fechaInicio, fechaFin } = calculateWindow(ventana, fecha);
 
     // ─── Where clause ───
     const where: Record<string, unknown> = {
@@ -121,7 +122,7 @@ export async function POST(request: NextRequest) {
       : null;
 
     // ─── Generar resumen textual ───
-    const ventanaLabel = formatVentanaLabel(tipoReporte, fecha, ejesSlugs);
+    const ventanaLabel = formatVentanaLabel(ventana, fecha, ejesSlugs);
 
     const resumen = generarResumen({
       tipo: tipoReporte,
@@ -200,17 +201,23 @@ export async function POST(request: NextRequest) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// Generadores de resumen textual por producto
+// Generadores de resumen textual — Registry por tipo (data-driven)
 // ═══════════════════════════════════════════════════════════
 
-function generarResumen(params: ResumenParams): string {
-  // Productos específicos con narrativa dedicada
-  if (params.tipo === 'EL_TERMOMETRO') return generarResumenTermometro(params);
-  if (params.tipo === 'SALDO_DEL_DIA') return generarResumenSaldoDelDia(params);
-  if (params.tipo === 'EL_FOCO') return generarResumenElFoco(params);
-  if (params.tipo === 'EL_RADAR') return generarResumenElRadar(params);
+// Registry: productos dedicados con narrativa propia
+const DEDICATED_RESUMEN_MAP: Partial<Record<TipoBoletin, (params: ResumenParams) => string>> = {
+  EL_TERMOMETRO: generarResumenTermometro,
+  SALDO_DEL_DIA: generarResumenSaldoDelDia,
+  EL_FOCO: generarResumenElFoco,
+  EL_RADAR: generarResumenElRadar,
+};
 
-  // ─── Productos genéricos ───
+function generarResumen(params: ResumenParams): string {
+  // Buscar función dedicada por tipo
+  const fn = DEDICATED_RESUMEN_MAP[params.tipo as TipoBoletin];
+  if (fn) return fn(params);
+
+  // ─── Productos genéricos: narrativa estándar ───
   const target = params.personaNombre || 'los actores monitoreados';
   const ventana = params.ventanaLabel || 'el periodo analizado';
 

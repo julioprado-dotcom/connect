@@ -75,93 +75,75 @@ const SENTIMIENTO_MAP: Record<string, number> = {
   no_clasificado: 3,
 };
 
-// ─── Cálculo de ventana de tiempo ───
+// ─── Cálculo de ventana de tiempo (data-driven por tipo de ventana) ───
 
-export function calculateWindow(tipo: string, fecha?: string): WindowResult {
+export function calculateWindow(ventana: string, fecha?: string): WindowResult {
   const now = new Date();
   let fechaInicio: Date;
   let fechaFin: Date;
   let ventanaLabel: string;
+  const fmt = (dt: Date) => dt.toLocaleDateString('es-BO', { day: '2-digit', month: 'short' });
 
-  if (tipo === 'EL_TERMOMETRO' && fecha) {
+  if (fecha) {
+    // Ventana con fecha específica
     const [y, m, d] = fecha.split('-').map(Number);
     const sel = new Date(y, m - 1, d);
 
-    fechaFin = new Date(sel);
-    fechaFin.setHours(7, 0, 0, 0);
-
-    fechaInicio = new Date(sel);
-    fechaInicio.setDate(fechaInicio.getDate() - 1);
-    fechaInicio.setHours(19, 0, 0, 0);
-
-    const fmt = (dt: Date) => dt.toLocaleDateString('es-BO', { day: '2-digit', month: 'short' });
-    ventanaLabel = `${fmt(fechaInicio)} 19:00 — ${fmt(fechaFin)} 07:00`;
-  } else if (tipo === 'SALDO_DEL_DIA' && fecha) {
-    const [y, m, d] = fecha.split('-').map(Number);
-    const sel = new Date(y, m - 1, d);
-
-    fechaInicio = new Date(sel);
-    fechaInicio.setHours(7, 0, 0, 0);
-
-    fechaFin = new Date(sel);
-    fechaFin.setHours(19, 0, 0, 0);
-
-    const fmt = (dt: Date) => dt.toLocaleDateString('es-BO', { day: '2-digit', month: 'short' });
-    ventanaLabel = `${fmt(fechaInicio)} 07:00 — ${fmt(fechaFin)} 19:00`;
-  } else if (tipo === 'EL_FOCO' && fecha) {
-    const [y, m, d] = fecha.split('-').map(Number);
-    const sel = new Date(y, m - 1, d);
-
-    fechaInicio = new Date(sel);
-    fechaInicio.setHours(0, 0, 0, 0);
-
-    fechaFin = new Date(sel);
-    fechaFin.setHours(23, 59, 59, 999);
-
-    ventanaLabel = sel.toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' }) + ' (dia completo)';
-  } else if (tipo === 'EL_RADAR' && fecha) {
-    const [y, m, d] = fecha.split('-').map(Number);
-    const sel = new Date(y, m - 1, d);
-    const dayOfWeek = sel.getDay();
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-
-    fechaInicio = new Date(sel);
-    fechaInicio.setDate(fechaInicio.getDate() + mondayOffset);
-    fechaInicio.setHours(0, 0, 0, 0);
-
-    fechaFin = new Date(fechaInicio);
-    fechaFin.setDate(fechaFin.getDate() + 6);
-    fechaFin.setHours(23, 59, 59, 999);
-
-    const fmt = (dt: Date) => dt.toLocaleDateString('es-BO', { day: '2-digit', month: 'short' });
-    ventanaLabel = `Semana: ${fmt(fechaInicio)} — ${fmt(fechaFin)}`;
-  } else if (tipo === 'diario' || tipo === 'boletin_diario') {
-    fechaFin = new Date(now);
-    fechaFin.setHours(23, 59, 59, 999);
-    fechaInicio = new Date(fechaFin);
-    fechaInicio.setDate(fechaInicio.getDate() - 1);
-    fechaInicio.setHours(0, 0, 0, 0);
-    ventanaLabel = 'las ultimas 24 horas';
-  } else if (tipo === 'semanal') {
-    fechaFin = new Date(now);
-    fechaFin.setHours(23, 59, 59, 999);
-    fechaInicio = new Date(fechaFin);
-    fechaInicio.setDate(fechaInicio.getDate() - 7);
-    fechaInicio.setHours(0, 0, 0, 0);
-    ventanaLabel = 'la ultima semana';
-  } else if (tipo === 'mensual') {
-    fechaFin = new Date(now);
-    fechaFin.setHours(23, 59, 59, 999);
-    fechaInicio = new Date(fechaFin);
-    fechaInicio.setMonth(fechaInicio.getMonth() - 1);
-    fechaInicio.setHours(0, 0, 0, 0);
-    ventanaLabel = 'el ultimo mes';
+    switch (ventana) {
+      case 'nocturna':
+        fechaFin = new Date(sel); fechaFin.setHours(7, 0, 0, 0);
+        fechaInicio = new Date(sel); fechaInicio.setDate(fechaInicio.getDate() - 1); fechaInicio.setHours(19, 0, 0, 0);
+        ventanaLabel = `${fmt(fechaInicio)} 19:00 — ${fmt(fechaFin)} 07:00`;
+        break;
+      case 'diurna':
+        fechaInicio = new Date(sel); fechaInicio.setHours(7, 0, 0, 0);
+        fechaFin = new Date(sel); fechaFin.setHours(19, 0, 0, 0);
+        ventanaLabel = `${fmt(fechaInicio)} 07:00 — ${fmt(fechaFin)} 19:00`;
+        break;
+      case 'dia_completo':
+        fechaInicio = new Date(sel); fechaInicio.setHours(0, 0, 0, 0);
+        fechaFin = new Date(sel); fechaFin.setHours(23, 59, 59, 999);
+        ventanaLabel = sel.toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' }) + ' (dia completo)';
+        break;
+      case 'semanal': {
+        const dayOfWeek = sel.getDay();
+        const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        fechaInicio = new Date(sel); fechaInicio.setDate(fechaInicio.getDate() + mondayOffset); fechaInicio.setHours(0, 0, 0, 0);
+        fechaFin = new Date(fechaInicio); fechaFin.setDate(fechaFin.getDate() + 6); fechaFin.setHours(23, 59, 59, 999);
+        ventanaLabel = `Semana: ${fmt(fechaInicio)} — ${fmt(fechaFin)}`;
+        break;
+      }
+      default: // estandar
+        fechaInicio = new Date(sel); fechaInicio.setHours(0, 0, 0, 0);
+        fechaFin = new Date(sel); fechaFin.setHours(23, 59, 59, 999);
+        ventanaLabel = sel.toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
   } else {
-    fechaInicio = new Date(now);
-    fechaInicio.setHours(0, 0, 0, 0);
-    fechaFin = new Date(now);
-    fechaFin.setHours(23, 59, 59, 999);
-    ventanaLabel = 'el periodo analizado';
+    // Ventana sin fecha: calcular desde ahora
+    switch (ventana) {
+      case 'nocturna':
+        fechaFin = new Date(now); fechaFin.setHours(7, 0, 0, 0);
+        fechaInicio = new Date(now); fechaInicio.setDate(fechaInicio.getDate() - 1); fechaInicio.setHours(19, 0, 0, 0);
+        ventanaLabel = `${fmt(fechaInicio)} 19:00 — ${fmt(fechaFin)} 07:00`;
+        break;
+      case 'diurna':
+        fechaInicio = new Date(now); fechaInicio.setHours(7, 0, 0, 0);
+        fechaFin = new Date(now); fechaFin.setHours(19, 0, 0, 0);
+        ventanaLabel = `${fmt(fechaInicio)} 07:00 — ${fmt(fechaFin)} 19:00`;
+        break;
+      case 'semanal': {
+        const dayOfWeek = now.getDay();
+        const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        fechaInicio = new Date(now); fechaInicio.setDate(fechaInicio.getDate() + mondayOffset); fechaInicio.setHours(0, 0, 0, 0);
+        fechaFin = new Date(fechaInicio); fechaFin.setDate(fechaFin.getDate() + 6); fechaFin.setHours(23, 59, 59, 999);
+        ventanaLabel = `Semana: ${fmt(fechaInicio)} — ${fmt(fechaFin)}`;
+        break;
+      }
+      default: // estandar, dia_completo
+        fechaInicio = new Date(now); fechaInicio.setHours(0, 0, 0, 0);
+        fechaFin = new Date(now); fechaFin.setHours(23, 59, 59, 999);
+        ventanaLabel = 'el periodo analizado';
+    }
   }
 
   return { fechaInicio, fechaFin, ventanaLabel };
@@ -415,43 +397,31 @@ export function getSentimientoLabelExtendido(promedio: number): string {
 
 // ─── Formatear ventana para resumen narrativo ───
 
-export function formatVentanaLabel(tipo: string, fecha?: string, ejesSlugs?: string[]): string {
+export function formatVentanaLabel(ventana: string, fecha?: string, ejesSlugs?: string[]): string {
   if (!fecha) return 'el periodo analizado';
 
   const [y, m, d] = fecha.split('-').map(Number);
   const sel = new Date(y, m - 1, d);
+  const fmtLong = (dt: Date) => dt.toLocaleDateString('es-BO', { day: '2-digit', month: 'long', year: 'numeric' });
 
-  if (tipo === 'EL_TERMOMETRO') {
-    const fechaStr = sel.toLocaleDateString('es-BO', { day: '2-digit', month: 'long', year: 'numeric' });
-    return `la ventana nocturna (ayer 19:00 — hoy 07:00) del ${fechaStr}`;
+  switch (ventana) {
+    case 'nocturna':
+      return `la ventana nocturna (ayer 19:00 — hoy 07:00) del ${fmtLong(sel)}`;
+    case 'diurna':
+      return `la jornada diurna (07:00 — 19:00) del ${fmtLong(sel)}`;
+    case 'dia_completo': {
+      const ejeNombre = ejesSlugs?.length ? `eje <<${ejesSlugs[0]}>>` : 'eje tematico';
+      return `el dia completo del ${fmtLong(sel)} para el ${ejeNombre}`;
+    }
+    case 'semanal': {
+      const dayOfWeek = sel.getDay();
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const monday = new Date(sel); monday.setDate(monday.getDate() + mondayOffset);
+      const sunday = new Date(monday); sunday.setDate(sunday.getDate() + 6);
+      const fmt = (dt: Date) => dt.toLocaleDateString('es-BO', { day: '2-digit', month: 'long' });
+      return `la semana del ${fmt(monday)} al ${fmt(sunday)}`;
+    }
+    default:
+      return 'el periodo analizado';
   }
-  if (tipo === 'SALDO_DEL_DIA') {
-    const fechaStr = sel.toLocaleDateString('es-BO', { day: '2-digit', month: 'long', year: 'numeric' });
-    return `la jornada diurna (07:00 — 19:00) del ${fechaStr}`;
-  }
-  if (tipo === 'EL_FOCO') {
-    const fechaStr = sel.toLocaleDateString('es-BO', { day: '2-digit', month: 'long', year: 'numeric' });
-    const ejeNombre = ejesSlugs?.length ? `eje <<${ejesSlugs[0]}>>` : 'eje tematico';
-    return `el dia completo del ${fechaStr} para el ${ejeNombre}`;
-  }
-  if (tipo === 'EL_RADAR') {
-    const dayOfWeek = sel.getDay();
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    const monday = new Date(sel);
-    monday.setDate(monday.getDate() + mondayOffset);
-    const sunday = new Date(monday);
-    sunday.setDate(sunday.getDate() + 6);
-    const fmt = (dt: Date) => dt.toLocaleDateString('es-BO', { day: '2-digit', month: 'long' });
-    return `la semana del ${fmt(monday)} al ${fmt(sunday)}`;
-  }
-  if (tipo === 'diario' || tipo === 'boletin_diario') {
-    return 'las ultimas 24 horas';
-  }
-  if (tipo === 'semanal') {
-    return 'la ultima semana';
-  }
-  if (tipo === 'mensual') {
-    return 'el ultimo mes';
-  }
-  return 'el periodo analizado';
 }
