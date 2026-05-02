@@ -55,6 +55,7 @@ import {
   Package,
   ArrowRight,
   AlertTriangle,
+  Shield,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { PRODUCTOS, COMBOS } from '@/constants/products';
@@ -232,6 +233,167 @@ const PARTIDOS = [
 ];
 
 /* ═══════════════════════════════════════════════════════════
+   ESTRATEGIA SECTIONS
+   ═══════════════════════════════════════════════════════════ */
+
+const ESTRATEGIA_SECCIONES = [
+  {
+    id: 'resumen',
+    titulo: 'Resumen Ejecutivo',
+    icon: BarChart3,
+    contenido: 'CONNECT Bolivia es una plataforma de monitoreo mediático inteligente impulsada por el motor ONION200, diseñada para capturar, analizar y distribuir información estratégica sobre la presencia en medios de actores públicos, instituciones y temas de interés en Bolivia. La plataforma procesa diariamente datos de más de 30 fuentes mediáticas nacionales, generando alertas, boletines analíticos y dashboards interactivos que permiten a los tomadores de decisiones anticipar tendencias, gestionar crisis y optimizar su visibilidad pública.',
+    kpis: [
+      { label: 'Fuentes monitoreadas', value: '30+' },
+      { label: 'Personas en radar', value: '173' },
+      { label: 'Menciones/día', value: '77+' },
+      { label: 'Ejes temáticos', value: '11' },
+    ],
+  },
+  {
+    id: 'vision',
+    titulo: 'Visión y Posicionamiento',
+    icon: Target,
+    secciones: [
+      { subtitulo: 'Misión', texto: 'Transformar la inteligencia mediática en Bolivia mediante tecnología de análisis en tiempo real, proporcionando a tomadores de decisiones información accionable, oportuna y precisa sobre presencia en medios, sentimiento público y dinámicas de conflictividad.' },
+      { subtitulo: 'Propuesta de valor diferenciada', texto: 'A diferencia de los servicios de recorte de prensa tradicionales, CONNECT Bolivia incorpora capas de IA que permiten clasificación automática por sentimiento, detección de conflictividad, seguimiento de ejes temáticos y generación de boletines con prospectiva. El motor ONION200 procesa múltiples fuentes en paralelo con tiempos de respuesta en minutos.' },
+      { subtitulo: 'Posicionamiento competitivo', texto: 'Segmento premium de inteligencia mediática, espacio dominado por servicios genéricos de clipping sin análisis de sentimiento. El modelo freemium con productos gratuitos de alto valor (El Radar, Voz y Voto, El Hilo, Foco de la Semana) sirve como motor de adquisición que alimenta el embudo de conversión.' },
+    ],
+  },
+  {
+    id: 'catalogo',
+    titulo: 'Catálogo de Productos',
+    icon: Package,
+    productos: [
+      { nombre: 'El Termómetro', frec: 'Diario AM', horario: '07:00', canales: 'WhatsApp, Email', precio: 'Bs 350/mes', cat: 'Premium', estado: 'operativo' },
+      { nombre: 'Saldo del Día', frec: 'Diario PM', horario: '19:00', canales: 'WhatsApp, Email', precio: 'Bs 350/mes', cat: 'Premium', estado: 'operativo' },
+      { nombre: 'El Foco', frec: 'Diario AM', horario: '09:00', canales: 'WA, Email, PDF', precio: 'Bs 500-3K/mes', cat: 'Premium', estado: 'operativo' },
+      { nombre: 'El Informe Cerrado', frec: 'Semanal', horario: 'Lun 10:00', canales: 'Email, PDF', precio: 'Bs 800/mes', cat: 'Premium', estado: 'definido' },
+      { nombre: 'Ficha del Legislador', frec: 'Bajo demanda', horario: 'A solicitud', canales: 'Email, PDF', precio: 'Bs 200/und', cat: 'Premium', estado: 'definido' },
+      { nombre: 'El Especializado', frec: 'Diario', horario: '10:00', canales: 'Email, PDF', precio: 'Bs 1.500/mes', cat: 'Premium Mid', estado: 'definido' },
+      { nombre: 'Alerta Temprana', frec: 'Tiempo real', horario: 'Inmediata', canales: 'WhatsApp', precio: 'Bs 2.000/mes', cat: 'Premium Alta', estado: 'definido' },
+      { nombre: 'El Radar', frec: 'Semanal', horario: 'Lun 08:00', canales: 'Email, Web', precio: 'Gratuito', cat: 'Gratuito', estado: 'operativo' },
+      { nombre: 'Voz y Voto', frec: 'Semanal', horario: 'Lun 08:00', canales: 'Email, Web', precio: 'Gratuito', cat: 'Gratuito', estado: 'definido' },
+      { nombre: 'El Hilo', frec: 'Semanal', horario: 'Lun 08:00', canales: 'Email, Web', precio: 'Gratuito', cat: 'Gratuito', estado: 'definido' },
+      { nombre: 'Foco de la Semana', frec: 'Semanal', horario: 'Lun 08:00', canales: 'Email, Web', precio: 'Gratuito', cat: 'Gratuito', estado: 'definido' },
+    ],
+    combos: [
+      { nombre: 'Duo Diario Premium', incluye: 'Termómetro + Saldo', precio: 'Bs 700/mes' },
+      { nombre: 'Trio Premium', incluye: 'Termómetro + Saldo + Inf. Cerrado', precio: 'Bs 1.200/mes' },
+      { nombre: 'El Foco Starter (1 eje)', incluye: 'El Foco', precio: 'Bs 500/mes' },
+      { nombre: 'El Foco Expandido (3 ejes)', incluye: 'El Foco', precio: 'Bs 1.200/mes' },
+      { nombre: 'El Foco Total (11 ejes)', incluye: 'El Foco', precio: 'Bs 3.000/mes' },
+      { nombre: 'Plan Institucional', incluye: 'Todos los productos', precio: 'Bs 5.000/mes' },
+    ],
+  },
+  {
+    id: 'segmentacion',
+    titulo: 'Segmentación del Mercado',
+    icon: Users,
+    descripcion: 'El mercado objetivo se estructura en siete segmentos diferenciados. El mercado total direccionable se estima en Bs 400.000 mensuales con una penetración objetivo del 10-15% en el primer año.',
+    segmentos: [
+      { nombre: 'Gobierno Central', prioridad: 'Alta', actores: 'Ministerios, viceministerios', mercado: 'Bs 80.000/mes', ticket: 'Bs 3.000-5.000' },
+      { nombre: 'Gobiernos Municipales', prioridad: 'Media', actores: 'Alcaldías, secretarías', mercado: 'Bs 60.000/mes', ticket: 'Bs 700-1.200' },
+      { nombre: 'Organismos Internacionales', prioridad: 'Alta', actores: 'Embajadas, ONU, BID', mercado: 'Bs 90.000/mes', ticket: 'Bs 2.000-5.000' },
+      { nombre: 'Sector Privado', prioridad: 'Media-Alta', actores: 'Bancos, telecom, minería', mercado: 'Bs 80.000/mes', ticket: 'Bs 500-3.000' },
+      { nombre: 'Legisladores', prioridad: 'Media', actores: 'Diputados, senadores', mercado: 'Bs 40.000/mes', ticket: 'Bs 350-800' },
+      { nombre: 'ONGs y Academia', prioridad: 'Baja-Media', actores: 'Think tanks, universidades', mercado: 'Bs 25.000/mes', ticket: 'Bs 200-500' },
+      { nombre: 'Medios y Periodistas', prioridad: 'Baja', actores: 'Medios, corresponsales', mercado: 'Bs 25.000/mes', ticket: 'Bs 0-350' },
+    ],
+  },
+  {
+    id: 'ingresos',
+    titulo: 'Modelo de Ingresos',
+    icon: TrendingUp,
+    descripcion: 'Modelo de ingresos diversificado con cinco fuentes principales, reduciendo la dependencia de un único flujo de caja.',
+    fuentes: [
+      { nombre: 'Suscripciones Mensuales', pct: 60, desc: 'Pagos recurrentes por productos premium y combos' },
+      { nombre: 'Contratos Anuales', pct: 20, desc: 'Compromisos de largo plazo con descuento 15-20%' },
+      { nombre: 'Servicios a Medida', pct: 10, desc: 'Informes especiales, Fichas, dashboards personalizados' },
+      { nombre: 'Alerta Temprana (Add-on)', pct: 5, desc: 'Alertas en tiempo real via WhatsApp' },
+      { nombre: 'Consultoría de Datos', pct: 5, desc: 'Análisis de datos históricos, tendencias sectoriales' },
+    ],
+    proyeccion: [
+      { fase: '1. Fundación', periodo: 'Meses 1-3', clientes: '5-8', ingresos: 'Bs 15-25K/mes' },
+      { fase: '2. Crecimiento', periodo: 'Meses 4-6', clientes: '12-20', ingresos: 'Bs 40-70K/mes' },
+      { fase: '3. Consolidación', periodo: 'Meses 7-9', clientes: '20-30', ingresos: 'Bs 70-110K/mes' },
+      { fase: '4. Expansión', periodo: 'Meses 10-12', clientes: '25-40', ingresos: 'Bs 80-150K/mes' },
+    ],
+  },
+  {
+    id: 'embudo',
+    titulo: 'Embudo de Conversión',
+    icon: Rocket,
+    descripcion: 'Embudo de cinco niveles, desde la captación masiva con productos gratuitos hasta la retención de contratos institucionales.',
+    niveles: [
+      { nivel: 1, nombre: 'Awareness', accion: 'Radar, Voz y Voto, El Hilo, Foco Semana', contactos: '10.000+', conversion: 'Base gratuita' },
+      { nivel: 2, nombre: 'Engagement', accion: 'Webinars, demos, prueba premium', contactos: '1.500', conversion: '15% awareness' },
+      { nivel: 3, nombre: 'Trial', accion: '15 días a Termómetro o El Foco', contactos: '300', conversion: '20% engagement' },
+      { nivel: 4, nombre: 'Conversion', accion: 'Suscripción premium o combos', contactos: '75', conversion: '25% trial' },
+      { nivel: 5, nombre: 'Retención', accion: 'Upsell Plan Institucional', contactos: '50', conversion: '67% retención' },
+    ],
+  },
+  {
+    id: 'roadmap',
+    titulo: 'Roadmap de Implementación',
+    icon: ListChecks,
+    descripcion: 'Plan a 12 meses en cuatro fases progresivas con objetivos claros y métricas de éxito.',
+    fases: [
+      { nombre: 'Fase 1: Fundación', periodo: 'Meses 1-3', detalle: 'Estabilizar ONION200, lanzar 4 gratuitos + activar Termómetro, Saldo, Foco, Radar. 5-8 clientes.', estado: 'en_curso' },
+      { nombre: 'Fase 2: Expansión Catálogo', periodo: 'Meses 4-6', detalle: 'Incorporar Inf. Cerrado, Especializado, Ficha, Alerta Temprana. Combos. 12-20 clientes.', estado: 'pendiente' },
+      { nombre: 'Fase 3: Consolidación', periodo: 'Meses 7-9', detalle: 'Penetración institucional, Plan Institucional insignia, alianzas estratégicas. 20-30 clientes.', estado: 'pendiente' },
+      { nombre: 'Fase 4: Escalamiento', periodo: 'Meses 10-12', detalle: 'Expansión regional (Paraguay, Ecuador, Perú), análisis predictivo. 25-40 clientes.', estado: 'pendiente' },
+    ],
+  },
+  {
+    id: 'expansion',
+    titulo: 'Oportunidades de Expansión',
+    icon: Globe,
+    vertical: [
+      { nombre: 'Inteligencia de Datos', desc: 'Dashboards avanzados con tendencias, comparativas históricas y benchmarking entre actores.' },
+      { nombre: 'Servicios Personalizados', desc: 'Informes ad-hoc, monitoreo de campañas, análisis de impacto de declaraciones.' },
+      { nombre: 'Herramientas Proactivas', desc: 'Alertas predictivas basadas en patrones de sentimiento, scoring de riesgo mediático.' },
+    ],
+    horizontal: [
+      { mercado: 'Paraguay', prioridad: 'Alta', justificacion: 'Ecosistema mediático similar, demanda creciente.' },
+      { mercado: 'Ecuador', prioridad: 'Media-Alta', justificacion: 'Mercado robusto, oportunidad para alianzas.' },
+      { mercado: 'Perú', prioridad: 'Media', justificacion: 'Mercado grande, segmento premium desatendido.' },
+      { mercado: 'Sectorial Bolivia', prioridad: 'Alta', justificacion: 'Hidrocarburos, minería, telecom, banca.' },
+    ],
+  },
+  {
+    id: 'ventajas',
+    titulo: 'Ventajas Competitivas',
+    icon: Shield,
+    ventajas: [
+      { nombre: 'Motor ONION200', desc: 'Tecnología propia de procesamiento y análisis en tiempo real. Clasificación automática por sentimiento, conflictividad y ejes temáticos.' },
+      { nombre: 'Base de Datos', desc: 'Acumulación continua de datos históricos. Cada día de operación incrementa el valor del activo.' },
+      { nombre: 'Conocimiento Local', desc: 'Entendimiento profundo del ecosistema mediático boliviano: fuentes, actores, dinámicas y contextos políticos.' },
+      { nombre: 'Multi-canal', desc: 'Entrega simultánea por WhatsApp, email, PDF y dashboard web sin fricción tecnológica.' },
+      { nombre: 'Modelo Freemium', desc: 'Productos gratuitos de alto valor que generan awareness y alimentan el embudo de conversión.' },
+    ],
+  },
+  {
+    id: 'estado',
+    titulo: 'Estado Actual',
+    icon: Activity,
+    descripcion: 'v0.7.0: 4 productos con generador operativo, dashboard con 15 vistas, 173 personas, 30 medios, 8 clientes registrados.',
+    estadoProductos: [
+      { nombre: 'El Termómetro', estado: 'operativo', detalle: 'Generador automático, WhatsApp + email' },
+      { nombre: 'Saldo del Día', estado: 'operativo', detalle: 'Generador automático, WhatsApp + email' },
+      { nombre: 'El Foco', estado: 'operativo', detalle: 'Generador automático, 11 ejes temáticos' },
+      { nombre: 'El Radar', estado: 'operativo', detalle: 'Generador automático, distribución semanal gratuita' },
+      { nombre: 'El Informe Cerrado', estado: 'definido', detalle: 'Configuración completa, generador en desarrollo' },
+      { nombre: 'El Especializado', estado: 'definido', detalle: 'Configuración completa, generador pendiente' },
+      { nombre: 'Alerta Temprana', estado: 'definido', detalle: 'Vista dashboard, motor en desarrollo' },
+      { nombre: 'Voz y Voto', estado: 'definido', detalle: 'Configuración completa, generador pendiente' },
+      { nombre: 'El Hilo', estado: 'definido', detalle: 'Configuración completa, generador pendiente' },
+      { nombre: 'Foco de la Semana', estado: 'definido', detalle: 'Configuración completa, generador pendiente' },
+      { nombre: 'Ficha del Legislador', estado: 'definido', detalle: 'Configuración completa, generador pendiente' },
+    ],
+  },
+];
+
+/* ═══════════════════════════════════════════════════════════
    NAV ITEMS
    ═══════════════════════════════════════════════════════════ */
 
@@ -380,6 +542,9 @@ export default function Dashboard() {
   }> | null>(null);
   const [indicadoresLoading, setIndicadoresLoading] = useState(false);
   const [capturaIndicadoresLoading, setCapturaIndicadoresLoading] = useState(false);
+
+  // Estrategia
+  const [estrategiaSeccion, setEstrategiaSeccion] = useState(0);
 
   // Medios toggle
   const [toggleMedioId, setToggleMedioId] = useState<string | null>(null);
@@ -2157,110 +2322,284 @@ export default function Dashboard() {
           )}
 
           {/* ═══════════════════════════════════════════════════════
-              VIEW: ESTRATEGIA
+              VIEW: ESTRATEGIA (Documento Vivo)
               ═══════════════════════════════════════════════════════ */}
-          {activeView === 'estrategia' && (
-            <div className="space-y-6">
-              {/* Key metrics */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <KPICard
-                  icon={<Package className="h-5 w-5" />}
-                  value={11}
-                  label="Productos"
-                  colorClass="text-primary"
-                />
-                <KPICard
-                  icon={<FileBarChart className="h-5 w-5" />}
-                  value={6}
-                  label="Combos"
-                  colorClass="text-purple-600 dark:text-purple-400"
-                />
-                <KPICard
-                  icon={<Users className="h-5 w-5" />}
-                  value={7}
-                  label="Segmentos"
-                  colorClass="text-emerald-600 dark:text-emerald-400"
-                />
-                <KPICard
-                  icon={<TrendingUp className="h-5 w-5" />}
-                  value={400}
-                  label="Bs K/mes mercado"
-                  subtext="Estimación TAM Bolivia"
-                  colorClass="text-amber-600 dark:text-amber-400"
-                />
-              </div>
-
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Rocket className="h-4 w-4 text-muted-foreground" />
-                    Estrategia Comercial
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Hoja de ruta CONNECT Bolivia — Productos, segmentos y modelo de negocio
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 pt-0 space-y-4">
-                  {/* Strategy overview */}
-                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
-                    <div className="flex items-start gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <Rocket className="h-5 w-5 text-primary" />
+          {activeView === 'estrategia' && (() => {
+            const sec = ESTRATEGIA_SECCIONES[estrategiaSeccion];
+            const SeccionIcon = sec.icon;
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                {/* TOC */}
+                <div className="lg:col-span-3">
+                  <Card className="sticky top-20">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-xs font-semibold flex items-center gap-2">
+                        <Rocket className="h-3.5 w-3.5 text-primary" />
+                        Estrategia Comercial
+                      </CardTitle>
+                      <CardDescription className="text-[10px]">v0.7.0 · Mayo 2025</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-3 pt-0">
+                      <nav className="space-y-0.5">
+                        {ESTRATEGIA_SECCIONES.map((s, i) => {
+                          const SIcon = s.icon;
+                          const isActive = i === estrategiaSeccion;
+                          return (
+                            <button
+                              key={s.id}
+                              onClick={() => setEstrategiaSeccion(i)}
+                              className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-[11px] font-medium transition-colors text-left ${
+                                isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                              }`}
+                            >
+                              <SIcon className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate">{s.titulo}</span>
+                            </button>
+                          );
+                        })}
+                      </nav>
+                      <div className="mt-4 pt-3 border-t border-border">
+                        <p className="text-[9px] text-muted-foreground/60">Fuente: CONNECT_Bolivia_Estrategia_Comercial.pdf</p>
                       </div>
-                      <div>
-                        <h3 className="text-sm font-semibold text-foreground">Modelo de negocio CONNECT</h3>
-                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                          Ecosistema de 11 productos de inteligencia mediática organizados en 4 categorías
-                          (Premium, Premium Mid, Premium Alta, Gratuito) con 6 combos de venta
-                          dirigidos a 7 segmentos del mercado boliviano.
-                        </p>
+                    </CardContent>
+                  </Card>
+                </div>
+                {/* Content */}
+                <div className="lg:col-span-9 space-y-4">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <SeccionIcon className="h-4 w-4 text-primary" />
+                        </div>
+                        <CardTitle className="text-sm font-semibold">{sec.titulo}</CardTitle>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Segmentos */}
-                  <div>
-                    <h4 className="text-xs font-semibold text-foreground mb-3">Segmentos objetivo</h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                      {[
-                        { nombre: 'Embajadas', icon: Globe, desc: 'Diplomáticos en Bolivia' },
-                        { nombre: 'Organismos Int.', icon: FileCheck, desc: 'ONU, BID, Banco Mundial' },
-                        { nombre: 'Corporaciones', icon: Activity, desc: 'Grandes empresas' },
-                        { nombre: 'Legisladores', icon: Users, desc: 'Diputados y Senadores' },
-                        { nombre: 'Partidos Políticos', icon: BarChart3, desc: 'Direcciones de comunicación' },
-                        { nombre: 'Medios', icon: Radio, desc: 'Periodistas y editores' },
-                        { nombre: 'ONGs / Academia', icon: GraduationCap, desc: 'Investigación y advocacy' },
-                      ].map((seg) => {
-                        const SegIcon = seg.icon;
-                        return (
-                          <div key={seg.nombre} className="p-3 rounded-lg border border-border hover:border-primary/30 transition-colors">
-                            <div className="flex items-center gap-2 mb-1">
-                              <SegIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                              <p className="text-[11px] font-semibold text-foreground">{seg.nombre}</p>
-                            </div>
-                            <p className="text-[10px] text-muted-foreground">{seg.desc}</p>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                      {sec.id === 'resumen' && (
+                        <div className="space-y-4">
+                          <p className="text-xs text-foreground/80 leading-relaxed">{sec.contenido}</p>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {sec.kpis?.map((kpi) => (
+                              <div key={kpi.label} className="p-3 rounded-lg bg-muted/50 border border-border text-center">
+                                <p className="text-lg font-bold text-primary">{kpi.value}</p>
+                                <p className="text-[10px] text-muted-foreground">{kpi.label}</p>
+                              </div>
+                            ))}
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Document reference */}
-                  <div className="p-4 rounded-lg border-2 border-primary/20 bg-primary/[0.02]">
-                    <div className="flex items-center gap-2 mb-2">
-                      <FileText className="h-4 w-4 text-primary" />
-                      <h4 className="text-xs font-semibold text-foreground">Documento completo</h4>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Documento completo disponible: <span className="font-medium text-foreground">CONNECT_Bolivia_Estrategia_Comercial.pdf</span>
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+                        </div>
+                      )}
+                      {sec.id === 'vision' && (
+                        <div className="space-y-4">
+                          {sec.secciones?.map((s) => (
+                            <div key={s.subtitulo}>
+                              <h4 className="text-xs font-semibold text-foreground mb-1.5">{s.subtitulo}</h4>
+                              <p className="text-xs text-foreground/80 leading-relaxed">{s.texto}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {sec.id === 'catalogo' && (
+                        <div className="space-y-4">
+                          <div className="overflow-x-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="text-[10px]">Producto</TableHead>
+                                  <TableHead className="text-[10px]">Frec.</TableHead>
+                                  <TableHead className="text-[10px] hidden sm:table-cell">Horario</TableHead>
+                                  <TableHead className="text-[10px] hidden md:table-cell">Canales</TableHead>
+                                  <TableHead className="text-[10px]">Precio</TableHead>
+                                  <TableHead className="text-[10px]">Estado</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {sec.productos?.map((p) => (
+                                  <TableRow key={p.nombre}>
+                                    <TableCell className="py-2 text-xs font-medium">{p.nombre}</TableCell>
+                                    <TableCell className="py-2 text-[10px] text-muted-foreground">{p.frec}</TableCell>
+                                    <TableCell className="py-2 text-[10px] text-muted-foreground hidden sm:table-cell">{p.horario}</TableCell>
+                                    <TableCell className="py-2 text-[10px] text-muted-foreground hidden md:table-cell">{p.canales}</TableCell>
+                                    <TableCell className="py-2 text-[10px] font-semibold">{p.precio}</TableCell>
+                                    <TableCell className="py-2">
+                                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${p.estado === 'operativo' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'}`}>
+                                        {p.estado === 'operativo' ? '✅ Op.' : '⚠️ Def.'}
+                                      </span>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                          <h4 className="text-xs font-semibold text-foreground">Combos Estratégicos</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {sec.combos?.map((c) => (
+                              <div key={c.nombre} className="p-2.5 rounded-lg border border-border">
+                                <p className="text-[11px] font-semibold text-foreground">{c.nombre}</p>
+                                <p className="text-[10px] text-muted-foreground">{c.incluye}</p>
+                                <p className="text-[10px] font-bold text-primary mt-1">{c.precio}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {sec.id === 'segmentacion' && (
+                        <div className="space-y-3">
+                          <p className="text-xs text-foreground/80 leading-relaxed">{sec.descripcion}</p>
+                          <div className="overflow-x-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="text-[10px]">Segmento</TableHead>
+                                  <TableHead className="text-[10px]">Prioridad</TableHead>
+                                  <TableHead className="text-[10px] hidden sm:table-cell">Actores</TableHead>
+                                  <TableHead className="text-[10px]">Mercado</TableHead>
+                                  <TableHead className="text-[10px] hidden md:table-cell">Ticket</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {sec.segmentos?.map((s) => (
+                                  <TableRow key={s.nombre}>
+                                    <TableCell className="py-2 text-[11px] font-medium">{s.nombre}</TableCell>
+                                    <TableCell className="py-2">
+                                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${s.prioridad === 'Alta' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' : s.prioridad === 'Media-Alta' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' : s.prioridad === 'Media' ? 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300' : 'bg-stone-100 text-stone-600 dark:bg-stone-800/40 dark:text-stone-300'}`}>{s.prioridad}</span>
+                                    </TableCell>
+                                    <TableCell className="py-2 text-[10px] text-muted-foreground hidden sm:table-cell">{s.actores}</TableCell>
+                                    <TableCell className="py-2 text-[10px] font-semibold">{s.mercado}</TableCell>
+                                    <TableCell className="py-2 text-[10px] text-muted-foreground hidden md:table-cell">{s.ticket}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </div>
+                      )}
+                      {sec.id === 'ingresos' && (
+                        <div className="space-y-4">
+                          <p className="text-xs text-foreground/80 leading-relaxed">{sec.descripcion}</p>
+                          <div className="space-y-2">
+                            {sec.fuentes?.map((f) => (
+                              <div key={f.nombre} className="flex items-center gap-3">
+                                <span className="text-[10px] font-bold text-primary w-8 text-right">{f.pct}%</span>
+                                <div className="flex-1 h-5 bg-muted rounded-full overflow-hidden"><div className="h-full bg-primary/20 rounded-full" style={{ width: `${f.pct}%` }} /></div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[11px] font-medium text-foreground truncate">{f.nombre}</p>
+                                  <p className="text-[9px] text-muted-foreground truncate">{f.desc}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <h4 className="text-xs font-semibold text-foreground mt-4">Proyección por Fase</h4>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {sec.proyeccion?.map((p) => (
+                              <div key={p.fase} className="p-2.5 rounded-lg border border-border text-center">
+                                <p className="text-[10px] text-muted-foreground">{p.fase}</p>
+                                <p className="text-[10px] text-muted-foreground/60">{p.periodo}</p>
+                                <p className="text-sm font-bold text-primary mt-1">{p.ingresos}</p>
+                                <p className="text-[9px] text-muted-foreground">{p.clientes} clientes</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {sec.id === 'embudo' && (
+                        <div className="space-y-3">
+                          <p className="text-xs text-foreground/80 leading-relaxed">{sec.descripcion}</p>
+                          {sec.niveles?.map((n) => (
+                            <div key={n.nivel} className="flex items-start gap-3 p-3 rounded-lg border border-border">
+                              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0"><span className="text-xs font-bold text-primary">{n.nivel}</span></div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2"><p className="text-xs font-semibold text-foreground">{n.nombre}</p><span className="text-[10px] font-bold text-primary">{n.contactos}</span></div>
+                                <p className="text-[10px] text-muted-foreground">{n.accion}</p>
+                                <p className="text-[9px] text-muted-foreground/60">{n.conversion}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {sec.id === 'roadmap' && (
+                        <div className="space-y-3">
+                          <p className="text-xs text-foreground/80 leading-relaxed">{sec.descripcion}</p>
+                          {sec.fases?.map((f) => (
+                            <div key={f.nombre} className={`p-3 rounded-lg border-l-4 ${f.estado === 'en_curso' ? 'border-l-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20' : 'border-l-muted-foreground/30 bg-muted/30'}`}>
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="text-xs font-semibold text-foreground">{f.nombre}</p>
+                                <span className="text-[10px] text-muted-foreground">{f.periodo}</span>
+                                {f.estado === 'en_curso' && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">En curso</span>}
+                                {f.estado === 'pendiente' && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-stone-100 text-stone-500 dark:bg-stone-800/40 dark:text-stone-400">Pendiente</span>}
+                              </div>
+                              <p className="text-[10px] text-foreground/70 leading-relaxed">{f.detalle}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {sec.id === 'expansion' && (
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="text-xs font-semibold text-foreground mb-2">Expansión Vertical</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                              {sec.vertical?.map((v) => (
+                                <div key={v.nombre} className="p-3 rounded-lg border border-border">
+                                  <p className="text-[11px] font-semibold text-foreground">{v.nombre}</p>
+                                  <p className="text-[10px] text-muted-foreground mt-1">{v.desc}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-semibold text-foreground mb-2">Expansión Horizontal</h4>
+                            <div className="overflow-x-auto">
+                              <Table>
+                                <TableHeader><TableRow><TableHead className="text-[10px]">Mercado</TableHead><TableHead className="text-[10px]">Prioridad</TableHead><TableHead className="text-[10px]">Justificación</TableHead></TableRow></TableHeader>
+                                <TableBody>
+                                  {sec.horizontal?.map((h) => (
+                                    <TableRow key={h.mercado}>
+                                      <TableCell className="py-2 text-[11px] font-medium">{h.mercado}</TableCell>
+                                      <TableCell className="py-2"><span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${h.prioridad === 'Alta' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' : h.prioridad === 'Media-Alta' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300'}`}>{h.prioridad}</span></TableCell>
+                                      <TableCell className="py-2 text-[10px] text-muted-foreground">{h.justificacion}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {sec.id === 'ventajas' && (
+                        <div className="space-y-3">
+                          {sec.ventajas?.map((v) => (
+                            <div key={v.nombre} className="p-3 rounded-lg border border-border">
+                              <p className="text-xs font-semibold text-foreground mb-1">{v.nombre}</p>
+                              <p className="text-[10px] text-foreground/80 leading-relaxed">{v.desc}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {sec.id === 'estado' && (
+                        <div className="space-y-3">
+                          <p className="text-xs text-foreground/80 leading-relaxed">{sec.descripcion}</p>
+                          {sec.estadoProductos?.map((p) => (
+                            <div key={p.nombre} className="flex items-center gap-3 p-2.5 rounded-lg border border-border">
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${p.estado === 'operativo' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'}`}>{p.estado === 'operativo' ? '✅' : '⚠️'}</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[11px] font-medium text-foreground">{p.nombre}</p>
+                                <p className="text-[10px] text-muted-foreground truncate">{p.detalle}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
+                        <Button variant="outline" size="sm" onClick={() => setEstrategiaSeccion(Math.max(0, estrategiaSeccion - 1))} disabled={estrategiaSeccion === 0} className="text-xs gap-1"><ChevronLeft className="h-3 w-3" /> Anterior</Button>
+                        <span className="text-[10px] text-muted-foreground">{estrategiaSeccion + 1} / {ESTRATEGIA_SECCIONES.length}</span>
+                        <Button variant="outline" size="sm" onClick={() => setEstrategiaSeccion(Math.min(ESTRATEGIA_SECCIONES.length - 1, estrategiaSeccion + 1))} disabled={estrategiaSeccion === ESTRATEGIA_SECCIONES.length - 1} className="text-xs gap-1">Siguiente <ChevronRight className="h-3 w-3" /></Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ═══════════════════════════════════════════════════════
               VIEW: INDICADORES
