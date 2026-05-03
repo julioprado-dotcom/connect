@@ -75,8 +75,11 @@ export interface ProductoConfig {
   longitudMinLectura: number     // minutos de lectura
   canales: CanalEntrega[]
   periodoDefault: number         // días por defecto para la generación
+  palabrasObjetivo: number       // palabras objetivo para la IA
+  temperatura: number            // 0.3 factual, 0.5 profundo, 0.6 narrativa
   activo: boolean
   generador: GeneradorConfig
+  systemPrompt: string           // prompt de sistema para generación con IA
 }
 
 // ─── Indicador ────────────────────────────────────────────────────

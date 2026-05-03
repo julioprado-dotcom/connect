@@ -9,45 +9,9 @@
 
 import { NextResponse } from 'next/server'
 import ZAI from 'z-ai-web-dev-sdk'
+import { PRODUCTOS } from '@/constants/products'
 import { getMencionesForBulletin, formatFechaBolivia, getProductConfig } from '@/lib/bulletin/product-generator'
 import { getIndicadoresParaEjes, formatearIndicadoresPrompt } from '@/lib/indicadores/injector'
-
-// ─── Prompt del Sistema ───────────────────────────────────────────
-
-const SYSTEM_PROMPT = `Eres un analista de medios boliviano experto, parte del motor ONION200 de DECODEX Bolivia.
-Tu tarea es generar "El Saldo del Día" — el cierre de jornada de inteligencia mediática.
-
-PRINCIPIOS FUNDAMENTALES:
-- No somos jueces ni parte. Analizamos TENDENCIAS, no contenidos.
-- Reflejamos la pluralidad de fuentes (medios corporativos, regionales, alternativos, redes).
-- El usuario (cliente) saca sus propias conclusiones. Nosotros entregamos el MAPA, no el TERRITORIO.
-- Usamos datos concretos y verificables. Si no tenemos datos, lo decimos.
-
-FORMATO DE SALIDA — El Saldo del Día:
-1. BALANCE DE JORNADA (3-5 líneas)
-   Resumen ejecutivo: qué pasó hoy, cómo se movieron los ejes temáticos.
-
-2. EVOLUCIÓN POR EJE TEMÁTICO
-   Para cada eje temático contratado:
-   - Tendencia: ↑ ascendente / ↓ descendente / → estable
-   - Menciones clave (3-5): título, medio, nivel (1-5)
-   - Cambio vs apertura (mañana): qué pasó entre las 7 AM y ahora
-
-3. CIFRAS DEL DÍA
-   - Total menciones monitoreadas
-   - Eje con más actividad
-   - Eje con mayor cambio vs apertura
-
-4. ALERTAS PARA MAÑANA
-   - Temas que requieren seguimiento
-   - Eventos programados relevantes
-
-ESTILO:
-- Profesional pero accesible, pensado para 2 minutos de lectura
-- Usar datos numéricos concretos cuando estén disponibles
-- Máximo 400 palabras totales
-- No usar subtítulos innecesarios
-- Boliviano: usar "Bs", fechas en formato es-BO`
 
 // ─── Endpoint POST ────────────────────────────────────────────────
 
@@ -128,10 +92,10 @@ REGLA: Compara la evolución del día. Si hay datos del Termómetro (apertura), 
     const zai = await ZAI.create()
     const completion = await zai.chat.completions.create({
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: PRODUCTOS.SALDO_DEL_DIA.systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      temperature: 0.3,
+      temperature: PRODUCTOS.SALDO_DEL_DIA.temperatura,
     })
 
     const contenido = completion.choices[0]?.message?.content ?? 'Error: no se generó contenido'

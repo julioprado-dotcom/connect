@@ -11,39 +11,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import ZAI from 'z-ai-web-dev-sdk';
+import { PRODUCTOS } from '@/constants/products';
 import { db } from '@/lib/db';
 import { getProductConfig, getMencionesForBulletin, getDateRange } from '@/lib/bulletin/product-generator';
 import { getIndicadoresParaEje, formatearIndicadoresPrompt } from '@/lib/indicadores/injector';
 import { formatearMencionesPrompt, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen, formatFechaBolivia } from '@/lib/reportes-utils';
-
-// ============================================
-// System Prompt — El Foco
-// ============================================
-
-const SYSTEM_PROMPT_FOCO = `Eres un analista de profundidad de medios bolivianos. Tu tarea es generar EL FOCO, un analisis profundo diario sobre un eje tematico especifico para DECODEX Bolivia.
-
-INSTRUCCIONES DE FORMATO:
-- Titulo: "EL FOCO — [nombre del eje tematico] — [fecha]"
-- Extension: 800 palabras
-- Tono: analitico, profundo, con contexto historico
-- Estructura:
-  1. Contexto y antecedentes del eje tematico
-  2. Analisis de menciones principales
-  3. Actores clave identificados
-  4. Indicadores cuantitativos relevantes
-  5. Narrativas predominantes
-  6. Conclusiones y tendencias observadas
-
-REGLAS:
-- Solo usar datos proporcionados del eje tematico
-- Incluir contexto y antecedentes cuando sea relevante
-- Analizar actores, narrativas y tendencias con profundidad
-- Integrar indicadores cuantitativos si estan disponibles
-- Fechas en formato es-BO (America/La_Paz)
-- Profundidad academica pero accesible
-- Citar fuentes y medios por nombre
-- No usar emojis ni caracteres especiales
-- No emitir opiniones personales`;
 
 // ============================================
 // POST Handler
@@ -121,11 +93,11 @@ export async function POST(request: NextRequest) {
 
     // 9. Generar contenido con IA (GLM) — temperatura 0.5 para profundidad
     const zai = await ZAI.create();
-    const temperatura = temperaturaOverride ?? 0.5;
+    const temperatura = temperaturaOverride ?? PRODUCTOS.EL_FOCO.temperatura;
 
     const completion = await zai.chat.completions.create({
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT_FOCO },
+        { role: 'system', content: PRODUCTOS.EL_FOCO.systemPrompt },
         { role: 'user', content: userPrompt },
       ],
       temperature: temperatura,

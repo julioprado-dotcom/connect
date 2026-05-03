@@ -13,28 +13,7 @@ import ZAI from 'z-ai-web-dev-sdk';
 import { getProductConfig, getMencionesForBulletin, getDateRange, formatFechaBolivia } from '@/lib/bulletin/product-generator';
 import { getIndicadoresParaEjes, formatearIndicadoresMultiplesPrompt } from '@/lib/indicadores/injector';
 import { formatearMencionesPrompt, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen } from '@/lib/reportes-utils';
-
-// ============================================
-// System Prompt — El Termometro
-// ============================================
-
-const SYSTEM_PROMPT_TERMOMETRO = `Eres un analista de medios boliviano experto en monitoreo de informacion. Tu tarea es generar EL TERMOMETRO, el boletin matutino de DECODEX Bolivia.
-
-INSTRUCCIONES DE FORMATO:
-- Titulo: "EL TERMOMETRO — [fecha en español, es-BO]"
-- Subtitulo con clima mediatico general (1 frase)
-- Extension: 350 palabras exactas
-- Tono: informativo, objetivo, profesional
-- Estructura: Clima general > Temas calientes (3-4) > Tendencia del dia > Dato destacado
-
-REGLAS:
-- Solo usar datos proporcionados, no inventar informacion
-- Fechas en formato es-BO (America/La_Paz)
-- Nombres de medios en espanol
-- Incluir sentimiento predominante del ecosistema mediatico
-- Mencionar fuentes por nombre
-- No usar emojis ni caracteres especiales
-- No incluir opiniones personales`;
+import { PRODUCTOS } from '@/constants/products';
 
 // ============================================
 // Ejes para indicadores generales del clima
@@ -98,13 +77,13 @@ export async function POST(request: NextRequest) {
       `Ventana de datos: ${ventanaLabel}\nTotal menciones: ${resultado.totalMenciones}`
     );
 
-    // 7. Generar contenido con IA (GLM)
+    // 7. Generar contenido con IA (GLM) usando system prompt del catálogo
     const zai = await ZAI.create();
-    const temperatura = temperaturaOverride ?? 0.3;
+    const temperatura = temperaturaOverride ?? PRODUCTOS.EL_TERMOMETRO.temperatura;
 
     const completion = await zai.chat.completions.create({
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT_TERMOMETRO },
+        { role: 'system', content: PRODUCTOS.EL_TERMOMETRO.systemPrompt },
         { role: 'user', content: userPrompt },
       ],
       temperature: temperatura,

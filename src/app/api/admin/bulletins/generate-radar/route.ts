@@ -10,39 +10,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import ZAI from 'z-ai-web-dev-sdk';
+import { PRODUCTOS } from '@/constants/products';
 import { db } from '@/lib/db';
 import { getProductConfig, getDateRange, formatFechaBolivia } from '@/lib/bulletin/product-generator';
 import { getIndicadoresParaEjes, formatearIndicadoresMultiplesPrompt } from '@/lib/indicadores/injector';
 import { formatearMencionesPorEje, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen, getSemanaAnho } from '@/lib/reportes-utils';
-
-// ============================================
-// System Prompt — El Radar
-// ============================================
-
-const SYSTEM_PROMPT_RADAR = `Eres un analista de panorama mediatico de DECODEX Bolivia. Tu tarea es generar EL RADAR, el radar semanal de los 11 ejes tematicos.
-
-INSTRUCCIONES DE FORMATO:
-- Titulo: "EL RADAR — Semana del [fecha inicio] al [fecha fin]"
-- Extension: 500 palabras
-- Tono: panoramico, visual, dinamico
-- Estructura:
-  1. Panorama general de la semana (2-3 oraciones)
-  2. Radar por eje tematico (breve por cada uno):
-     - Nombre del eje
-     - Nivel de actividad: ALTO / MEDIO / BAJO
-     - 1 dato clave
-  3. Ejes en alerta (los de mayor actividad)
-  4. Tendencia general de la semana
-  5. Recomendacion de monitoreo
-
-REGLAS:
-- Cubrir los 11 ejes tematicos proporcionados
-- Indicar nivel de actividad por eje (ALTO/MEDIO/BAJO)
-- Solo usar datos proporcionados
-- Fechas en formato es-BO (America/La_Paz)
-- Resumen conciso por eje, no mas de 2 lineas c/u
-- No usar emojis ni caracteres especiales
-- Ser objetivo y basado en datos`;
 
 // ============================================
 // Los 11 Ejes Tematicos de DECODEX
@@ -153,11 +125,11 @@ export async function POST(request: NextRequest) {
 
     // 7. Generar con IA
     const zai = await ZAI.create();
-    const temperatura = temperaturaOverride ?? 0.3;
+    const temperatura = temperaturaOverride ?? PRODUCTOS.EL_RADAR.temperatura;
 
     const completion = await zai.chat.completions.create({
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT_RADAR },
+        { role: 'system', content: PRODUCTOS.EL_RADAR.systemPrompt },
         { role: 'user', content: userPrompt },
       ],
       temperature: temperatura,

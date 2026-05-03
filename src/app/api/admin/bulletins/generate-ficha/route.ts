@@ -10,40 +10,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import ZAI from 'z-ai-web-dev-sdk';
+import { PRODUCTOS } from '@/constants/products';
 import { db } from '@/lib/db';
 import { getProductConfig, getDateRange, formatFechaBolivia } from '@/lib/bulletin/product-generator';
 import { getIndicadoresParaEjes, formatearIndicadoresPrompt } from '@/lib/indicadores/injector';
 import { formatearMencionesPrompt, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen } from '@/lib/reportes-utils';
 import { type MencionEnriquecida } from '@/types/bulletin';
-
-// ============================================
-// System Prompt — Ficha Legislador
-// ============================================
-
-const SYSTEM_PROMPT_FICHA = `Eres un investigador politico boliviano experto en analisis de actores publicos. Tu tarea es generar una FICHA LEGISLADOR para DECODEX Bolivia.
-
-INSTRUCCIONES DE FORMATO:
-- Titulo: "FICHA — [Nombre del Legislador] — [fecha]"
-- Extension: 1000 palabras
-- Tono: objetivo, documentado, profesional
-- Estructura:
-  1. Datos generales (nombre, cargo, institucion, partido)
-  2. Trayectoria y antecedentes relevantes
-  3. Posicionamiento reciente en medios (ultimos 7 dias)
-  4. Menciones destacadas (analizar cada una)
-  5. Indicadores de visibilidad mediatica
-  6. Ejes tematicos en los que aparece
-  7. Evaluacion objetiva de presencia mediatica
-
-REGLAS:
-- Solo usar datos proporcionados sobre la persona
-- Incluir metricas de visibilidad mediatica
-- Fechas en formato es-BO (America/La_Paz)
-- No emitir juicios de valor politico
-- No usar emojis ni caracteres especiales
-- Ser riguroso con los datos proporcionados
-- No inventar informacion ni datos biograficos
-- Incluir sentimiento de las menciones si esta disponible`;
 
 // ============================================
 // POST Handler
@@ -150,11 +122,11 @@ export async function POST(request: NextRequest) {
 
     // 11. Generar con IA
     const zai = await ZAI.create();
-    const temperatura = temperaturaOverride ?? 0.3;
+    const temperatura = temperaturaOverride ?? PRODUCTOS.FICHA_LEGISLADOR.temperatura;
 
     const completion = await zai.chat.completions.create({
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT_FICHA },
+        { role: 'system', content: PRODUCTOS.FICHA_LEGISLADOR.systemPrompt },
         { role: 'user', content: userPrompt },
       ],
       temperature: temperatura,

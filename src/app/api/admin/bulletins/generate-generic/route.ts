@@ -10,11 +10,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import ZAI from 'z-ai-web-dev-sdk';
 import { PRODUCTOS } from '@/constants/products';
 import { getProductConfig, getMencionesForBulletin, getDateRange } from '@/lib/bulletin/product-generator';
 import { getIndicadoresParaEjes, formatearIndicadoresMultiplesPrompt } from '@/lib/indicadores/injector';
 import { formatearMencionesPrompt, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen, formatFechaBolivia } from '@/lib/reportes-utils';
+import { regenerateWithRetry } from '@/lib/quality/regeneration';
+import { validateContent } from '@/lib/quality/validator';
 import { type TipoBoletin } from '@/types/bulletin';
 
 // ============================================
@@ -127,30 +128,35 @@ export async function POST(request: NextRequest) {
 
     const userPrompt = construirPrompt(tipo, mencionesPrompt, indicadoresPrompt, datosExtra);
 
-    // 7. Generar con IA
-    const zai = await ZAI.create();
-    const temperatura = temperaturaOverride ?? 0.3;
+    // 7. Generar con IA usando regenerateWithRetry (validacion + reintentos)
+    const temperatura = temperaturaOverride ?? config.temperatura;
+    const systemPrompt = config.systemPrompt;
 
-    const completion = await zai.chat.completions.create({
-      messages: [
-        { role: 'system', content: `Genera el producto "${config.nombre}" de DECODEX Bolivia. Sigue las instrucciones proporcionadas en el prompt del usuario.` },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: temperatura,
+    const genResult = await regenerateWithRetry({
+      systemPrompt,
+      userPrompt,
+      tipo,
+      initialTemperatura: temperatura,
+      onRetry: (intento, error) => {
+        console.warn(`[generate-generic] Reintento ${intento} para ${tipo}: ${error}`);
+      },
     });
 
-    const contenido = completion.choices[0]?.message?.content ?? '';
-    const tokensUsados = completion.usage?.total_tokens;
-    const modelo = completion.model;
-
-    if (!contenido) {
+    if (!genResult.exito || !genResult.contenido) {
       return NextResponse.json(
-        { exito: false, error: 'La IA no genero contenido' },
+        { exito: false, error: genResult.error ?? 'La IA no genero contenido valido' },
         { status: 500 }
       );
     }
 
-    // 8. Registrar en BD
+    const contenido = genResult.contenido;
+    const tokensUsados = genResult.tokensUsados;
+    const modelo = genResult.modelo;
+
+    // 8. Validacion final de calidad
+    const validation = validateContent(contenido, { tipo });
+
+    // 9. Registrar en BD
     const titulo = generarTituloProducto(tipo, undefined, ejeSlug);
     const resumen = await getDedicatedResumen(tipo, {
       menciones: resultado.menciones,
@@ -177,7 +183,7 @@ export async function POST(request: NextRequest) {
       clienteId,
     });
 
-    // 9. Retornar resultado
+    // 10. Retornar resultado
     return NextResponse.json({
       exito: true,
       reporteId,
@@ -190,6 +196,13 @@ export async function POST(request: NextRequest) {
         tokensUsados,
         modelo,
         totalMenciones: resultado.totalMenciones,
+        calidad: {
+          puntuacion: validation.puntuacion,
+          valido: validation.valido,
+          advertencias: validation.advertencias,
+          palabras: validation.estadisticas.palabras,
+        },
+        regeneracion: genResult.metadata,
       },
     });
   } catch (error) {
