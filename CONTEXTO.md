@@ -1,4 +1,4 @@
-CONTEXTO — Monitor de Presencia en Medios
+CONTEXTO — DECODEX Bolivia
 
 1. PROTOCOLO DE ACCION INMEDIATA
 Diagnostico del Preview (5 pasos)
@@ -39,15 +39,15 @@ Arquitectura del Sandbox Z.ai
 
 2. IDENTIDAD DEL PROYECTO
 
-Nombre: CONNECT — News Connect Bolivia
+Nombre: DECODEX Bolivia
 Motor Interno: ONION200
-Version: 0.7.0 (en desarrollo)
+Version: 0.8.0 (en desarrollo)
 Repositorio: https://github.com/julioprado-dotcom/connect
-Descripcion: SaaS de inteligencia mediatica que monitorea la presencia de legisladores bolivianos en medios de comunicacion y redes sociales. Proporciona boletines especializados con datos duros, indicadores macroeconomicos y analisis de tendencias. Orientado al pluralismo y la Constitucion del 2009.
-Subtitulo: "Conectate con inteligencia de senales del Sur Global"
-Definicion Visual: "Traduciendo senales en patrones de poder"
+Descripcion: SaaS de inteligencia mediatica que monitorea la presencia de actores politicos bolivianos en medios de comunicacion y redes sociales. Proporciona boletines especializados con datos duros, indicadores macroeconomicos y analisis de tendencias. Orientado al pluralismo y la Constitucion del 2009.
+Slogan: "Traduciendo senales en patrones de poder"
+Subtitulo: "Motor de inteligencia mediatica y analisis de senales del Sur Global"
 
-3. CONTEXTO POLITICO ACTUAL (Abril 2026)
+3. CONTEXTO POLITICO ACTUAL (Mayo 2026)
 
     PRESIDENTE: Rodrigo Paz Pereira (PDC) — asumió noviembre 2025
     ELECCIONES GENERALES 2025: 17 agosto (1ra vuelta) + 19 octubre (balotaje)
@@ -58,7 +58,7 @@ Definicion Visual: "Traduciendo senales en patrones de poder"
         PDC: 70/175 (mayor fuerza, sin mayoria absoluta)
         6 bancadas + representacion indigena
         MAS reducido a 1-2 diputados (de hegemonia casi absoluta a minima expresion)
-    COYUNTURA (abril 2026):
+    COYUNTURA (mayo 2026):
         Eliminacion del subsidio a gasolina/diesel por Paz
         Escasez de combustible, filas, calidad mala
         176 conflictos sociales en Q1 2026 (Defensor del Pueblo)
@@ -69,22 +69,20 @@ Definicion Visual: "Traduciendo senales en patrones de poder"
 
 4. VISION DEL PRODUCTO
 
-CONNECT es una herramienta de lectura de senales de medios que opera en el marco ONION200.
+DECODEX es una herramienta de lectura de senales de medios que opera en el marco ONION200.
 Registra y analiza TENDENCIAS Y PAUTAS INFORMATIVAS, no el contenido de las notas.
 
 El sistema opera en cuatro capas:
 
     CAPTURA: Extraccion diaria de datos de medios, portales, redes sociales y organizaciones
     INDICADORES: Captura automatizada de datos macroeconomicos y sectoriales (capa ONION200)
-    PROCESAMIENTO: Clasificacion por ejes tematicos, deteccion de patrones, enriquecimiento con indicadores
-    ENTREGA: Suite de boletines especializados por frecuencia, profundidad y audiencia
+    PROCESAMIENTO: Clasificacion por ejes tematicos jerarquicos, deteccion de patrones, enriquecimiento con indicadores
+    ENTREGA: Suite de 11 boletines especializados por frecuencia, profundidad y audiencia
 
-PRODUCTOS DE CONTENIDO (taxonomia ONION200):
+PRODUCTOS DE CONTENIDO (11 productos, taxonomia ONION200):
 
-    [GRATUITOS — Awareness / Funnel de captacion]
-    El Radar (Lunes 8AM): Radar semanal de 11 ejes tematicos — masa extensa
-    Voz y Voto (Lunes 8AM): Resumen legislativo semanal — gratuito
-    El Hilo (Lunes 8AM): Recuento narrativo semanal — gratuito
+    [PREMIUM ALTA — Tiempo real]
+    Alerta Temprana: Alertas en tiempo real por WhatsApp — solo premium
 
     [PREMIUM — Duo Diario]
     El Termometro (7:00 AM): Abre el dia — clima mediatico, alertas tempranas
@@ -95,17 +93,44 @@ PRODUCTOS DE CONTENIDO (taxonomia ONION200):
     El Especializado (10:00 AM): Analisis experto sectorial con datos duros
     El Informe Cerrado (Lunes 10AM): Analisis profundo semanal + prospectiva
 
+    [GRATUITOS — Awareness / Funnel de captacion]
+    El Radar (Lunes 8AM): Radar semanal de 11 ejes tematicos — masa extensa
+    Voz y Voto (Lunes 8AM): Resumen legislativo semanal — gratuito
+    El Hilo (Lunes 8AM): Recuento narrativo semanal — gratuito
+    Foco de la Semana (Lunes 8AM): Radar tematico semanal rotativo — gratuito
+
     [A SOLICITUD]
     Ficha del Legislador: Informe individual de presencia mediatica
 
+GENERADORES (protocolo formalizado v0.8.0):
+
+    Dedicados (4): El Termometro, Saldo del Dia, El Foco, El Radar
+        Cada uno tiene panel dedicado con ventana de tiempo, filtros y preview
+        El Foco tiene sistema de fases: seleccion de eje → analisis profundo
+    Genericos (7): El Especializado, El Informe Cerrado, Voz y Voto, El Hilo,
+        Foco de la Semana, Alerta Temprana, Ficha del Legislador
+        Generacion directa sin preview, usan ventana estandar
+
 FUNNEL COMERCIAL:
-    Awareness (El Radar) → Consideracion (Termometro/Saldo) → Premium Entry (El Foco)
-    → Premium Mid (Especializado) → Premium Alta (Institucional)
+    Awareness (El Radar, Voz y Voto, El Hilo, Foco Semanal)
+    → Consideracion (Termometro/Saldo)
+    → Premium Entry (El Foco)
+    → Premium Mid (Especializado)
+    → Premium Alta (Institucional + Alerta Temprana)
+
+COMBOS DE PRODUCTOS (6 combos):
+
+    Duo Diario Premium: Termometro + Saldo del Dia — 700 Bs/mes
+    Trio Premium: Duo + Informe Cerrado — 1.200 Bs/mes
+    El Foco Starter (1 eje): 500 Bs/mes
+    El Foco Expandido (3 ejes): 1.200 Bs/mes
+    El Foco Total (11 ejes): 3.000 Bs/mes
+    Plan Institucional: Todos los productos — 5.000 Bs/mes
 
 INSTALACIONES WHITE-LABEL:
-    ENERGIA CONNECT (para ABEN)
-    HIDROCARBUROS CONNECT (para YPFB)
-    MACRO CONNECT (para CAINCO)
+    DECODEX Energia (para ABEN)
+    DECODEX Hidrocarburos (para YPFB)
+    DECODEX Macro (para CAINCO)
 
 5. MARCO FILOSOFICO — PRINCIPIOS FUNDAMENTALES
 
@@ -130,15 +155,15 @@ Tipo de analisis que SI realiza el sistema:
 El usuario (cliente, equipo) saca sus propias conclusiones.
 Nosotros entregamos el MAPA, no el TERRITORIO.
 
-6. MODELO DE ANALISIS: PERSONA - TEMA - DOBLE DIRECCION
+6. MODELO DE ANALISIS: ACTOR - TEMA - DOBLE DIRECCION
 
-El sistema no solo rastrea personas, sino que vincula personas con temas en ambas direcciones:
+El sistema no solo rastrea personas, sino que vincula actores con temas en ambas direcciones:
 
-Persona → Temas:
-    Que temas se asocian a esta persona en los medios
+Actor → Temas:
+    Que temas se asocian a este actor en los medios
     Ejemplo: "El diputado X fue mencionado en 12 notas: 5 sobre gasolina, 4 sobre mineria, 3 sobre educacion"
 
-Tema → Personas:
+Tema → Actores:
     Quienes fueron mencionados en relacion a un tema especifico
     Ejemplo: "El tema gasolina tuvo 45 menciones: Diputado X (12), Senadora Y (8), Bloque Z (7)"
 
@@ -149,14 +174,24 @@ Tipos de mencion a detectar:
     Mencion en contexto: Aparece relacionada a un tema sin ser el foco
     Foto/video: Aparece en material grafico o audiovisual
 
+NOTA TERMINOLOGICA: En v0.8.0 se usa "Actor" en vez de "Persona" para reflejar
+que el sistema monitorea no solo legisladores sino cualquier actor publico relevante:
+legisladores, ministros, dirigentes sindicales, voceros empresariales, etc.
+
 7. MODELO DE MONETIZACION
 
 Precios ajustados al mercado boliviano (Bs = Bolivianos):
 
-    Plan Basico (1 persona): 300 Bs/mes — Boletin diario + resumen semanal PDF
-    Plan Avanzado (1-3 personas): 700 Bs/mes — Boletin + resumen + dashboard web + alertas
-    Plan Institucional (ilimitado): 1.500 Bs/mes — Todo + informe mensual + comparativos + soporte
-    Reporte unico: 50 Bs por reporte — Para clientes eventuales
+Combos de productos:
+    Duo Diario Premium: 700 Bs/mes (Termometro + Saldo)
+    Trio Premium: 1.200 Bs/mes (Duo + Informe Cerrado)
+    El Foco Starter (1 eje): 500 Bs/mes
+    El Foco Expandido (3 ejes): 1.200 Bs/mes
+    El Foco Total (11 ejes): 3.000 Bs/mes
+    Plan Institucional: 5.000 Bs/mes (todos los productos)
+
+    Los contratos permiten precio negociado (montoMensual) por cliente/producto.
+    El administrador puede modificar precios desde el Centro de Comando.
 
 Segmentos objetivo:
     Partidos politicos (oposicion y gobierno) — necesidad de monitorear agenda
@@ -166,6 +201,15 @@ Segmentos objetivo:
     Medios alternativos — competir con corporativos
     Investigadores/academicos — fuente de datos unica
     Legisladores individuales — su propia ficha mediatica
+
+ARQUITECTURA COMERCIAL (3 capas):
+
+    Capa 1 — Admin (Centro de Comando): CRUD completo de clientes, contratos,
+        suscriptores gratuitos, precios por producto. Dashboard de gestion.
+    Capa 2 — Portal Agente (/agente): Mobile-first, 4 pasos (cliente→productos→
+        configurar→confirmar), registro de suscriptores, dashboard del agente.
+    Capa 3 — Publico (/suscribir): Landing de suscripcion gratuita a El Radar
+        con consentimiento explicito de datos.
 
 8. FUENTES DE MONITOREO — 5 NIVELES
 
@@ -201,21 +245,17 @@ NIVEL 2 — REGIONALES (monitoreo por contexto, 9 fuentes):
 
 NIVEL 3 — ALTERNATIVOS/INDEPENDIENTES (monitoreo por coyuntura, 6 fuentes):
 
-    Abya Yala TV — TV+Digital — Web, YouTube, Facebook, TikTok — alternativa con presencia en redes
-    Radio Kawsachun Coca — Radio+Digital — Web, App, Facebook (reabierta), YouTube — trópico cochabambino
+    Abya Yala TV — TV+Digital — Web, YouTube, Facebook, TikTok
+    Radio Kawsachun Coca — Radio+Digital — Web, App, Facebook, YouTube
     Bolpress — Portal — Web, Facebook — derechos humanos, política
-    CEDIB — Centro documentación — Web — medio ambiente, extractivismo, derechos indígenas
-    Resumen Latinoamericano — Portal — Web, redes — movimientos sociales, continental
+    CEDIB — Centro documentación — Web — medio ambiente, extractivismo
+    Resumen Latinoamericano — Portal — Web, redes — movimientos sociales
     La Lupa Bolivia — Portal — Web, redes — investigación, política
 
 NIVEL 4 — REDES SOCIALES (monitoreo continuo):
 
     Legisladores individuales (130 dip + 36 sen) — X, Facebook, TikTok
-    COB (Central Obrera Boliviana) — Facebook, X
-    CSUTCB — Facebook, X
-    CSCB — Facebook, X
-    CONAMAQ — Facebook
-    FNMCB-BS — Facebook
+    COB, CSUTCB, CSCB, CONAMAQ, FNMCB-BS — Facebook, X
     Bloques legislativos (PDC, CC, LIBRE, etc.) — Facebook, X
     Grupos Facebook de noticias — "Noticias Bolivia", "Último minuto"
     Perfiles políticos TikTok — narrativa joven
@@ -239,9 +279,13 @@ NOTAS SOBRE MEDIOS:
     Facebook/TikTok cerrando cuentas críticas al gobierno. No es un caso aislado — estrategia regional.
     EL MONITOR NO TOMA PARTIDO en estas disputas. Solo registra los datos como tendencia.
 
-9. EJES TEMATICOS — 11 CLASIFICADORES
+9. EJES TEMATICOS — 12 EJES CON JERARQUIA + 5 DIMENSIONES
 
-Cada mención se clasifica automáticamente por GLM en uno o más ejes temáticos:
+Cada mención se clasifica automáticamente por GLM en uno o más ejes temáticos.
+En v0.8.0, los ejes tienen una estructura jerárquica de 2 niveles (raíz + sub-clasificaciones)
+y se organizan en 5 dimensiones analíticas.
+
+EJES RAIZ (12):
 
     1. HIDROCARBUROS, ENERGÍA Y COMBUSTIBLE — Gas, petróleo, YPFB, litio, electricidad, subsidios
     2. MOVIMIENTOS SOCIALES Y CONFLICTIVIDAD — Bloqueos, marchas, paros, COB, CSUTCB, CSCB
@@ -254,14 +298,39 @@ Cada mención se clasifica automáticamente por GLM en uno o más ejes temático
     9. SALUD Y SERVICIOS PÚBLICOS — Sistema de salud, medicamentos, hospitales
     10. MEDIO AMBIENTE, TERRITORIO Y RECURSOS — Litio, agua, incendios, autonomías, minería
     11. RELACIONES INTERNACIONALES — Tratados, fronteras, migración, cooperación
+    12. MINERÍA Y METALES ESTRATÉGICOS — COMIBOL, YLB, LME, litio, antimonio, cooperativas
+
+5 DIMENSIONES ANALÍTICAS:
+
+    Producción (verde): Producción minera, hidrocarburífera, agrícola, industrial
+    Precio (ámbar): Precios de commodities, LME, gasolina, tipo de cambio
+    Conflicto (rojo): Conflictos sociales, bloqueos, paros, tensiones laborales
+    Regulación (azul): Leyes, decretos, políticas públicas, normativas sectoriales
+    Infraestructura (púrpura): Proyectos, inversiones, YLB, autonomías, concesiones
+
+SUB-CLASIFICACIONES (35):
+
+    Cada eje raíz tiene sub-clasificaciones vinculadas por parentId.
+    Ejemplo: "Minería y Metales Estratégicos" tiene sub-clasificaciones como:
+    - Producción minera (dimensión: producción)
+    - Precios LME (dimensión: precio)
+    - Conflictividad minera (dimensión: conflicto)
+    - Regalías y fiscalización (dimensión: regulación)
+    - Proyecto YLB EV Metals (dimensión: infraestructura)
+
+CRUD DE EJES:
+    Crear, editar, activar/desactivar (soft delete), cambiar dimensión
+    Indicador visual: 🟢 Habilitado / 🔴 Deshabilitado
+    Filtros por dimensión en la vista de administración
 
 Indicadores derivados:
     BRECHA DE VISIBILIDAD: Menciones en medios corporativos vs redes/orgs sobre un mismo tema
     ÍNDICE DE TENSIÓN SOCIAL: Volumen menciones movimientos sociales + sentimiento + geolocalización
+    TOP 10 ACTORES: Ranking de actores con mayor presencia mediática
 
 10. STACK TECNOLOGICO
 
-    Framework: Next.js 16 (App Router)
+    Framework: Next.js 16 (App Router, lazy-loaded views)
     Lenguaje: TypeScript
     Runtime: Bun
     Base de datos: Prisma ORM + PostgreSQL (produccion) / SQLite (desarrollo)
@@ -273,28 +342,72 @@ Indicadores derivados:
     WhatsApp: Meta WhatsApp Business API
     Cron jobs: node-cron para captura diaria y generacion automatica de reportes
     Despliegue: Z.ai Sandbox (desarrollo) → VPS/Cloud (produccion)
+    Estado: v0.6.0 Fase 3 — Split arquitectónico (16 lazy-loaded views)
+    Estado: v0.6.1 — Performance audit (-91% DB queries, 118→11)
 
 11. ESTRUCTURA DEL PROYECTO
 
     /home/z/my-project/
     ├── src/
-    │   ├── app/                    # Next.js App Router
-    │   │   ├── page.tsx            # Dashboard admin
+    │   ├── app/
+    │   │   ├── page.tsx            # Dashboard admin (Centro de Comando)
     │   │   ├── layout.tsx          # Layout global
     │   │   ├── globals.css         # Estilos globales
     │   │   ├── dashboard/          # Dashboard cliente
-    │   │   └── api/                # API Routes
-    │   ├── components/             # Componentes React
-    │   │   ├── ui/                 # shadcn/ui components
-    │   │   ├── theme-provider.tsx
-    │   │   └── theme-toggle.tsx
-    │   ├── lib/                    # Utilidades y helpers
-    │   └── types/                  # Tipos TypeScript
-    ├── data/
-    │   ├── legisladores.json       # Legisladors (por actualizar a periodo 2025-2030)
-    │   └── medios.json             # Catalogo de fuentes (por actualizar a 5 niveles)
+    │   │   └── api/                # 28 API Routes
+    │   │       ├── analyze/        # Analisis IA de menciones
+    │   │       ├── capture/        # Captura de medios
+    │   │       ├── clientes/       # CRUD Clientes
+    │   │       ├── contratos/      # CRUD Contratos
+    │   │       ├── ejes/           # CRUD Ejes Tematicos (jerárquico)
+    │   │       ├── entregas/       # Tracking de boletines enviados
+    │   │       ├── indicadores/    # Captura + histórico de indicadores
+    │   │       ├── medios/         # CRUD Medios + health check
+    │   │       ├── menciones/      # CRUD Menciones
+    │   │       ├── personas/       # CRUD Actores
+    │   │       ├── reportes/       # Generadores + stats + generator-data
+    │   │       ├── search/         # Busqueda web
+    │   │       ├── seed/           # Seed de datos iniciales
+    │   │       ├── stats/          # Estadísticas del dashboard
+    │   │       ├── suscriptores/   # CRUD Suscriptores Gratuitos
+    │   │       └── verify-links/   # Verificacion de enlaces
+    │   ├── components/
+    │   │   ├── dashboard/
+    │   │   │   └── DashboardShell.tsx  # Shell con sidebar + branding
+    │   │   ├── views/              # 19 vistas lazy-loaded
+    │   │   │   ├── AlertasView.tsx
+    │   │   │   ├── BoletinesView.tsx   # Historial de Entregas
+    │   │   │   ├── CapturaView.tsx
+    │   │   │   ├── ClasificadoresView.tsx  # Ejes Temáticos (hierarchy)
+    │   │   │   ├── ClientesView.tsx
+    │   │   │   ├── ConfiguracionView.tsx
+    │   │   │   ├── ContratosView.tsx
+    │   │   │   ├── EstrategiaView.tsx
+    │   │   │   ├── GeneratorDedicatedPanel.tsx
+    │   │   │   ├── GeneratorPreviewModal.tsx
+    │   │   │   ├── GeneradoresView.tsx
+    │   │   │   ├── IndicadoresView.tsx  # 3 tabs: Macro/Presencia/Conflictividad
+    │   │   │   ├── MencionesView.tsx
+    │   │   │   ├── MediosView.tsx
+    │   │   │   ├── PersonasView.tsx
+    │   │   │   ├── ProductosView.tsx
+    │   │   │   ├── ReportesView.tsx
+    │   │   │   ├── ResumenView.tsx   # Centro de Comando (solo resultados)
+    │   │   │   └── SuscriptoresView.tsx
+    │   │   └── ui/                 # shadcn/ui components
+    │   ├── constants/
+    │   │   └── products.ts         # Catálogo 11 productos + 6 combos + etiquetas
+    │   ├── lib/
+    │   │   ├── reportes-utils.ts   # Utils compartidas de generación (~427 líneas)
+    │   │   └── indicadores/
+    │   │       └── capturer-tier1.ts  # 15+ indicadores (TC, LME, minería)
+    │   └── types/
+    │       └── bulletin.ts         # Tipos: TipoBoletin, GeneradorConfig, ProductoConfig
     ├── prisma/
-    │   └── schema.prisma           # Esquema de base de datos
+    │   ├── schema.prisma           # 15 modelos Prisma
+    │   └── seed.ts                 # Seed con 12 ejes + 35 sub-clasificaciones
+    ├── docs/                       # Protocolos de producto (5 documentos)
+    ├── docs/brand/                 # Acta de Nacimiento DECODEX v2.0
     ├── CONTEXTO.md                 # Este archivo
     ├── PROTOCOLO_GIT.md            # Protocolo de trabajo con Git
     ├── worklog.md                  # Registro de trabajo
@@ -331,7 +444,7 @@ Indicadores derivados:
     Decision 8 — VERIFICACION DE ENLACES:
     Verificacion periodica HEAD requests. Fecha/hora de verificacion registrada.
 
-    Decision 9 — MARCO FILOSOFICO (v0.5.0):
+    Decision 9 — MARCO FILOSOFICO:
     No somos jueces ni parte. Analizamos TENDENCIAS, no contenidos.
     Marco: pluralismo + CPE 2009. La imparcialidad no existe, por eso
     el compromiso es con la PLURALIDAD DE FUENTES.
@@ -340,32 +453,45 @@ Indicadores derivados:
     15 corporativos + 9 regionales + 6 alternativos + redes sociales +
     repositorio extendido (345 medios TSE). Activacion contextual por region/tema.
 
-    Decision 11 — 11 CLASIFICADORES TEMÁTICOS:
-    Cada mencion se clasifica en ejes tematicos (max 3 por mencion).
-    Indicadores derivados: brecha de visibilidad, índice de tension social.
+    Decision 11 — EJES TEMÁTICOS JERÁRQUICOS CON DIMENSIONES:
+    12 ejes raíz con 35 sub-clasificaciones. 5 dimensiones analíticas
+    (producción, precio, conflicto, regulación, infraestructura).
+    Cada mención se clasifica en ejes temáticos (max 3 por mencion).
 
-    Decision 12 — PRODUCTOS DE INFORMACIÓN (taxonomia ONION200):
-    9 productos: El Radar, Voz y Voto, El Hilo (gratuitos) +
-    El Termometro, El Saldo del Día, El Foco, El Especializado, El Informe Cerrado (premium) +
-    Ficha del Legislador (a solicitud). Formatos pensados para humanos no expertos.
+    Decision 12 — 11 PRODUCTOS (taxonomia ONION200):
+    El Radar, Voz y Voto, El Hilo, Foco de la Semana (gratuitos) +
+    El Termometro, El Saldo del Día, El Foco, El Especializado,
+    El Informe Cerrado (premium) + Alerta Temprana (premium alta) +
+    Ficha del Legislador (a solicitud). 6 combos con precios.
 
-    Decision 14 — CAPA DE INDICADORES ONION200:
-    Captura automatizada de indicadores macroeconómicos (TC, RIN, LME) y sectoriales.
-    Pipeline: Fuentes → Capturer (cron) → DB → Inyección en prompts GLM.
-    Enriquece los boletines con datos duros correlacionados con menciones mediáticas.
-    Tier 1 (TC, LME 4 metales): implementación inmediata.
-    Tier 2 (IPC, minería, clima): corto plazo.
-    Tier 3 (proxies derivados): mediano plazo.
+    Decision 13 — PROTOCOLO GENERADORES DEDICADOS vs GENERICOS:
+    4 generadores dedicados (Termómetro, Saldo, Foco, Radar) con panel
+    interactivo, ventana de tiempo, filtros y preview. 7 genéricos generan
+    directamente. Todo definido por GeneradorConfig en products.ts.
+    Para agregar un producto: solo agregar config + handler si es dedicado.
 
-    Decision 15 — EL SALDO DEL DÍA:
+    Decision 14 — PROTOCOLO DATA-DRIVEN EN CAPA API:
+    VALID_TIPOS derivados de PRODUCTOS. calculateWindow() opera por tipo
+    de ventana (no por tipo de producto). Sin hardcodeados en la capa API.
+
+    Decision 15 — DASHBOARD SEPARADO: RESULTADOS vs ANÁLISIS:
+    Centro de Comando = solo resultados (KPIs, alertas, menciones, productos).
+    Indicadores = workspace analítico con 3 tabs (Macroeconomía, Presencia,
+    Conflictividad). Sin mezcla de niveles de abstracción.
+
+    Decision 16 — EL SALDO DEL DÍA:
     Producto cliente-céntrico que cierra la jornada (7:00 PM). Resumen de evolución
     en la jornada y balance de los ejes temáticos CONTRATADOS por el cliente.
-    No es un reporte nacional — es el balance del mapa temático del informe diario contratado.
     Forma el "duo diario" con El Termómetro (7:00 AM → apertura vs 7:00 PM → cierre).
 
-    Decision 13 — DASHBOARD CLIENTE:
-    Vista publica/para suscriptores separada del admin. Acceso directo desde admin
-    para pruebas durante desarrollo.
+    Decision 17 — CAPA DE INDICADORES ONION200:
+    15+ indicadores en 3 tiers. 12 de minería añadidos en v0.8.0.
+    Pipeline: Fuentes → Capturer (cron) → DB → Inyección en prompts GLM.
+    Enriquece los boletines con datos duros correlacionados con menciones mediáticas.
+
+    Decision 18 — PRECIOS NEGOCIABLES POR CONTRATO:
+    montoMensual en Contrato = precio negociado (no precio de catálogo).
+    El administrador puede modificar el precio por cliente/producto desde Centro de Comando.
 
     PROYECCION DE RECURSOS (1 año, 166 legisladores):
     - Menciones estimadas: ~127,750/año (350/dia promedio)
@@ -385,69 +511,77 @@ Indicadores derivados:
     v0.4.0 — Comentarios, verificacion enlaces, dashboard gestion
     v0.5.0 — Base de datos actualizada: 173 legisladores 2025-2030, 30 medios en 5 niveles,
              11 ejes tematicos con keywords, seed mejorado con datos ricos.
-             Pendiente: rediseño visual, dashboard cliente, motor GLM, reportes
-    v0.6.0 — ONION200: Taxonomia de 9 productos (tipos de boletín), modelos Indicador +
+    v0.6.0 — ONION200: Taxonomia de 11 productos (tipos de boletín), modelos Indicador +
              IndicadorValor + SuscriptorGratuito en Prisma, capturer Tier 1 (TC, LME),
              injector de indicadores en prompts GLM, API routes para captura y generación
              del Saldo del Día, 4 protocolos de producto documentados, combo pricing.
-    v0.7.0 — Branding CONNECT Bolivia, modelos Cliente + Contrato en Prisma, sidebar
-             con 8 items (+Clientes, +Contratos), vista Clientes con lista de parlamentarios,
-             vista Contratos con panel de medios y toggle ON/OFF, 5 API routes nuevas,
-             23 rutas totales.
+    v0.7.0 — Branding CONNECT Bolivia → DECODEX, modelos Cliente + Contrato + Entrega en
+             Prisma, sidebar con items, vistas Clientes, Contratos, Boletines (Historial de
+             Entregas), 28 API routes.
+    v0.8.0 — Ejes temáticos jerárquicos (parentId + dimension), 5 dimensiones, 35 sub-
+             clasificaciones, 12 indicadores de minería, generadores dedicados (Termómetro,
+             Saldo, Foco, Radar) con protocolo formalizado, utils compartidas reportes,
+             dashboard separado (Resultados vs Análisis), health alert banner, performance
+             audit (-91% queries), protocolo data-driven capa API, 83 archivos TS/TSX.
 
 14. ESTADO DEL SISTEMA
 
     Componente           | Estado        | Detalle
     ---------------------|---------------|---------------------------
-    Base de datos        | v0.7.0        | 13 modelos: Persona, Medio, EjeTematico, Mencion, MencionTema,
+    Base de datos        | v0.8.0        | 15 modelos: Persona, Medio, EjeTematico
+                       |               | (parentId + dimension), Mencion, MencionTema,
                        |               | Reporte, Comentario, Suscriptor, CapturaLog,
                        |               | Indicador, IndicadorValor, SuscriptorGratuito,
-                       |               | Cliente, Contrato
-    Fuentes              | ACTUALIZADO   | 30 medios en 5 niveles (corporativos/regionales/alternativos)
-    Clasificadores       | ACTUALIZADO   | 11 ejes tematicos con keywords para GLM
-    Productos ONION200    | v0.6.0        | 9 tipos de boletín definidos (tipos + constantes + generator)
-    Indicadores          | v0.6.0        | Capturer Tier 1 (TC, LME) + Injector en prompts GLM
-    Dashboard admin      | v0.7.0        | Sidebar 8 items + vistas (Resumen, Clientes, Contratos,
-                       |               | Menciones, Clasificadores, Reportes, Captura, Config)
-                       |               | Branding CONNECT Bolivia, toggle medios ON/OFF
-    Dashboard cliente    | v0.5.0        | Vista publica en /dashboard con ranking + reportes
-    API Routes           | 23 endpoints  | +indicadores/capture, +admin/bulletins/generate-saldo,
-                       |               | +clientes, +clientes/[id], +contratos, +contratos/[id], +medios/[id]
+                       |               | Cliente, Contrato, Entrega
+    Fuentes              | ACTUALIZADO   | 30 medios en 5 niveles
+    Ejes Temáticos       | v0.8.0        | 12 raíz + 35 sub-clasificaciones, 5 dimensiones
+                       |               | CRUD completo (add/edit/toggle/delete)
+    Productos ONION200    | v0.8.0        | 11 productos + 6 combos, GeneradorConfig
+    Indicadores          | v0.8.0        | 15+ indicadores (3 tiers), 12 de minería
+    Generadores          | v0.8.0        | 4 dedicados + 7 genéricos, protocolo formal
+    Dashboard admin      | v0.8.0        | Sidebar 16 items, 19 vistas lazy-loaded
+                       |               | Centro de Comando (solo resultados)
+                       |               | Indicadores (3 tabs), Generadores (paneles)
+                       |               | Branding DECODEX en panel central
+    API Routes           | 28 endpoints  | analyze, capture, clientes, contratos, ejes,
+                       |               | entregas, indicadores, medios, menciones,
+                       |               | personas, reportes (generate, stats, generator-data),
+                       |               | search, seed, stats, suscriptores, verify-links
     Motor de captura     | v0.2.0        | (por adaptar a 5 niveles de fuentes)
-    Analisis IA          | v0.5.0        | GLM clasifica por 11 ejes tematicos + tipo + sentimiento
-    Reportes             | v0.6.0        | Tipos ONION200, generation con indicadores, Saldo del Día
-    Verif. enlaces       | v0.4.0        | Funcional
+    Analisis IA          | v0.5.0        | GLM clasifica por 12 ejes + tipo + sentimiento
+    Reportes             | v0.8.0        | 4 dedicados + 7 genéricos, utils compartidas
+    Verif. enlaces       | v0.4.0        | Funcional + health check banner
     Comentarios          | v0.4.0        | Funcional
     Envio automatico     | Pendiente     | Email + WhatsApp
-    Documentación         | v0.6.0        | docs/: 02_Saldo_Día, 03_El_Radar, 04_Indicadores, 05_El_Foco
+    Documentación         | v0.8.0        | CONTEXTO.md, worklog.md, 5 protocolos de
+                       |               | producto, Acta Nacimiento DECODEX v2.0
 
 15. TAREAS PENDIENTES
 
 Prioridad 1 — EN PROGRESO:
 
-    [v0.6.0] ✅ Taxonomia de 9 productos ONION200 (types + constants)
-    [v0.6.0] ✅ Modelos Indicador + IndicadorValor + SuscriptorGratuito
-    [v0.6.0] ✅ Capturer Tier 1 (TC BCB, LME 4 metales)
-    [v0.6.0] ✅ Injector de indicadores en prompts GLM
-    [v0.6.0] ✅ API route Saldo del Día con prompt GLM completo
-    [v0.6.0] ✅ Protocolos: Saldo del Día, El Radar, El Foco, Indicadores ONION200
-    [v0.6.0] ✅ Actualizar CONTEXTO.md con ONION200 y nueva arquitectura
-    [v0.6.0] ⏳ Rediseño visual del dashboard admin ← PROXIMO
-    [v0.6.0] ⏳ Crear dashboard cliente
+    [v0.8.0] ✅ Ejes temáticos jerárquicos con 5 dimensiones
+    [v0.8.0] ✅ Generadores dedicados con protocolo formal
+    [v0.8.0] ✅ Dashboard separado (Resultados vs Análisis)
+    [v0.8.0] ✅ Protocolo data-driven en capa API
+    [v0.8.0] ✅ 12 indicadores de minería
+    [v0.8.0] ✅ Performance audit (-91% queries)
+    ⏳ Gestión Comercial: Clientes CRUD UI completo
+    ⏳ Gestión Comercial: Contratos CRUD con selector de productos + precios editables
+    ⏳ Gestión Comercial: Suscriptores API + UI admin
+    ⏳ Gestión Comercial: Modelo AgenteComercial
+    ⏳ Portal Agente Comercial: /agente (mobile-first)
+    ⏳ Suscripción pública: /suscribir con consentimiento de datos
 
 Prioridad 2 — POSTERIOR:
 
     Implementar capturer real del TC Oficial BCB (scraping HTML)
     Implementar capturer real LME (API Metal Price)
     Implementar capturer RIN BCB
-    API route para El Termómetro con prompt GLM
-    API route para El Foco (análisis por eje)
-    API route para El Radar (semanal gratuito)
     Cron jobs de captura y generación automática
-    Encabezado de coyuntura nacional en productos existentes
     Implementar envio por email (Resend/Nodemailer)
     Implementar envio por WhatsApp (Business API)
-    Sistema de suscripción gratuita para El Radar
+    Encabezado de coyuntura nacional en productos existentes
 
 Prioridad 3 — FUTURO:
 
@@ -455,12 +589,9 @@ Prioridad 3 — FUTURO:
     Generacion de PDF real con Puppeteer
     Exportacion a Excel
     API publica para clientes institucionales
-    Panel contextual de medios con toggles
-    Previews de deliverables en admin
-    Identidad visual News Connect en páginas admin
-    Integración logo News Connect
-    Indicadores Tier 2 (IPC, SENAMHI, minería)
     Indicadores Tier 3 (proxies derivados)
+    Generador dedicado El Informe Cerrado
+    Generador dedicado Alerta Temprana
 
 16. PREFERENCIAS DEL USUARIO
 
@@ -487,6 +618,11 @@ Prioridad 3 — FUTURO:
     No usar modelos occidentales → Solo GLM via z-ai-web-dev-sdk
     Legisladores obsoletos → Periodo 2020-2025 ya no aplica. Elecciones 2025 cambiaron todo.
     La imparcialidad no existe → Compromiso con pluralidad de fuentes, no con neutralidad
+    PersonaStat → ActorStat → Top 10 enriquecido con sentimiento, ejes, temas
+    Clasificadores → Ejes Temáticos con jerarquía y dimensiones
+    N+1 queries en /api/stats → Reescrito de 5 queries paralelas a 1 query batch
+    Hardcodeados en API → Protocolo data-driven: todo deriva de PRODUCTOS
+    Dashboard mezclaba resultados con análisis → Separados en 2 vistas distintas
 
 18. PROTOCOLO GIT
 
