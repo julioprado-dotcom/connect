@@ -28,6 +28,7 @@ const IndicadoresView = dynamic(() => import('@/components/views/IndicadoresView
 const ProductosView = dynamic(() => import('@/components/views/ProductosView').then(m => ({ default: m.ProductosView })), { ssr: false, loading });
 const ConfiguracionView = dynamic(() => import('@/components/views/ConfiguracionView').then(m => ({ default: m.ConfiguracionView })), { ssr: false, loading });
 const SuscriptoresView = dynamic(() => import('@/components/views/SuscriptoresView').then(m => ({ default: m.SuscriptoresView })), { ssr: false, loading });
+const PreviewView = dynamic(() => import('@/components/views/PreviewView').then(m => ({ default: m.PreviewView })), { ssr: false, loading });
 
 /* ═══════════════════════════════════════════════════════════
    View skeleton — shown during lazy loading
@@ -79,6 +80,7 @@ export default function Dashboard() {
     indicadores: <IndicadoresView />,
     productos: <ProductosView />,
     configuracion: <ConfiguracionView />,
+    preview: <PreviewView />,
   };
 
   return (
