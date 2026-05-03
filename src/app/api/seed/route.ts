@@ -2,6 +2,21 @@ import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { seedIndicadores } from '@/lib/indicadores/capturer-tier1';
 
+// ─── Guard: API Key para operaciones destructivas ─────────────────
+// En producción, definir SEED_API_KEY en .env
+// GET (lectura) siempre es público; POST con force=true requiere API key
+function isSeedProtected(): boolean {
+  return !!process.env.SEED_API_KEY;
+}
+
+function validateSeedKey(request: Request): boolean {
+  const key = process.env.SEED_API_KEY;
+  if (!key) return true; // sin key configurado = desprotegido (dev mode)
+  const authHeader = request.headers.get('authorization');
+  const queryKey = new URL(request.url).searchParams.get('key');
+  return authHeader === `Bearer ${key}` || queryKey === key;
+}
+
 // 12 Ejes Temáticos aprobados — CONTEXTO.md v0.5.0
 const EJES_TEMATICOS = [
   { nombre: 'Hidrocarburos, Energía y Combustible', slug: 'hidrocarburos-energia', icono: '⛽', color: '#f59e0b', orden: 1, keywords: 'gas,petróleo,YPFB,litio,electricidad,subsidio,gasolina,diésel,hidrocarburo,regalías,Ley de Hidrocarburos', descripcion: 'Noticias sobre hidrocarburos, energía, combustibles, YPFB, litio, electricidad, subsidios energéticos' },
@@ -137,6 +152,14 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
     const force = body?.force === true;
+
+    // Protección: operaciones con force requieren API key
+    if (force && isSeedProtected() && !validateSeedKey(request)) {
+      return NextResponse.json(
+        { error: 'Operación no autorizada. Se requiere SEED_API_KEY.' },
+        { status: 403 }
+      );
+    }
 
     const existing = await db.persona.count();
 

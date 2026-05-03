@@ -167,8 +167,8 @@ export default function DashboardCliente() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center">
-            <Radio className="h-6 w-6 text-primary-foreground" />
+          <div className="h-12 w-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#0F2027' }}>
+            <Radio className="h-6 w-6" style={{ color: '#FF862F' }} />
           </div>
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           <p className="text-muted-foreground text-sm font-medium">Cargando...</p>
@@ -186,15 +186,15 @@ export default function DashboardCliente() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-                <Radio className="h-5 w-5 text-primary-foreground" />
+              <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#0F2027' }}>
+                <Radio className="h-5 w-5" style={{ color: '#FF862F' }} />
               </div>
               <div>
                 <h1 className="text-base sm:text-lg font-bold text-foreground">
-                  Monitor de Presencia en Medios
+                  DECODEX
                 </h1>
                 <p className="text-[11px] text-muted-foreground">
-                  Inteligencia mediática — Legisladores bolivianos 2025-2030
+                  Inteligencia de Medios — Legisladores bolivianos 2025-2030
                 </p>
               </div>
             </div>

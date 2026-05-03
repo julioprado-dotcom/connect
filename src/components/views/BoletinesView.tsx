@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Mail, CheckCircle2, XCircle, AlertTriangle, Eye, FileText, RefreshCw } from 'lucide-react';
 import { KPICard } from '@/components/shared/KPICard';
 import { ALL_PRODUCTS } from '@/constants/nav';
+import DOMPurify from 'dompurify';
 
 interface EntregaItem {
   id: string;
@@ -220,7 +221,7 @@ export function BoletinesView() {
               </Button>
             </div>
             <div className="flex-1 overflow-y-auto p-4">
-              <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: previewEntrega.contenido }} />
+              <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewEntrega.contenido, { ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'h1', 'h2', 'h3', 'ul', 'ol', 'li', 'a', 'span', 'div', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img'], ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'style', 'class'] }) }} />
             </div>
             <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border">
               <Button variant="outline" size="sm" onClick={() => {
