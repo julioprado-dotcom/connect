@@ -43,17 +43,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         `}
       >
         <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="flex items-center gap-2.5 px-4 py-5 border-b border-sidebar-border">
-            <div className="h-8 w-8 rounded-lg flex items-center justify-center overflow-hidden shrink-0" style={{ backgroundColor: '#0A1628' }}>
-              <Image src="/logo.png" alt="DECODEX" width={32} height={32} className="object-cover" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-sm font-extrabold tracking-tight text-sidebar-foreground truncate leading-none">DECODEX BOLIVIA</h2>
-              <p className="text-[9px] text-sidebar-foreground/60 mt-0.5 tracking-wide uppercase">Inteligencia de Señales</p>
-            </div>
+          {/* Top: mobile close */}
+          <div className="flex items-center justify-end px-4 py-3 lg:hidden border-b border-sidebar-border">
             <button
-              className="lg:hidden p-1 rounded hover:bg-sidebar-accent"
+              className="p-1 rounded hover:bg-sidebar-accent"
               onClick={() => setSidebarOpen(false)}
             >
               <X className="h-4 w-4" />
@@ -94,8 +87,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <Globe className="h-4 w-4 shrink-0" />
               Vista cliente
             </Link>
-            <div className="mt-2 px-3">
-              <p className="text-[10px] text-sidebar-foreground/40">DECODEX · ONION200 · Bolivia</p>
+            {/* Branding */}
+            <div className="flex items-center gap-2 mt-3 px-3">
+              <div className="h-7 w-7 rounded-md flex items-center justify-center overflow-hidden shrink-0" style={{ backgroundColor: '#0A1628' }}>
+                <Image src="/logo.png" alt="DECODEX" width={28} height={28} className="object-cover" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-[11px] font-extrabold tracking-tight text-sidebar-foreground leading-none">DECODEX BOLIVIA</h2>
+                <p className="text-[8px] text-sidebar-foreground/50 mt-px tracking-wide uppercase">Inteligencia de Señales</p>
+              </div>
             </div>
           </div>
         </div>
@@ -106,26 +106,18 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         {/* Header */}
         <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-sm border-b border-border">
           <div className="flex items-center justify-between px-4 sm:px-6 py-2.5">
-            {/* Left: brand */}
-            <div className="flex items-center gap-2.5">
+            {/* Left: view name */}
+            <div className="flex items-center gap-3">
               <button
                 className="lg:hidden p-1.5 rounded-lg hover:bg-muted"
                 onClick={() => setSidebarOpen(true)}
               >
                 <Menu className="h-5 w-5" />
               </button>
-              <div className="h-7 w-7 rounded-md flex items-center justify-center overflow-hidden shrink-0" style={{ backgroundColor: '#0A1628' }}>
-                <Image src="/logo.png" alt="DECODEX" width={28} height={28} className="object-cover" />
-              </div>
-              <div className="hidden sm:block">
-                <h1 className="text-[11px] font-extrabold tracking-tight text-foreground leading-none">DECODEX BOLIVIA</h1>
-                <p className="text-[8px] text-muted-foreground mt-px tracking-wide uppercase">Inteligencia de Señales</p>
-              </div>
+              <span className="text-xs sm:text-sm font-semibold text-foreground truncate">
+                {currentNavItem?.label || 'Centro de Comando'}
+              </span>
             </div>
-            {/* Center: view name */}
-            <span className="text-xs sm:text-sm font-semibold text-foreground truncate">
-              {currentNavItem?.label || 'Centro de Comando'}
-            </span>
             {/* Right: status + actions */}
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/30">
