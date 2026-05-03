@@ -142,6 +142,17 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           )}
           {children}
         </main>
+
+        {/* Bottom branding bar */}
+        <div className="border-t border-border bg-card/60 px-4 sm:px-6 py-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-5 w-5 rounded flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#0A1628' }}>
+              <Image src="/logo.png" alt="DECODEX" width={20} height={20} className="object-cover" />
+            </div>
+            <span className="text-[11px] font-bold text-foreground/80 tracking-tight">DECODEX BOLIVIA</span>
+          </div>
+          <span className="text-[10px] text-muted-foreground/60 tracking-wide uppercase">Inteligencia de Señales</span>
+        </div>
       </div>
     </div>
   );
