@@ -106,20 +106,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         {/* Header */}
         <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-sm border-b border-border">
           <div className="flex items-center justify-between px-4 sm:px-6 py-2.5">
-            {/* Left: view name */}
-            <div className="flex items-center gap-3">
+            {/* Left: brand */}
+            <div className="flex items-center gap-2.5">
               <button
                 className="lg:hidden p-1.5 rounded-lg hover:bg-muted"
                 onClick={() => setSidebarOpen(true)}
               >
                 <Menu className="h-5 w-5" />
               </button>
-              <span className="text-xs sm:text-sm font-semibold text-foreground">
-                {currentNavItem?.label || 'Centro de Comando'}
-              </span>
-            </div>
-            {/* Center-left: brand */}
-            <div className="flex items-center gap-2">
               <div className="h-7 w-7 rounded-md flex items-center justify-center overflow-hidden shrink-0" style={{ backgroundColor: '#0A1628' }}>
                 <Image src="/logo.png" alt="DECODEX" width={28} height={28} className="object-cover" />
               </div>
@@ -128,6 +122,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 <p className="text-[8px] text-muted-foreground mt-px tracking-wide uppercase">Inteligencia de Señales</p>
               </div>
             </div>
+            {/* Center: view name */}
+            <span className="text-xs sm:text-sm font-semibold text-foreground truncate">
+              {currentNavItem?.label || 'Centro de Comando'}
+            </span>
             {/* Right: status + actions */}
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/30">
