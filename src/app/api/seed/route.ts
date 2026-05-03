@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { seedIndicadores } from '@/lib/indicadores/capturer-tier1';
 
-// 11 Ejes Temáticos aprobados — CONTEXTO.md v0.5.0
+// 12 Ejes Temáticos aprobados — CONTEXTO.md v0.5.0
 const EJES_TEMATICOS = [
   { nombre: 'Hidrocarburos, Energía y Combustible', slug: 'hidrocarburos-energia', icono: '⛽', color: '#f59e0b', orden: 1, keywords: 'gas,petróleo,YPFB,litio,electricidad,subsidio,gasolina,diésel,hidrocarburo,regalías,Ley de Hidrocarburos', descripcion: 'Noticias sobre hidrocarburos, energía, combustibles, YPFB, litio, electricidad, subsidios energéticos' },
   { nombre: 'Movimientos Sociales y Conflictividad', slug: 'movimientos-sociales', icono: '✊', color: '#ef4444', orden: 2, keywords: 'bloqueo,marcha,paro,protesta,COB,CSUTCB,CSCB,CONAMAQ,FNMCB,conflicto,movilización,transportistas,magisterio', descripcion: 'Bloqueos, marchas, paros, conflictos sociales, organizaciones sindicales y campesinas' },
@@ -15,6 +15,7 @@ const EJES_TEMATICOS = [
   { nombre: 'Salud y Servicios Públicos', slug: 'salud-servicios', icono: '🏥', color: '#ec4899', orden: 9, keywords: 'salud,hospital,medicamentos,Seguro,COVID,médicos,enfermeros,sistema de salud', descripcion: 'Sistema de salud, hospitales, medicamentos, seguros médicos, servicios públicos básicos' },
   { nombre: 'Medio Ambiente, Territorio y Recursos', slug: 'medio-ambiente', icono: '🌍', color: '#22c55e', orden: 10, keywords: 'medio ambiente,agua,incendios,autonomías,minería,deforestación,territorio,concesión,litio,Pachamama', descripcion: 'Medio ambiente, recursos naturales, minería, agua, incendios forestales, autonomías territoriales' },
   { nombre: 'Relaciones Internacionales', slug: 'relaciones-internacionales', icono: '🌎', color: '#0ea5e9', orden: 11, keywords: 'relaciones,frontera,migración,embajada,cooperación,tratado,diplomacia,EEUU,Chile,Unión Europea', descripcion: 'Relaciones diplomáticas, fronteras, migración, cooperación internacional, tratados' },
+  { nombre: 'Minería y Metales Estratégicos', slug: 'mineria', icono: '⛏️', color: '#a16207', orden: 12, keywords: 'minería,minero,cooperativa minera,COMIBOL,Huanuni,Colquiri,San Cristóbal,San Bartolomé,estano,zinc,plata,plomo,oro,YLB,litio,salar,carbonato de litio,metales críticos,antimonio,DLE,relaves,pasivo ambiental,regalías mineras,concesión minera,SENARECOM', descripcion: 'Sector minero boliviano: producción, precios internacionales (LME), litio y metales estratégicos, conflictividad cooperativas, pasivos ambientales, regalías y normativa minera' },
 ];
 
 // Mapeo de siglas de partido — normalización
