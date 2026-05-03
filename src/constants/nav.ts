@@ -8,7 +8,7 @@ import {
   BarChart3, UserCircle, FileCheck, Newspaper, Tag, Mail, Bell,
   Rocket, Zap, FileBarChart, Database, TrendingUp, Package, Settings,
   Thermometer, Scale, Search, FileText, UserCheck, GraduationCap,
-  Radio, ListChecks, Link2, Target, Users,
+  Radio, ListChecks, Link2, Target, Users, MonitorPlay, RefreshCw, ExternalLink, Maximize2, Minimize2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -36,6 +36,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'indicadores', label: 'Indicadores', icon: TrendingUp },
   { id: 'productos', label: 'Productos', icon: Package },
   { id: 'configuracion', label: 'Configuración', icon: Settings },
+  { id: 'preview', label: 'Vista Preview', icon: MonitorPlay },
 ];
 
 // ─── All Products ─────────────────────────────────────────────
