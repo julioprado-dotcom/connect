@@ -44,13 +44,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border">
-            <div className="h-9 w-9 rounded-lg flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#0A1628' }}>
-              <Image src="/logo.png" alt="DECODEX" width={36} height={36} className="object-cover" />
+          <div className="flex items-center gap-2.5 px-4 py-5 border-b border-sidebar-border">
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center overflow-hidden shrink-0" style={{ backgroundColor: '#0A1628' }}>
+              <Image src="/logo.png" alt="DECODEX" width={32} height={32} className="object-cover" />
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-sm font-bold text-sidebar-foreground truncate leading-tight">DECODEX</h2>
-              <p className="text-[10px] text-sidebar-foreground/60">Bolivia · Inteligencia de Señales</p>
+              <h2 className="text-sm font-extrabold tracking-tight text-sidebar-foreground truncate leading-none">DECODEX BOLIVIA</h2>
+              <p className="text-[9px] text-sidebar-foreground/60 mt-0.5 tracking-wide uppercase">Inteligencia de Señales</p>
             </div>
             <button
               className="lg:hidden p-1 rounded hover:bg-sidebar-accent"
