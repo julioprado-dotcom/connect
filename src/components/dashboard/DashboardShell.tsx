@@ -105,20 +105,28 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-sm border-b border-border">
-          {/* Top row: hamburger + actions */}
-          <div className="flex items-center justify-between px-4 sm:px-6 pt-3">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-2.5">
+            {/* Left: brand */}
+            <div className="flex items-center gap-2.5">
               <button
-                className="lg:hidden p-2 rounded-lg hover:bg-muted"
+                className="lg:hidden p-1.5 rounded-lg hover:bg-muted"
                 onClick={() => setSidebarOpen(true)}
               >
                 <Menu className="h-5 w-5" />
               </button>
-              <span className="text-[11px] font-medium text-muted-foreground hidden sm:inline">
+              <div className="h-8 w-8 rounded-lg flex items-center justify-center overflow-hidden shrink-0" style={{ backgroundColor: '#0A1628' }}>
+                <Image src="/logo.png" alt="DECODEX" width={32} height={32} className="object-cover" />
+              </div>
+              <div className="hidden sm:block">
+                <h1 className="text-sm font-extrabold tracking-tight text-foreground leading-none">DECODEX BOLIVIA</h1>
+                <p className="text-[9px] text-muted-foreground mt-0.5 tracking-wide uppercase">Inteligencia de Señales</p>
+              </div>
+            </div>
+            {/* Right: status + actions */}
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-medium text-muted-foreground hidden md:inline">
                 {currentNavItem?.label || 'Centro de Comando'}
               </span>
-            </div>
-            <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/30">
                 <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400 hidden sm:inline">En línea</span>
@@ -126,21 +134,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <ThemeToggle />
             </div>
           </div>
-          {/* Centered brand — with separator lines */}
-          <div className="flex items-center gap-3 px-4 sm:px-6 py-2">
-            <div className="flex-1 h-px bg-border" />
-            <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#0A1628' }}>
-                <Image src="/logo.png" alt="DECODEX" width={32} height={32} className="object-cover" />
-              </div>
-              <div className="text-center">
-                <h1 className="text-sm sm:text-base font-extrabold tracking-tight text-foreground leading-none">DECODEX BOLIVIA</h1>
-                <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5 tracking-wide uppercase">Inteligencia de Señales</p>
-              </div>
-            </div>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-          <div className="h-px bg-border" />
         </header>
 
         {/* Content */}
