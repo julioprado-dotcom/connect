@@ -27,6 +27,7 @@ const EstrategiaView = dynamic(() => import('@/components/views/EstrategiaView')
 const IndicadoresView = dynamic(() => import('@/components/views/IndicadoresView').then(m => ({ default: m.IndicadoresView })), { ssr: false, loading });
 const ProductosView = dynamic(() => import('@/components/views/ProductosView').then(m => ({ default: m.ProductosView })), { ssr: false, loading });
 const ConfiguracionView = dynamic(() => import('@/components/views/ConfiguracionView').then(m => ({ default: m.ConfiguracionView })), { ssr: false, loading });
+const SuscriptoresView = dynamic(() => import('@/components/views/SuscriptoresView').then(m => ({ default: m.SuscriptoresView })), { ssr: false, loading });
 
 /* ═══════════════════════════════════════════════════════════
    View skeleton — shown during lazy loading
@@ -65,6 +66,7 @@ export default function Dashboard() {
     menciones: <MencionesView />,
     clientes: <ClientesView />,
     contratos: <ContratosView />,
+    suscriptores: <SuscriptoresView />,
     personas: <PersonasView />,
     medios: <MediosView />,
     clasificadores: <ClasificadoresView />,
