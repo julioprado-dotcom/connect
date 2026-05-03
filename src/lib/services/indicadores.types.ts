@@ -16,7 +16,11 @@ export type CategoriaIndicador =
   | 'reservas'
   | 'hidrocarburos'
   | 'comercio'
-  | 'inflacion';
+  | 'inflacion'
+  | 'agricolas'
+  | 'macro_bcb'
+  | 'ine'
+  | 'salud';
 
 // ─── SLUGs de indicadores ──────────────────────────────────────────────────
 
@@ -33,7 +37,28 @@ export type SlugIndicador =
   | 'produccion-gas'
   | 'produccion-petroleo'
   | 'exportaciones-fob'
-  | 'ipc';
+  | 'ipc'
+  | 'agr-cafe'
+  | 'agr-quinua'
+  | 'agr-soya'
+  | 'agr-arroz'
+  | 'agr-azucar'
+  | 'agr-maiz'
+  | 'agr-trigo'
+  | 'macro-ipc-bcb'
+  | 'macro-tasa-interes'
+  | 'macro-reservas-internacionales'
+  | 'macro-riesgo-pais'
+  | 'macro-deuda-publica'
+  | 'macro-pib'
+  | 'macro-balanza-comercial'
+  | 'ine-poblacion'
+  | 'ine-pobreza'
+  | 'ine-empleo'
+  | 'ine-pib-departamental'
+  | 'salud-desnutricion'
+  | 'salud-materna'
+  | 'salud-esperanza-vida';
 
 // ─── Modelo principal ──────────────────────────────────────────────────────
 
