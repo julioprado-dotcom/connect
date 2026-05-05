@@ -50,8 +50,12 @@ export function ConfiguracionView() {
     setStatusLoading(true);
     try {
       const res = await fetch('/api/admin/status');
+      if (!res.ok) return;
       const json = await res.json();
-      setSystemStatus(json);
+      // Solo guardar si tiene la estructura esperada
+      if (json && typeof json === 'object' && 'referencia' in json) {
+        setSystemStatus(json as SystemStatus);
+      }
     } catch { /* silent */ } finally {
       setStatusLoading(false);
     }
