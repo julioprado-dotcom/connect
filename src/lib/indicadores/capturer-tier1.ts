@@ -20,6 +20,7 @@ interface CapturaResult {
   confiable: boolean
   fecha: Date
   metadata: string
+  error?: string
 }
 
 // ─── Indicadores Tier 1 configuración ─────────────────────────────

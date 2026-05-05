@@ -1,127 +1,13 @@
 // Product Generator - Generacion de productos ONION200
 // DECODEX Bolivia
-// Stub funcional: la implementacion completa se desarrolla en modulo dedicado
+// Delega la config de productos a constants/products.ts
 
 import type { TipoBoletin, ProductoConfig } from '@/types/bulletin'
-
-// Configuracion de productos ONION200
-const PRODUCTOS: ProductoConfig[] = [
-  {
-    tipo: 'EL_TERMOMETRO',
-    nombre: 'El Termometro',
-    nombreCorto: 'Termometro',
-    descripcion: 'Boletin matutino - abre el dia con balance de medios',
-    categoria: 'premium',
-    frecuencia: 'diario_am',
-    horarioEnvio: '07:00 AM',
-    longitudPaginas: 8,
-    longitudMinLectura: 12,
-    canales: ['whatsapp', 'email', 'web'],
-    periodoDefault: 1,
-    activo: true,
-    generador: {
-      tipo: 'dedicado',
-      ventana: 'nocturna',
-      filtros: ['fecha', 'ejes', 'actores', 'medios'],
-      requierePreview: true,
-      panelId: 'termometro_saldo',
-      descripcionVentana: 'Ayer 19:00 - Hoy 07:00',
-    },
-  },
-  {
-    tipo: 'SALDO_DEL_DIA',
-    nombre: 'Saldo del Dia',
-    nombreCorto: 'Saldo',
-    descripcion: 'Cierre de jornada con balance completo',
-    categoria: 'premium',
-    frecuencia: 'diario_pm',
-    horarioEnvio: '07:00 PM',
-    longitudPaginas: 10,
-    longitudMinLectura: 15,
-    canales: ['whatsapp', 'email', 'web'],
-    periodoDefault: 1,
-    activo: true,
-    generador: {
-      tipo: 'dedicado',
-      ventana: 'diurna',
-      filtros: ['fecha', 'ejes', 'actores', 'medios'],
-      requierePreview: true,
-      panelId: 'termometro_saldo',
-      descripcionVentana: 'Hoy 07:00 - 19:00',
-    },
-  },
-  {
-    tipo: 'EL_FOCO',
-    nombre: 'El Foco',
-    nombreCorto: 'Foco',
-    descripcion: 'Analisis profundo por eje tematico',
-    categoria: 'premium_mid',
-    frecuencia: 'diario',
-    horarioEnvio: '09:00 AM',
-    longitudPaginas: 15,
-    longitudMinLectura: 20,
-    canales: ['whatsapp', 'email', 'pdf'],
-    periodoDefault: 1,
-    activo: true,
-    generador: {
-      tipo: 'dedicado',
-      ventana: 'dia_completo',
-      filtros: ['ejes', 'actores'],
-      requierePreview: true,
-      panelId: 'foco',
-      tieneFases: true,
-      descripcionVentana: 'Dia completo (00:00 - 23:59)',
-    },
-  },
-  {
-    tipo: 'EL_RADAR',
-    nombre: 'El Radar',
-    nombreCorto: 'Radar',
-    descripcion: 'Boletin semanal gratuito de awareness',
-    categoria: 'gratuito',
-    frecuencia: 'semanal',
-    horarioEnvio: '08:00 AM lunes',
-    longitudPaginas: 5,
-    longitudMinLectura: 8,
-    canales: ['email', 'web'],
-    periodoDefault: 7,
-    activo: true,
-    generador: {
-      tipo: 'dedicado',
-      ventana: 'semanal',
-      filtros: ['fecha', 'ejes'],
-      requierePreview: true,
-      panelId: 'radar',
-      descripcionVentana: 'Lunes - Domingo',
-    },
-  },
-  {
-    tipo: 'EL_ESPECIALIZADO',
-    nombre: 'El Especializado',
-    nombreCorto: 'Especializado',
-    descripcion: 'Analisis experto sectorial',
-    categoria: 'premium_mid',
-    frecuencia: 'semanal',
-    horarioEnvio: '10:00 AM',
-    longitudPaginas: 20,
-    longitudMinLectura: 25,
-    canales: ['whatsapp', 'email', 'pdf'],
-    periodoDefault: 7,
-    activo: true,
-    generador: {
-      tipo: 'dedicado',
-      ventana: 'semanal',
-      filtros: ['ejes', 'actores', 'medios'],
-      requierePreview: true,
-      panelId: 'especializado',
-      descripcionVentana: 'Semana completa',
-    },
-  },
-]
+import { PRODUCTOS } from '@/constants/products'
 
 // Obtener config de un producto por tipo
 export function getProductConfig(tipo: TipoBoletin): ProductoConfig | null {
-  return PRODUCTOS.find(p => p.tipo === tipo) || null
+  return PRODUCTOS[tipo] || null
 }
 
 // Obtener menciones para un boletin
@@ -134,8 +20,6 @@ export async function getMencionesForBulletin(
   fechaFin: Date
   totalMenciones: number
 }> {
-  // En produccion: query real a la DB con filtros por tipo, fechas, ejes, etc.
-  // Por ahora, ventana de fechas segun tipo
   const now = new Date()
   const config = getProductConfig(tipo)
   const dias = config?.periodoDefault || 1
@@ -144,8 +28,6 @@ export async function getMencionesForBulletin(
   const fechaInicio = new Date(now)
   fechaInicio.setDate(fechaInicio.getDate() - dias)
 
-  // Placeholder: devolver array vacio
-  // El modulo real de generacion inyectara las menciones
   return {
     menciones: [],
     fechaInicio,
@@ -163,4 +45,39 @@ export function formatFechaBolivia(date: Date): string {
     timeZone: 'America/La_Paz',
   }
   return date.toLocaleDateString('es-BO', opciones)
+}
+
+// Obtener rango de fechas por tipo de producto
+export function getDateRange(tipo: string): { fechaInicio: Date; fechaFin: Date } {
+  const ahora = new Date()
+  const hoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate())
+
+  switch (tipo) {
+    case 'EL_RADAR': {
+      // Semana pasada (lunes a domingo)
+      const diaSemana = hoy.getDay()
+      const lunesPasado = new Date(hoy)
+      lunesPasado.setDate(hoy.getDate() - ((diaSemana === 0 ? 6 : diaSemana - 1) + 7))
+      const domingoPasado = new Date(lunesPasado)
+      domingoPasado.setDate(lunesPasado.getDate() + 6)
+      return { fechaInicio: lunesPasado, fechaFin: domingoPasado }
+    }
+
+    case 'EL_TERMOMETRO':
+    case 'EL_FOCO':
+    case 'EL_ESPECIALIZADO':
+    default: {
+      // Ultimos 7 dias
+      const inicio = new Date(hoy)
+      inicio.setDate(hoy.getDate() - 7)
+      return { fechaInicio: inicio, fechaFin: hoy }
+    }
+
+    case 'FICHA_LEGISLADOR': {
+      // Ultimos 30 dias
+      const inicio30 = new Date(hoy)
+      inicio30.setDate(hoy.getDate() - 30)
+      return { fechaInicio: inicio30, fechaFin: hoy }
+    }
+  }
 }

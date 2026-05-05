@@ -14,6 +14,10 @@ export const clienteCreateSchema = z.object({
   parlamentarios: z.array(z.string()).optional().default([]),
   ejesContratados: z.array(z.string()).optional().default([]),
   notas: z.string().max(2000).optional().default(''),
+  // Datos de facturacion
+  ci: z.string().max(50).optional().default(''),
+  razonSocial: z.string().max(300).optional().default(''),
+  nit: z.string().max(50).optional().default(''),
 });
 
 // ─── Contrato ─────────────────────────────────────────────────────

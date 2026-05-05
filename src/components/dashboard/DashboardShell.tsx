@@ -235,19 +235,3 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
-export function LoadingScreen() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center space-y-4">
-        <div className="h-12 w-12 rounded-xl flex items-center justify-center mx-auto" style={{ backgroundColor: '#0F2027' }}>
-          <Image src="/logo.png" alt="DECODEX" width={48} height={48} className="object-cover" />
-        </div>
-        <div>
-          <p className="text-lg font-bold text-foreground">DECODEX</p>
-          <p className="text-muted-foreground text-sm">Cargando dashboard...</p>
-        </div>
-      </div>
-    </div>
-  );
-}
