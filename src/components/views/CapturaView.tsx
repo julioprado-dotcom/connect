@@ -4,11 +4,36 @@ import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Activity, Zap, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import {
+  Loader2, Activity, Zap, RefreshCw, AlertTriangle, Plus, X,
+  RadioTower, ExternalLink, CheckCircle2, ArrowRight,
+} from 'lucide-react';
 import { useDashboardStore } from '@/stores/useDashboardStore';
 
+// ─── Quick add form options ─────────────────────────────────
+
+const TIPO_OPTIONS = [
+  { value: 'diario', label: 'Diario' },
+  { value: 'portal_web', label: 'Portal Web' },
+  { value: 'television', label: 'Televisión' },
+  { value: 'radio', label: 'Radio' },
+  { value: 'agencia_noticias', label: 'Agencia' },
+  { value: 'institucional', label: 'Institucional' },
+  { value: 'red_social', label: 'Red Social' },
+  { value: 'otro', label: 'Otro' },
+];
+
+const CATEGORIA_OPTIONS = [
+  { value: 'oficial', label: 'Oficial' },
+  { value: 'corporativo', label: 'Corporativo' },
+  { value: 'regional', label: 'Regional' },
+  { value: 'alternativo', label: 'Alternativo' },
+  { value: 'red_social', label: 'Red Social' },
+];
+
 export function CapturaView() {
-  const { mediosHealth, setMediosHealth, setError, setData } = useDashboardStore();
+  const { mediosHealth, setMediosHealth, setError, setData, setActiveView } = useDashboardStore();
   const [captureCount, setCaptureCount] = useState(5);
   const [captureLoading, setCaptureLoading] = useState(false);
   const [captureResult, setCaptureResult] = useState<{
@@ -18,6 +43,16 @@ export function CapturaView() {
     detalles?: string[];
   } | null>(null);
   const [mediosHealthLoading, setMediosHealthLoading] = useState(false);
+
+  // Quick-add state
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addSaving, setAddSaving] = useState(false);
+  const [addSuccess, setAddSuccess] = useState<string | null>(null);
+  const [formNombre, setFormNombre] = useState('');
+  const [formUrl, setFormUrl] = useState('');
+  const [formTipo, setFormTipo] = useState('diario');
+  const [formCategoria, setFormCategoria] = useState('corporativo');
+  const [formNivel, setFormNivel] = useState('2');
 
   const loadMediosHealth = useCallback(async () => {
     setMediosHealthLoading(true);
@@ -42,7 +77,6 @@ export function CapturaView() {
       if (json.error) setError(json.error);
       else {
         setCaptureResult(json);
-        // Refresh stats
         try {
           const statsRes = await fetch('/api/stats');
           if (statsRes.ok) {
@@ -58,9 +92,191 @@ export function CapturaView() {
     }
   };
 
+  // ─── Quick-add medio ──────────────────────────────────────
+  const handleQuickAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formNombre.trim()) return;
+    setAddSaving(true);
+    setAddSuccess(null);
+    try {
+      const res = await fetch('/api/medios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: formNombre.trim(),
+          url: formUrl.trim(),
+          tipo: formTipo,
+          categoria: formCategoria,
+          nivel: formNivel,
+        }),
+      });
+      if (res.ok) {
+        setAddSuccess(formNombre.trim());
+        setFormNombre('');
+        setFormUrl('');
+        setFormTipo('diario');
+        setFormCategoria('corporativo');
+        setFormNivel('2');
+        setTimeout(() => setAddSuccess(null), 3000);
+        // Refresh health
+        loadMediosHealth();
+      }
+    } catch {
+      // silent
+    } finally {
+      setAddSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      {/* ── Health Check de Fuentes ── */}
+
+      {/* ═══ Agregar Fuente ═══ */}
+      <Card className="border-primary/20 bg-primary/[0.02]">
+        <CardHeader className="pb-2 pt-3 px-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-primary/10">
+                <RadioTower className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-sm font-semibold">Fuentes de Monitoreo</CardTitle>
+                <CardDescription className="text-[10px]">
+                  {mediosHealth
+                    ? `${mediosHealth.resumen.total} fuentes registradas · ${mediosHealth.resumen.sanos} sanas`
+                    : 'Gestiona las fuentes para captura'
+                  }
+                </CardDescription>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setActiveView('medios')}
+                className="text-xs gap-1.5"
+              >
+                Ver todas
+                <ArrowRight className="h-3 w-3" />
+              </Button>
+              <Button
+                variant={showAddForm ? 'outline' : 'default'}
+                size="sm"
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="text-xs gap-1.5"
+              >
+                {showAddForm ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                {showAddForm ? 'Cancelar' : 'Nueva Fuente'}
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+
+        {/* Quick-add form */}
+        {showAddForm && (
+          <CardContent className="px-4 pb-4 pt-0">
+            <form onSubmit={handleQuickAdd} className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div>
+                  <label className="text-[11px] font-medium text-muted-foreground block mb-1">
+                    Nombre *
+                  </label>
+                  <input
+                    type="text"
+                    value={formNombre}
+                    onChange={(e) => setFormNombre(e.target.value)}
+                    placeholder="Ej: La Razon"
+                    className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-medium text-muted-foreground block mb-1">
+                    URL
+                  </label>
+                  <input
+                    type="url"
+                    value={formUrl}
+                    onChange={(e) => setFormUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-medium text-muted-foreground block mb-1">
+                    Tipo
+                  </label>
+                  <select
+                    value={formTipo}
+                    onChange={(e) => setFormTipo(e.target.value)}
+                    className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    {TIPO_OPTIONS.map((t) => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] font-medium text-muted-foreground block mb-1">
+                    Categoría
+                  </label>
+                  <select
+                    value={formCategoria}
+                    onChange={(e) => setFormCategoria(e.target.value)}
+                    className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    {CATEGORIA_OPTIONS.map((c) => (
+                      <option key={c.value} value={c.value}>{c.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <label className="text-[11px] font-medium text-muted-foreground">Prioridad:</label>
+                  <div className="flex gap-1">
+                    {[
+                      { value: '1', label: 'Alta', color: 'bg-red-100 text-red-700 border-red-200' },
+                      { value: '2', label: 'Media', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+                      { value: '3', label: 'Baja', color: 'bg-stone-100 text-stone-700 border-stone-200' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setFormNivel(opt.value)}
+                        className={`px-2.5 py-1 rounded-md text-[10px] font-medium border transition-all ${
+                          formNivel === opt.value ? opt.color : 'border-border bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Button
+                  type="submit"
+                  disabled={addSaving || !formNombre.trim()}
+                  size="sm"
+                  className="text-xs gap-1.5"
+                >
+                  {addSaving && <Loader2 className="h-3 w-3 animate-spin" />}
+                  {addSaving ? 'Guardando...' : 'Registrar Fuente'}
+                </Button>
+              </div>
+            </form>
+            {addSuccess && (
+              <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">
+                  &quot;{addSuccess}&quot; registrada correctamente
+                </span>
+              </div>
+            )}
+          </CardContent>
+        )}
+      </Card>
+
+      {/* ═══ Health Check de Fuentes ═══ */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -173,7 +389,7 @@ export function CapturaView() {
         </CardContent>
       </Card>
 
-      {/* ── Captura Manual ── */}
+      {/* ═══ Captura Manual ═══ */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">

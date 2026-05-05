@@ -173,7 +173,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                                 relative w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium
                                 transition-all duration-150
                                 ${isActive
-                                  ? 'bg-primary/10 text-primary'
+                                  ? 'bg-primary/10 text-primary shadow-sm'
                                   : childActive
                                     ? 'bg-sidebar-accent/50 text-sidebar-accent-foreground'
                                     : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
@@ -186,8 +186,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                                 <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-3 rounded-r-full bg-primary/40" />
                               )}
 
-                              {item.icon && <item.icon className={`h-4 w-4 shrink-0 ${isActive ? '' : 'opacity-70'}`} />}
-                              <span className="flex-1 text-left truncate">{item.label}</span>
+                              {/* Icon in box when active, plain when not */}
+                              <div className={`flex items-center justify-center h-5 w-5 rounded-md shrink-0 ${isActive ? 'bg-primary/20' : ''}`}>
+                                {item.icon && <item.icon className={`h-4 w-4 ${isActive ? '' : 'opacity-70'}`} />}
+                              </div>
+                              <span className={`flex-1 text-left truncate ${isActive ? 'font-semibold' : ''}`}>{item.label}</span>
 
                               {/* Active dot for leaf items */}
                               {isActive && !hasChildren && (
@@ -199,8 +202,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
                               {hasChildren && (
                                 isExpanded
-                                  ? <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
-                                  : <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-50" />
+                                  ? <ChevronDown className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'opacity-80' : 'opacity-50'}`} />
+                                  : <ChevronRight className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'opacity-80' : 'opacity-50'}`} />
                               )}
                             </button>
 
