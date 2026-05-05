@@ -40,7 +40,7 @@ interface ClienteOption {
 
 interface FormData {
   clienteId: string;
-  tipoProducto: string;
+  productos: string[];
   montoMensual: string;
   frecuencia: string;
   formatoEntrega: string;
@@ -105,7 +105,7 @@ const ESTADO_FORM_OPTIONS = [
 
 const EMPTY_FORM: FormData = {
   clienteId: '',
-  tipoProducto: '',
+  productos: [],
   montoMensual: '',
   frecuencia: 'diario',
   formatoEntrega: 'whatsapp',
@@ -217,8 +217,11 @@ export function ContratosView() {
   const getCanalLabel = (val: string) => CANAL_LABELS[val] || val;
   const getFrecuenciaLabel = (val: string) => FRECUENCIA_LABELS[val] || val;
 
-  const isCustomPrice = (tipo: string, monto: number) => {
-    const base = getBasePrice(tipo);
+  const getCombinedBasePrice = (productos: string[]) =>
+    productos.reduce((sum, tipo) => sum + getBasePrice(tipo), 0);
+
+  const isCustomPrice = (productos: string[], monto: number) => {
+    const base = getCombinedBasePrice(productos);
     if (base === 0 && monto === 0) return false;
     if (base === 0 && monto > 0) return true;
     return base > 0 && monto !== base;
@@ -228,15 +231,24 @@ export function ContratosView() {
   const openCreate = () => {
     setEditingId(null);
     setForm({ ...EMPTY_FORM, fechaInicio: new Date().toISOString().split('T')[0] });
+    setSelectedProduct('');
     setFormError('');
     setFormOpen(true);
   };
 
   const openEdit = (c: ContratoItem) => {
     setEditingId(c.id);
+    // Parsear productos: puede ser JSON array o string simple (compatibilidad)
+    let productosList: string[] = [];
+    try {
+      const parsed = JSON.parse(c.tipoProducto || '[]');
+      productosList = Array.isArray(parsed) ? parsed : (c.tipoProducto ? [c.tipoProducto] : []);
+    } catch {
+      productosList = c.tipoProducto ? [c.tipoProducto] : [];
+    }
     setForm({
       clienteId: c.clienteId,
-      tipoProducto: c.tipoProducto,
+      productos: productosList,
       montoMensual: c.montoMensual > 0 ? String(c.montoMensual) : '',
       frecuencia: c.frecuencia || 'diario',
       formatoEntrega: c.formatoEntrega || 'whatsapp',
@@ -246,6 +258,7 @@ export function ContratosView() {
       estado: c.estado || 'activo',
       notas: c.notas || '',
     });
+    setSelectedProduct('');
     setFormError('');
     setFormOpen(true);
   };
@@ -257,29 +270,35 @@ export function ContratosView() {
     setFormError('');
   };
 
-  const handleProductChange = (tipo: string) => {
-    const base = getBasePrice(tipo);
-    // Also set default frequency from product config if available
-    // Look up default frequency from PRODUCTOS constant
-    let defaultFreq = 'diario';
-    if (tipo === 'EL_TERMOMETRO') defaultFreq = 'diario_am';
-    else if (tipo === 'SALDO_DEL_DIA') defaultFreq = 'diario_pm';
-    else if (tipo === 'EL_RADAR' || tipo === 'VOZ_Y_VOTO' || tipo === 'EL_HILO' || tipo === 'FOCO_DE_LA_SEMANA' || tipo === 'EL_INFORME_CERRADO') defaultFreq = 'semanal';
-    else if (tipo === 'ALERTA_TEMPRANA') defaultFreq = 'tiempo_real';
-    else if (tipo === 'FICHA_LEGISLADOR') defaultFreq = 'bajo_demanda';
+  // Multi-product selector state
+  const [selectedProduct, setSelectedProduct] = useState('');
 
+  const addProduct = () => {
+    if (!selectedProduct || form.productos.includes(selectedProduct)) return;
+    const newProductos = [...form.productos, selectedProduct];
+    const base = getCombinedBasePrice(newProductos);
     setForm((prev) => ({
       ...prev,
-      tipoProducto: tipo,
+      productos: newProductos,
       montoMensual: base > 0 ? String(base) : prev.montoMensual,
-      frecuencia: editingId ? prev.frecuencia : defaultFreq,
+    }));
+    setSelectedProduct('');
+  };
+
+  const removeProduct = (tipo: string) => {
+    const newProductos = form.productos.filter((p) => p !== tipo);
+    const base = getCombinedBasePrice(newProductos);
+    setForm((prev) => ({
+      ...prev,
+      productos: newProductos,
+      montoMensual: base > 0 ? String(base) : prev.montoMensual,
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.clienteId || !form.tipoProducto || !form.fechaInicio) {
-      setFormError('Cliente, producto y fecha de inicio son obligatorios');
+    if (!form.clienteId || form.productos.length === 0 || !form.fechaInicio) {
+      setFormError('Cliente, al menos un producto y fecha de inicio son obligatorios');
       return;
     }
 
@@ -288,7 +307,7 @@ export function ContratosView() {
 
     const body = {
       clienteId: form.clienteId,
-      tipoProducto: form.tipoProducto,
+      tipoProducto: form.productos,
       frecuencia: form.frecuencia,
       formatoEntrega: form.formatoEntrega,
       fechaInicio: form.fechaInicio,
@@ -352,9 +371,14 @@ export function ContratosView() {
 
   // ─── Render ─────────────────────────────────────────────────────
   const formTitle = editingId ? 'Editar contrato' : 'Nuevo contrato';
-  const basePriceLabel = form.tipoProducto ? getBasePrice(form.tipoProducto) : 0;
+  const basePriceLabel = getCombinedBasePrice(form.productos);
   const currentPrice = parseFloat(form.montoMensual) || 0;
-  const priceIsCustom = form.tipoProducto ? isCustomPrice(form.tipoProducto, currentPrice) : false;
+  const priceIsCustom = form.productos.length > 0 ? isCustomPrice(form.productos, currentPrice) : false;
+  // Productos disponibles (no ya seleccionados)
+  const availableProducts = PRODUCTS_BY_CATEGORY.map((g) => ({
+    ...g,
+    productos: g.productos.filter((p) => !form.productos.includes(p.tipo)),
+  })).filter((g) => g.productos.length > 0);
 
   return (
     <div className="space-y-4">
@@ -490,28 +514,73 @@ export function ContratosView() {
                   </select>
                 </div>
 
-                <div>
+                {/* Selector de productos (multi) */}
+                <div className="sm:col-span-2">
                   <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">
-                    Producto <span className="text-red-500">*</span>
+                    Productos <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={form.tipoProducto}
-                    onChange={(e) => handleProductChange(e.target.value)}
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-                    required
-                  >
-                    <option value="">Seleccionar producto…</option>
-                    {PRODUCTS_BY_CATEGORY.map((group) => (
-                      <optgroup key={group.id} label={group.label}>
-                        {group.productos.map((p) => (
-                          <option key={p.tipo} value={p.tipo}>
-                            {p.nombre}
-                            {p.estado === 'definido' ? ' (próximamente)' : ''}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
+                  <div className="flex gap-2">
+                    <select
+                      value={selectedProduct}
+                      onChange={(e) => setSelectedProduct(e.target.value)}
+                      className="h-9 flex-1 rounded-md border border-input bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    >
+                      <option value="">Agregar producto…</option>
+                      {availableProducts.map((group) => (
+                        <optgroup key={group.id} label={group.label}>
+                          {group.productos.map((p) => (
+                            <option key={p.tipo} value={p.tipo}>
+                              {p.nombre}
+                              {p.estado === 'definido' ? ' (próximamente)' : ''}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addProduct}
+                      disabled={!selectedProduct}
+                      className="h-9 px-3 text-xs shrink-0"
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" />
+                      Añadir
+                    </Button>
+                  </div>
+                  {form.productos.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {form.productos.map((tipo) => {
+                        const pInfo = getProductInfo(tipo);
+                        return (
+                          <Badge
+                            key={tipo}
+                            variant="secondary"
+                            className="text-[10px] font-medium gap-1 pl-2 pr-1 py-1"
+                            style={pInfo ? {
+                              backgroundColor: `${pInfo.color}18`,
+                              color: pInfo.color,
+                              borderColor: `${pInfo.color}40`,
+                              borderWidth: 1,
+                            } : undefined}
+                          >
+                            {pInfo?.nombre || tipo.replace(/_/g, ' ')}
+                            <button
+                              type="button"
+                              onClick={() => removeProduct(tipo)}
+                              className="ml-0.5 h-3.5 w-3.5 rounded-full inline-flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10"
+                            >
+                              <X className="h-2.5 w-2.5" />
+                            </button>
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {form.productos.length === 0 && (
+                    <p className="text-[10px] text-muted-foreground mt-1">Selecciona al menos un producto</p>
+                  )}
                 </div>
               </div>
 
@@ -532,7 +601,7 @@ export function ContratosView() {
                       placeholder="0.00"
                       className="h-9 pl-8 pr-3 text-xs"
                     />
-                    {form.tipoProducto && basePriceLabel > 0 && (
+                    {form.productos.length > 0 && basePriceLabel > 0 && (
                       <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground whitespace-nowrap">
                         Catálogo: {form.moneda} {basePriceLabel}
                       </span>
@@ -722,33 +791,44 @@ export function ContratosView() {
                   </TableHeader>
                   <TableBody>
                     {contratos.map((c) => {
-                      const pInfo = getProductInfo(c.tipoProducto);
-                      const custom = isCustomPrice(c.tipoProducto, c.montoMensual);
+                      // Parsear productos: JSON array (nuevo) o string simple (compatibilidad)
+                      let cProductos: string[] = [];
+                      try {
+                        const parsed = JSON.parse(c.tipoProducto || '[]');
+                        cProductos = Array.isArray(parsed) ? parsed : (c.tipoProducto ? [c.tipoProducto] : []);
+                      } catch {
+                        cProductos = c.tipoProducto ? [c.tipoProducto] : [];
+                      }
+                      const custom = isCustomPrice(cProductos, c.montoMensual);
                       const isDeleting = deleteConfirm === c.id;
 
                       return (
                         <TableRow key={c.id}>
-                          {/* Producto */}
+                          {/* Productos */}
                           <TableCell className="py-2.5">
-                            <div className="flex items-center gap-2">
-                              {pInfo ? (
-                                <Badge
-                                  variant="secondary"
-                                  className="text-[10px] font-medium gap-1"
-                                  style={{
-                                    backgroundColor: `${pInfo.color}18`,
-                                    color: pInfo.color,
-                                    borderColor: `${pInfo.color}40`,
-                                    borderWidth: 1,
-                                  }}
-                                >
-                                  {pInfo.nombre}
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary" className="text-[10px]">
-                                  {c.tipoProducto.replace(/_/g, ' ')}
-                                </Badge>
-                              )}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {cProductos.map((tipo) => {
+                                const pInfo = getProductInfo(tipo);
+                                return pInfo ? (
+                                  <Badge
+                                    key={tipo}
+                                    variant="secondary"
+                                    className="text-[10px] font-medium gap-1"
+                                    style={{
+                                      backgroundColor: `${pInfo.color}18`,
+                                      color: pInfo.color,
+                                      borderColor: `${pInfo.color}40`,
+                                      borderWidth: 1,
+                                    }}
+                                  >
+                                    {pInfo.nombre}
+                                  </Badge>
+                                ) : (
+                                  <Badge key={tipo} variant="secondary" className="text-[10px]">
+                                    {tipo.replace(/_/g, ' ')}
+                                  </Badge>
+                                );
+                              })}
                               {custom && (
                                 <Badge variant="outline" className="text-[9px] text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700 px-1 py-0">
                                   personalizado
@@ -860,8 +940,15 @@ export function ContratosView() {
               {/* Mobile cards */}
               <div className="md:hidden space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar">
                 {contratos.map((c) => {
-                  const pInfo = getProductInfo(c.tipoProducto);
-                  const custom = isCustomPrice(c.tipoProducto, c.montoMensual);
+                  // Parsear productos: JSON array (nuevo) o string simple (compatibilidad)
+                  let cProductos: string[] = [];
+                  try {
+                    const parsed = JSON.parse(c.tipoProducto || '[]');
+                    cProductos = Array.isArray(parsed) ? parsed : (c.tipoProducto ? [c.tipoProducto] : []);
+                  } catch {
+                    cProductos = c.tipoProducto ? [c.tipoProducto] : [];
+                  }
+                  const custom = isCustomPrice(cProductos, c.montoMensual);
                   const isDeleting = deleteConfirm === c.id;
 
                   return (
@@ -871,25 +958,29 @@ export function ContratosView() {
                     >
                       {/* Header row */}
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {pInfo ? (
-                            <Badge
-                              variant="secondary"
-                              className="text-[10px] font-medium gap-1"
-                              style={{
-                                backgroundColor: `${pInfo.color}18`,
-                                color: pInfo.color,
-                                borderColor: `${pInfo.color}40`,
-                                borderWidth: 1,
-                              }}
-                            >
-                              {pInfo.nombre}
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="text-[10px]">
-                              {c.tipoProducto.replace(/_/g, ' ')}
-                            </Badge>
-                          )}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {cProductos.map((tipo) => {
+                            const pInfo = getProductInfo(tipo);
+                            return pInfo ? (
+                              <Badge
+                                key={tipo}
+                                variant="secondary"
+                                className="text-[10px] font-medium gap-1"
+                                style={{
+                                  backgroundColor: `${pInfo.color}18`,
+                                  color: pInfo.color,
+                                  borderColor: `${pInfo.color}40`,
+                                  borderWidth: 1,
+                                }}
+                              >
+                                {pInfo.nombre}
+                              </Badge>
+                            ) : (
+                              <Badge key={tipo} variant="secondary" className="text-[10px]">
+                                {tipo.replace(/_/g, ' ')}
+                              </Badge>
+                            );
+                          })}
                           {custom && (
                             <Badge variant="outline" className="text-[9px] text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700 px-1 py-0">
                               personalizado

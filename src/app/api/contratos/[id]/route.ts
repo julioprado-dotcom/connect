@@ -44,7 +44,16 @@ export async function GET(
       }
     } catch { /* parse error */ }
 
-    return NextResponse.json({ ...contrato, mediosList, parlamentariosList: parlList });
+    // Parsear tipoProducto: JSON array (nuevo) o string simple (compatibilidad)
+    let productosList: string[] = [];
+    try {
+      const parsed = JSON.parse(contrato.tipoProducto || '[]');
+      productosList = Array.isArray(parsed) ? parsed : (contrato.tipoProducto ? [contrato.tipoProducto] : []);
+    } catch {
+      productosList = contrato.tipoProducto ? [contrato.tipoProducto] : [];
+    }
+
+    return NextResponse.json({ ...contrato, productosList, mediosList, parlamentariosList: parlList });
   } catch (error) {
     console.error('Error fetching contrato:', error);
     return NextResponse.json({ error: 'Error al obtener contrato' }, { status: 500 });
@@ -65,7 +74,9 @@ export async function PUT(
     const contrato = await db.contrato.update({
       where: { id },
       data: {
-        ...(body.tipoProducto !== undefined ? { tipoProducto: body.tipoProducto } : {}),
+        ...(body.tipoProducto !== undefined ? {
+          tipoProducto: Array.isArray(body.tipoProducto) ? JSON.stringify(body.tipoProducto) : body.tipoProducto,
+        } : {}),
         ...(body.mediosAsignados !== undefined ? {
           mediosAsignados: Array.isArray(body.mediosAsignados) ? JSON.stringify(body.mediosAsignados) : body.mediosAsignados,
         } : {}),

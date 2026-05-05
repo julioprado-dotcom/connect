@@ -23,12 +23,12 @@ export const clienteCreateSchema = z.object({
 // ─── Contrato ─────────────────────────────────────────────────────
 export const contratoCreateSchema = z.object({
   clienteId: z.string().min(1, 'Cliente es obligatorio'),
-  tipoProducto: z.string().min(1, 'Tipo de producto es obligatorio'),
+  tipoProducto: z.array(z.string()).min(1, 'Al menos un producto es obligatorio'),
   mediosAsignados: z.array(z.string()).optional().default([]),
   ejesTematicos: z.array(z.string()).optional().default([]),
   parlamentarios: z.array(z.string()).optional().default([]),
-  frecuencia: z.enum(['diario', 'semanal', 'quincenal', 'mensual']).optional().default('diario'),
-  formatoEntrega: z.enum(['whatsapp', 'email', 'ambos']).optional().default('whatsapp'),
+  frecuencia: z.enum(['diario', 'diario_am', 'diario_pm', 'semanal', 'quincenal', 'mensual', 'bajo_demanda', 'tiempo_real']).optional().default('diario'),
+  formatoEntrega: z.enum(['whatsapp', 'email', 'ambos', 'pdf']).optional().default('whatsapp'),
   fechaInicio: z.string().min(1, 'Fecha inicio es obligatoria'),
   fechaFin: z.string().optional().default(''),
   montoMensual: z.number().min(0).optional().default(0),

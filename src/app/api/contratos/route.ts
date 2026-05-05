@@ -70,8 +70,18 @@ export async function GET(request: NextRequest) {
       const mediosList = mIds.map((id) => medioMap.get(id)).filter(Boolean) as Array<{ id: string; nombre: string; activo: boolean }>;
       const parlList = pIds.map((id) => personaMap.get(id)).filter(Boolean) as Array<{ id: string; nombre: string; camara: string }>;
 
+      // Parse tipoProducto: JSON array (nuevo) o string simple (compatibilidad)
+      let productosList: string[];
+      try {
+        const parsed = JSON.parse(c.tipoProducto || '[]');
+        productosList = Array.isArray(parsed) ? parsed : (c.tipoProducto ? [c.tipoProducto] : []);
+      } catch {
+        productosList = c.tipoProducto ? [c.tipoProducto] : [];
+      }
+
       return {
         ...c,
+        productosList,
         mediosList,
         mediosCount: mediosList.length,
         parlamentariosList: parlList,
@@ -107,7 +117,7 @@ export async function POST(request: NextRequest) {
     const contrato = await db.contrato.create({
       data: {
         clienteId,
-        tipoProducto,
+        tipoProducto: Array.isArray(tipoProducto) ? JSON.stringify(tipoProducto) : (tipoProducto || '[]'),
         mediosAsignados: Array.isArray(mediosAsignados) ? JSON.stringify(mediosAsignados) : (mediosAsignados || '[]'),
         ejesTematicos: Array.isArray(ejesTematicos) ? JSON.stringify(ejesTematicos) : (ejesTematicos || '[]'),
         parlamentarios: Array.isArray(parlamentarios) ? JSON.stringify(parlamentarios) : (parlamentarios || '[]'),
