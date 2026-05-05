@@ -5,19 +5,30 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { ALL_PRODUCTS } from '@/constants/nav';
+import type { TipoBoletin } from '@/types/bulletin';
 import {
   ArrowLeft,
   CheckCircle2,
   XCircle,
   Loader2,
   Shield,
+  Check,
+  Mail,
+  MessageCircle,
 } from 'lucide-react';
+
+/* ─── Boletines gratuitos disponibles ───────────────────────── */
+const GRATUITOS = ALL_PRODUCTS.filter((p) => p.categoria === 'gratuito');
 
 export default function SuscriptorPage() {
   const router = useRouter();
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
+  const [canal, setCanal] = useState<'email' | 'whatsapp' | 'ambos'>('email');
+  const [selectedBoletines, setSelectedBoletines] = useState<TipoBoletin[]>(['EL_RADAR']);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -25,12 +36,23 @@ export default function SuscriptorPage() {
 
   const validateEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
+  const toggleBoletin = (tipo: TipoBoletin) => {
+    setSelectedBoletines((prev) =>
+      prev.includes(tipo) ? prev.filter((t) => t !== tipo) : [...prev, tipo]
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     if (!email.trim() || !validateEmail(email)) {
       setError('Ingrese un email v&aacute;lido');
+      return;
+    }
+
+    if (selectedBoletines.length === 0) {
+      setError('Seleccione al menos un bolet&iacute;n');
       return;
     }
 
@@ -50,6 +72,8 @@ export default function SuscriptorPage() {
           email: email.trim(),
           whatsapp: whatsapp.trim() || null,
           origen: 'admin',
+          boletines: selectedBoletines,
+          canal,
         }),
       });
 
@@ -85,8 +109,18 @@ export default function SuscriptorPage() {
           <div>
             <h2 className="text-lg font-bold text-foreground">&iexcl;Suscriptor registrado!</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {nombre || email} ahora recibir&aacute; El Radar y boletines gratuitos.
+              {nombre || email} recibir&aacute; {selectedBoletines.length} bolet&iacute;n(es) por {canal === 'ambos' ? 'email y WhatsApp' : canal}.
             </p>
+            <div className="flex flex-wrap gap-1.5 mt-2 justify-center">
+              {selectedBoletines.map((tipo) => {
+                const prod = ALL_PRODUCTS.find((p) => p.tipo === tipo);
+                return (
+                  <Badge key={tipo} variant="outline" className="text-[10px]">
+                    {prod?.nombre || tipo}
+                  </Badge>
+                );
+              })}
+            </div>
           </div>
           <Button onClick={() => router.push('/agente/suscriptor')} variant="outline" size="sm">
             Registrar otro suscriptor
@@ -111,7 +145,7 @@ export default function SuscriptorPage() {
       <div>
         <h1 className="text-base font-bold text-foreground">Suscriptor Gratuito</h1>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Registre un suscriptor para recibir El Radar y boletines gratuitos.
+          Registre un suscriptor y asigne los boletines gratuitos que desea recibir.
         </p>
       </div>
 
@@ -157,6 +191,105 @@ export default function SuscriptorPage() {
           />
         </div>
 
+        {/* Canal de entrega */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-foreground">Canal de entrega</label>
+          <div className="flex gap-2">
+            {([
+              { value: 'email' as const, label: 'Email', icon: Mail },
+              { value: 'whatsapp' as const, label: 'WhatsApp', icon: MessageCircle },
+              { value: 'ambos' as const, label: 'Ambos', icon: Mail },
+            ]).map((opt) => {
+              const Icon = opt.icon;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setCanal(opt.value)}
+                  className={`flex-1 h-9 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5 ${
+                    canal === opt.value
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Boletines gratuitos */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-foreground">
+            Boletines gratuitos
+            <span className="text-red-500 ml-1">*</span>
+          </label>
+          <p className="text-[11px] text-muted-foreground">
+            Seleccione los boletines que el suscriptor desea recibir.
+          </p>
+          <div className="space-y-2 mt-2">
+            {GRATUITOS.map((prod) => {
+              const isSelected = selectedBoletines.includes(prod.tipo);
+              const Icon = prod.icon;
+              return (
+                <button
+                  key={prod.tipo}
+                  type="button"
+                  onClick={() => toggleBoletin(prod.tipo)}
+                  className={`w-full text-left rounded-xl border p-3 flex items-start gap-3 transition-all ${
+                    isSelected
+                      ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 ring-1 ring-emerald-500/30'
+                      : 'border-border bg-card hover:bg-muted/50'
+                  }`}
+                >
+                  {/* checkbox */}
+                  <div
+                    className={`flex-shrink-0 mt-0.5 h-5 w-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+                      isSelected
+                        ? 'border-emerald-500 bg-emerald-500'
+                        : 'border-muted-foreground/30'
+                    }`}
+                  >
+                    {isSelected && <Check className="h-3 w-3 text-white" />}
+                  </div>
+                  {/* icon */}
+                  <div
+                    className="flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: prod.color + '18' }}
+                  >
+                    <Icon className="h-4.5 w-4.5" style={{ color: prod.color }} />
+                  </div>
+                  {/* info */}
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-semibold text-foreground">
+                      {prod.nombre}
+                    </span>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {prod.estado === 'operativo' ? 'Operativo' : 'Pr&oacute;ximamente'}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Selected summary */}
+          {selectedBoletines.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {selectedBoletines.map((tipo) => {
+                const prod = ALL_PRODUCTS.find((p) => p.tipo === tipo);
+                return (
+                  <Badge key={tipo} variant="outline" className="text-[10px] bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300">
+                    {prod?.nombre || tipo}
+                  </Badge>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         {/* Origen (pre-selected) */}
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-foreground">Origen</label>
@@ -172,7 +305,7 @@ export default function SuscriptorPage() {
               <Shield className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
               <p className="text-[11px] text-muted-foreground leading-relaxed">
                 No compartiremos sus datos con terceros. Sus datos ser&aacute;n utilizados
-                exclusivamente para el env&iacute;o de El Radar y boletines gratuitos de
+                exclusivamente para el env&iacute;o de los boletines gratuitos seleccionados de
                 DECODEX Bolivia.
               </p>
             </div>

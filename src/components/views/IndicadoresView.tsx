@@ -19,6 +19,10 @@ import {
   ChevronDown,
   ChevronUp,
   ClipboardList,
+  CheckCircle2,
+  XCircle,
+  RotateCw,
+  X,
 } from 'lucide-react';
 
 // -- Local types --
@@ -153,13 +157,17 @@ export function IndicadoresView() {
   const [indicadoresHistorico, setIndicadoresHistorico] = useState<IndicadoresHistorico | null>(null);
   const [indicadoresLoading, setIndicadoresLoading] = useState(false);
   const [capturaIndicadoresLoading, setCapturaIndicadoresLoading] = useState(false);
-  const [syncLoading, setSyncLoading] = useState(false);
-  const [syncResult, setSyncResult] = useState<{
-    exito: boolean; exitosos: Array<{slug: string; valorTexto: string; confiable: boolean}>;
-    fallidos: Array<{slug: string; error: string}>;
-    total: number; seeded: number; timestamp: string;
-  } | null>(null);
-  const [showSyncResults, setShowSyncResults] = useState(false);
+  // -- Sync state: individual indicator tracking --
+  const [syncAllLoading, setSyncAllLoading] = useState(false);
+  const [syncingSlugs, setSyncingSlugs] = useState<Set<string>>(new Set());
+  const [syncResultMap, setSyncResultMap] = useState<Record<string, {
+    exito: boolean;
+    valorTexto?: string;
+    error?: string;
+    timestamp?: string;
+  }>>({});
+  const [showSyncPanel, setShowSyncPanel] = useState(false);
+  const [syncAllSlugs, setSyncAllSlugs] = useState<string[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newInd, setNewInd] = useState({
     nombre: '', slug: '', categoria: 'monetario', fuente: '', url: '',
@@ -267,21 +275,120 @@ export function IndicadoresView() {
     }
   };
 
-  const handleSyncIndicadores = async () => {
-    setSyncLoading(true);
-    setSyncResult(null);
+  // -- Sync individual: un solo indicador --
+  const handleSyncOne = async (slug: string) => {
+    setSyncingSlugs(prev => new Set(prev).add(slug));
     try {
-      const res = await fetch('/api/indicadores/sync', { method: 'POST' });
+      const res = await fetch(`/api/indicadores/sync/${slug}`, { method: 'POST' });
       const json = await res.json();
-      setSyncResult(json);
-      setShowSyncResults(true);
+      setSyncResultMap(prev => ({
+        ...prev,
+        [slug]: {
+          exito: json.exito,
+          valorTexto: json.valorTexto || 'N/D',
+          error: json.error || null,
+          timestamp: json.timestamp,
+        },
+      }));
       reloadTrigger(n => n + 1);
     } catch {
-      setSyncResult({ exito: false, exitosos: [], fallidos: [{ slug: '-', error: 'Error de conexion' }], total: 0, seeded: 0, timestamp: new Date().toISOString() });
-      setShowSyncResults(true);
+      setSyncResultMap(prev => ({
+        ...prev,
+        [slug]: { exito: false, error: 'Error de conexion', timestamp: new Date().toISOString() },
+      }));
     } finally {
-      setSyncLoading(false);
+      setSyncingSlugs(prev => {
+        const next = new Set(prev);
+        next.delete(slug);
+        return next;
+      });
     }
+  };
+
+  // -- Sync secuencial: todos uno por uno (micro-llamadas) --
+  const handleSyncAll = async () => {
+    if (syncAllLoading) return;
+    setSyncAllLoading(true);
+    setShowSyncPanel(true);
+    setSyncResultMap({});
+
+    // Obtener los slugs con fuente automática
+    const slugs = syncAllSlugs.length > 0
+      ? syncAllSlugs
+      : (indicadoresHistorico?.indicadores
+          .filter(i => i.tier === 1 && i.activo)
+          .map(i => i.slug) || []);
+
+    // Procesar uno por uno de forma secuencial
+    for (const slug of slugs) {
+      setSyncingSlugs(prev => new Set(prev).add(slug));
+      try {
+        const res = await fetch(`/api/indicadores/sync/${slug}`, { method: 'POST' });
+        const json = await res.json();
+        setSyncResultMap(prev => ({
+          ...prev,
+          [slug]: {
+            exito: json.exito,
+            valorTexto: json.valorTexto || 'N/D',
+            error: json.error || null,
+            timestamp: json.timestamp,
+          },
+        }));
+      } catch {
+        setSyncResultMap(prev => ({
+          ...prev,
+          [slug]: { exito: false, error: 'Error de conexion', timestamp: new Date().toISOString() },
+        }));
+      } finally {
+        setSyncingSlugs(prev => {
+          const next = new Set(prev);
+          next.delete(slug);
+          return next;
+        });
+      }
+    }
+
+    reloadTrigger(n => n + 1);
+    setSyncAllLoading(false);
+  };
+
+  // -- Retry fallidos --
+  const handleRetryFailed = async () => {
+    const failedSlugs = Object.entries(syncResultMap)
+      .filter(([, r]) => !r.exito)
+      .map(([slug]) => slug);
+    if (failedSlugs.length === 0) return;
+
+    setSyncAllLoading(true);
+    for (const slug of failedSlugs) {
+      setSyncingSlugs(prev => new Set(prev).add(slug));
+      try {
+        const res = await fetch(`/api/indicadores/sync/${slug}`, { method: 'POST' });
+        const json = await res.json();
+        setSyncResultMap(prev => ({
+          ...prev,
+          [slug]: {
+            exito: json.exito,
+            valorTexto: json.valorTexto || 'N/D',
+            error: json.error || null,
+            timestamp: json.timestamp,
+          },
+        }));
+      } catch {
+        setSyncResultMap(prev => ({
+          ...prev,
+          [slug]: { exito: false, error: 'Error de conexion', timestamp: new Date().toISOString() },
+        }));
+      } finally {
+        setSyncingSlugs(prev => {
+          const next = new Set(prev);
+          next.delete(slug);
+          return next;
+        });
+      }
+    }
+    reloadTrigger(n => n + 1);
+    setSyncAllLoading(false);
   };
 
   const handleSaveIndicador = async () => {
@@ -613,9 +720,9 @@ export function IndicadoresView() {
                   <option value="hidrocarburos">Hidrocarburos</option>
                   <option value="climatico">Climatico</option>
                 </select>
-                <Button variant="default" size="sm" onClick={handleSyncIndicadores} disabled={syncLoading} className="text-xs gap-1 bg-emerald-600 hover:bg-emerald-700 text-white">
-                  {syncLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-                  Sincronizar
+                <Button variant="default" size="sm" onClick={handleSyncAll} disabled={syncAllLoading} className="text-xs gap-1 bg-emerald-600 hover:bg-emerald-700 text-white">
+                  {syncAllLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                  {syncAllLoading ? `Sync ${Object.keys(syncResultMap).length}/${syncAllSlugs.length || (indicadoresHistorico?.indicadores.filter(i => i.tier === 1 && i.activo).length || 0)}` : 'Sincronizar'}
                 </Button>
               </div>
             </div>
@@ -663,6 +770,24 @@ export function IndicadoresView() {
                           <span className="text-xs font-semibold text-foreground truncate">{ind.nombre}</span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
+                          {/* Botón sync individual (micro-llamada) */}
+                          {ind.tier === 1 && ind.activo && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleSyncOne(ind.slug); }}
+                              disabled={syncingSlugs.has(ind.slug) || syncAllLoading}
+                              className="p-1 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-50"
+                              title={`Sincronizar ${ind.nombre}`}
+                            >
+                              {syncingSlugs.has(ind.slug)
+                                ? <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
+                                : syncResultMap[ind.slug]?.exito
+                                  ? <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                                  : syncResultMap[ind.slug] && !syncResultMap[ind.slug].exito
+                                    ? <XCircle className="h-3 w-3 text-red-500" />
+                                    : <RefreshCw className="h-3 w-3" />
+                              }
+                            </button>
+                          )}
                           {stats && (
                             <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
                               stats.tendencia === 'ascendente' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
@@ -746,51 +871,126 @@ export function IndicadoresView() {
         </Card>
       )}
 
-      {/* ========== SYNC RESULTS ========== */}
-      {showSyncResults && syncResult && (
-        <Card className="border-emerald-200 dark:border-emerald-800">
+      {/* ========== PANEL DE SINCRONIZACION CON ALERTAS ========== */}
+      {showSyncPanel && Object.keys(syncResultMap).length > 0 && (
+        <Card className={`border ${Object.values(syncResultMap).some(r => !r.exito) ? 'border-amber-300 dark:border-amber-700' : 'border-emerald-200 dark:border-emerald-800'}`}>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <RefreshCw className="h-4 w-4 text-emerald-600" />
-                Resultado de Sincronizacion
+                {syncAllLoading
+                  ? <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                  : Object.values(syncResultMap).some(r => !r.exito)
+                    ? <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    : <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                }
+                Sincronizacion {syncAllLoading ? 'en curso' : 'finalizada'}
               </CardTitle>
-              <button onClick={() => setShowSyncResults(false)} className="text-xs text-muted-foreground hover:text-foreground">Cerrar</button>
+              <button onClick={() => setShowSyncPanel(false)} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground">
+                <X className="h-3.5 w-3.5" />
+              </button>
             </div>
           </CardHeader>
           <CardContent className="p-4 pt-0 space-y-3">
+            {/* Resumen de progreso */}
             <div className="grid grid-cols-3 gap-2">
-              <div className="text-center p-2 rounded bg-emerald-50 dark:bg-emerald-950/20">
-                <p className="text-lg font-bold text-emerald-600">{syncResult.total}</p>
+              <div className="text-center p-2 rounded bg-background">
+                <p className="text-lg font-bold text-foreground">{Object.keys(syncResultMap).length}</p>
                 <p className="text-[10px] text-muted-foreground">Procesados</p>
               </div>
-              <div className="text-center p-2 rounded bg-blue-50 dark:bg-blue-950/20">
-                <p className="text-lg font-bold text-blue-600">{syncResult.exitosos.length}</p>
+              <div className="text-center p-2 rounded bg-emerald-50 dark:bg-emerald-950/20">
+                <p className="text-lg font-bold text-emerald-600">{Object.values(syncResultMap).filter(r => r.exito).length}</p>
                 <p className="text-[10px] text-muted-foreground">Exitosos</p>
               </div>
-              <div className="text-center p-2 rounded bg-amber-50 dark:bg-amber-950/20">
-                <p className="text-lg font-bold text-amber-600">{syncResult.fallidos.length}</p>
-                <p className="text-[10px] text-muted-foreground">Fallidos</p>
+              <div className="text-center p-2 rounded bg-red-50 dark:bg-red-950/20">
+                <p className="text-lg font-bold text-red-600">{Object.values(syncResultMap).filter(r => !r.exito).length}</p>
+                <p className="text-[10px] text-muted-foreground">Con alerta</p>
               </div>
             </div>
-            {syncResult.seeded > 0 && (
-              <p className="text-xs text-emerald-600 font-medium">+{syncResult.seeded} indicadores nuevos registrados en la base</p>
+
+            {/* Barra de progreso visual */}
+            {syncAllLoading && (
+              <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="h-full bg-emerald-500 transition-all duration-300 rounded-full"
+                  style={{ width: `${(Object.keys(syncResultMap).length / (syncAllSlugs.length || indicadoresHistorico?.indicadores.filter(i => i.tier === 1 && i.activo).length || 1)) * 100}%` }}
+                />
+              </div>
             )}
-            <div className="space-y-1">
-              {syncResult.exitosos.map(e => (
-                <div key={e.slug} className="flex items-center justify-between text-[10px] p-1.5 rounded bg-emerald-50 dark:bg-emerald-950/20">
-                  <span className="font-medium text-foreground">{e.slug}</span>
-                  <span className="text-emerald-600">{e.valorTexto}</span>
+
+            {/* Alerta si hay fallidos */}
+            {Object.values(syncResultMap).some(r => !r.exito) && !syncAllLoading && (
+              <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                  <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
+                    {Object.values(syncResultMap).filter(r => !r.exito).length} indicador(es) con alerta
+                  </p>
                 </div>
-              ))}
-              {syncResult.fallidos.map(f => (
-                <div key={f.slug} className="flex items-center justify-between text-[10px] p-1.5 rounded bg-red-50 dark:bg-red-950/20">
-                  <span className="font-medium text-foreground">{f.slug}</span>
-                  <span className="text-red-600">{f.error}</span>
+                <p className="text-[10px] text-amber-700 dark:text-amber-300 mb-2">
+                  La falla de estos indicadores no afecto a los demas. Puedes reintentar solo los que fallaron.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRetryFailed}
+                  disabled={syncAllLoading}
+                  className="text-[10px] gap-1 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950/40"
+                >
+                  <RotateCw className="h-3 w-3" />
+                  Reintentar fallidos
+                </Button>
+              </div>
+            )}
+
+            {/* Detalle por indicador */}
+            <div className="space-y-1 max-h-[300px] overflow-y-auto custom-scrollbar">
+              {Object.entries(syncResultMap).map(([slug, result]) => (
+                <div
+                  key={slug}
+                  className={`flex items-center justify-between text-[10px] p-1.5 rounded ${
+                    syncingSlugs.has(slug) ? 'bg-blue-50 dark:bg-blue-950/20' :
+                    result.exito ? 'bg-emerald-50 dark:bg-emerald-950/20' :
+                    'bg-red-50 dark:bg-red-950/20'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                    {syncingSlugs.has(slug) ? (
+                      <Loader2 className="h-3 w-3 animate-spin text-blue-500 shrink-0" />
+                    ) : result.exito ? (
+                      <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+                    ) : (
+                      <XCircle className="h-3 w-3 text-red-500 shrink-0" />
+                    )}
+                    <span className="font-medium text-foreground truncate">{slug}</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {result.valorTexto && result.exito && (
+                      <span className="text-emerald-600 font-medium">{result.valorTexto}</span>
+                    )}
+                    {!result.exito && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-red-600">{result.error || 'Fallo'}</span>
+                        <button
+                          onClick={() => handleSyncOne(slug)}
+                          disabled={syncingSlugs.has(slug)}
+                          className="p-0.5 rounded hover:bg-red-100 dark:hover:bg-red-950/40 text-red-500"
+                          title="Reintentar"
+                        >
+                          <RotateCw className="h-2.5 w-2.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
-            <p className="text-[9px] text-muted-foreground">Ultima sync: {new Date(syncResult.timestamp).toLocaleString('es-BO')}</p>
+
+            <p className="text-[9px] text-muted-foreground">
+              {Object.values(syncResultMap).find(r => r.timestamp)?.timestamp
+                ? `Ultima sync: ${new Date(Object.values(syncResultMap).find(r => r.timestamp)!.timestamp!).toLocaleString('es-BO')}`
+                : ''
+              }
+            </p>
           </CardContent>
         </Card>
       )}

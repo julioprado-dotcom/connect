@@ -728,8 +728,130 @@ async function capturarLmeReal(
   }
 }
 
-// ─── Capturar todos los Tier 1 ────────────────────────────────────
+// ─── Captura individual (micro-llamada) ───────────────────────────
 
+/**
+ * Captura un SOLO indicador por slug. 
+ * Retorna resultado aislado — el error de uno nunca afecta a otro.
+ * Pensado para micro-llamadas desde la UI (sync uno por uno).
+ */
+export async function capturarUno(slug: string): Promise<CapturaResult> {
+  const fecha = new Date()
+
+  // 1) Buscar definición del indicador en la DB
+  let indicadorDef
+  try {
+    indicadorDef = await prisma.indicador.findUnique({ where: { slug } })
+  } catch {
+    return {
+      slug,
+      valor: 0,
+      valorTexto: 'N/D',
+      confiable: false,
+      fecha,
+      metadata: JSON.stringify({ error: 'Error buscando indicador en DB' }),
+      error: 'Error buscando indicador en DB',
+    }
+  }
+
+  if (!indicadorDef) {
+    return {
+      slug,
+      valor: 0,
+      valorTexto: 'N/D',
+      confiable: false,
+      fecha,
+      metadata: JSON.stringify({ error: 'Indicador no encontrado' }),
+      error: 'Indicador no encontrado',
+    }
+  }
+
+  // 2) Intentar obtener dato real según el slug
+  let resultado: CapturaResult | null = null
+
+  try {
+    if (slug === 'tc-oficial-bcb') {
+      resultado = await capturarTcOficial()
+    } else if (
+      ['lme-cobre', 'lme-zinc', 'lme-estano', 'lme-plata', 'lme-plomo',
+       'agr-cafe', 'agr-soya', 'agr-arroz', 'agr-azucar', 'agr-maiz', 'agr-trigo'
+      ].includes(slug)
+    ) {
+      // Metales LME y commodities agrícolas via fetchIndicadores (Yahoo + Stooq)
+      const response = await fetchIndicadores([slug as SlugIndicador])
+      const found = response.indicadores.find(i => i.slug === slug)
+      if (found) {
+        resultado = {
+          slug,
+          valor: found.valor,
+          valorTexto: `${Math.round(found.valor).toLocaleString('es-BO')} ${indicadorDef.unidad}`,
+          confiable: found.confiable,
+          fecha,
+          metadata: JSON.stringify({
+            fuente: found.fuente,
+            metodo: found.confiable ? 'api_real' : 'fallback',
+            valorRaw: found.valor,
+            variacionPct: found.variacion,
+            fuentesUsadas: response.fuentesUsadas,
+          }),
+        }
+      }
+    }
+    // Indicadores Tier 2/3 sin fuente automática — dato disponible solo si ya existe en DB
+    if (!resultado) {
+      resultado = {
+        slug,
+        valor: 0,
+        valorTexto: 'N/D',
+        confiable: false,
+        fecha,
+        metadata: JSON.stringify({ 
+          error: 'Sin fuente automática de datos',
+          hint: 'Este indicador se actualiza manualmente o tiene periodicidad mayor a diaria',
+        }),
+        error: 'Sin fuente automática — datos manuales',
+      }
+    }
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Error desconocido'
+    resultado = {
+      slug,
+      valor: 0,
+      valorTexto: 'N/D',
+      confiable: false,
+      fecha,
+      metadata: JSON.stringify({ error: errorMsg }),
+      error: errorMsg,
+    }
+  }
+
+  // 3) Persistir resultado en DB (independientemente del éxito o fracaso)
+  try {
+    await prisma.indicadorValor.create({
+      data: {
+        indicadorId: indicadorDef.id,
+        fecha: resultado.fecha,
+        valor: resultado.valor,
+        valorTexto: resultado.valorTexto,
+        confiable: resultado.confiable,
+        metadata: resultado.metadata,
+      },
+    })
+  } catch (dbError) {
+    console.error(`[capturarUno] Error guardando ${slug}:`, dbError)
+    // No propagar — el error de DB no frena al indicador
+  }
+
+  return resultado
+}
+
+// ─── Capturar todos los Tier 1 (secuencial, uno por uno) ─────────
+
+/**
+ * Captura todos los Tier 1 de forma SECUENCIAL (uno por uno).
+ * Cada indicador se procesa de forma aislada — si uno falla, genera alerta pero no frena los demás.
+ * Optimizado para memoria y red: una sola micro-llamada por indicador.
+ */
 export async function capturarTier1(): Promise<{
   exitosos: CapturaResult[]
   fallidos: CapturaResult[]
@@ -738,57 +860,33 @@ export async function capturarTier1(): Promise<{
   const exitosos: CapturaResult[] = []
   const fallidos: CapturaResult[] = []
 
-  // TC Oficial
-  const tcOficial = await capturarTcOficial()
-  if (tcOficial.confiable && tcOficial.valor > 0) {
-    exitosos.push(tcOficial)
-  } else {
-    fallidos.push(tcOficial)
-  }
+  // Slugs que tienen fuente automática (Tier 1)
+  const slugsTier1 = [
+    'tc-oficial-bcb',
+    'lme-cobre', 'lme-zinc', 'lme-estano', 'lme-plata', 'lme-plomo',
+    'agr-cafe', 'agr-soya', 'agr-arroz', 'agr-azucar', 'agr-maiz', 'agr-trigo',
+  ]
 
-  // LME Metales — datos reales via Yahoo Finance + Stooq
-  const lmeSlugs: SlugIndicador[] = ['lme-cobre', 'lme-zinc', 'lme-estano', 'lme-plata', 'lme-plomo']
-  const lmeResultados = await capturarLmeReal(lmeSlugs)
-  for (const resultado of lmeResultados) {
-    if (resultado.valor > 0) {
-      exitosos.push(resultado)
-    } else {
-      fallidos.push(resultado)
-    }
-  }
-
-  // Commodities Agrícolas — datos reales via Yahoo Finance
-  const agrSlugs: SlugIndicador[] = ['agr-cafe', 'agr-soya', 'agr-arroz', 'agr-azucar', 'agr-maiz', 'agr-trigo']
-  const agrResultados = await capturarLmeReal(agrSlugs)
-  for (const resultado of agrResultados) {
-    if (resultado.valor > 0) {
-      exitosos.push(resultado)
-    } else {
-      fallidos.push(resultado)
-    }
-  }
-
-  // Guardar resultados en DB
-  for (const resultado of [...exitosos, ...fallidos]) {
+  // Procesar uno por uno de forma secuencial
+  for (const slug of slugsTier1) {
     try {
-      const indicador = await prisma.indicador.findUnique({
-        where: { slug: resultado.slug },
-      })
-
-      if (indicador) {
-        await prisma.indicadorValor.create({
-          data: {
-            indicadorId: indicador.id,
-            fecha: resultado.fecha,
-            valor: resultado.valor,
-            valorTexto: resultado.valorTexto,
-            confiable: resultado.confiable,
-            metadata: resultado.metadata,
-          },
-        })
+      const resultado = await capturarUno(slug)
+      if (resultado.valor > 0 && resultado.confiable) {
+        exitosos.push(resultado)
+      } else {
+        fallidos.push(resultado)
       }
-    } catch (dbError) {
-      console.error(`Error guardando ${resultado.slug}:`, dbError)
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Error desconocido'
+      fallidos.push({
+        slug,
+        valor: 0,
+        valorTexto: 'N/D',
+        confiable: false,
+        fecha: new Date(),
+        metadata: JSON.stringify({ error: errorMsg }),
+        error: errorMsg,
+      })
     }
   }
 

@@ -665,31 +665,32 @@ export default function NuevoClientePage() {
 
       const { cliente: createdClient } = await clientRes.json();
 
-      // 2. Create contracts for each selected product
-      const results = await Promise.allSettled(
-        selectedProducts.map((tipo) => {
-          const pc = productConfigs[tipo];
-          return fetch('/api/contratos', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              clienteId: createdClient.id,
-              tipoProducto: tipo,
-              frecuencia: pc.frecuencia,
-              formatoEntrega: pc.canal,
-              fechaInicio: pc.fechaInicio,
-              montoMensual: pc.precio,
-            }),
-          });
-        })
-      );
+      // 2. Create one contract with all selected products
+      const contractRes = await fetch('/api/contratos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clienteId: createdClient.id,
+          tipoProducto: selectedProducts,
+          frecuencia: selectedProducts.length === 1
+            ? productConfigs[selectedProducts[0]]?.frecuencia || 'diario'
+            : 'diario',
+          formatoEntrega: selectedProducts.length === 1
+            ? productConfigs[selectedProducts[0]]?.canal || 'whatsapp'
+            : 'whatsapp',
+          fechaInicio: selectedProducts.length === 1
+            ? productConfigs[selectedProducts[0]]?.fechaInicio || todayStr()
+            : todayStr(),
+          montoMensual: selectedProducts.reduce(
+            (sum, tipo) => sum + (productConfigs[tipo]?.precio || 0),
+            0
+          ),
+        }),
+      });
 
-      const failed = results.filter(
-        (r) => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.ok)
-      );
-
-      if (failed.length > 0) {
-        throw new Error(`${failed.length} contrato(s) no se pudieron crear`);
+      if (!contractRes.ok) {
+        const errData = await contractRes.json();
+        throw new Error(errData.error || 'Error al crear contrato');
       }
 
       setSuccess(true);

@@ -57,6 +57,8 @@ export const suscriptorCreateSchema = z.object({
   whatsapp: z.string().max(50).optional().default(''),
   origen: z.string().max(100).optional().default('admin'),
   activo: z.boolean().optional().default(true),
+  boletines: z.array(z.string()).optional().default([]),
+  canal: z.enum(['email', 'whatsapp', 'ambos']).optional().default('email'),
 });
 
 export const suscriptorUpdateSchema = z.object({
@@ -65,6 +67,8 @@ export const suscriptorUpdateSchema = z.object({
   whatsapp: z.string().max(50).nullable().optional(),
   origen: z.string().max(100).optional(),
   activo: z.boolean().optional(),
+  boletines: z.array(z.string()).optional(),
+  canal: z.enum(['email', 'whatsapp', 'ambos']).optional(),
 });
 
 // ─── Entrega ──────────────────────────────────────────────────────

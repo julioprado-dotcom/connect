@@ -428,6 +428,8 @@ model SuscriptorGratuito {
   whatsapp         String?
   origen           String   @default("landing") // "landing", "redes", "referido", "evento"
   activo           Boolean  @default(true)
+  boletines        String   @default("[]")       // JSON: boletines gratuitos asignados ["EL_RADAR","VOZ_Y_VOTO",...]
+  canal            String   @default("email")     // "email", "whatsapp", "ambos"
   fechaSuscripcion DateTime @default(now())
 
   @@index([email])

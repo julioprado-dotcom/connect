@@ -46,6 +46,8 @@ export async function GET(request: NextRequest) {
           nombre: true,
           origen: true,
           activo: true,
+          boletines: true,
+          canal: true,
           fechaSuscripcion: true,
           // PII solo visible con header de autorización
           email: request.headers.get('authorization') ? true : false,
@@ -71,7 +73,7 @@ export async function POST(request: NextRequest) {
   try {
     const parsed = await guardedParse(request, suscriptorCreateSchema, RATE.WRITE);
     if (parsed instanceof NextResponse) return parsed;
-    const { nombre, email, whatsapp, origen, activo } = parsed.body;
+    const { nombre, email, whatsapp, origen, activo, boletines, canal } = parsed.body;
 
     const suscriptor = await db.suscriptorGratuito.create({
       data: {
@@ -80,6 +82,8 @@ export async function POST(request: NextRequest) {
         whatsapp: typeof whatsapp === 'string' ? whatsapp.trim() : null,
         origen: typeof origen === 'string' ? origen : 'admin',
         activo: typeof activo === 'boolean' ? activo : true,
+        boletines: Array.isArray(boletines) ? JSON.stringify(boletines) : '[]',
+        canal: typeof canal === 'string' ? canal : 'email',
       },
     });
 
@@ -122,6 +126,8 @@ export async function PUT(request: NextRequest) {
     if (body.whatsapp !== undefined) data.whatsapp = body.whatsapp === '' ? null : String(body.whatsapp).trim();
     if (body.origen !== undefined) data.origen = String(body.origen);
     if (body.activo !== undefined) data.activo = Boolean(body.activo);
+    if (body.boletines !== undefined) data.boletines = Array.isArray(body.boletines) ? JSON.stringify(body.boletines) : '[]';
+    if (body.canal !== undefined) data.canal = String(body.canal);
 
     const suscriptor = await db.suscriptorGratuito.update({
       where: { id },
