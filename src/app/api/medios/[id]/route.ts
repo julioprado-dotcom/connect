@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { RATE } from '@/lib/rate-guard';
+import { isRateLimited, getClientIp } from '@/lib/rate-limit';
 
 export async function GET(
   _request: NextRequest,
@@ -24,6 +26,11 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
+
+    const ip = getClientIp(request);
+    const { limited } = isRateLimited(ip, RATE.WRITE);
+    if (limited) return NextResponse.json({ error: 'Demasiadas peticiones' }, { status: 429 });
+
     const body = await request.json();
 
     const medio = await db.medio.update({

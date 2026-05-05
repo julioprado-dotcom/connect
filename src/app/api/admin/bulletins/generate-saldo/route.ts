@@ -7,64 +7,26 @@
  * Compara la situación de apertura (Termómetro 7AM) con el cierre (7PM).
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import ZAI from 'z-ai-web-dev-sdk'
+import { PRODUCTOS } from '@/constants/products'
 import { getMencionesForBulletin, formatFechaBolivia, getProductConfig } from '@/lib/bulletin/product-generator'
 import { getIndicadoresParaEjes, formatearIndicadoresPrompt } from '@/lib/indicadores/injector'
-
-// ─── Prompt del Sistema ───────────────────────────────────────────
-
-const SYSTEM_PROMPT = `Eres un analista de medios boliviano experto, parte del motor ONION200 de DECODEX Bolivia.
-Tu tarea es generar "El Saldo del Día" — el cierre de jornada de inteligencia mediática.
-
-PRINCIPIOS FUNDAMENTALES:
-- No somos jueces ni parte. Analizamos TENDENCIAS, no contenidos.
-- Reflejamos la pluralidad de fuentes (medios corporativos, regionales, alternativos, redes).
-- El usuario (cliente) saca sus propias conclusiones. Nosotros entregamos el MAPA, no el TERRITORIO.
-- Usamos datos concretos y verificables. Si no tenemos datos, lo decimos.
-
-FORMATO DE SALIDA — El Saldo del Día:
-1. BALANCE DE JORNADA (3-5 líneas)
-   Resumen ejecutivo: qué pasó hoy, cómo se movieron los ejes temáticos.
-
-2. EVOLUCIÓN POR EJE TEMÁTICO
-   Para cada eje temático contratado:
-   - Tendencia: ↑ ascendente / ↓ descendente / → estable
-   - Menciones clave (3-5): título, medio, nivel (1-5)
-   - Cambio vs apertura (mañana): qué pasó entre las 7 AM y ahora
-
-3. CIFRAS DEL DÍA
-   - Total menciones monitoreadas
-   - Eje con más actividad
-   - Eje con mayor cambio vs apertura
-
-4. ALERTAS PARA MAÑANA
-   - Temas que requieren seguimiento
-   - Eventos programados relevantes
-
-ESTILO:
-- Profesional pero accesible, pensado para 2 minutos de lectura
-- Usar datos numéricos concretos cuando estén disponibles
-- Máximo 400 palabras totales
-- No usar subtítulos innecesarios
-- Boliviano: usar "Bs", fechas en formato es-BO`
+import { guardedParse, RATE } from '@/lib/rate-guard'
+import { generateSaldoSchema } from '@/lib/validations'
 
 // ─── Endpoint POST ────────────────────────────────────────────────
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const parsed = await guardedParse(request, generateSaldoSchema, RATE.AI);
+    if (parsed instanceof NextResponse) return parsed;
     const {
       ejesTematicos = [],
       personaId,
       nombreCliente = 'Cliente',
       indicadores = true,
-    } = body as {
-      ejesTematicos?: string[]
-      personaId?: string
-      nombreCliente?: string
-      indicadores?: boolean
-    }
+    } = parsed.body;
 
     const inicio = Date.now()
     const config = getProductConfig('SALDO_DEL_DIA')
@@ -91,9 +53,10 @@ export async function POST(request: Request) {
     // 2. Obtener indicadores relevantes
     let bloqueIndicadores = ''
     if (indicadores && ejesTematicos.length > 0) {
-      const contextuales = await getIndicadoresParaEjes(ejesTematicos, { maximo: 5 })
-      if (contextuales.length > 0) {
-        bloqueIndicadores = formatearIndicadoresPrompt(contextuales, new Date())
+      const indicadoresPorEje = await getIndicadoresParaEjes(ejesTematicos)
+      const todasLasIndicadores = Object.values(indicadoresPorEje).flat()
+      if (todasLasIndicadores.length > 0) {
+        bloqueIndicadores = formatearIndicadoresPrompt(todasLasIndicadores)
       }
     }
 
@@ -129,10 +92,10 @@ REGLA: Compara la evolución del día. Si hay datos del Termómetro (apertura), 
     const zai = await ZAI.create()
     const completion = await zai.chat.completions.create({
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: PRODUCTOS.SALDO_DEL_DIA.systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      temperature: 0.3, // bajo para consistencia factual
+      temperature: PRODUCTOS.SALDO_DEL_DIA.temperatura,
     })
 
     const contenido = completion.choices[0]?.message?.content ?? 'Error: no se generó contenido'

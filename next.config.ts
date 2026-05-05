@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  output: 'standalone',
+  // output: 'standalone', // Disabled: use next start directly
 
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -18,6 +18,8 @@ const nextConfig: NextConfig = {
   },
 
   // Cache headers: stale-while-revalidate para APIs GET
+  // NOTA Z.ai: No se incluyen X-Frame-Options, CSP ni HSTS
+  // porque bloquean el funcionamiento en iframe cross-origin.
   async headers() {
     return [
       {

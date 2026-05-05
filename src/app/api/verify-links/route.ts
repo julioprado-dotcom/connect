@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     // Get menciones with URLs that haven't been verified recently
     const { searchParams } = new URL(request.url);
-    const batchSize = parseInt(searchParams.get('batch') || '20');
+    const batchSize = Math.min(50, Math.max(1, parseInt(searchParams.get('batch') || '20')));
 
     // Get menciones with non-empty URLs, prioritize ones not yet verified
     const menciones = await db.mencion.findMany({

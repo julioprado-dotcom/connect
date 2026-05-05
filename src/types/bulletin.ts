@@ -75,8 +75,11 @@ export interface ProductoConfig {
   longitudMinLectura: number     // minutos de lectura
   canales: CanalEntrega[]
   periodoDefault: number         // días por defecto para la generación
+  palabrasObjetivo: number       // palabras objetivo para la IA
+  temperatura: number            // 0.3 factual, 0.5 profundo, 0.6 narrativa
   activo: boolean
   generador: GeneradorConfig
+  systemPrompt: string           // prompt de sistema para generación con IA
 }
 
 // ─── Indicador ────────────────────────────────────────────────────
@@ -146,4 +149,68 @@ export interface ResultadoGeneracion {
   generadoEn: number             // ms
   exito: boolean
   error?: string
+}
+
+// ─── Alias (usado por código del Equipo B) ─────────────────────────
+
+export type TipoProducto = TipoBoletin
+
+// ─── Mención Enriquecida (para generación de boletines) ───────────
+
+export interface MencionEnriquecida {
+  id: string
+  titulo: string
+  resumen: string | null
+  medio: string | null
+  persona: string | null
+  fechaPublicacion: string
+  sentimiento: string | null
+  relevancia: number
+  temas: string[]
+  url?: string
+}
+
+// ─── Indicador Formateado (para inyección en prompts) ─────────────
+
+export interface IndicadorFormateado {
+  nombre: string
+  valor: string
+  tendencia: 'ascendente' | 'descendente' | 'estable'
+  unidad?: string
+}
+
+// ─── Resultado de validación de calidad ───────────────────────────
+
+export interface ValidationResult {
+  valido: boolean
+  puntuacion: number
+  errores: string[]
+  advertencias: string[]
+  estadisticas: {
+    palabras: number
+    caracteres: number
+    oraciones: number
+  }
+}
+
+// ─── Resultado de generación con reintentos ───────────────────────
+
+export interface GenerationResult {
+  exito: boolean
+  contenido?: string
+  tokensUsados?: number
+  modelo?: string
+  temperatura?: number
+  error?: string
+  metadata?: Record<string, unknown>
+}
+
+// ─── Configuración de schedule para scheduler ─────────────────────
+
+export interface ScheduleConfig {
+  activo: boolean
+  cron: string
+  horarioBolivia: string
+  diaSemana?: number[]
+  descripcionVentana?: string
 }

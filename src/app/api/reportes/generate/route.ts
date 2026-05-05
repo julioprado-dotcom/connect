@@ -14,14 +14,17 @@ import {
   getSentimientoLabelExtendido,
 } from '@/lib/reportes-utils';
 import type { MencionConRelaciones, ResumenParams } from '@/lib/reportes-utils';
+import { guardedParse, RATE } from '@/lib/rate-guard';
+import { reporteGenerateSchema } from '@/lib/validations';
 
 // ─── Tipos válidos derivados del catálogo (data-driven) ───
 const VALID_TIPOS = Object.keys(PRODUCTOS);
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { personaId, tipo, fecha, ejesSeleccionados } = body;
+    const parsed = await guardedParse(request, reporteGenerateSchema, RATE.AI);
+    if (parsed instanceof NextResponse) return parsed;
+    const { personaId, tipo, fecha, ejesSeleccionados } = parsed.body;
     const tipoReporte = tipo || 'semanal';
 
     // ─── Validación: verificar que existe en el catálogo ───

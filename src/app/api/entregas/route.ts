@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { entregaCreateSchema } from '@/lib/validations';
+import { guardedParse, RATE } from '@/lib/rate-guard';
 
 // GET /api/entregas — Listar entregas con filtros
 export async function GET(req: NextRequest) {
@@ -11,8 +13,8 @@ export async function GET(req: NextRequest) {
     const canal = searchParams.get('canal');
     const fechaDesde = searchParams.get('fechaDesde');
     const fechaHasta = searchParams.get('fechaHasta');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50')));
 
     const where: Record<string, unknown> = {};
 
@@ -69,12 +71,9 @@ export async function GET(req: NextRequest) {
 // POST /api/entregas — Registrar una entrega
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { contratoId, tipoBoletin, contenido, fechaProgramada, fechaEnvio, estado, canal, destinatarios, error } = body;
-
-    if (!contratoId || !tipoBoletin) {
-      return NextResponse.json({ error: 'contratoId y tipoBoletin son requeridos' }, { status: 400 });
-    }
+    const parsed = await guardedParse(req, entregaCreateSchema, RATE.WRITE);
+    if (parsed instanceof NextResponse) return parsed;
+    const { contratoId, tipoBoletin, contenido, fechaProgramada, fechaEnvio, estado, canal, destinatarios, error } = parsed.body;
 
     // Verificar que el contrato existe
     const contrato = await db.contrato.findUnique({ where: { id: contratoId } });

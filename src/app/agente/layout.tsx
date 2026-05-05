@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { UserMenu } from '@/components/user-menu';
 
 export const metadata: Metadata = {
   title: 'Portal Agente — DECODEX Bolivia',
@@ -12,17 +13,20 @@ export default function AgenteLayout({ children }: { children: React.ReactNode }
       {/* Top bar with DECODEX branding */}
       <header className="sticky top-0 z-50 bg-card border-b border-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded flex items-center justify-center" style={{ backgroundColor: '#0A1628' }}>
-            <span className="text-white text-[10px] font-bold">D</span>
+          <div className="h-7 w-7 rounded flex items-center justify-center" style={{ backgroundColor: '#0F2027' }}>
+            <span className="text-[10px] font-bold" style={{ color: '#FF862F' }}>D</span>
           </div>
           <div>
             <p className="text-xs font-bold text-foreground leading-none">DECODEX BOLIVIA</p>
             <p className="text-[9px] text-muted-foreground">Portal Agente</p>
           </div>
         </div>
-        <Link href="/" className="text-[10px] text-muted-foreground hover:text-foreground transition-colors">
-          &larr; Admin
-        </Link>
+        <div className="flex items-center gap-2">
+          <UserMenu compact />
+          <Link href="/" className="text-[10px] text-muted-foreground hover:text-foreground transition-colors">
+            &larr; Admin
+          </Link>
+        </div>
       </header>
       {/* Main content */}
       <main className="flex-1 p-4 max-w-lg mx-auto w-full">
@@ -30,7 +34,7 @@ export default function AgenteLayout({ children }: { children: React.ReactNode }
       </main>
       {/* Bottom branding */}
       <footer className="bg-card/80 backdrop-blur border-t border-border px-4 py-2 text-center">
-        <p className="text-[10px] text-muted-foreground">DECODEX Bolivia &middot; Inteligencia de Se&ntilde;ales &middot; ONION200</p>
+        <p className="text-[10px] text-muted-foreground">DECODEX Bolivia &middot; Inteligencia de Medios</p>
       </footer>
     </div>
   );

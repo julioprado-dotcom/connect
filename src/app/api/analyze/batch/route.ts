@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import ZAI from 'z-ai-web-dev-sdk';
+import { guardedParse, RATE } from '@/lib/rate-guard';
+import { analyzeBatchSchema } from '@/lib/validations';
 
 const EJES_TEMATICOS = [
   { slug: 'hidrocarburos-energia', nombre: 'Hidrocarburos, Energía y Combustible' },
@@ -78,8 +80,9 @@ async function analyzeSingle(titulo: string, texto: string): Promise<{
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const limit = Math.min(50, Math.max(1, body.limit || 10));
+    const parsed = await guardedParse(request, analyzeBatchSchema, RATE.AI);
+    if (parsed instanceof NextResponse) return parsed;
+    const { limit } = parsed.body;
 
     // Obtener menciones sin clasificar
     const menciones = await db.mencion.findMany({

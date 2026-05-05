@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import ZAI from 'z-ai-web-dev-sdk';
+import { guardedParse, RATE } from '@/lib/rate-guard';
+import { analyzeSchema } from '@/lib/validations';
 
 const EJES_TEMATICOS = [
   { slug: 'hidrocarburos-energia', nombre: 'Hidrocarburos, Energía y Combustible' },
@@ -102,8 +104,9 @@ async function analyzeMencion(titulo: string, texto: string): Promise<{
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { mencionId, texto, titulo } = body;
+    const parsed = await guardedParse(request, analyzeSchema, RATE.AI);
+    if (parsed instanceof NextResponse) return parsed;
+    const { mencionId, texto, titulo } = parsed.body;
 
     let tituloText = titulo || '';
     let textoText = texto || '';

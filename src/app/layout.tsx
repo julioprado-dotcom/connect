@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
+import { AuthProvider } from "@/components/auth-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -54,7 +55,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground" style={{'--brand-mint': '#00E5A0', '--brand-navy': '#0A1628', '--brand-night': '#1A2744', '--brand-sand': '#F5F5F0', '--brand-amber': '#F59E0B'} as React.CSSProperties}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

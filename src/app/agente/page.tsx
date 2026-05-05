@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
-import { ClipboardList, Radio, BarChart3 } from 'lucide-react';
+import { ClipboardList, Radio, BarChart3, FileText } from 'lucide-react';
 
 const actions = [
   {
@@ -23,6 +23,13 @@ const actions = [
     title: 'Mis Registros',
     description: 'Ver clientes y contratos recientes',
     color: 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300',
+  },
+  {
+    href: '/dashboard',
+    icon: FileText,
+    title: 'Vista Cliente',
+    description: 'Previsualizar el dashboard que ve el cliente',
+    color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
   },
 ];
 

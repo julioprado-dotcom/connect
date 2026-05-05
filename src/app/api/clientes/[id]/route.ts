@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { rateGuard, RATE } from '@/lib/rate-guard';
+import { isRateLimited, getClientIp } from '@/lib/rate-limit';
 
 export async function GET(
   _request: NextRequest,
@@ -42,6 +44,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const rateCheck = rateGuard(request, RATE.WRITE);
+    if (rateCheck) return rateCheck;
+
     const { id } = await params;
     const body = await request.json();
 
@@ -78,10 +83,14 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const ip = getClientIp(request);
+    const { limited } = isRateLimited(ip, RATE.WRITE);
+    if (limited) return NextResponse.json({ error: 'Demasiadas peticiones' }, { status: 429 });
+
     const { id } = await params;
     await db.cliente.delete({ where: { id } });
     return NextResponse.json({ success: true });

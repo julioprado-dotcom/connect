@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import ZAI from 'z-ai-web-dev-sdk';
+import { guardedParse, RATE } from '@/lib/rate-guard';
+import { searchSchema } from '@/lib/validations';
 
 export async function POST(request: NextRequest) {
   try {
-    const { personaNombre } = await request.json();
-
-    if (!personaNombre) {
-      return NextResponse.json(
-        { error: 'Se requiere el nombre de la persona' },
-        { status: 400 }
-      );
-    }
+    const parsed = await guardedParse(request, searchSchema, RATE.SEARCH);
+    if (parsed instanceof NextResponse) return parsed;
+    const { personaNombre } = parsed.body;
 
     const zai = await ZAI.create();
     const results = await zai.functions.invoke('web_search', {

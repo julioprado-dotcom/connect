@@ -1,8 +1,15 @@
-# Z.ai Sandbox
+# Z.ai Sandbox / Runtime
 .zscripts/
 worklog.md
 download/
 node_modules/
+backups/
+
+# Sensitive / session files
+HANDOFF.md
+worklog_backup.md
+worklog-session2.md
+agent-ctx/
 
 # Environment
 .env
@@ -15,11 +22,34 @@ out/
 # Prisma
 prisma/migrations/
 
+# Database
+db/*.db
+*.db-journal
+*.db-wal
+
+# Z.ai skills (managed externally)
+skills/
+
+# Build artifacts
+tsconfig.tsbuildinfo
+package-lock.json
+
+# Temp data files
+search*.json
+social_search*.json
+suplentes_detalle.json
+
+# Scraping / parse scripts (one-off utilities)
+parse_*.py
+build_final_json.py
+
 # Misc
 .DS_Store
 *.log
 tmp/
-skills/
+CLAUDE.md
+AGENTS.md
+
 # Temporary data files from web scraping
 data/*.pdf
 data/*.xlsx
@@ -32,7 +62,4 @@ data/elpais_*.json
 data/erbol_*.json
 data/boliviaverifica_*.json
 data/electos_*.json
-
-# Web scraping temp data
 data/electos_2025_text.txt
-data/search_results*.json

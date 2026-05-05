@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { suscriptorCreateSchema } from '@/lib/validations';
+import { guardedParse, rateGuard, RATE } from '@/lib/rate-guard';
+import { isRateLimited, getClientIp } from '@/lib/rate-limit';
 
 /* ═══════════════════════════════════════════════════════════
    GET /api/suscriptores
@@ -38,6 +41,16 @@ export async function GET(request: NextRequest) {
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { fechaSuscripcion: 'desc' },
+        select: {
+          id: true,
+          nombre: true,
+          origen: true,
+          activo: true,
+          fechaSuscripcion: true,
+          // PII solo visible con header de autorización
+          email: request.headers.get('authorization') ? true : false,
+          whatsapp: request.headers.get('authorization') ? true : false,
+        },
       }),
       db.suscriptorGratuito.count({ where }),
     ]);
@@ -56,12 +69,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { nombre, email, whatsapp, origen, activo } = body;
-
-    if (!email || typeof email !== 'string' || !email.trim()) {
-      return NextResponse.json({ error: 'El email es obligatorio' }, { status: 400 });
-    }
+    const parsed = await guardedParse(request, suscriptorCreateSchema, RATE.WRITE);
+    if (parsed instanceof NextResponse) return parsed;
+    const { nombre, email, whatsapp, origen, activo } = parsed.body;
 
     const suscriptor = await db.suscriptorGratuito.create({
       data: {
@@ -91,6 +101,9 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const rateCheck = rateGuard(request, RATE.WRITE);
+    if (rateCheck) return rateCheck;
+
     const id = request.nextUrl.searchParams.get('id');
     if (!id) {
       return NextResponse.json({ error: 'El parámetro "id" es obligatorio' }, { status: 400 });
@@ -132,6 +145,10 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+    const { limited } = isRateLimited(ip, RATE.WRITE);
+    if (limited) return NextResponse.json({ error: 'Demasiadas peticiones' }, { status: 429 });
+
     const id = request.nextUrl.searchParams.get('id');
     if (!id) {
       return NextResponse.json({ error: 'El parámetro "id" es obligatorio' }, { status: 400 });

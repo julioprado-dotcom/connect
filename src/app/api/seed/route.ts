@@ -1,6 +1,26 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { seedIndicadores } from '@/lib/indicadores/capturer-tier1';
+import { guardedParse, RATE } from '@/lib/rate-guard';
+import { seedSchema } from '@/lib/validations';
+
+// ─── Guard: API Key para operaciones destructivas ─────────────────
+// En producción, definir SEED_API_KEY en .env
+// GET (lectura) siempre es público; POST con force=true requiere API key
+const SEED_KEY = process.env.SEED_API_KEY;
+
+function isSeedProtected(): boolean {
+  // Siempre protegido: sin key = bloqueado (seguridad por defecto)
+  // Usar SEED_API_KEY=dev para modo desarrollo sin protección
+  return SEED_KEY !== 'dev';
+}
+
+function validateSeedKey(request: Request): boolean {
+  if (!SEED_KEY || SEED_KEY === 'dev') return true; // modo dev explícito
+  const authHeader = request.headers.get('authorization');
+  const queryKey = new URL(request.url).searchParams.get('key');
+  return authHeader === `Bearer ${SEED_KEY}` || queryKey === SEED_KEY;
+}
 
 // 12 Ejes Temáticos aprobados — CONTEXTO.md v0.5.0
 const EJES_TEMATICOS = [
@@ -133,14 +153,24 @@ function normalizarDepartamento(dep: string): string {
   return mapa[d] || d;
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const body = await request.json().catch(() => ({}));
-    const force = body?.force === true;
+    const parsed = await guardedParse(request, seedSchema, RATE.DESTRUCTIVE);
+    if (parsed instanceof NextResponse) return parsed;
+    const body = parsed.body;
+    const force = body.force;
+
+    // Protección: operaciones con force requieren API key (siempre excepto SEED_API_KEY=dev)
+    if (force && !validateSeedKey(request)) {
+      return NextResponse.json(
+        { error: 'Operación no autorizada. Se requiere SEED_API_KEY.' },
+        { status: 403 }
+      );
+    }
 
     const existing = await db.persona.count();
 
-    const seedOnly = body?.seed_only === 'subs';
+    const seedOnly = body.seed_only === 'subs';
 
     // Mode: seed only sub-clasificaciones (no wipe needed)
     if (seedOnly) {

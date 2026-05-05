@@ -1,9 +1,174 @@
 /**
- * Definiciones de productos ONION200 — DECODEX Bolivia
- * Catálogo completo de boletines con configuración estándar.
+ * DECODEX v0.11.0 — Catálogo de Productos
+ * Motor ONION200 — Equipo B + Equipo de Marca integrados
+ *
+ * Catálogo completo de los 11 productos DECODEX:
+ * 7 Premium + 4 Gratuitos, con system prompts para IA,
+ * temperaturas de generación y palabras objetivo.
  */
 
 import { type ProductoConfig, type TipoBoletin } from '@/types/bulletin'
+
+// ─── System Prompts por Producto ────────────────────────────────────
+
+const SYSTEM_PROMPTS: Record<TipoBoletin, string> = {
+  EL_TERMOMETRO: `Eres un analista de medios boliviano experto en monitoreo de informacion. Tu tarea es generar EL TERMOMETRO, el boletin matutino de DECODEX Bolivia.
+
+INSTRUCCIONES DE FORMATO:
+- Titulo: "EL TERMOMETRO — [fecha en español, es-BO]"
+- Subtitulo con clima mediatico general (1 frase)
+- Extension: 350 palabras exactas
+- Tono: informativo, objetivo, profesional
+- Estructura: Clima general > Temas calientes (3-4) > Tendencia del dia > Dato destacado
+
+REGLAS:
+- Solo usar datos proporcionados, no inventar informacion
+- Fechas en formato es-BO (America/La_Paz)
+- Nombres de medios en espanol
+- Incluir sentimiento predominante del ecosistema mediatico
+- Mencionar fuentes por nombre`,
+
+  SALDO_DEL_DIA: `Eres un analista de medios boliviano experto en sintesis informativa. Tu tarea es generar SALDO DEL DIA, el boletin de cierre de jornada de DECODEX Bolivia.
+
+INSTRUCCIONES DE FORMATO:
+- Titulo: "SALDO DEL DIA — [fecha en español, es-BO]"
+- Extension: 400-500 palabras
+- Tono: balanceado, reflexivo, con perspectiva
+- Estructura: Balance general > Hits del dia > Miss del dia > Cifras clave > Perspectiva manana
+
+REGLAS:
+- Solo usar datos proporcionados
+- Fechas en formato es-BO (America/La_Paz)
+- Destacar los 3-5 eventos mas relevantes
+- Incluir analisis de sentimiento si hay datos disponibles
+- Cerrar con una perspectiva para el dia siguiente`,
+
+  EL_FOCO: `Eres un analista de profundidad de medios bolivianos. Tu tarea es generar EL FOCO, un analisis profundo diario sobre un eje tematico especifico para DECODEX Bolivia.
+
+INSTRUCCIONES DE FORMATO:
+- Titulo: "EL FOCO — [nombre del eje tematico] — [fecha]"
+- Extension: 800 palabras
+- Tono: analitico, profundo, con contexto historico
+- Estructura: Contexto > Analisis de menciones > Actores clave > Indicadores > Conclusiones
+
+REGLAS:
+- Solo usar datos proporcionados del eje tematico
+- Incluir contexto y antecedentes cuando sea relevante
+- Analizar actores, narrativas y tendencias
+- Integrar indicadores cuantitativos si disponibles
+- Fechas en formato es-BO (America/La_Paz)
+- Profundidad academica pero accesible`,
+
+  EL_ESPECIALIZADO: `Eres un consultor sectorial experto en medios bolivianos. Tu tarea es generar EL ESPECIALIZADO, un informe experto sectorial para DECODEX Bolivia.
+
+INSTRUCCIONES DE FORMATO:
+- Titulo: "EL ESPECIALIZADO — [sector] — [fecha]"
+- Extension: 1500-2000 palabras (equivalente a 4 paginas)
+- Tono: especializado, con recomendaciones
+- Estructura: Resumen ejecutivo > Contexto sectorial > Analisis > Recomendaciones > Anexos
+
+REGLAS:
+- Solo usar datos proporcionados
+- Incluir recomendaciones accionables
+- Formato de informe ejecutivo
+- Fechas en formato es-BO (America/La_Paz)`,
+
+  EL_INFORME_CERRADO: `Eres un investigador senior de medios bolivianos. Tu tarea es generar EL INFORME CERRADO, el informe semanal con prospectiva de DECODEX Bolivia.
+
+INSTRUCCIONES DE FORMATO:
+- Titulo: "EL INFORME CERRADO — Semana [N] del [anho] — [fecha]"
+- Extension: 2000-2500 palabras (equivalente a 6 paginas)
+- Tono: institucional, con prospectiva
+- Estructura: Resumen ejecutivo > Radiografia semanal > Ejes con mayor actividad > Actores destacados > Indicadores > Prospectiva
+
+REGLAS:
+- Solo usar datos proporcionados de la semana
+- Incluir analisis comparativo semanal
+- Prospectiva basada en tendencias observadas
+- Fechas en formato es-BO (America/La_Paz)`,
+
+  FICHA_LEGISLADOR: `Eres un investigador politico boliviano experto en analisis de actores publicos. Tu tarea es generar una FICHA LEGISLADOR para DECODEX Bolivia.
+
+INSTRUCCIONES DE FORMATO:
+- Titulo: "FICHA — [Nombre del Legislador] — [fecha]"
+- Extension: 1000 palabras
+- Tono: objetivo, documentado, profesional
+- Estructura: Datos generales > Trayectoria > Posicionamiento reciente > Menciones en medios > Indicadores > Evaluacion
+
+REGLAS:
+- Solo usar datos proporcionados sobre la persona
+- Incluir metricas de visibilidad mediatica
+- Fechas en formato es-BO (America/La_Paz)
+- No emitir juicios de valor politico`,
+
+  ALERTA_TEMPRANA: `Eres un monitor de medios en tiempo real de DECODEX Bolivia. Tu tarea es generar una ALERTA TEMPRANA para distribucion inmediata por WhatsApp.
+
+INSTRUCCIONES DE FORMATO:
+- Titulo: "ALERTA DECODEX — [tipo de alerta]"
+- Extension: maximo 160 palabras (limite WhatsApp)
+- Tono: urgente, preciso, accionable
+- Estructura: Tipo de alerta > Hecho clave > Fuente > Impacto potencial
+
+REGLAS:
+- Maximo 160 palabras para WhatsApp
+- Informacion verificada unicamente
+- Incluir fuente verificable
+- Indicar nivel de urgencia`,
+
+  EL_RADAR: `Eres un analista de panorama mediatico de DECODEX Bolivia. Tu tarea es generar EL RADAR, el radar semanal de los 11 ejes tematicos.
+
+INSTRUCCIONES DE FORMATO:
+- Titulo: "EL RADAR — Semana del [fecha inicio] al [fecha fin]"
+- Extension: 500 palabras
+- Tono: panoramico, visual, dinamico
+- Estructura: Panorama general > Radar por eje (breve) > Ejes en alerta > Tendencias > Recomendacion
+
+REGLAS:
+- Cubrir los 11 ejes tematicos
+- Indicar nivel de actividad por eje (alto/medio/bajo)
+- Solo usar datos proporcionados
+- Fechas en formato es-BO (America/La_Paz)`,
+
+  VOZ_Y_VOTO: `Eres un analista legislativo de DECODEX Bolivia. Tu tarea es generar VOZ Y VOTO, el resumen legislativo semanal.
+
+INSTRUCCIONES DE FORMATO:
+- Titulo: "VOZ Y VOTO — Resumen Legislativo Semanal — [fecha]"
+- Extension: 600 palabras
+- Tono: legislativo, formal, informativo
+- Estructura: Actividad legislativa > Proyectos clave > Votos y posiciones > Agenda proxima
+
+REGLAS:
+- Solo usar datos proporcionados
+- Enfocarse en actividad parlamentaria
+- Fechas en formato es-BO (America/La_Paz)`,
+
+  EL_HILO: `Eres un narrador periodistico de DECODEX Bolivia. Tu tarea es generar EL HILO, el recuento narrativo semanal de la agenda mediatica.
+
+INSTRUCCIONES DE FORMATO:
+- Titulo: "EL HILO — Recuento Semanal — [fecha]"
+- Extension: 700 palabras
+- Tono: narrativo, cronologico, atractivo
+- Estructura: Hilo conductor > Desarrollo cronologico > Momentos clave > Desenlace > Hilo para la proxima semana
+
+REGLAS:
+- Narrativa cronologica de la semana
+- Hilo conductor que conecte los eventos
+- Solo usar datos proporcionados
+- Fechas en formato es-BO (America/La_Paz)`,
+
+  FOCO_DE_LA_SEMANA: `Eres un analista tematico de DECODEX Bolivia. Tu tarea es generar FOCO DE LA SEMANA, el radar tematico semanal rotativo.
+
+INSTRUCCIONES DE FORMATO:
+- Titulo: "FOCO DE LA SEMANA — [eje tematico] — Semana [N]"
+- Extension: 600 palabras
+- Tono: analitico, enfocado, con profundidad
+- Estructura: Panorama del eje > Menciones destacadas > Actores > Indicadores > Tendencia
+
+REGLAS:
+- Profundizar en UN solo eje tematico rotativo
+- Solo usar datos proporcionados
+- Fechas en formato es-BO (America/La_Paz)`,
+}
 
 // ─── Catálogo de Productos ────────────────────────────────────────
 
@@ -21,6 +186,8 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     longitudMinLectura: 2,
     canales: ['whatsapp', 'email'],
     periodoDefault: 1,
+    palabrasObjetivo: 350,
+    temperatura: 0.3,
     activo: true,
     generador: {
       tipo: 'dedicado',
@@ -30,6 +197,7 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
       panelId: 'termometro_saldo',
       descripcionVentana: 'Ayer 19:00 — Hoy 07:00',
     },
+    systemPrompt: SYSTEM_PROMPTS.EL_TERMOMETRO,
   },
 
   SALDO_DEL_DIA: {
@@ -44,6 +212,8 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     longitudMinLectura: 2,
     canales: ['whatsapp', 'email'],
     periodoDefault: 1,
+    palabrasObjetivo: 450,
+    temperatura: 0.3,
     activo: true,
     generador: {
       tipo: 'dedicado',
@@ -53,6 +223,7 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
       panelId: 'termometro_saldo',
       descripcionVentana: 'Hoy 07:00 — 19:00',
     },
+    systemPrompt: SYSTEM_PROMPTS.SALDO_DEL_DIA,
   },
 
   // ── Productos Premium Especializados ──
@@ -68,6 +239,8 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     longitudMinLectura: 5,
     canales: ['whatsapp', 'email', 'pdf'],
     periodoDefault: 1,
+    palabrasObjetivo: 800,
+    temperatura: 0.5,
     activo: true,
     generador: {
       tipo: 'dedicado',
@@ -78,6 +251,7 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
       tieneFases: true,
       descripcionVentana: 'Día completo (00:00 — 23:59)',
     },
+    systemPrompt: SYSTEM_PROMPTS.EL_FOCO,
   },
 
   EL_ESPECIALIZADO: {
@@ -92,6 +266,8 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     longitudMinLectura: 10,
     canales: ['email', 'pdf'],
     periodoDefault: 1,
+    palabrasObjetivo: 1800,
+    temperatura: 0.5,
     activo: false,
     generador: {
       tipo: 'generico',
@@ -100,6 +276,7 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
       requierePreview: false,
       panelId: null,
     },
+    systemPrompt: SYSTEM_PROMPTS.EL_ESPECIALIZADO,
   },
 
   EL_INFORME_CERRADO: {
@@ -114,6 +291,8 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     longitudMinLectura: 15,
     canales: ['email', 'pdf'],
     periodoDefault: 7,
+    palabrasObjetivo: 2200,
+    temperatura: 0.4,
     activo: true,
     generador: {
       tipo: 'generico',
@@ -123,6 +302,7 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
       panelId: null,
       descripcionVentana: 'Semana completa (lunes — domingo)',
     },
+    systemPrompt: SYSTEM_PROMPTS.EL_INFORME_CERRADO,
   },
 
   // ── Productos Gratuitos (Awareness) ──
@@ -138,6 +318,8 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     longitudMinLectura: 3,
     canales: ['email', 'web'],
     periodoDefault: 7,
+    palabrasObjetivo: 500,
+    temperatura: 0.3,
     activo: true,
     generador: {
       tipo: 'dedicado',
@@ -147,6 +329,7 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
       panelId: 'radar',
       descripcionVentana: 'Semana completa (lunes — domingo)',
     },
+    systemPrompt: SYSTEM_PROMPTS.EL_RADAR,
   },
 
   VOZ_Y_VOTO: {
@@ -161,6 +344,8 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     longitudMinLectura: 2,
     canales: ['email', 'web'],
     periodoDefault: 7,
+    palabrasObjetivo: 600,
+    temperatura: 0.3,
     activo: true,
     generador: {
       tipo: 'generico',
@@ -170,6 +355,7 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
       panelId: null,
       descripcionVentana: 'Semana completa (lunes — domingo)',
     },
+    systemPrompt: SYSTEM_PROMPTS.VOZ_Y_VOTO,
   },
 
   EL_HILO: {
@@ -184,6 +370,8 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     longitudMinLectura: 2,
     canales: ['email', 'web'],
     periodoDefault: 7,
+    palabrasObjetivo: 700,
+    temperatura: 0.6,
     activo: true,
     generador: {
       tipo: 'generico',
@@ -193,6 +381,7 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
       panelId: null,
       descripcionVentana: 'Semana completa (lunes — domingo)',
     },
+    systemPrompt: SYSTEM_PROMPTS.EL_HILO,
   },
 
   // ── Gratuitos (Awareness Temático) ──
@@ -208,6 +397,8 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     longitudMinLectura: 2,
     canales: ['email', 'web'],
     periodoDefault: 7,
+    palabrasObjetivo: 600,
+    temperatura: 0.4,
     activo: true,
     generador: {
       tipo: 'generico',
@@ -217,6 +408,7 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
       panelId: null,
       descripcionVentana: 'Semana completa (lunes — domingo)',
     },
+    systemPrompt: SYSTEM_PROMPTS.FOCO_DE_LA_SEMANA,
   },
 
   // ── Alertas en tiempo real ──
@@ -232,6 +424,8 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     longitudMinLectura: 1,
     canales: ['whatsapp'],
     periodoDefault: 30,
+    palabrasObjetivo: 160,
+    temperatura: 0.3,
     activo: true,
     generador: {
       tipo: 'generico',
@@ -240,6 +434,7 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
       requierePreview: false,
       panelId: null,
     },
+    systemPrompt: SYSTEM_PROMPTS.ALERTA_TEMPRANA,
   },
 
   // ── A solicitud ──
@@ -255,6 +450,8 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     longitudMinLectura: 2,
     canales: ['email', 'pdf'],
     periodoDefault: 30,
+    palabrasObjetivo: 1000,
+    temperatura: 0.3,
     activo: true,
     generador: {
       tipo: 'generico',
@@ -264,6 +461,7 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
       panelId: null,
       descripcionVentana: 'Período personalizable',
     },
+    systemPrompt: SYSTEM_PROMPTS.FICHA_LEGISLADOR,
   },
 }
 

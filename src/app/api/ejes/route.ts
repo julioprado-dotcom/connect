@@ -1,5 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { guardedParse, RATE } from '@/lib/rate-guard';
+import { isRateLimited, getClientIp } from '@/lib/rate-limit';
+import { ejeCreateSchema, ejePatchSchema } from '@/lib/validations';
 
 // ─── Helpers ──────────────────────────────────────────────────
 
@@ -118,17 +121,16 @@ export async function GET(request: Request) {
 
 // ─── POST — Create eje ────────────────────────────────────────
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const parsed = await guardedParse(request, ejeCreateSchema, RATE.WRITE);
+    if (parsed instanceof NextResponse) return parsed;
+    const body = parsed.body;
 
-    const nombre = (body.nombre || '').trim();
-    if (!nombre) {
-      return NextResponse.json({ error: 'El campo "nombre" es requerido' }, { status: 400 });
-    }
+    const nombre = body.nombre;
 
     // Auto-generate slug from nombre if not provided
-    const slug = (body.slug || '').trim() || generateSlug(nombre);
+    const slug = body.slug || generateSlug(nombre);
     if (!slug) {
       return NextResponse.json({ error: 'No se pudo generar un slug válido' }, { status: 400 });
     }
@@ -140,7 +142,7 @@ export async function POST(request: Request) {
     }
 
     // Validate parentId if provided
-    let parentId: string | null = body.parentId || null;
+    let parentId: string | null = body.parentId ?? null;
     if (parentId) {
       const parent = await db.ejeTematico.findUnique({ where: { id: parentId } });
       if (!parent) {
@@ -153,13 +155,13 @@ export async function POST(request: Request) {
         nombre,
         slug,
         parentId,
-        icono: body.icono || '',
-        color: body.color || '#6b7280',
-        descripcion: body.descripcion || '',
-        keywords: body.keywords || '',
-        dimension: body.dimension || '',
-        activo: body.activo !== undefined ? body.activo : true,
-        orden: body.orden ?? 0,
+        icono: body.icono,
+        color: body.color,
+        descripcion: body.descripcion,
+        keywords: body.keywords,
+        dimension: body.dimension,
+        activo: body.activo,
+        orden: body.orden,
       },
     });
 
@@ -172,8 +174,12 @@ export async function POST(request: Request) {
 
 // ─── PUT — Edit eje ────────────────────────────────────────────
 
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+    const { limited } = isRateLimited(ip, RATE.WRITE);
+    if (limited) return NextResponse.json({ error: 'Demasiadas peticiones' }, { status: 429 });
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -236,7 +242,7 @@ export async function PUT(request: Request) {
 
 // ─── PATCH — Toggle active ─────────────────────────────────────
 
-export async function PATCH(request: Request) {
+export async function PATCH(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
@@ -245,12 +251,9 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'El parámetro "id" es requerido' }, { status: 400 });
     }
 
-    const body = await request.json();
-    const activo = body.activo;
-
-    if (typeof activo !== 'boolean') {
-      return NextResponse.json({ error: 'El campo "activo" debe ser true o false' }, { status: 400 });
-    }
+    const parsed = await guardedParse(request, ejePatchSchema, RATE.WRITE);
+    if (parsed instanceof NextResponse) return parsed;
+    const { activo } = parsed.body;
 
     const existing = await db.ejeTematico.findUnique({ where: { id } });
     if (!existing) {
@@ -274,8 +277,12 @@ export async function PATCH(request: Request) {
 
 // ─── DELETE — Soft delete ──────────────────────────────────────
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+    const { limited } = isRateLimited(ip, RATE.WRITE);
+    if (limited) return NextResponse.json({ error: 'Demasiadas peticiones' }, { status: 429 });
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

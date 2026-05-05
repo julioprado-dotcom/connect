@@ -45,12 +45,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <div className="flex flex-col h-full">
           {/* Branding */}
           <div className="flex items-center gap-2.5 px-4 py-5 border-b border-sidebar-border">
-            <div className="h-8 w-8 rounded-lg flex items-center justify-center overflow-hidden shrink-0" style={{ backgroundColor: '#0A1628' }}>
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center overflow-hidden shrink-0" style={{ backgroundColor: '#0F2027' }}>
               <Image src="/logo.png" alt="DECODEX" width={32} height={32} className="object-cover" />
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="text-sm font-extrabold tracking-tight text-sidebar-foreground truncate leading-none">DECODEX BOLIVIA</h2>
-              <p className="text-[9px] text-sidebar-foreground/60 mt-0.5 tracking-wide uppercase">Inteligencia de Senales</p>
+              <p className="text-[9px] text-sidebar-foreground/60 mt-0.5 tracking-wide uppercase">Inteligencia de Señales</p>
             </div>
             <button
               className="lg:hidden p-1 rounded hover:bg-sidebar-accent"
@@ -198,9 +198,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </div>
             {/* Right: status + actions */}
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/30">
-                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400 hidden sm:inline">En linea</span>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(18,132,186,0.1)' }}>
+                <div className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#1284BA' }} />
+                <span className="text-[10px] font-medium hidden sm:inline" style={{ color: '#1284BA' }}>En línea</span>
               </div>
               <ThemeToggle />
             </div>
@@ -224,15 +224,30 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         {/* Bottom branding bar */}
         <div className="border-t border-border bg-card/60 px-4 sm:px-6 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-5 w-5 rounded flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#0A1628' }}>
+            <div className="h-5 w-5 rounded flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#0F2027' }}>
               <Image src="/logo.png" alt="DECODEX" width={20} height={20} className="object-cover" />
             </div>
             <span className="text-[11px] font-bold text-foreground/80 tracking-tight">DECODEX BOLIVIA</span>
           </div>
-          <span className="text-[10px] text-muted-foreground/60 tracking-wide uppercase">Inteligencia de Senales</span>
+          <span className="text-[10px] text-muted-foreground/60 tracking-wide uppercase">Inteligencia de Señales</span>
         </div>
       </div>
     </div>
   );
 }
 
+export function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="text-center space-y-4">
+        <div className="h-12 w-12 rounded-xl flex items-center justify-center mx-auto" style={{ backgroundColor: '#0F2027' }}>
+          <Image src="/logo.png" alt="DECODEX" width={48} height={48} className="object-cover" />
+        </div>
+        <div>
+          <p className="text-lg font-bold text-foreground">DECODEX</p>
+          <p className="text-muted-foreground text-sm">Cargando dashboard...</p>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -4,7 +4,9 @@
 
 **DECODEX Bolivia** es un SaaS de inteligencia mediática que monitorea la presencia de actores políticos bolivianos en medios de comunicación y redes sociales. Proporciona boletines especializados con datos duros, indicadores macroeconómicos y análisis de tendencias, orientado al pluralismo y la Constitución del 2009.
 
-**Motor interno:** ONION200 | **Versión:** 0.8.0 | **Repo:** [GitHub](https://github.com/julioprado-dotcom/connect)
+**Motor interno:** ONION200 | **Versión:** 0.13.0 (Z.ai) | **Repo:** [GitHub](https://github.com/julioprado-dotcom/connect)
+
+> **Nota — Entorno de Pruebas Z.ai:** Esta versión está desplegada y operativa en el entorno de contenedores Z.ai para pruebas funcionales del dashboard. Incluye la versión limpia sin autenticación (v07) optimizada para preview via iframe cross-origin. El servidor corre como demonio persistente con Caddy reverse proxy (puerto 81 -> 3000), base de datos SQLite seeded con 173 legisladores, 30 medios y 47 ejes temáticos. Para producción se requiere implementar autenticación compatible con iframes (recomendado: PostMessage API + Authorization Header).
 
 ---
 
@@ -415,6 +417,7 @@ Ver [PROTOCOLO_GIT.md](./PROTOCOLO_GIT.md) para las reglas detalladas de trabajo
 | **v0.6.1** | Performance audit: -91% DB queries (118 → 11), N+1 eliminado |
 | **v0.7.0** | Branding CONNECT → DECODEX, modelos Cliente + Contrato + Entrega, 28 API routes |
 | **v0.8.0** | Ejes jerárquicos (parentId + dimension), 5 dimensiones, 35 sub-clasificaciones, 12 indicadores minería, generadores dedicados formalizados, dashboard separado, protocolo data-driven, 83 archivos TS/TSX |
+| **v0.13.0** | **DEPLOY Z.ai — Full Operativa:** Versión limpia sin autenticación (v07) desplegada en contenedor Z.ai. Next.js 16.2.4 + Caddy reverse proxy + SQLite (173 personas, 30 medios, 47 ejes). 18 vistas lazy-loaded, demonio persistente, compatible con iframe cross-origin. Protocolo de despliegue documentado para reproducción en entornos similares. |
 
 ---
 
