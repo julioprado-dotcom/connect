@@ -154,3 +154,19 @@ export interface MediosHealthData {
     ultimaCaptura: string | null;
   }>;
 }
+
+export interface SystemMetrics {
+  memoryUsage: {
+    rss: number;
+    heapUsed: number;
+    heapTotal: number;
+    external: number;
+  };
+  memoryPercent: number;
+  uptime: number;
+  uptimeFormatted: string;
+  dbSize: number;
+  nodeVersion: string;
+  platform: string;
+  timestamp: string;
+}
