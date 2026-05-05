@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { seedIndicadores } from '@/lib/indicadores/capturer-tier1';
-import { guardedParse, RATE } from '@/lib/rate-guard';
+import { guardedParse, RATE, safeError } from '@/lib/rate-guard';
 import { seedSchema } from '@/lib/validations';
 
 // ─── Guard: API Key para operaciones destructivas ─────────────────
@@ -348,10 +348,8 @@ export async function POST(request: NextRequest) {
       ])].sort(),
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Error desconocido';
-    console.error('Seed error:', message);
     return NextResponse.json(
-      { error: 'Error al ejecutar seed', details: message },
+      { error: safeError(error, 'seed') },
       { status: 500 }
     );
   }
@@ -396,7 +394,6 @@ export async function GET() {
       porDepartamento: personasPorDepto.map(d => ({ departamento: d.departamento, count: d._count.id })),
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Error desconocido';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: safeError(error, 'seed') }, { status: 500 });
   }
 }

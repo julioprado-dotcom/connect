@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server'
 import { capturarTier1, seedIndicadores, getUltimoValor } from '@/lib/indicadores/capturer-tier1'
 import { db as prisma } from '@/lib/db'
+import { safeError } from '@/lib/rate-guard'
 
 export async function POST() {
   try {
@@ -35,9 +36,8 @@ export async function POST() {
       },
     })
   } catch (error) {
-    const mensaje = error instanceof Error ? error.message : 'Error desconocido'
     return NextResponse.json(
-      { exito: false, error: mensaje },
+      { exito: false, error: safeError(error, 'indicadores/capture') },
       { status: 500 }
     )
   }
@@ -86,9 +86,8 @@ export async function GET() {
       indicadores: estado,
     })
   } catch (error) {
-    const mensaje = error instanceof Error ? error.message : 'Error desconocido'
     return NextResponse.json(
-      { exito: false, error: mensaje },
+      { exito: false, error: safeError(error, 'indicadores/capture') },
       { status: 500 }
     )
   }

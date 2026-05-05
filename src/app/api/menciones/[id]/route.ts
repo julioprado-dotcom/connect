@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { safeError } from '@/lib/rate-guard';
 
 export async function GET(
   request: NextRequest,
@@ -34,7 +35,6 @@ export async function GET(
 
     return NextResponse.json({ mencion, comentarios });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Error desconocido';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: safeError(error, 'menciones/[id]') }, { status: 500 });
   }
 }

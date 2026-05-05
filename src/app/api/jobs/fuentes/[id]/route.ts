@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
+import { safeError } from '@/lib/rate-guard'
 
 export async function GET(
   request: NextRequest,
@@ -22,9 +23,8 @@ export async function GET(
 
     return NextResponse.json({ fuente })
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Error interno del servidor'
-    console.error('[API /jobs/fuentes/[id] GET]', msg)
-    return NextResponse.json({ error: msg }, { status: 500 })
+    console.error('[API /jobs/fuentes/[id] GET]', error)
+    return NextResponse.json({ error: safeError(error, 'jobs/fuentes/[id]') }, { status: 500 })
   }
 }
 
@@ -60,8 +60,7 @@ export async function PUT(
 
     return NextResponse.json({ exito: true, fuente })
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Error interno del servidor'
-    console.error('[API /jobs/fuentes/[id] PUT]', msg)
-    return NextResponse.json({ error: msg }, { status: 500 })
+    console.error('[API /jobs/fuentes/[id] PUT]', error)
+    return NextResponse.json({ error: safeError(error, 'jobs/fuentes/[id]') }, { status: 500 })
   }
 }

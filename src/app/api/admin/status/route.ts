@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server'
 import db from '@/lib/db'
+import { safeError } from '@/lib/rate-guard'
 
 async function countsByCategory() {
   const [persona, medio, ejeTematico, indicador] = await Promise.all([
@@ -58,10 +59,8 @@ export async function GET() {
       ...counts,
     })
   } catch (error) {
-    const mensaje = error instanceof Error ? error.message : 'Error desconocido'
-    console.error('Status error:', mensaje)
     return NextResponse.json(
-      { exito: false, error: mensaje },
+      { exito: false, error: safeError(error, 'admin/status') },
       { status: 500 }
     )
   }

@@ -11,6 +11,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { safeError } from '@/lib/rate-guard';
 
 export async function GET(request: NextRequest) {
   try {
@@ -159,8 +160,7 @@ export async function GET(request: NextRequest) {
       indicadores: resultado,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Error desconocido';
-    return NextResponse.json({ error: 'Error al cargar indicadores', details: message }, { status: 500 });
+    return NextResponse.json({ error: safeError(error, 'indicadores/historico') }, { status: 500 });
   }
 }
 

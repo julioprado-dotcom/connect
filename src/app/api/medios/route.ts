@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { safeError } from '@/lib/rate-guard';
+import { medioCreateSchema } from '@/lib/validations';
+import { guardedParse, RATE } from '@/lib/rate-guard';
 
 const CATEGORIAS_VALIDAS = ['oficial', 'corporativo', 'regional', 'alternativo', 'red_social'];
 const TIPOS_VALIDOS = [
@@ -99,20 +102,17 @@ export async function GET(request: NextRequest) {
       resumenPorCategoria,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Error desconocido';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: safeError(error, 'medios') }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { nombre, url, tipo, categoria, nivel, departamento, plataformas, notas, pais } = body;
+    const parsed = await guardedParse(request, medioCreateSchema, RATE.WRITE);
+    if (parsed instanceof NextResponse) return parsed;
+    const { nombre, url, tipo, categoria, nivel, departamento, plataformas, notas, pais } = parsed.body;
 
-    if (!nombre || typeof nombre !== 'string' || nombre.trim().length === 0) {
-      return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
-    }
-    if (!tipo || !TIPOS_VALIDOS.includes(tipo)) {
+    if (!TIPOS_VALIDOS.includes(tipo)) {
       return NextResponse.json({ error: `Tipo inválido. Valores: ${TIPOS_VALIDOS.join(', ')}` }, { status: 400 });
     }
     if (categoria && !CATEGORIAS_VALIDAS.includes(categoria)) {
@@ -121,22 +121,21 @@ export async function POST(request: NextRequest) {
 
     const medio = await db.medio.create({
       data: {
-        nombre: nombre.trim(),
-        url: url || '',
+        nombre,
+        url,
         tipo,
-        categoria: categoria || 'corporativo',
-        nivel: nivel || '1',
-        departamento: departamento || null,
-        plataformas: plataformas || '',
-        notas: notas || '',
-        pais: pais || 'Bolivia',
+        categoria,
+        nivel,
+        departamento,
+        plataformas,
+        notas,
+        pais,
         activo: true,
       },
     });
 
     return NextResponse.json({ medio }, { status: 201 });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Error desconocido';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: safeError(error, 'medios') }, { status: 500 });
   }
 }

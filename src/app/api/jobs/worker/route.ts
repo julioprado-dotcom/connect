@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { startWorker, stopWorker, getWorkerStats } from '@/lib/jobs/worker'
+import { safeError } from '@/lib/rate-guard'
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,8 +25,7 @@ export async function POST(request: NextRequest) {
     startWorker()
     return NextResponse.json({ exito: true, estado: 'running' })
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Error interno del servidor'
-    console.error('[API /jobs/worker POST]', msg)
-    return NextResponse.json({ error: msg }, { status: 500 })
+    console.error('[API /jobs/worker POST]', error)
+    return NextResponse.json({ error: safeError(error, 'jobs/worker') }, { status: 500 })
   }
 }

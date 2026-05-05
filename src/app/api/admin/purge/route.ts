@@ -6,6 +6,7 @@
 
 import { NextResponse } from 'next/server'
 import db from '@/lib/db'
+import { safeError } from '@/lib/rate-guard'
 
 // Tables to DELETE (test data)
 const TABLES_TO_DELETE = [
@@ -90,10 +91,8 @@ export async function POST(request: Request) {
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
-    const mensaje = error instanceof Error ? error.message : 'Error desconocido'
-    console.error('Purge error:', mensaje)
     return NextResponse.json(
-      { exito: false, error: mensaje },
+      { exito: false, error: safeError(error, 'admin/purge') },
       { status: 500 }
     )
   }

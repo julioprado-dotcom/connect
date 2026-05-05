@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { safeError } from '@/lib/rate-guard';
 
 /**
  * GET /api/medios/health
@@ -150,8 +151,7 @@ export async function GET() {
       medios: resultados,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Error desconocido';
-    return NextResponse.json({ error: 'Error en health check de medios', details: message }, { status: 500 });
+    return NextResponse.json({ error: safeError(error, 'medios/health') }, { status: 500 });
   }
 }
 

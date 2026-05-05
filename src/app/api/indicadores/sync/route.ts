@@ -7,6 +7,7 @@
 
 import { NextResponse } from 'next/server'
 import { capturarTier1, seedIndicadores } from '@/lib/indicadores/capturer-tier1'
+import { safeError } from '@/lib/rate-guard'
 
 export async function POST() {
   try {
@@ -40,10 +41,8 @@ export async function POST() {
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
-    const mensaje = error instanceof Error ? error.message : 'Error desconocido'
-    console.error('[sync] Error general:', mensaje)
     return NextResponse.json(
-      { exito: false, error: mensaje },
+      { exito: false, error: safeError(error, 'indicadores/sync') },
       { status: 500 }
     )
   }

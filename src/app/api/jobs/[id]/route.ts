@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getJob, cancel } from '@/lib/jobs/queue'
+import { safeError } from '@/lib/rate-guard'
 
 export async function GET(
   request: NextRequest,
@@ -18,9 +19,8 @@ export async function GET(
 
     return NextResponse.json({ job })
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Error interno del servidor'
-    console.error('[API /jobs/[id] GET]', msg)
-    return NextResponse.json({ error: msg }, { status: 500 })
+    console.error('[API /jobs/[id] GET]', error)
+    return NextResponse.json({ error: safeError(error, 'jobs/[id]') }, { status: 500 })
   }
 }
 
@@ -38,8 +38,7 @@ export async function DELETE(
 
     return NextResponse.json({ exito: true, cancelado: true })
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Error interno del servidor'
-    console.error('[API /jobs/[id] DELETE]', msg)
-    return NextResponse.json({ error: msg }, { status: 500 })
+    console.error('[API /jobs/[id] DELETE]', error)
+    return NextResponse.json({ error: safeError(error, 'jobs/[id]') }, { status: 500 })
   }
 }

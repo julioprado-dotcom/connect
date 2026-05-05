@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { safeError } from '@/lib/rate-guard';
 
 // GET /api/indicadores/[id] — Detalle de un indicador con valores o evaluaciones
 export async function GET(
@@ -102,9 +103,7 @@ export async function PUT(
 
     return NextResponse.json({ indicador });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Error desconocido';
-    console.error('Error updating indicador:', error);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: safeError(error, 'indicadores/[id]') }, { status: 500 });
   }
 }
 

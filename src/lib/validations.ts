@@ -211,3 +211,86 @@ export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
+
+// ─── Contrato Update ──────────────────────────────────────────────
+export const contratoUpdateSchema = z.object({
+  tipoProducto: z.array(z.string()).optional(),
+  mediosAsignados: z.array(z.string()).optional(),
+  ejesTematicos: z.array(z.string()).optional(),
+  parlamentarios: z.array(z.string()).optional(),
+  frecuencia: z.enum(['diario', 'diario_am', 'diario_pm', 'semanal', 'quincenal', 'mensual', 'bajo_demanda', 'tiempo_real']).optional(),
+  formatoEntrega: z.enum(['whatsapp', 'email', 'ambos', 'pdf']).optional(),
+  fechaInicio: z.string().optional(),
+  fechaFin: z.string().nullable().optional(),
+  montoMensual: z.number().min(0).optional(),
+  moneda: z.enum(['Bs', 'USD']).optional(),
+  estado: z.enum(['activo', 'pausado', 'vencido', 'cancelado']).optional(),
+  notas: z.string().max(2000).optional(),
+});
+
+// ─── Cliente Update ───────────────────────────────────────────────
+export const clienteUpdateSchema = z.object({
+  nombre: z.string().trim().min(1).max(200).optional(),
+  nombreContacto: z.string().trim().max(200).optional(),
+  email: z.string().email().max(300).optional(),
+  telefono: z.string().max(50).optional(),
+  whatsapp: z.string().max(50).optional(),
+  organizacion: z.string().max(300).optional(),
+  segmento: z.enum(['partido_politico', 'movimiento_social', 'ong', 'embajada', 'legislador', 'medio', 'academico', 'otro']).optional(),
+  plan: z.enum(['basico', 'avanzado', 'institucional']).optional(),
+  estado: z.enum(['activo', 'suspendido', 'cancelado']).optional(),
+  parlamentarios: z.array(z.string()).optional(),
+  ejesContratados: z.array(z.string()).optional(),
+  notas: z.string().max(2000).optional(),
+  ci: z.string().max(50).optional(),
+  razonSocial: z.string().max(300).optional(),
+  nit: z.string().max(50).optional(),
+});
+
+// ─── Indicador Create ─────────────────────────────────────────────
+export const indicadorCreateSchema = z.object({
+  nombre: z.string().trim().min(1, 'Nombre obligatorio').max(300),
+  slug: z.string().trim().min(1, 'Slug obligatorio').max(100),
+  categoria: z.string().max(100).optional().default(''),
+  tipo: z.string().max(50).optional().default(''),
+  fuente: z.string().max(300).optional().default(''),
+});
+
+// ─── Jobs ─────────────────────────────────────────────────────────
+export const jobCreateSchema = z.object({
+  tipo: z.string().min(1, 'Tipo de job es obligatorio').max(100),
+  prioridad: z.enum(['low', 'normal', 'high', 'critical']).optional().default('normal'),
+  payload: z.record(z.string(), z.unknown()).optional().default({}),
+});
+
+export const workerActionSchema = z.object({
+  accion: z.enum(['pause', 'resume', 'status']),
+});
+
+export const schedulerActionSchema = z.object({
+  accion: z.enum(['recalculate']),
+});
+
+// ─── Purge ────────────────────────────────────────────────────────
+export const purgeSchema = z.object({
+  confirm: z.literal(true, { message: 'Debe enviar { "confirm": true } para purgar' }),
+});
+
+// ─── Admin Fuente Update ──────────────────────────────────────────
+export const fuenteUpdateSchema = z.object({
+  frecuenciaOverride: z.string().max(50).optional(),
+  activo: z.boolean().optional(),
+});
+
+// ─── Medio Create ─────────────────────────────────────────────────
+export const medioCreateSchema = z.object({
+  nombre: z.string().trim().min(1, 'Nombre es obligatorio').max(300),
+  url: z.string().max(500).optional().default(''),
+  tipo: z.string().min(1, 'Tipo es obligatorio').max(50),
+  categoria: z.enum(['oficial', 'corporativo', 'regional', 'alternativo', 'red_social']).optional().default('corporativo'),
+  nivel: z.string().max(10).optional().default('1'),
+  departamento: z.string().max(100).nullable().optional().default(null),
+  plataformas: z.string().max(500).optional().default(''),
+  notas: z.string().max(1000).optional().default(''),
+  pais: z.string().max(100).optional().default('Bolivia'),
+});

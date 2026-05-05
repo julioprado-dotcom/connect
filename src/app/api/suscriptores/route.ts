@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { suscriptorCreateSchema } from '@/lib/validations';
-import { guardedParse, rateGuard, RATE } from '@/lib/rate-guard';
+import { suscriptorCreateSchema, suscriptorUpdateSchema } from '@/lib/validations';
+import { guardedParse, rateGuard, RATE, safeError } from '@/lib/rate-guard';
 import { isRateLimited, getClientIp } from '@/lib/rate-limit';
 
 /* ═══════════════════════════════════════════════════════════
@@ -105,8 +105,8 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const rateCheck = rateGuard(request, RATE.WRITE);
-    if (rateCheck) return rateCheck;
+    const parsed = await guardedParse(request, suscriptorUpdateSchema, RATE.WRITE);
+    if (parsed instanceof NextResponse) return parsed;
 
     const id = request.nextUrl.searchParams.get('id');
     if (!id) {
@@ -118,7 +118,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Suscriptor no encontrado' }, { status: 404 });
     }
 
-    const body = await request.json();
+    const body = parsed.body;
 
     const data: Record<string, unknown> = {};
     if (body.nombre !== undefined) data.nombre = String(body.nombre).trim();
@@ -136,12 +136,10 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ suscriptor });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Error desconocido';
-    if (msg.includes('Unique')) {
+    if (error instanceof Error && error.message.includes('Unique')) {
       return NextResponse.json({ error: 'Ya existe un suscriptor con ese email' }, { status: 409 });
     }
-    console.error('Error updating suscriptor:', error);
-    return NextResponse.json({ error: 'Error al actualizar suscriptor' }, { status: 500 });
+    return NextResponse.json({ error: safeError(error, 'suscriptores') }, { status: 500 });
   }
 }
 

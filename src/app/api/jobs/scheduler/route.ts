@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { rescheduleAll } from '@/lib/jobs/scheduler'
+import { safeError } from '@/lib/rate-guard'
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,8 +23,7 @@ export async function POST(request: NextRequest) {
       mensaje: 'Scheduler recalculado',
     })
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Error interno del servidor'
-    console.error('[API /jobs/scheduler POST]', msg)
-    return NextResponse.json({ error: msg }, { status: 500 })
+    console.error('[API /jobs/scheduler POST]', error)
+    return NextResponse.json({ error: safeError(error, 'jobs/scheduler') }, { status: 500 })
   }
 }

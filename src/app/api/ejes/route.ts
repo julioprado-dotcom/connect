@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { guardedParse, RATE } from '@/lib/rate-guard';
+import { guardedParse, RATE, safeError } from '@/lib/rate-guard';
 import { isRateLimited, getClientIp } from '@/lib/rate-limit';
 import { ejeCreateSchema, ejePatchSchema } from '@/lib/validations';
 
@@ -114,8 +114,7 @@ export async function GET(request: Request) {
       totalEjes: allEjes.length,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Error desconocido';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: safeError(error, 'ejes') }, { status: 500 });
   }
 }
 
@@ -167,8 +166,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ eje, message: 'Eje temático creado correctamente' }, { status: 201 });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Error desconocido';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: safeError(error, 'ejes') }, { status: 500 });
   }
 }
 
@@ -235,8 +233,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ eje, message: 'Eje temático actualizado correctamente' });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Error desconocido';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: safeError(error, 'ejes') }, { status: 500 });
   }
 }
 
@@ -270,8 +267,7 @@ export async function PATCH(request: NextRequest) {
       message: activo ? 'Eje habilitado' : 'Eje deshabilitado',
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Error desconocido';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: safeError(error, 'ejes') }, { status: 500 });
   }
 }
 
@@ -315,7 +311,6 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ message: 'Eje temático desactivado correctamente' });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Error desconocido';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: safeError(error, 'ejes') }, { status: 500 });
   }
 }

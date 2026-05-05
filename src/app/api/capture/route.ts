@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { safeError } from '@/lib/rate-guard';
 import ZAI from 'z-ai-web-dev-sdk';
 
 const SITES_QUERY = 'site:la-razon.com OR site:eldeber.com.bo OR site:lostiempos.com OR site:opinion.com.bo OR site:correodelsur.com OR site:elpotosi.net OR site:lapatria.bo OR site:eldiario.net OR site:jornadanet.com OR site:unitel.bo OR site:reduno.bo OR site:atb.com.bo OR site:boliviaverifica.bo OR site:abi.bo OR site:eju.tv OR site:elmundo.com.bo OR site:vision360.bo';
@@ -138,8 +139,7 @@ export async function POST(request: NextRequest) {
       detalles,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Error desconocido';
-    return NextResponse.json({ error: 'Error en la captura', details: message }, { status: 500 });
+    return NextResponse.json({ error: safeError(error, 'capture') }, { status: 500 });
   }
 }
 
@@ -156,7 +156,6 @@ export async function GET() {
 
     return NextResponse.json(lastLog);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Error desconocido';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: safeError(error, 'capture') }, { status: 500 });
   }
 }

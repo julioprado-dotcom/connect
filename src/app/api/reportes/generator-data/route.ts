@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { safeError } from '@/lib/rate-guard';
 import { PRODUCTOS, PRODUCTOS_DEDICADOS } from '@/constants/products';
 import type { TipoBoletin } from '@/types/bulletin';
 import {
@@ -48,8 +49,7 @@ export async function GET(request: NextRequest) {
     // Fallback: handler por defecto para dedicados sin panel específico
     return handleTermometroSaldo(fecha, ejeSlug, tipo);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Error desconocido';
-    return NextResponse.json({ error: 'Error al cargar datos del generador', details: message }, { status: 500 });
+    return NextResponse.json({ error: safeError(error, 'generator-data') }, { status: 500 });
   }
 }
 

@@ -153,6 +153,20 @@ export async function guardedParse<T extends z.ZodTypeAny>(
   }
 }
 
+/**
+ * Returns a safe, generic error message. Never exposes internal details.
+ */
+export function safeError(error: unknown, context: string): string {
+  // Log the real error for debugging (server-side only)
+  if (error instanceof Error) {
+    console.error(`[${context}]`, error.message);
+  } else {
+    console.error(`[${context}]`, error);
+  }
+  // Return a generic message to the client
+  return `Error al procesar ${context}. Intente de nuevo.`;
+}
+
 /** Rate-limit configs predefinidos por categoría */
 export const RATE = {
   /** Operaciones CRUD de escritura (POST/PUT/DELETE) */

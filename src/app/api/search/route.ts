@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import ZAI from 'z-ai-web-dev-sdk';
-import { guardedParse, rateGuard, RATE } from '@/lib/rate-guard';
+import { guardedParse, rateGuard, RATE, safeError } from '@/lib/rate-guard';
 import { searchSchema } from '@/lib/validations';
 
 export async function GET(request: NextRequest) {
@@ -25,9 +25,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(results);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Error desconocido';
     return NextResponse.json(
-      { error: 'Error en la búsqueda', details: message },
+      { error: safeError(error, 'search') },
       { status: 500 }
     );
   }
@@ -47,9 +46,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(results);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Error desconocido';
     return NextResponse.json(
-      { error: 'Error en la búsqueda', details: message },
+      { error: safeError(error, 'search') },
       { status: 500 }
     );
   }

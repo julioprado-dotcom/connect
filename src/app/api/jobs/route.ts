@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { enqueue, getJobs, countByEstado } from '@/lib/jobs/queue'
 import type { JobTipo, JobPrioridad, JobEstado } from '@/lib/jobs/types'
+import { safeError } from '@/lib/rate-guard'
 
 const VALID_TIPOS: JobTipo[] = [
   'check_fuente',
@@ -37,9 +38,8 @@ export async function GET(request: NextRequest) {
       porEstado,
     })
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Error interno del servidor'
-    console.error('[API /jobs GET]', msg)
-    return NextResponse.json({ error: msg }, { status: 500 })
+    console.error('[API /jobs GET]', error)
+    return NextResponse.json({ error: safeError(error, 'jobs') }, { status: 500 })
   }
 }
 
@@ -78,8 +78,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ exito: true, jobId }, { status: 201 })
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Error interno del servidor'
-    console.error('[API /jobs POST]', msg)
-    return NextResponse.json({ error: msg }, { status: 500 })
+    console.error('[API /jobs POST]', error)
+    return NextResponse.json({ error: safeError(error, 'jobs') }, { status: 500 })
   }
 }

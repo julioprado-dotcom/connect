@@ -3,6 +3,7 @@
 import { NextResponse } from 'next/server'
 import { getFullStats } from '@/lib/jobs/health'
 import { getSchedulerStatus } from '@/lib/jobs/scheduler'
+import { safeError } from '@/lib/rate-guard'
 
 export async function GET() {
   try {
@@ -19,8 +20,7 @@ export async function GET() {
       scheduler,
     })
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Error interno del servidor'
-    console.error('[API /jobs/stats GET]', msg)
-    return NextResponse.json({ error: msg }, { status: 500 })
+    console.error('[API /jobs/stats GET]', error)
+    return NextResponse.json({ error: safeError(error, 'jobs/stats') }, { status: 500 })
   }
 }

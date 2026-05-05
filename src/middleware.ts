@@ -50,6 +50,56 @@ const PII_PROTECTED_GET: string[] = [
 
 const DESTRUCTIVE_METHODS = ['POST', 'PUT', 'DELETE', 'PATCH'];
 
+// ── Rate limit store (Edge-compatible, per-instance) ───────────
+const rateStore = new Map<string, { count: number; resetAt: number }>();
+
+/**
+ * Rate-limited endpoints config.
+ * Each entry: { pathPrefix, methods to rate-limit, max requests, window in seconds }
+ */
+const RATE_LIMITED_ENDPOINTS: Array<{
+  path: string;
+  methods: string[];
+  max: number;
+  windowSec: number;
+}> = [
+  { path: '/api/capture',            methods: ['POST'], max: 3,  windowSec: 60 },
+  { path: '/api/verify-links',       methods: ['POST'], max: 5,  windowSec: 60 },
+  { path: '/api/admin/purge',        methods: ['POST'], max: 2,  windowSec: 60 },
+  { path: '/api/jobs/worker',        methods: ['POST'], max: 5,  windowSec: 60 },
+  { path: '/api/jobs/scheduler',     methods: ['POST'], max: 3,  windowSec: 60 },
+  { path: '/api/indicadores/sync',   methods: ['POST'], max: 3,  windowSec: 60 },
+  { path: '/api/indicadores/capture',methods: ['POST'], max: 5,  windowSec: 60 },
+  { path: '/api/jobs',               methods: ['POST'], max: 10, windowSec: 60 },
+  { path: '/api/medios',             methods: ['POST'], max: 20, windowSec: 60 },
+  { path: '/api/personas',           methods: ['POST'], max: 20, windowSec: 60 },
+  { path: '/api/menciones',          methods: ['POST'], max: 20, windowSec: 60 },
+];
+
+/**
+ * Check rate limit for a given key. Returns true if limited.
+ */
+function checkRateLimit(key: string, max: number, windowSec: number): boolean {
+  const now = Date.now();
+  const entry = rateStore.get(key);
+  if (!entry || now > entry.resetAt) {
+    rateStore.set(key, { count: 1, resetAt: now + windowSec * 1000 });
+    return false; // not limited
+  }
+  if (entry.count >= max) return true; // limited
+  entry.count++;
+  return false;
+}
+
+/**
+ * Find a matching rate limit rule for the given pathname + method.
+ */
+function findRateLimitRule(pathname: string, method: string) {
+  return RATE_LIMITED_ENDPOINTS.find(
+    (r) => pathname.startsWith(r.path) && r.methods.includes(method)
+  );
+}
+
 // ── AUTH_SECRET ────────────────────────────────────────────────
 // Edge Runtime: leer env var en cada invocación (sin cache estático)
 // porque el módulo puede cargar antes de que las env vars estén disponibles.
@@ -104,6 +154,19 @@ function extractSessionToken(cookies: { get: (name: string) => { value: string }
 }
 
 /**
+ * Extract client IP from request headers.
+ */
+function getClientIp(request: NextRequest): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) return realIp;
+  return 'unknown';
+}
+
+/**
  * Verificación REAL de JWT usando jose + AUTH_SECRET.
  * Edge-compatible, no requiere acceso a DB.
  * Retorna true solo si el token tiene firma válida.
@@ -153,6 +216,30 @@ export async function middleware(request: NextRequest) {
   // Solo interceptar rutas API
   if (!pathname.startsWith('/api/')) {
     return NextResponse.next();
+  }
+
+  // ── Rate limit check (before auth, to protect against brute force) ──
+  const rateRule = findRateLimitRule(pathname, method);
+  if (rateRule) {
+    const ip = getClientIp(request);
+    const rateKey = `rl:${ip}:${rateRule.path}:${method}`;
+    const resetInSec = rateRule.windowSec;
+    if (checkRateLimit(rateKey, rateRule.max, resetInSec)) {
+      return NextResponse.json(
+        {
+          error: 'Demasiadas peticiones. Intenta de nuevo más tarde.',
+          retryAfter: resetInSec,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(resetInSec),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': String(resetInSec),
+          },
+        }
+      );
+    }
   }
 
   // Rutas de administración siempre protegidas (todos los métodos)
