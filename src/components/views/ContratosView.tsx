@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, FileCheck, Plus, Pencil, Trash2, X, DollarSign } from 'lucide-react';
+import { Loader2, FileCheck, Plus, Pencil, Trash2, X, DollarSign, Search } from 'lucide-react';
 import { EmptyState } from '@/components/shared/KPICard';
 import { ALL_PRODUCTS, PRODUCT_CATEGORIES, CANAL_LABELS, FRECUENCIA_LABELS } from '@/constants/nav';
 
@@ -28,7 +28,10 @@ interface ContratoItem {
   estado: string;
   notas: string;
   fechaCreacion: string;
+  ejesTematicos: string;
+  parlamentarios: string;
   cliente: { id: string; nombre: string; email: string; plan: string } | null;
+  parlamentariosCount?: number;
 }
 
 interface ClienteOption {
@@ -38,9 +41,27 @@ interface ClienteOption {
   organizacion: string;
 }
 
+interface EjeOption {
+  id: string;
+  nombre: string;
+  slug: string;
+  icono: string;
+  color: string;
+  orden: number;
+}
+
+interface PersonaOption {
+  id: string;
+  nombre: string;
+  camara: string;
+  partidoSigla: string;
+}
+
 interface FormData {
   clienteId: string;
   productos: string[];
+  ejesSeleccionados: string[];
+  personasSeleccionadas: string[];
   montoMensual: string;
   frecuencia: string;
   formatoEntrega: string;
@@ -106,6 +127,8 @@ const ESTADO_FORM_OPTIONS = [
 const EMPTY_FORM: FormData = {
   clienteId: '',
   productos: [],
+  ejesSeleccionados: [],
+  personasSeleccionadas: [],
   montoMensual: '',
   frecuencia: 'diario',
   formatoEntrega: 'whatsapp',
@@ -114,6 +137,21 @@ const EMPTY_FORM: FormData = {
   moneda: 'Bs',
   estado: 'activo',
   notas: '',
+};
+
+// Product → required dynamic fields mapping
+const PRODUCT_REQUIREMENTS: Record<string, { ejes: boolean; personas: boolean }> = {
+  EL_FOCO:               { ejes: true,  personas: false },
+  EL_TERMOMETRO:         { ejes: true,  personas: false },
+  SALDO_DEL_DIA:         { ejes: true,  personas: false },
+  EL_INFORME_CERRADO:    { ejes: true,  personas: true  },
+  ALERTA_TEMPRANA:       { ejes: true,  personas: true  },
+  EL_ESPECIALIZADO:      { ejes: true,  personas: true  },
+  FICHA_LEGISLADOR:      { ejes: false, personas: true  },
+  FOCO_DE_LA_SEMANA:     { ejes: true,  personas: false },
+  EL_RADAR:              { ejes: false, personas: false },
+  VOZ_Y_VOTO:            { ejes: false, personas: false },
+  EL_HILO:               { ejes: false, personas: false },
 };
 
 // Build grouped products map for the select
@@ -129,6 +167,8 @@ export function ContratosView() {
   const [contratos, setContratos] = useState<ContratoItem[]>([]);
   const [total, setTotal] = useState(0);
   const [clientes, setClientes] = useState<ClienteOption[]>([]);
+  const [ejesData, setEjesData] = useState<EjeOption[]>([]);
+  const [personasData, setPersonasData] = useState<PersonaOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [clientesLoading, setClientesLoading] = useState(false);
 
@@ -227,11 +267,36 @@ export function ContratosView() {
     return base > 0 && monto !== base;
   };
 
+  // ─── Fetch ejes & personas (once on mount) ────────────────────
+  useEffect(() => {
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const [ejesRes, personasRes] = await Promise.all([
+          fetch('/api/ejes', { signal: controller.signal }),
+          fetch('/api/personas?limit=200', { signal: controller.signal }),
+        ]);
+        if (!controller.signal.aborted) {
+          const ejesJson = await ejesRes.json();
+          setEjesData(Array.isArray(ejesJson) ? ejesJson : []);
+          const personasJson = await personasRes.json();
+          setPersonasData(personasJson.personas || personasJson || []);
+        }
+      } catch {
+        // aborted or error — silent
+      }
+    })();
+    return () => controller.abort();
+  }, []);
+
   // ─── Form handlers ──────────────────────────────────────────────
   const openCreate = () => {
     setEditingId(null);
     setForm({ ...EMPTY_FORM, fechaInicio: new Date().toISOString().split('T')[0] });
     setSelectedProduct('');
+    setSelectedEje('');
+    setSelectedPersona('');
+    setPersonaSearch('');
     setFormError('');
     setFormOpen(true);
   };
@@ -246,9 +311,23 @@ export function ContratosView() {
     } catch {
       productosList = c.tipoProducto ? [c.tipoProducto] : [];
     }
+    // Parsear ejes temáticos (JSON string → string[])
+    let ejesList: string[] = [];
+    try {
+      const parsed = JSON.parse(c.ejesTematicos || '[]');
+      ejesList = Array.isArray(parsed) ? parsed : [];
+    } catch { /* empty */ }
+    // Parsear parlamentarios (JSON string → string[])
+    let personasList: string[] = [];
+    try {
+      const parsed = JSON.parse(c.parlamentarios || '[]');
+      personasList = Array.isArray(parsed) ? parsed : [];
+    } catch { /* empty */ }
     setForm({
       clienteId: c.clienteId,
       productos: productosList,
+      ejesSeleccionados: ejesList,
+      personasSeleccionadas: personasList,
       montoMensual: c.montoMensual > 0 ? String(c.montoMensual) : '',
       frecuencia: c.frecuencia || 'diario',
       formatoEntrega: c.formatoEntrega || 'whatsapp',
@@ -259,6 +338,9 @@ export function ContratosView() {
       notas: c.notas || '',
     });
     setSelectedProduct('');
+    setSelectedEje('');
+    setSelectedPersona('');
+    setPersonaSearch('');
     setFormError('');
     setFormOpen(true);
   };
@@ -272,6 +354,11 @@ export function ContratosView() {
 
   // Multi-product selector state
   const [selectedProduct, setSelectedProduct] = useState('');
+
+  // Ejes / Personas selector state
+  const [selectedEje, setSelectedEje] = useState('');
+  const [selectedPersona, setSelectedPersona] = useState('');
+  const [personaSearch, setPersonaSearch] = useState('');
 
   const addProduct = () => {
     if (!selectedProduct || form.productos.includes(selectedProduct)) return;
@@ -308,6 +395,8 @@ export function ContratosView() {
     const body = {
       clienteId: form.clienteId,
       tipoProducto: form.productos,
+      ejesTematicos: form.ejesSeleccionados,
+      parlamentarios: form.personasSeleccionadas,
       frecuencia: form.frecuencia,
       formatoEntrega: form.formatoEntrega,
       fechaInicio: form.fechaInicio,
@@ -368,6 +457,53 @@ export function ContratosView() {
   const updateField = (field: keyof FormData, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
+
+  // ─── Ejes / Personas helpers ─────────────────────────────────────
+  const addEje = () => {
+    if (!selectedEje || form.ejesSeleccionados.includes(selectedEje)) return;
+    setForm((prev) => ({ ...prev, ejesSeleccionados: [...prev.ejesSeleccionados, selectedEje] }));
+    setSelectedEje('');
+  };
+
+  const removeEje = (slug: string) => {
+    setForm((prev) => ({ ...prev, ejesSeleccionados: prev.ejesSeleccionados.filter((e) => e !== slug) }));
+  };
+
+  const selectAllEjes = () => {
+    setForm((prev) => ({ ...prev, ejesSeleccionados: ejesData.map((e) => e.slug) }));
+  };
+
+  const deselectAllEjes = () => {
+    setForm((prev) => ({ ...prev, ejesSeleccionados: [] }));
+  };
+
+  const addPersona = () => {
+    if (!selectedPersona || form.personasSeleccionadas.includes(selectedPersona)) return;
+    setForm((prev) => ({ ...prev, personasSeleccionadas: [...prev.personasSeleccionadas, selectedPersona] }));
+    setSelectedPersona('');
+    setPersonaSearch('');
+  };
+
+  const removePersona = (id: string) => {
+    setForm((prev) => ({ ...prev, personasSeleccionadas: prev.personasSeleccionadas.filter((p) => p !== id) }));
+  };
+
+  // Compute visibility: check if any selected product needs ejes or personas
+  const needsEjes = form.productos.some((tipo) => PRODUCT_REQUIREMENTS[tipo]?.ejes);
+  const needsPersonas = form.productos.some((tipo) => PRODUCT_REQUIREMENTS[tipo]?.personas);
+
+  // Filtered personas for search
+  const filteredPersonas = personaSearch.length > 0
+    ? personasData.filter((p) =>
+        p.nombre.toLowerCase().includes(personaSearch.toLowerCase()) ||
+        p.partidoSigla.toLowerCase().includes(personaSearch.toLowerCase())
+      )
+    : personasData;
+
+  // Available ejes (not already selected)
+  const availableEjes = ejesData.filter((e) => !form.ejesSeleccionados.includes(e.slug));
+  // Available personas (not already selected, filtered by search)
+  const availablePersonas = filteredPersonas.filter((p) => !form.personasSeleccionadas.includes(p.id));
 
   // ─── Render ─────────────────────────────────────────────────────
   const formTitle = editingId ? 'Editar contrato' : 'Nuevo contrato';
@@ -583,6 +719,178 @@ export function ContratosView() {
                   )}
                 </div>
               </div>
+
+              {/* ── Ejes Temáticos (conditional) ── */}
+              {needsEjes && (
+                <div>
+                  <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">
+                    Ejes Temáticos
+                  </label>
+                  <p className="text-[10px] text-muted-foreground mb-2">
+                    Selecciona los ejes que se monitorearán para los productos seleccionados
+                  </p>
+                  <div className="flex gap-2">
+                    <select
+                      value={selectedEje}
+                      onChange={(e) => setSelectedEje(e.target.value)}
+                      className="h-9 flex-1 rounded-md border border-input bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    >
+                      <option value="">Agregar eje…</option>
+                      {availableEjes.sort((a, b) => a.orden - b.orden).map((eje) => (
+                        <option key={eje.slug} value={eje.slug}>
+                          {eje.icono} {eje.nombre}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addEje}
+                      disabled={!selectedEje}
+                      className="h-9 px-3 text-xs shrink-0"
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" />
+                      Añadir
+                    </Button>
+                  </div>
+                  {form.ejesSeleccionados.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {form.ejesSeleccionados.map((slug) => {
+                        const eje = ejesData.find((e) => e.slug === slug);
+                        return (
+                          <Badge
+                            key={slug}
+                            variant="secondary"
+                            className="text-[10px] font-medium gap-1 pl-2 pr-1 py-1"
+                            style={eje ? {
+                              backgroundColor: `${eje.color}18`,
+                              color: eje.color,
+                              borderColor: `${eje.color}40`,
+                              borderWidth: 1,
+                            } : undefined}
+                          >
+                            {eje ? `${eje.icono} ${eje.nombre}` : slug}
+                            <button
+                              type="button"
+                              onClick={() => removeEje(slug)}
+                              className="ml-0.5 h-3.5 w-3.5 rounded-full inline-flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10"
+                            >
+                              <X className="h-2.5 w-2.5" />
+                            </button>
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div className="flex gap-2 mt-1.5">
+                    <button
+                      type="button"
+                      onClick={selectAllEjes}
+                      className="text-[10px] text-muted-foreground hover:text-foreground underline"
+                    >
+                      Seleccionar todos
+                    </button>
+                    <span className="text-[10px] text-muted-foreground">·</span>
+                    <button
+                      type="button"
+                      onClick={deselectAllEjes}
+                      className="text-[10px] text-muted-foreground hover:text-foreground underline"
+                    >
+                      Deseleccionar todos
+                    </button>
+                    {form.ejesSeleccionados.length > 0 && (
+                      <>
+                        <span className="text-[10px] text-muted-foreground">·</span>
+                        <span className="text-[10px] text-muted-foreground">{form.ejesSeleccionados.length} de {ejesData.length}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Parlamentarios (conditional) ── */}
+              {needsPersonas && (
+                <div>
+                  <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">
+                    Personas / Parlamentarios
+                  </label>
+                  <p className="text-[10px] text-muted-foreground mb-2">
+                    Selecciona los parlamentarios a monitorear para los productos seleccionados
+                  </p>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        type="text"
+                        value={personaSearch}
+                        onChange={(e) => { setPersonaSearch(e.target.value); setSelectedPersona(''); }}
+                        placeholder="Buscar parlamentario…"
+                        className="h-9 pl-8 pr-3 text-xs"
+                      />
+                    </div>
+                    <select
+                      value={selectedPersona}
+                      onChange={(e) => setSelectedPersona(e.target.value)}
+                      className="h-9 w-52 rounded-md border border-input bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    >
+                      <option value="">Seleccionar…</option>
+                      {availablePersonas.slice(0, 50).map((persona) => (
+                        <option key={persona.id} value={persona.id}>
+                          {persona.nombre} ({persona.camara})
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addPersona}
+                      disabled={!selectedPersona}
+                      className="h-9 px-3 text-xs shrink-0"
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" />
+                      Añadir
+                    </Button>
+                  </div>
+                  {form.personasSeleccionadas.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2 max-h-28 overflow-y-auto">
+                      {form.personasSeleccionadas.map((id) => {
+                        const persona = personasData.find((p) => p.id === id);
+                        const isDiputado = persona?.camara === 'Diputados';
+                        return (
+                          <Badge
+                            key={id}
+                            variant="secondary"
+                            className="text-[10px] font-medium gap-1 pl-2 pr-1 py-1"
+                            style={{
+                              backgroundColor: isDiputado ? '#dbeafe18' : '#fef3c718',
+                              color: isDiputado ? '#2563eb' : '#b45309',
+                              borderColor: isDiputado ? '#2563eb40' : '#b4530940',
+                              borderWidth: 1,
+                            }}
+                          >
+                            {persona?.nombre || id}
+                            <span className="text-[9px] opacity-70 ml-0.5">{persona?.partidoSigla}</span>
+                            <button
+                              type="button"
+                              onClick={() => removePersona(id)}
+                              className="ml-0.5 h-3.5 w-3.5 rounded-full inline-flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10"
+                            >
+                              <X className="h-2.5 w-2.5" />
+                            </button>
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {form.personasSeleccionadas.length > 0 && (
+                    <div className="mt-1.5">
+                      <span className="text-[10px] text-muted-foreground">{form.personasSeleccionadas.length} seleccionados</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Row: Precio + Moneda */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -834,6 +1142,20 @@ export function ContratosView() {
                                   personalizado
                                 </Badge>
                               )}
+                              {/* Ejes / Personas count badges */}
+                              {(() => {
+                                let ejesCount = 0;
+                                try { const p = JSON.parse(c.ejesTematicos || '[]'); if (Array.isArray(p)) ejesCount = p.length; } catch { /* */ }
+                                const persCount = c.parlamentariosCount || 0;
+                                if (ejesCount === 0 && persCount === 0) return null;
+                                return (
+                                  <span className="text-[9px] text-muted-foreground">
+                                    {ejesCount > 0 && <>{ejesCount} ejes</>}
+                                    {ejesCount > 0 && persCount > 0 && ' · '}
+                                    {persCount > 0 && <>{persCount} pers.</>}
+                                  </span>
+                                );
+                              })()}
                             </div>
                           </TableCell>
 
@@ -986,6 +1308,20 @@ export function ContratosView() {
                               personalizado
                             </Badge>
                           )}
+                          {/* Ejes / Personas counts */}
+                          {(() => {
+                            let ejesCount = 0;
+                            try { const p = JSON.parse(c.ejesTematicos || '[]'); if (Array.isArray(p)) ejesCount = p.length; } catch { /* */ }
+                            const persCount = c.parlamentariosCount || 0;
+                            if (ejesCount === 0 && persCount === 0) return null;
+                            return (
+                              <span className="text-[9px] text-muted-foreground">
+                                {ejesCount > 0 && <>{ejesCount} ejes</>}
+                                {ejesCount > 0 && persCount > 0 && ' · '}
+                                {persCount > 0 && <>{persCount} pers.</>}
+                              </span>
+                            );
+                          })()}
                           <span
                             className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
                               ESTADO_STYLES[c.estado] || ESTADO_STYLES.activo
