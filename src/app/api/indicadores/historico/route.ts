@@ -15,7 +15,7 @@ import db from '@/lib/db';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const periodo = searchParams.get('periodo') || '30d';
+    const periodo = searchParams.get('periodo') || searchParams.get('period') || '30d';
     const categoria = searchParams.get('categoria') || '';
     const slug = searchParams.get('slug') || '';
     const incluirInactivos = searchParams.get('incluirInactivos') === 'true';

@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ suscriptor }, { status: 201 });
+    return NextResponse.json({ id: suscriptor.id, suscriptor }, { status: 201 });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Error desconocido';
     if (msg.includes('Unique')) {

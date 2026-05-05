@@ -47,12 +47,6 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: '/api/indicadores/historico',
-        headers: [
-          { key: 'Cache-Control', value: 'public, s-maxage=300, stale-while-revalidate=600' },
-        ],
-      },
-      {
         source: '/api/reportes/stats',
         headers: [
           { key: 'Cache-Control', value: 'public, s-maxage=60, stale-while-revalidate=120' },

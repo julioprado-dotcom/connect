@@ -19,7 +19,13 @@ echo "╚═══════════════════════�
 pkill -f "next" 2>/dev/null || true
 sleep 1
 
-# 2. Verificar DB
+# 2. Cargar variables de entorno
+if [ -f "$PROJECT_DIR/.env.local" ]; then
+  export $(grep -v '^#' "$PROJECT_DIR/.env.local" | xargs)
+  echo "⚙ .env.local cargado"
+fi
+
+# 3. Verificar DB
 if [ ! -f "$DB_PATH" ]; then
   echo "⚠ DB no existe, creando..."
   mkdir -p "$PROJECT_DIR/db"
