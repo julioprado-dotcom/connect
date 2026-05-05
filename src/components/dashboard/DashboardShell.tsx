@@ -121,32 +121,77 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               const isGroupActive = NAV_ITEMS.slice(group.from, group.to + 1).some(
                 item => item.id === activeView || item.children?.some(c => c.id === activeView)
               );
+              const isProminent = group.prominent;
+              const groupColor = group.color || '#888';
 
               return (
-                <div key={group.id} className="mb-1.5">
-                  {/* Group header */}
-                  <button
-                    onClick={() => toggleGroup(group.id)}
-                    className={`
-                      w-full flex items-center gap-2 px-3 mb-1 py-1 rounded-md
-                      text-[10px] font-bold uppercase tracking-widest
-                      transition-colors
-                      ${isGroupActive
-                        ? 'text-primary/80'
-                        : 'text-sidebar-foreground/40 hover:text-sidebar-foreground/70'
+                <div key={group.id} className={isProminent ? 'mb-2 mt-2' : 'mb-1.5'}>
+                  {/* ── Group header ── */}
+                  {isProminent ? (
+                    // Prominent group: full-width button with icon, color accent, border
+                    <button
+                      onClick={() => toggleGroup(group.id)}
+                      className={`
+                        w-full flex items-center gap-2.5 px-3 mb-1.5 py-2 rounded-lg
+                        border transition-all duration-150
+                        ${isGroupActive
+                          ? 'shadow-sm'
+                          : 'hover:bg-sidebar-accent/30'
+                        }
+                      `}
+                      style={{
+                        borderColor: isGroupActive ? `${groupColor}60` : 'transparent',
+                        backgroundColor: isGroupActive ? `${groupColor}12` : undefined,
+                      }}
+                    >
+                      {/* Icon */}
+                      {group.icon && (
+                        <div
+                          className="flex items-center justify-center h-5 w-5 rounded-md shrink-0"
+                          style={{ backgroundColor: `${groupColor}20` }}
+                        >
+                          <group.icon className="h-3.5 w-3.5" style={{ color: groupColor }} />
+                        </div>
+                      )}
+                      <span
+                        className="flex-1 text-left text-[10px] font-bold uppercase tracking-widest"
+                        style={{ color: isGroupActive ? groupColor : undefined }}
+                      >
+                        {group.label}
+                      </span>
+                      {/* Active indicator */}
+                      {isGroupActive && (
+                        <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: groupColor }} />
+                      )}
+                      {isGroupExpanded
+                        ? <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />
+                        : <ChevronRight className="h-3 w-3 shrink-0 opacity-50" />
                       }
-                    `}
-                  >
-                    {/* Active dot on group label when any child is active */}
-                    {isGroupActive && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                    )}
-                    <span className="flex-1 text-left">{group.label}</span>
-                    {isGroupExpanded
-                      ? <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />
-                      : <ChevronRight className="h-3 w-3 shrink-0 opacity-50" />
-                    }
-                  </button>
+                    </button>
+                  ) : (
+                    // Standard group: subtle text-only header
+                    <button
+                      onClick={() => toggleGroup(group.id)}
+                      className={`
+                        w-full flex items-center gap-2 px-3 mb-1 py-1 rounded-md
+                        text-[10px] font-bold uppercase tracking-widest
+                        transition-colors
+                        ${isGroupActive
+                          ? 'text-primary/80'
+                          : 'text-sidebar-foreground/40 hover:text-sidebar-foreground/70'
+                        }
+                      `}
+                    >
+                      {isGroupActive && (
+                        <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                      )}
+                      <span className="flex-1 text-left">{group.label}</span>
+                      {isGroupExpanded
+                        ? <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />
+                        : <ChevronRight className="h-3 w-3 shrink-0 opacity-50" />
+                      }
+                    </button>
+                  )}
 
                   {/* Group items */}
                   {isGroupExpanded && (

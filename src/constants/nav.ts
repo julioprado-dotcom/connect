@@ -67,13 +67,19 @@ export interface NavGroup {
   /** indices en NAV_ITEMS que pertenecen a este grupo */
   from: number;
   to: number;
+  /** optional icon for the group header */
+  icon?: LucideIcon;
+  /** optional accent color for highlighted groups */
+  color?: string;
+  /** whether this group is a major section (more prominent) */
+  prominent?: boolean;
 }
 
 export const NAV_GROUPS: NavGroup[] = [
   { id: 'analisis', label: 'Analisis', from: 0, to: 3 },
-  { id: 'onion200', label: 'ONION200', from: 4, to: 7 },
-  { id: 'comercial', label: 'Gestion Comercial', from: 8, to: 10 },
-  { id: 'config', label: 'Configuracion', from: 11, to: 16 },
+  { id: 'onion200', label: 'ONION200', from: 4, to: 7, icon: Rocket, color: '#8B5CF6', prominent: true },
+  { id: 'comercial', label: 'Gestion Comercial', from: 8, to: 10, icon: UserCircle, color: '#F59E0B', prominent: true },
+  { id: 'config', label: 'Configuracion', from: 11, to: 16, icon: Settings, color: '#6B7280', prominent: true },
 ];
 
 // ─── Helper: obtener label de cualquier item (incluyendo children) ──
