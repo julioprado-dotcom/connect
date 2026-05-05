@@ -124,52 +124,62 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               const isProminent = group.prominent;
               const groupColor = group.color || '#888';
 
+              // Skip resumen in analisis group — rendered above
+              const groupItems = group.id === 'analisis'
+                ? NAV_ITEMS.slice(group.from + 1, group.to + 1)
+                : NAV_ITEMS.slice(group.from, group.to + 1);
+
               return (
-                <div key={group.id} className={isProminent ? 'mb-2 mt-2' : 'mb-1.5'}>
-                  {/* ── Group header ── */}
-                  {isProminent ? (
-                    // Prominent group: full-width button with icon, color accent, border
+                <div key={group.id} className={isProminent ? 'mb-1 mt-3' : 'mb-1.5'}>
+                  {/* ── Prominent Group Header ── */}
+                  {isProminent && (
                     <button
                       onClick={() => toggleGroup(group.id)}
                       className={`
-                        w-full flex items-center gap-2.5 px-3 mb-1.5 py-2 rounded-lg
-                        border transition-all duration-150
+                        w-full flex items-center gap-3 px-3 mb-1 py-2.5 rounded-lg
+                        border-l-[3px] transition-all duration-150
                         ${isGroupActive
-                          ? 'shadow-sm'
+                          ? 'shadow-md'
                           : 'hover:bg-sidebar-accent/30'
                         }
                       `}
                       style={{
-                        borderColor: isGroupActive ? `${groupColor}60` : 'transparent',
-                        backgroundColor: isGroupActive ? `${groupColor}12` : undefined,
+                        borderLeftColor: groupColor,
+                        backgroundColor: isGroupActive ? `${groupColor}18` : `${groupColor}08`,
                       }}
                     >
-                      {/* Icon */}
+                      {/* Icon box */}
                       {group.icon && (
                         <div
-                          className="flex items-center justify-center h-5 w-5 rounded-md shrink-0"
-                          style={{ backgroundColor: `${groupColor}20` }}
+                          className="flex items-center justify-center h-6 w-6 rounded-md shrink-0"
+                          style={{ backgroundColor: isGroupActive ? `${groupColor}30` : `${groupColor}15` }}
                         >
-                          <group.icon className="h-3.5 w-3.5" style={{ color: groupColor }} />
+                          <group.icon className="h-4 w-4" style={{ color: groupColor }} />
                         </div>
                       )}
                       <span
-                        className="flex-1 text-left text-[10px] font-bold uppercase tracking-widest"
-                        style={{ color: isGroupActive ? groupColor : undefined }}
+                        className="flex-1 text-left text-[11px] font-bold uppercase tracking-wider"
+                        style={{ color: isGroupActive ? groupColor : `${groupColor}CC` }}
                       >
                         {group.label}
                       </span>
-                      {/* Active indicator */}
+                      {/* Active: pulsing dot */}
                       {isGroupActive && (
-                        <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: groupColor }} />
+                        <span className="relative flex h-2 w-2 shrink-0">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: `${groupColor}80` }} />
+                          <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: groupColor }} />
+                        </span>
                       )}
+                      {/* Chevron */}
                       {isGroupExpanded
-                        ? <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />
-                        : <ChevronRight className="h-3 w-3 shrink-0 opacity-50" />
+                        ? <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                        : <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-60" />
                       }
                     </button>
-                  ) : (
-                    // Standard group: subtle text-only header
+                  )}
+
+                  {/* ── Standard (non-prominent) Group Header ── */}
+                  {!isProminent && (
                     <button
                       onClick={() => toggleGroup(group.id)}
                       className={`
@@ -193,14 +203,21 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     </button>
                   )}
 
-                  {/* Group items */}
+                  {/* ── Group Items ── */}
                   {isGroupExpanded && (
                     <div className="space-y-0.5 mb-1">
-                      {NAV_ITEMS.slice(group.from, group.to + 1).map((item) => {
+                      {groupItems.map((item) => {
                         const hasChildren = item.children && item.children.length > 0;
                         const isExpanded = expandedGroups.includes(item.id);
                         const isActive = activeView === item.id;
                         const childActive = isChildActive(item);
+
+                        // Prominent groups: use group color for active items
+                        const activeBg = isProminent ? `${groupColor}15` : 'bg-primary/10';
+                        const activeText = isProminent ? '' : 'text-primary';
+                        const activeIconBg = isProminent ? `${groupColor}25` : 'bg-primary/20';
+                        const barColor = isProminent ? groupColor : undefined;
+                        const dotColor = isProminent ? groupColor : undefined;
 
                         return (
                           <div key={item.id}>
@@ -218,21 +235,36 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                                 relative w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium
                                 transition-all duration-150
                                 ${isActive
-                                  ? 'bg-primary/10 text-primary shadow-sm'
+                                  ? 'shadow-sm'
                                   : childActive
                                     ? 'bg-sidebar-accent/50 text-sidebar-accent-foreground'
                                     : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
                                 }
                               `}
+                              style={isActive ? {
+                                backgroundColor: activeBg,
+                                color: barColor || undefined,
+                              } : undefined}
                             >
                               {/* Active indicator bar */}
-                              {isActive && <ActiveBar />}
+                              {isActive && (
+                                <span
+                                  className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
+                                  style={{ backgroundColor: barColor || 'hsl(var(--primary))' }}
+                                />
+                              )}
                               {childActive && !isActive && (
-                                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-3 rounded-r-full bg-primary/40" />
+                                <span
+                                  className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-3 rounded-r-full opacity-50"
+                                  style={{ backgroundColor: barColor || 'hsl(var(--primary))' }}
+                                />
                               )}
 
                               {/* Icon in box when active, plain when not */}
-                              <div className={`flex items-center justify-center h-5 w-5 rounded-md shrink-0 ${isActive ? 'bg-primary/20' : ''}`}>
+                              <div
+                                className="flex items-center justify-center h-5 w-5 rounded-md shrink-0"
+                                style={isActive ? { backgroundColor: activeIconBg } : undefined}
+                              >
                                 {item.icon && <item.icon className={`h-4 w-4 ${isActive ? '' : 'opacity-70'}`} />}
                               </div>
                               <span className={`flex-1 text-left truncate ${isActive ? 'font-semibold' : ''}`}>{item.label}</span>
@@ -240,8 +272,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                               {/* Active dot for leaf items */}
                               {isActive && !hasChildren && (
                                 <span className="relative flex h-2 w-2 shrink-0">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary/60 opacity-75" />
-                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: `${dotColor}90` || 'hsl(var(--primary))' }} />
+                                  <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: dotColor || 'hsl(var(--primary))' }} />
                                 </span>
                               )}
 
@@ -252,7 +284,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                               )}
                             </button>
 
-                            {/* Sub-items (differentiated from main items) */}
+                            {/* Sub-items */}
                             {hasChildren && isExpanded && (
                               <div className="ml-3 mt-0.5 mb-1">
                                 <div className="border-l-2 border-sidebar-border/40 pl-3 space-y-0.5">
@@ -264,25 +296,32 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                                         onClick={() => setActiveView(child.id)}
                                         className={`
                                           relative w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md
-                                          text-[11px] font-medium
-                                          transition-all duration-150
+                                          text-[11px] font-medium transition-all duration-150
                                           ${isChildItemActive
-                                            ? 'bg-primary/10 text-primary'
+                                            ? ''
                                             : 'text-sidebar-foreground/50 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground/80'
                                           }
                                         `}
+                                        style={isChildItemActive ? {
+                                          backgroundColor: isProminent ? `${groupColor}12` : 'hsl(var(--primary) / 0.1)',
+                                          color: barColor || 'hsl(var(--primary))',
+                                        } : undefined}
                                       >
-                                        {/* Sub-item active indicator */}
                                         {isChildItemActive && (
-                                          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-3 rounded-r-full bg-primary" />
+                                          <span
+                                            className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-3 rounded-r-full"
+                                            style={{ backgroundColor: barColor || 'hsl(var(--primary))' }}
+                                          />
                                         )}
 
                                         {child.icon && <child.icon className={`h-3 w-3 shrink-0 ${isChildItemActive ? '' : 'opacity-50'}`} />}
                                         <span className="truncate">{child.label}</span>
 
-                                        {/* Tiny active dot for sub-items */}
                                         {isChildItemActive && (
-                                          <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                                          <span
+                                            className="ml-auto h-1.5 w-1.5 rounded-full shrink-0"
+                                            style={{ backgroundColor: barColor || 'hsl(var(--primary))' }}
+                                          />
                                         )}
                                       </button>
                                     );

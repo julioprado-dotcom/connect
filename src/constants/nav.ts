@@ -79,7 +79,7 @@ export const NAV_GROUPS: NavGroup[] = [
   { id: 'analisis', label: 'Analisis', from: 0, to: 3 },
   { id: 'onion200', label: 'ONION200', from: 4, to: 7, icon: Rocket, color: '#8B5CF6', prominent: true },
   { id: 'comercial', label: 'Gestion Comercial', from: 8, to: 10, icon: UserCircle, color: '#F59E0B', prominent: true },
-  { id: 'config', label: 'Configuracion', from: 11, to: 16, icon: Settings, color: '#6B7280', prominent: true },
+  { id: 'config', label: 'Configuracion', from: 11, to: 16, icon: Settings, color: '#0EA5E9', prominent: true },
 ];
 
 // ─── Helper: obtener label de cualquier item (incluyendo children) ──
