@@ -127,8 +127,8 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
               transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               className="flex flex-col items-center"
             >
-              {/* Logo sin texto "DECODEX BOLIVIA" */}
-              <div className="mb-6 flex items-center justify-center">
+              {/* Logo */}
+              <div className="mb-4 flex items-center justify-center">
                 <motion.div
                   initial={{ boxShadow: '0 0 0px rgba(0, 255, 136, 0)' }}
                   animate={{
@@ -149,12 +149,23 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
                 </motion.div>
               </div>
 
+              {/* Brand — DECODEX BOLIVIA */}
+              <motion.p
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.6, ease: 'easeOut' }}
+                className="text-lg sm:text-xl font-bold tracking-[0.15em] uppercase"
+                style={{ color: 'rgba(0, 255, 136, 0.7)' }}
+              >
+                DECODEX BOLIVIA
+              </motion.p>
+
               {/* "Bienvenido" */}
               <motion.h1
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.6, ease: 'easeOut' }}
-                className="text-2xl sm:text-3xl font-extrabold tracking-tight"
+                transition={{ delay: 0.55, duration: 0.6, ease: 'easeOut' }}
+                className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-2"
                 style={{ color: '#E2E8F0' }}
               >
                 Bienvenido
@@ -164,7 +175,7 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.8, duration: 0.5 }}
+                transition={{ delay: 0.9, duration: 0.5 }}
                 className="mt-2 text-xs font-medium tracking-[0.2em] uppercase"
                 style={{ color: 'rgba(226, 232, 240, 0.35)' }}
               >
