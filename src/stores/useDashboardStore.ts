@@ -84,14 +84,14 @@ export const useDashboardStore = create<DashboardStore>((set, get) => ({
         const json = await statsResponse.json();
         // Ensure minimum splash duration of 4 seconds
         const elapsed = Date.now() - splashStart;
-        const remaining = Math.max(0, 4000 - elapsed);
+        const remaining = Math.max(0, 4500 - elapsed);
         if (remaining > 0) {
           await new Promise(resolve => setTimeout(resolve, remaining));
         }
         set({ data: json, loading: false, error: '' });
       } else {
         const elapsed = Date.now() - splashStart;
-        const remaining = Math.max(0, 4000 - elapsed);
+        const remaining = Math.max(0, 4500 - elapsed);
         if (remaining > 0) {
           await new Promise(resolve => setTimeout(resolve, remaining));
         }
