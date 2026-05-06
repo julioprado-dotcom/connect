@@ -3,6 +3,7 @@
 
 import type { JobPayload, RunnerResult } from '../types'
 import { checkFuente } from '../check-first/strategies'
+import { enqueue } from '../queue'
 
 export async function run(payload: JobPayload): Promise<RunnerResult> {
   const fuenteId = payload.fuenteId as string
@@ -18,8 +19,18 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
   try {
     const result = await checkFuente(fuenteId)
 
-    // Si hubo cambio, devolver datos para que el scheduler encole un scrape
     if (result.cambiado) {
+      // Encolar scrape_fuente automaticamente al detectar cambio
+      if (medioId) {
+        await enqueue({
+          tipo: 'scrape_fuente',
+          payload: { fuenteId, medioId },
+          prioridad: 1, // alta prioridad para scrape tras cambio detectado
+        }).catch(err => {
+          console.warn(`[check-fuente] Error encolando scrape para fuente ${fuenteId}:`, err)
+        })
+      }
+
       return {
         success: true,
         data: {
@@ -31,8 +42,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
           datosNuevos: result.datosNuevos,
           responseTime: result.responseTime,
           tipoCheckUsado: result.tipoCheckUsado,
-          // Indica al scheduler que debe encolar un scrape_fuente
-          requiereScrape: true,
+          scrapeEncolado: !!medioId,
         },
       }
     }
@@ -48,7 +58,6 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
         detalle: result.detalle,
         responseTime: result.responseTime,
         tipoCheckUsado: result.tipoCheckUsado,
-        requiereScrape: false,
       },
     }
   } catch (error: unknown) {
