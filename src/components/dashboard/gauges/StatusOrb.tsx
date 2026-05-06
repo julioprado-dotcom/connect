@@ -13,6 +13,7 @@ export interface StatusOrbProps {
   icon?: React.ReactNode;
   label: string;
   value?: string;
+  detail?: string;
   size?: 'sm' | 'md' | 'lg';
   horizontal?: boolean;
 }
@@ -96,7 +97,7 @@ const criticalPulse = {
 // StatusOrb — Pulsating sphere with halo
 // ═══════════════════════════════════════════════════════════
 
-export function StatusOrb({ level, icon, label, value, size = 'md', horizontal }: StatusOrbProps) {
+export function StatusOrb({ level, icon, label, value, detail, size = 'md', horizontal }: StatusOrbProps) {
   const colors = LEVEL_COLORS[level];
   const dim = SIZE_MAP[size];
 
@@ -155,6 +156,9 @@ export function StatusOrb({ level, icon, label, value, size = 'md', horizontal }
         <span className={cn('text-muted-foreground block', dim.label)}>
           {label}
         </span>
+        {detail && (
+          <span className="text-[8px] text-muted-foreground/70 block">{detail}</span>
+        )}
       </div>
     </div>
   );

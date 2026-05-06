@@ -13,7 +13,7 @@ import {
   ChevronRight, ArrowRight, Cpu, Database, Clock, Activity,
   CheckCircle2, XCircle, AlertTriangle, BarChart3, Zap, FileBarChart,
   Monitor, Eye, ArrowUpRight, ArrowDownRight, Minus, ShieldAlert,
-  Send, AlertOctagon, Timer, ChevronDown, ChevronUp,
+  Send, AlertOctagon, Timer, ChevronDown, ChevronUp, Sparkles,
 } from 'lucide-react';
 import { useDashboardStore } from '@/stores/useDashboardStore';
 import { MiniGauge } from '@/components/dashboard/gauges/MiniGauge';
@@ -67,6 +67,22 @@ interface AlertasComercialesData {
   contratosPorVencer: ContratoPorVencer[];
   solicitudesPendientes: SolicitudPendiente[];
   entregasPendientes: number;
+}
+
+// ─── AI Health types ──────────────────────────────────────
+
+interface AiHealthData {
+  statusLevel: StatusLevel;
+  statusText: string;
+  llamadasLLMHoy: number;
+  mencionesCreadasHoy: number;
+  mencionesClasificadasHoy: number;
+  reportesGeneradosHoy: number;
+  costoEstimadoHoy: number;
+  ultimaActividad: string | null;
+  ultimaActividadHace: string;
+  jobsFallidosHoy: number;
+  uptimeIA: string;
 }
 
 // ─── Entregas Hoy types ────────────────────────────────────
@@ -236,6 +252,9 @@ export function DashboardCommandCenter() {
   const [entregasHoy, setEntregasHoy] = useState<EntregasHoyData | null>(null);
   const [showEntregasDetail, setShowEntregasDetail] = useState(false);
 
+  // AI Health state
+  const [aiHealth, setAiHealth] = useState<AiHealthData | null>(null);
+
   // Fetch entregas hoy
   const fetchEntregasHoy = useCallback(async () => {
     try {
@@ -246,6 +265,19 @@ export function DashboardCommandCenter() {
       }
     } catch {
       // silent
+    }
+  }, []);
+
+  // Fetch AI health
+  const fetchAiHealth = useCallback(async () => {
+    try {
+      const res = await fetch('/api/dashboard/ai-health');
+      if (res.ok) {
+        const json = await res.json();
+        setAiHealth(json);
+      }
+    } catch {
+      // silent — no bloquear el render
     }
   }, []);
 
@@ -292,6 +324,12 @@ export function DashboardCommandCenter() {
     const interval = setInterval(fetchEntregasHoy, 15000); // refresh cada 15s
     return () => clearInterval(interval);
   }, [fetchEntregasHoy]);
+
+  useEffect(() => {
+    fetchAiHealth();
+    const interval = setInterval(fetchAiHealth, 20000); // refresh cada 20s
+    return () => clearInterval(interval);
+  }, [fetchAiHealth]);
 
   // ─── Computed values ────────────────────────────────────
 
@@ -405,6 +443,18 @@ export function DashboardCommandCenter() {
     return 'ok';
   }, [entregasHoy]);
 
+  // AI diagnostic message (for diagnostics panel)
+  const aiDiagnostic = useMemo(() => {
+    if (!aiHealth) return null;
+    if (aiHealth.statusLevel === 'critical') {
+      return { severity: 'critical' as const, message: 'IA sin actividad en 6 horas. Verificar scheduler y jobs.', action: 'Revisar /api/jobs y scheduler' };
+    }
+    if (aiHealth.statusLevel === 'warning') {
+      return { severity: 'warning' as const, message: `${aiHealth.jobsFallidosHoy} jobs de IA fallieron hoy. Revisar logs.`, action: 'Ejecutar check manual' };
+    }
+    return null;
+  }, [aiHealth]);
+
   // Colores del score (kept for section 4 compatibility)
   const healthColor = useMemo(() => {
     if (healthScore === null) return 'text-muted-foreground';
@@ -513,6 +563,15 @@ export function DashboardCommandCenter() {
                       size="md"
                       horizontal={true}
                     />
+                    <StatusOrb
+                      level={aiHealth?.statusLevel || 'ok'}
+                      icon={<Sparkles className="h-3.5 w-3.5" />}
+                      label="IA"
+                      value={aiHealth ? `${aiHealth.llamadasLLMHoy}` : '--'}
+                      detail={`$${(aiHealth?.costoEstimadoHoy ?? 0).toFixed(2)}`}
+                      size="sm"
+                      horizontal={true}
+                    />
                   </div>
                 </div>
 
@@ -541,7 +600,25 @@ export function DashboardCommandCenter() {
                         </div>
                       </div>
                     ))}
-                    {criticals.length === 0 && warnings.length === 0 && (
+                    {aiDiagnostic && aiDiagnostic.severity === 'critical' && (
+                      <div key="ai-critical" className="flex items-start gap-2">
+                        <XCircle className="h-3.5 w-3.5 text-red-500 mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-medium text-red-600 dark:text-red-400">{aiDiagnostic.message}</p>
+                          {aiDiagnostic.action && <p className="text-[9px] text-muted-foreground mt-0.5">{aiDiagnostic.action}</p>}
+                        </div>
+                      </div>
+                    )}
+                    {aiDiagnostic && aiDiagnostic.severity === 'warning' && (
+                      <div key="ai-warning" className="flex items-start gap-2">
+                        <AlertTriangle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400">{aiDiagnostic.message}</p>
+                          {aiDiagnostic.action && <p className="text-[9px] text-amber-700/70 dark:text-amber-400/70 mt-0.5">{aiDiagnostic.action}</p>}
+                        </div>
+                      </div>
+                    )}
+                    {criticals.length === 0 && warnings.length === 0 && !aiDiagnostic && (
                       <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                         <CheckCircle2 className="h-4 w-4" />
                         <span className="text-xs font-medium">Todo normal</span>
