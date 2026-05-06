@@ -293,7 +293,9 @@ export function DashboardCommandCenter() {
 
   // ─── Gauge values ───────────────────────────────────────
   const memoryPercent = sysMetrics?.memoryPercent || 0;
+  const cgroupPercent = sysMetrics?.cgroupPercent || 0;
   const heapUsed = sysMetrics?.memoryUsage?.heapUsed || 0;
+  const heapLimit = sysMetrics?.memoryUsage?.heapLimit || 0;
   const dbSizeMB = sysMetrics?.dbSize || 0;
   const dbGaugeValue = Math.min(100, (dbSizeMB / 50) * 100);
   const uptimeGaugeValue = Math.min(100, (uptimeHours / 72) * 100);
@@ -327,8 +329,8 @@ export function DashboardCommandCenter() {
         <motion.div custom={0} variants={fadeInUp}>
           <RadialGauge
             value={memoryPercent}
-            label="Memoria"
-            valueLabel={`${heapUsed} MB`}
+            label="Heap Node.js"
+            valueLabel={`${heapUsed} / ${heapLimit} MB`}
             icon={<Cpu className="h-4 w-4" />}
             onClick={() => setActiveView('configuracion')}
           />
@@ -844,9 +846,9 @@ export function DashboardCommandCenter() {
       {/* System info footer */}
       {sysMetrics && (
         <div className="flex items-center justify-between text-[10px] text-muted-foreground/60 px-1 pb-2">
-          <span>Node {sysMetrics.nodeVersion} · {sysMetrics.platform}</span>
-          <span>DB: {sysMetrics.dbSize} MB · RSS: {sysMetrics.memoryUsage.rss} MB</span>
-          <span>Ultima actualizacion: {new Date(sysMetrics.timestamp).toLocaleTimeString('es-BO')}</span>
+          <span>Node {sysMetrics.nodeVersion} · Heap {sysMetrics.memoryUsage.heapUsed}/{sysMetrics.memoryUsage.heapLimit} MB ({Math.round(sysMetrics.memoryPercent)}%)</span>
+          <span>Contenedor: {sysMetrics.memoryUsage.cgroupUsage}/{sysMetrics.memoryUsage.cgroupLimit} MB ({Math.round(sysMetrics.cgroupPercent)}%)</span>
+          <span>DB: {sysMetrics.dbSize} MB · {sysMetrics.uptimeFormatted}</span>
         </div>
       )}
     </div>

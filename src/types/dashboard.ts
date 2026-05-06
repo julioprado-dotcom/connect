@@ -160,9 +160,13 @@ export interface SystemMetrics {
     rss: number;
     heapUsed: number;
     heapTotal: number;
+    heapLimit: number;
     external: number;
+    cgroupLimit: number;
+    cgroupUsage: number;
   };
-  memoryPercent: number;
+  memoryPercent: number;      // heapUsed / heapLimit (V8, lo que causa OOM)
+  cgroupPercent: number;      // cgroup usage / cgroup limit (contenedor)
   uptime: number;
   uptimeFormatted: string;
   dbSize: number;
