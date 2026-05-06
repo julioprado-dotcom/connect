@@ -155,22 +155,29 @@ export interface MediosHealthData {
   }>;
 }
 
+export interface SystemDiagnosis {
+  id: string;
+  severity: 'ok' | 'warning' | 'critical';
+  message: string;
+  detail: string;
+  action?: string;
+  team?: 'desarrollo' | 'sistemas' | 'administrador';
+}
+
 export interface SystemMetrics {
+  healthScore: number;           // 0-100, baja con warnings/criticals
+  diagnoses: SystemDiagnosis[];
   memoryUsage: {
     rss: number;
     heapUsed: number;
-    heapTotal: number;
     heapLimit: number;
-    external: number;
-    cgroupLimit: number;
     cgroupUsage: number;
+    cgroupLimit: number;
   };
-  memoryPercent: number;      // heapUsed / heapLimit (V8, lo que causa OOM)
-  cgroupPercent: number;      // cgroup usage / cgroup limit (contenedor)
+  dbSize: number;
   uptime: number;
   uptimeFormatted: string;
-  dbSize: number;
+  environment: string;
   nodeVersion: string;
-  platform: string;
   timestamp: string;
 }

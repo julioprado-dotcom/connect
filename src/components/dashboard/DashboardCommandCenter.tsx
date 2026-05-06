@@ -15,7 +15,6 @@ import {
   Monitor, Eye, ArrowUpRight, ArrowDownRight, Minus, ShieldAlert,
 } from 'lucide-react';
 import { useDashboardStore } from '@/stores/useDashboardStore';
-import { RadialGauge } from '@/components/dashboard/gauges/RadialGauge';
 import { MiniGauge } from '@/components/dashboard/gauges/MiniGauge';
 import { TopVariations } from '@/components/dashboard/TopVariations';
 import { AlarmasComerciales } from '@/components/dashboard/AlarmasComerciales';
@@ -291,15 +290,27 @@ export function DashboardCommandCenter() {
     return 'border-l-4 border-l-emerald-500';
   }, [mediosHealth]);
 
-  // ─── Gauge values ───────────────────────────────────────
-  const memoryPercent = sysMetrics?.memoryPercent || 0;
-  const cgroupPercent = sysMetrics?.cgroupPercent || 0;
-  const heapUsed = sysMetrics?.memoryUsage?.heapUsed || 0;
-  const heapLimit = sysMetrics?.memoryUsage?.heapLimit || 0;
-  const dbSizeMB = sysMetrics?.dbSize || 0;
-  const dbGaugeValue = Math.min(100, (dbSizeMB / 50) * 100);
-  const uptimeGaugeValue = Math.min(100, (uptimeHours / 72) * 100);
-  const jobsValue = Math.min(100, ((data?.entregasHoy || 0) / 50) * 100);
+  // ─── Health diagnostics ────────────────────────────────
+  const healthScore = sysMetrics?.healthScore ?? null;
+  const diagnoses = sysMetrics?.diagnoses ?? [];
+  const criticals = diagnoses.filter(d => d.severity === 'critical');
+  const warnings = diagnoses.filter(d => d.severity === 'warning');
+  const oks = diagnoses.filter(d => d.severity === 'ok');
+
+  // Colores del score
+  const healthColor = useMemo(() => {
+    if (healthScore === null) return 'text-muted-foreground';
+    if (healthScore >= 90) return 'text-emerald-500';
+    if (healthScore >= 70) return 'text-amber-500';
+    return 'text-red-500';
+  }, [healthScore]);
+
+  const healthBg = useMemo(() => {
+    if (healthScore === null) return 'bg-muted';
+    if (healthScore >= 90) return 'bg-emerald-500/10 border-emerald-500/30';
+    if (healthScore >= 70) return 'bg-amber-500/10 border-amber-500/30';
+    return 'bg-red-500/10 border-red-500/30';
+  }, [healthScore]);
 
   // ═══════════════════════════════════════════════════════
   // Render
@@ -319,48 +330,86 @@ export function DashboardCommandCenter() {
   return (
     <div className="space-y-6">
 
-      {/* ═══ Section 1: System Gauges ═══ */}
+      {/* ═══ Section 1: Diagnóstico del Sistema ═══ */}
       <motion.div
         variants={stagger}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
+        className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4"
       >
+        {/* Score de salud */}
         <motion.div custom={0} variants={fadeInUp}>
-          <RadialGauge
-            value={memoryPercent}
-            label="Heap Node.js"
-            valueLabel={`${heapUsed} / ${heapLimit} MB`}
-            icon={<Cpu className="h-4 w-4" />}
-            onClick={() => setActiveView('configuracion')}
-          />
+          <Card className="border">
+            <CardContent className="p-4 flex flex-col items-center justify-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Salud del Sistema</span>
+              <span className={`text-4xl font-bold ${healthColor}`}>
+                {healthScore !== null ? healthScore : '--'}
+              </span>
+              <span className="text-[10px] text-muted-foreground">
+                {criticals.length > 0 && <span className="text-red-500">{criticals.length} critico{criticals.length > 1 ? 's' : ''}</span>}
+                {criticals.length > 0 && warnings.length > 0 && <span> · </span>}
+                {warnings.length > 0 && <span className="text-amber-500">{warnings.length} advertencia{warnings.length > 1 ? 's' : ''}</span>}
+                {criticals.length === 0 && warnings.length === 0 && <span className="text-emerald-500">Todo normal</span>}
+              </span>
+            </CardContent>
+          </Card>
         </motion.div>
+
+        {/* KPIs rápidos */}
         <motion.div custom={1} variants={fadeInUp}>
-          <RadialGauge
-            value={dbGaugeValue}
-            label="Base de Datos"
-            valueLabel={`${dbSizeMB} MB`}
-            icon={<Database className="h-4 w-4" />}
-            onClick={() => setActiveView('configuracion')}
-          />
+          <Card className="border">
+            <CardContent className="p-4 grid grid-cols-2 gap-3">
+              <div className="flex flex-col items-center">
+                <span className="text-lg font-bold text-foreground">{sysMetrics?.memoryUsage?.heapUsed ?? '--'}</span>
+                <span className="text-[9px] text-muted-foreground">Heap MB</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-lg font-bold text-foreground">{sysMetrics?.dbSize ?? '--'}</span>
+                <span className="text-[9px] text-muted-foreground">DB MB</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-lg font-bold text-foreground">{sysMetrics?.uptimeFormatted ?? '--'}</span>
+                <span className="text-[9px] text-muted-foreground">Uptime</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-lg font-bold text-foreground">{data.entregasHoy}</span>
+                <span className="text-[9px] text-muted-foreground">Entregas hoy</span>
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
+
+        {/* Alertas activas (solo si hay) */}
         <motion.div custom={2} variants={fadeInUp}>
-          <RadialGauge
-            value={uptimeGaugeValue}
-            label="Uptime"
-            valueLabel={sysMetrics?.uptimeFormatted || '0m'}
-            icon={<Clock className="h-4 w-4" />}
-            onClick={() => setActiveView('jobs')}
-          />
-        </motion.div>
-        <motion.div custom={3} variants={fadeInUp}>
-          <RadialGauge
-            value={jobsValue}
-            label="Entregas Hoy"
-            valueLabel={`${data.entregasHoy} procesadas`}
-            icon={<Activity className="h-4 w-4" />}
-            onClick={() => setActiveView('jobs')}
-          />
+          <Card className={`border ${healthBg}`}>
+            <CardContent className="p-4 space-y-2">
+              {criticals.length > 0 && criticals.map(d => (
+                <div key={d.id} className="flex items-start gap-2">
+                  <XCircle className="h-3.5 w-3.5 text-red-500 mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-medium text-red-600 dark:text-red-400">{d.message}</p>
+                    {d.action && <p className="text-[9px] text-muted-foreground mt-0.5">{d.action}</p>}
+                  </div>
+                </div>
+              ))}
+              {warnings.length > 0 && warnings.map(d => (
+                <div key={d.id} className="flex items-start gap-2">
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400">{d.message}</p>
+                    <p className="text-[9px] text-muted-foreground">{d.detail}</p>
+                    {d.action && <p className="text-[9px] text-amber-700/70 dark:text-amber-400/70 mt-0.5">{d.action}</p>}
+                  </div>
+                </div>
+              ))}
+              {criticals.length === 0 && warnings.length === 0 && (
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span className="text-xs font-medium">Sin alertas activas</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </motion.div>
       </motion.div>
 
@@ -846,8 +895,8 @@ export function DashboardCommandCenter() {
       {/* System info footer */}
       {sysMetrics && (
         <div className="flex items-center justify-between text-[10px] text-muted-foreground/60 px-1 pb-2">
-          <span>Node {sysMetrics.nodeVersion} · Heap {sysMetrics.memoryUsage.heapUsed}/{sysMetrics.memoryUsage.heapLimit} MB ({Math.round(sysMetrics.memoryPercent)}%)</span>
-          <span>Contenedor: {sysMetrics.memoryUsage.cgroupUsage}/{sysMetrics.memoryUsage.cgroupLimit} MB ({Math.round(sysMetrics.cgroupPercent)}%)</span>
+          <span>Node {sysMetrics.nodeVersion} · {sysMetrics.environment}</span>
+          <span>Heap {sysMetrics.memoryUsage.heapUsed} MB · Contenedor {sysMetrics.memoryUsage.cgroupUsage}/{sysMetrics.memoryUsage.cgroupLimit} MB</span>
           <span>DB: {sysMetrics.dbSize} MB · {sysMetrics.uptimeFormatted}</span>
         </div>
       )}

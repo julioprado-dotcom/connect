@@ -6,107 +6,272 @@ import os from 'os';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+// ═══════════════════════════════════════════════════════════════
+// Helpers de bajo nivel
+// ═══════════════════════════════════════════════════════════════
+
 function readCgroupMemory(): { limit: number; usage: number } {
   try {
-    const limitPath = '/sys/fs/cgroup/memory/memory.limit_in_bytes';
-    const usagePath = '/sys/fs/cgroup/memory/memory.usage_in_bytes';
-    const limit = parseInt(fs.readFileSync(limitPath, 'utf-8').trim(), 10);
-    const usage = parseInt(fs.readFileSync(usagePath, 'utf-8').trim(), 10);
-    if (limit > 0 && usage >= 0) {
-      return { limit, usage };
-    }
-  } catch {
-    // fallback
-  }
+    const limit = parseInt(fs.readFileSync('/sys/fs/cgroup/memory/memory.limit_in_bytes', 'utf-8').trim(), 10);
+    const usage = parseInt(fs.readFileSync('/sys/fs/cgroup/memory/memory.usage_in_bytes', 'utf-8').trim(), 10);
+    if (limit > 0) return { limit, usage };
+  } catch { /* fallback */ }
   return { limit: os.totalmem(), usage: os.totalmem() - os.freemem() };
 }
 
 function getHeapLimit(): number {
-  // NODE_OPTIONS=--max-old-space-size=4041 inyectado por la plataforma
-  const nodeOptions = process.env.NODE_OPTIONS || '';
-  const match = nodeOptions.match(/--max-old-space-size=(\d+)/);
+  const match = (process.env.NODE_OPTIONS || '').match(/--max-old-space-size=(\d+)/);
   if (match) return parseInt(match[1], 10) * 1024 * 1024;
-  // V8 default heap limit
-  const v8 = require('v8');
-  return v8.getHeapStatistics().heap_size_limit;
+  try { return require('v8').getHeapStatistics().heap_size_limit; } catch { return 4041 * 1024 * 1024; }
 }
+
+function getDbSize(): number {
+  const paths = [
+    process.env.DATABASE_URL?.replace('file:', '') || '',
+    path.join(process.cwd(), 'db', 'custom.db'),
+    path.join(process.cwd(), 'prisma', 'dev.db'),
+  ];
+  for (const p of paths) {
+    try {
+      const s = fs.statSync(p);
+      if (s.isFile()) return Math.round(s.size / (1024 * 1024) * 100) / 100;
+    } catch { /* next */ }
+  }
+  return 0;
+}
+
+function formatUptime(seconds: number): string {
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const parts: string[] = [];
+  if (d > 0) parts.push(`${d}d`);
+  if (h > 0) parts.push(`${h}h`);
+  parts.push(`${m}m`);
+  return parts.join(' ');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Diagnósticos accionables — cada uno devuelve:
+//   { severity: 'ok' | 'warning' | 'critical', message, action? }
+// ═══════════════════════════════════════════════════════════════
+
+type Diagnosis = {
+  id: string;
+  severity: 'ok' | 'warning' | 'critical';
+  message: string;
+  detail: string;
+  action?: string;
+  team?: 'desarrollo' | 'sistemas' | 'administrador';
+};
+
+function diagnoseMemory(mem: NodeJS.MemoryUsage, heapLimit: number, cgroup: { limit: number; usage: number }): Diagnosis {
+  const heapPct = (mem.heapUsed / heapLimit) * 100;
+  const rssMB = Math.round(mem.rss / (1024 * 1024));
+
+  if (heapPct > 85) {
+    return {
+      id: 'memory',
+      severity: 'critical',
+      message: 'Heap Node.js saturado',
+      detail: `${heapPct.toFixed(0)}% del limite (${rssMB} MB RSS). Riesgo inminente de OOM kill.`,
+      action: 'Reiniciar el servidor. Investigar memory leak en queries o generacion de reportes.',
+      team: 'desarrollo',
+    };
+  }
+  if (heapPct > 60) {
+    return {
+      id: 'memory',
+      severity: 'warning',
+      message: 'Consumo de heap elevado',
+      detail: `${heapPct.toFixed(0)}% del limite (${rssMB} MB RSS). Posible leak o pico de carga.`,
+      action: 'Verificar queries sin paginar o reportes en generacion.',
+      team: 'desarrollo',
+    };
+  }
+  return {
+    id: 'memory',
+    severity: 'ok',
+    message: 'Memoria estable',
+    detail: `Heap ${heapPct.toFixed(0)}% (${rssMB} MB RSS). Sin presion.`,
+  };
+}
+
+function diagnoseContainer(cgroup: { limit: number; usage: number }): Diagnosis {
+  const pct = (cgroup.usage / cgroup.limit) * 100;
+  if (pct > 90) {
+    return {
+      id: 'container',
+      severity: 'critical',
+      message: 'Contenedor al limite',
+      detail: `${pct.toFixed(0)}% de ${Math.round(cgroup.limit / 1024 / 1024)} MB. El SO puede matar procesos.`,
+      action: 'Solicitar mas memoria al contenedor o reducir procesos activos.',
+      team: 'sistemas',
+    };
+  }
+  if (pct > 75) {
+    return {
+      id: 'container',
+      severity: 'warning',
+      message: 'Contenedor con presion',
+      detail: `${pct.toFixed(0)}% de ${Math.round(cgroup.limit / 1024 / 1024)} MB.`,
+      action: 'Monitorear tendencia. Si sube sostenidamente, escalar a sistemas.',
+      team: 'sistemas',
+    };
+  }
+  return {
+    id: 'container',
+    severity: 'ok',
+    message: 'Contenedor estable',
+    detail: `${pct.toFixed(0)}% de ${Math.round(cgroup.limit / 1024 / 1024)} MB.`,
+  };
+}
+
+function diagnoseDatabase(dbSizeMB: number): Diagnosis {
+  if (dbSizeMB > 500) {
+    return {
+      id: 'database',
+      severity: 'warning',
+      message: 'Base de datos grande',
+      detail: `${dbSizeMB} MB. Las consultas pueden relentizar. SQLite no es optimo para DB > 1GB.`,
+      action: 'Considerar purga de datos antiguos o migrar a PostgreSQL.',
+      team: 'sistemas',
+    };
+  }
+  return {
+    id: 'database',
+    severity: 'ok',
+    message: 'Base de datos sana',
+    detail: `${dbSizeMB} MB. Rango normal para SQLite.`,
+  };
+}
+
+function diagnoseUptime(uptimeSeconds: number): Diagnosis {
+  const hours = uptimeSeconds / 3600;
+  if (uptimeSeconds < 300) {
+    return {
+      id: 'uptime',
+      severity: 'warning',
+      message: 'Servidor reinicio recientemente',
+      detail: `Arriba hace ${formatUptime(uptimeSeconds)}. Posible crash o deploy reciente.`,
+      action: 'Revisar logs si no fue un reinicio programado.',
+      team: 'sistemas',
+    };
+  }
+  return {
+    id: 'uptime',
+    severity: 'ok',
+    message: `Arriba ${formatUptime(uptimeSeconds)}`,
+    detail: `Servidor estable (${Math.round(hours)}h sin reinicio).`,
+  };
+}
+
+function diagnoseDevOverhead(): Diagnosis {
+  // En modo dev, Turbopack cache + source maps consumen memoria extra
+  const isDev = process.env.NODE_ENV === 'development';
+  if (!isDev) {
+    return { id: 'dev-overhead', severity: 'ok', message: 'Produccion', detail: 'Sin overhead de desarrollo.' };
+  }
+  try {
+    const nextDir = path.join(process.cwd(), '.next', 'dev');
+    const cacheSize = fs.readdirSync(nextDir, { recursive: true }).reduce((acc, f) => {
+      try { return acc + fs.statSync(path.join(nextDir, f as string)).size; } catch { return acc; }
+    }, 0);
+    const cacheMB = Math.round(cacheSize / 1024 / 1024);
+    if (cacheMB > 500) {
+      return {
+        id: 'dev-overhead',
+        severity: 'warning',
+        message: 'Cache de dev grande',
+        detail: `Turbopack cache: ${cacheMB} MB. Limpiar con rm -rf .next si hay problemas.`,
+        action: 'Ejecutar: rm -rf .next && bun run dev para limpiar cache.',
+        team: 'desarrollo',
+      };
+    }
+    return {
+      id: 'dev-overhead',
+      severity: 'ok',
+      message: 'Modo desarrollo',
+      detail: `Turbopack cache: ${cacheMB} MB. Overhead normal.`,
+    };
+  } catch {
+    return { id: 'dev-overhead', severity: 'ok', message: 'Modo desarrollo', detail: 'Cache de compilacion OK.' };
+  }
+}
+
+function diagnoseAuth(): Diagnosis {
+  const hasSecret = !!process.env.AUTH_SECRET;
+  if (!hasSecret) {
+    return {
+      id: 'auth',
+      severity: 'critical',
+      message: 'AUTH_SECRET no configurado',
+      detail: 'Las sesiones no se pueden firmar. Login no funciona.',
+      action: 'Agregar AUTH_SECRET al .env. Generar con: openssl rand -base64 32',
+      team: 'desarrollo',
+    };
+  }
+  return {
+    id: 'auth',
+    severity: 'ok',
+    message: 'Autenticacion configurada',
+    detail: 'AUTH_SECRET presente. Sesiones seguras.',
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Endpoint principal
+// ═══════════════════════════════════════════════════════════════
 
 export async function GET() {
   try {
     const mem = process.memoryUsage();
     const cgroup = readCgroupMemory();
     const heapLimit = getHeapLimit();
+    const dbSize = getDbSize();
+    const uptimeSeconds = process.uptime();
 
+    // --- Datos crudos (para footer y detalles) ---
     const memoryUsage = {
       rss: Math.round(mem.rss / (1024 * 1024) * 100) / 100,
       heapUsed: Math.round(mem.heapUsed / (1024 * 1024) * 100) / 100,
-      heapTotal: Math.round(mem.heapTotal / (1024 * 1024) * 100) / 100,
       heapLimit: Math.round(heapLimit / (1024 * 1024) * 100) / 100,
-      external: Math.round(mem.external / (1024 * 1024) * 100) / 100,
-      cgroupLimit: Math.round(cgroup.limit / (1024 * 1024) * 100) / 100,
       cgroupUsage: Math.round(cgroup.usage / (1024 * 1024) * 100) / 100,
+      cgroupLimit: Math.round(cgroup.limit / (1024 * 1024) * 100) / 100,
     };
 
-    // Porcentaje contra el límite V8 heap (lo que causa OOM al proceso)
-    const memoryPercent = heapLimit > 0
-      ? Math.round((mem.heapUsed / heapLimit) * 10000) / 100
-      : 0;
-
-    const cgroupPercent = cgroup.limit > 0
-      ? Math.round((cgroup.usage / cgroup.limit) * 10000) / 100
-      : 0;
-
-    // Uptime
-    const uptimeSeconds = process.uptime();
-    const uptimeFormatted = formatUptime(uptimeSeconds);
-
-    // Database file size
-    let dbSize = 0;
-    const dbPaths = [
-      path.join(process.cwd(), 'db', 'custom.db'),
-      path.join(process.cwd(), 'prisma', 'dev.db'),
-      process.env.DATABASE_URL?.replace('file:', '') || '',
+    // --- Diagnósticos ---
+    const diagnoses: Diagnosis[] = [
+      diagnoseMemory(mem, heapLimit, cgroup),
+      diagnoseContainer(cgroup),
+      diagnoseDatabase(dbSize),
+      diagnoseUptime(uptimeSeconds),
+      diagnoseDevOverhead(),
+      diagnoseAuth(),
     ];
-    for (const dbPath of dbPaths) {
-      try {
-        const stat = fs.statSync(dbPath);
-        if (stat.isFile()) {
-          dbSize = Math.round(stat.size / (1024 * 1024) * 100) / 100;
-          break;
-        }
-      } catch {
-        // File not found, try next path
-      }
-    }
+
+    const criticals = diagnoses.filter(d => d.severity === 'critical');
+    const warnings = diagnoses.filter(d => d.severity === 'warning');
+    const oks = diagnoses.filter(d => d.severity === 'ok');
+
+    // Score de salud: 100 si todo ok, baja con warnings/criticals
+    const healthScore = Math.max(0, 100 - (criticals.length * 30) - (warnings.length * 10));
 
     return NextResponse.json({
+      healthScore,
+      diagnoses,
       memoryUsage,
-      memoryPercent,
-      cgroupPercent,
-      uptime: uptimeSeconds,
-      uptimeFormatted,
       dbSize,
+      uptime: uptimeSeconds,
+      uptimeFormatted: formatUptime(uptimeSeconds),
+      environment: process.env.NODE_ENV || 'unknown',
       nodeVersion: process.version,
-      platform: process.platform,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
     return NextResponse.json(
-      { error: 'Failed to collect system metrics' },
+      { error: 'Failed to collect system diagnostics' },
       { status: 500 }
     );
   }
-}
-
-function formatUptime(seconds: number): string {
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-
-  const parts: string[] = [];
-  if (days > 0) parts.push(`${days}d`);
-  if (hours > 0) parts.push(`${hours}h`);
-  parts.push(`${minutes}m`);
-
-  return parts.join(' ');
 }
