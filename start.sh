@@ -1,13 +1,12 @@
 #!/bin/bash
 # ─── DECODEX Bolivia — Script de inicio para Z.ai Sandbox ─────────
-# Ejecutar desde /home/z/my-project/connect-repo
 # Uso: bash start.sh [--dev] [--build]
 
 set -e
 cd "$(dirname "$0")"
 
-MODE="${1:---build}"
-PROJECT_DIR="/home/z/my-project/connect-repo"
+MODE="${1:---dev}"
+PROJECT_DIR="/home/z/my-project"
 DB_PATH="$PROJECT_DIR/db/custom.db"
 LOG="/tmp/decodex-server.log"
 
@@ -19,16 +18,10 @@ echo "╚═══════════════════════�
 pkill -f "next" 2>/dev/null || true
 sleep 1
 
-# 2. Cargar variables de entorno
-if [ -f "$PROJECT_DIR/.env.local" ]; then
-  export $(grep -v '^#' "$PROJECT_DIR/.env.local" | xargs)
-  echo "⚙ .env.local cargado"
-fi
-
-# 3. Verificar DB
+# 2. Verificar DB
 if [ ! -f "$DB_PATH" ]; then
   echo "⚠ DB no existe, creando..."
-  mkdir -p "$PROJECT_DIR/db"
+  mkdir -p "$(dirname "$DB_PATH")"
   npx prisma db push 2>&1 | tail -2
 fi
 
@@ -38,10 +31,10 @@ if [ "$MODE" = "--build" ] || [ "$MODE" = "-b" ]; then
   rm -rf .next
   npx next build 2>&1 | tail -3
   echo "🚀 Servidor en producción (puerto 3000)..."
-  NODE_OPTIONS=--max-old-space-size=512 nohup npx next start -p 3000 >> "$LOG" 2>&1 &
+  nohup npx next start -p 3000 >> "$LOG" 2>&1 &
 else
-  echo "🔧 Modo desarrollo (webpack)..."
-  NODE_OPTIONS=--max-old-space-size=512 nohup npx next dev -p 3000 --webpack >> "$LOG" 2>&1 &
+  echo "🔧 Modo desarrollo..."
+  nohup npx next dev -p 3000 >> "$LOG" 2>&1 &
 fi
 
 PID=$!

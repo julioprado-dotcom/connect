@@ -14,12 +14,10 @@
 set -euo pipefail
 
 # ─── Config ──────────────────────────────────────────────────
-REPO_DIR="/home/z/my-project/connect-repo"
+REPO_DIR="/home/z/my-project"
 BACKUP_DIR="${REPO_DIR}/backups"
-# DB destino principal: persistente en Z.ai sandbox
-DB_PATH="/home/z/my-project/upload/db/dev.db"
-# Fallback: DB en el repo
-ALT_DB_PATH="${REPO_DIR}/db/custom.db"
+# DB real del proyecto
+DB_PATH="/home/z/my-project/db/custom.db"
 
 # ─── Colors ──────────────────────────────────────────────────
 RED='\033[0;31m'
@@ -60,22 +58,7 @@ list_backups() {
   echo ""
 }
 
-# ─── Detectar DB destino ────────────────────────────────────
-detect_target_db() {
-  # Preferir la ruta del schema.prisma si existe el directorio
-  if [ -f "$DB_PATH" ]; then
-    echo "$DB_PATH"
-  elif [ -d "$(dirname "$DB_PATH")" ]; then
-    echo "$DB_PATH"
-  elif [ -f "$ALT_DB_PATH" ]; then
-    echo "$ALT_DB_PATH"
-  else
-    # Usar la ruta del schema.prisma por defecto
-    echo "$DB_PATH"
-  fi
-}
-
-# ─── Restore ────────────────────────────────────────────────
+# ─── Parse args ─────────────────────────────────────────────
 CONFIRM_MODE=false
 LIST_MODE=false
 SPECIFIC_FILE=""
@@ -105,7 +88,6 @@ if [ -n "$SPECIFIC_FILE" ]; then
     exit 1
   fi
 else
-  # Backup mas reciente
   BACKUP_FILE=$(ls -t "${BACKUP_DIR}"/dev-*.db 2>/dev/null | head -1)
   if [ -z "$BACKUP_FILE" ]; then
     log_error "No hay backups disponibles en ${BACKUP_DIR}"
@@ -114,7 +96,7 @@ else
 fi
 
 BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
-TARGET_DB=$(detect_target_db)
+TARGET_DB="$DB_PATH"
 
 echo ""
 log_info "Backup a restaurar: $(basename "$BACKUP_FILE") (${BACKUP_SIZE})"
@@ -132,7 +114,6 @@ if command -v sqlite3 &>/dev/null; then
     exit 1
   fi
 
-  # Mostrar stats del backup
   TABLES=$(sqlite3 "$BACKUP_FILE" "SELECT COUNT(*) FROM sqlite_master WHERE type='table';" 2>/dev/null || echo "?")
   log_info "Tablas en backup: ${TABLES}"
 else
@@ -140,6 +121,7 @@ else
 fi
 
 # ─── Backup de la DB actual antes de restaurar ─────────────
+PRE_RESTORE=""
 if [ -f "$TARGET_DB" ]; then
   CURRENT_SIZE=$(du -h "$TARGET_DB" | cut -f1)
   if [ "$CONFIRM_MODE" = false ]; then
@@ -154,7 +136,6 @@ if [ -f "$TARGET_DB" ]; then
     fi
   fi
 
-  # Backup previo de seguridad
   PRE_RESTORE="${BACKUP_DIR}/pre-restore-$(date +%Y%m%d-%H%M%S).db"
   mkdir -p "$(dirname "$PRE_RESTORE")"
   cp "$TARGET_DB" "$PRE_RESTORE"
@@ -176,7 +157,7 @@ if command -v sqlite3 &>/dev/null; then
   else
     log_error "DB restaurada con errores: ${RESTORE_INTEGRITY}"
     log_error "Restaurando backup previo..."
-    if [ -f "$PRE_RESTORE" ]; then
+    if [ -n "$PRE_RESTORE" ] && [ -f "$PRE_RESTORE" ]; then
       cp "$PRE_RESTORE" "$TARGET_DB"
       log_info "DB previa restaurada exitosamente"
     fi
@@ -185,10 +166,10 @@ if command -v sqlite3 &>/dev/null; then
 fi
 
 echo ""
-log_info "═══════════════════════════════════════════"
+log_info "==============================================="
 log_info "  RESTAURACION COMPLETADA EXITOSAMENTE"
-log_info "═══════════════════════════════════════════"
+log_info "==============================================="
 log_info "  Backup:     $(basename "$BACKUP_FILE")"
 log_info "  Destino:    ${TARGET_DB}"
-[ -v PRE_RESTORE ] && log_info "  Previo:     $(basename "$PRE_RESTORE")"
+[ -n "$PRE_RESTORE" ] && log_info "  Previo:     $(basename "$PRE_RESTORE")"
 echo ""
