@@ -6,20 +6,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { BinaryRainCanvas } from './BinaryRainCanvas';
 
 /**
- * DECODEX Bolivia — Splash screen con secuencia animada de ~4.5 segundos.
+ * DECODEX Bolivia — Splash screen con secuencia animada.
  *
- * Orden de APARICION (de arriba hacia abajo):
- *   Etapa 0 → Lluvia binaria cubre la pantalla (fondo)
- *   Etapa 1 → Logo + "DECODEX BOLIVIA"
- *   Etapa 2 → Puntos animados
- *   Etapa 3 → "Cargando inteligencia..."
- *   Etapa 4 → "Bienvenido"
- *
- * Cada elemento permanece visible; los nuevos se agregan debajo.
- * Despues de la etapa 4, el padre desmonta con fade-out.
+ * Orden de APARICION:
+ *   Etapa 0 → Lluvia binaria (inmediata)
+ *   Etapa 1 → Puntos animados
+ *   Etapa 2 → "Cargando inteligencia..."
+ *   Etapa 3 → Logo
+ *   Etapa 4 → Branding "DECODEX BOLIVIA"
  */
 
-const STAGE_DURATIONS = [800, 800, 700, 1000, 800]; // ms por etapa
+const STAGE_DURATIONS = [400, 600, 800, 700, 700]; // ms por etapa
 const TOTAL_DURATION = STAGE_DURATIONS.reduce((a, b) => a + b, 0);
 
 interface LoadingScreenProps {
@@ -29,7 +26,6 @@ interface LoadingScreenProps {
 export function LoadingScreen({ onComplete }: LoadingScreenProps) {
   const [stage, setStage] = useState(0);
 
-  // Avanzar etapas automaticamente
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
     let accumulated = 0;
@@ -46,22 +42,79 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
       className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden select-none"
       style={{ backgroundColor: '#0A1628' }}
     >
-      {/* Lluvia binaria — siempre visible como fondo */}
+      {/* Lluvia binaria — lo primero, ya visible desde el render */}
       <BinaryRainCanvas />
 
-      {/* Contenido central — todo apilado verticalmente */}
       <div className="relative z-10 flex flex-col items-center px-4">
 
-        {/* ─── Etapa 1: Logo + DECODEX BOLIVIA ─── */}
+        {/* ─── Etapa 1: Puntos animados ─── */}
         <AnimatePresence>
           {stage >= 1 && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              initial={{ opacity: 0, y: 15, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+              className="flex items-center gap-2 mb-6"
+            >
+              {[0, 1, 2, 3, 4].map((i) => (
+                <motion.span
+                  key={i}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{
+                    scale: [0, 1.3, 1],
+                    opacity: [0, 0.8, 0.5],
+                  }}
+                  transition={{
+                    duration: 0.8,
+                    delay: i * 0.1,
+                    repeat: Infinity,
+                    repeatType: 'reverse',
+                    repeatDelay: 0.4,
+                  }}
+                  className="block rounded-full"
+                  style={{
+                    width: 5 + i,
+                    height: 5 + i,
+                    backgroundColor: `rgba(0, 255, 136, ${0.3 + i * 0.12})`,
+                  }}
+                />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ─── Etapa 2: "Cargando inteligencia..." ─── */}
+        <AnimatePresence>
+          {stage >= 2 && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
               className="flex flex-col items-center mb-6"
             >
-              {/* Logo con glow */}
+              <p
+                className="text-base sm:text-lg font-semibold tracking-wide"
+                style={{ color: 'rgba(0, 255, 136, 0.8)' }}
+              >
+                Cargando inteligencia
+                <motion.span
+                  animate={{ opacity: [1, 0.3, 1] }}
+                  transition={{ duration: 1.2, repeat: Infinity }}
+                >...</motion.span>
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ─── Etapa 3: Logo ─── */}
+        <AnimatePresence>
+          {stage >= 3 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.7 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              className="flex flex-col items-center mb-4"
+            >
               <div className="flex items-center justify-center">
                 <motion.div
                   initial={{ boxShadow: '0 0 0px rgba(0, 255, 136, 0)' }}
@@ -82,97 +135,27 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
                   <Image src="/logo.png" alt="DECODEX" width={88} height={88} className="object-cover" priority />
                 </motion.div>
               </div>
-
-              {/* Brand */}
-              <motion.p
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.6, ease: 'easeOut' }}
-                className="mt-3 text-lg sm:text-xl font-bold tracking-[0.15em] uppercase"
-                style={{ color: 'rgba(0, 255, 136, 0.7)' }}
-              >
-                DECODEX BOLIVIA
-              </motion.p>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* ─── Etapa 2: Puntos animados ─── */}
-        <AnimatePresence>
-          {stage >= 2 && (
-            <motion.div
-              initial={{ opacity: 0, y: 15, scale: 0.8 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
-              className="flex items-center gap-2 mb-6"
-            >
-              {[0, 1, 2, 3, 4].map((i) => (
-                <motion.span
-                  key={i}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{
-                    scale: [0, 1.3, 1],
-                    opacity: [0, 0.8, 0.5],
-                  }}
-                  transition={{
-                    duration: 0.8,
-                    delay: i * 0.12,
-                    repeat: Infinity,
-                    repeatType: 'reverse',
-                    repeatDelay: 0.5,
-                  }}
-                  className="block rounded-full"
-                  style={{
-                    width: 5 + i,
-                    height: 5 + i,
-                    backgroundColor: `rgba(0, 255, 136, ${0.3 + i * 0.12})`,
-                  }}
-                />
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ─── Etapa 3: "Cargando inteligencia..." ─── */}
-        <AnimatePresence>
-          {stage >= 3 && (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
-              className="flex flex-col items-center mb-6"
-            >
-              <p
-                className="text-base sm:text-lg font-semibold tracking-wide"
-                style={{ color: 'rgba(0, 255, 136, 0.8)' }}
-              >
-                Cargando inteligencia
-                <motion.span
-                  animate={{ opacity: [1, 0.3, 1] }}
-                  transition={{ duration: 1.2, repeat: Infinity }}
-                >...</motion.span>
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ─── Etapa 4: "Bienvenido" ─── */}
+        {/* ─── Etapa 4: Branding "DECODEX BOLIVIA" ─── */}
         <AnimatePresence>
           {stage >= 4 && (
-            <motion.h1
-              initial={{ opacity: 0, y: 10 }}
+            <motion.p
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: 'easeOut' }}
-              className="text-2xl sm:text-3xl font-extrabold tracking-tight"
-              style={{ color: '#E2E8F0' }}
+              className="text-lg sm:text-xl font-bold tracking-[0.15em] uppercase"
+              style={{ color: 'rgba(0, 255, 136, 0.7)' }}
             >
-              Bienvenido
-            </motion.h1>
+              DECODEX BOLIVIA
+            </motion.p>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Barra de progreso inferior */}
+      {/* Barra de progreso */}
       <motion.div
         className="absolute bottom-0 left-0 h-[2px]"
         style={{ backgroundColor: 'rgba(0, 255, 136, 0.5)' }}
