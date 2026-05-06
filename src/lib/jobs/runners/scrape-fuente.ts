@@ -7,7 +7,7 @@ import { CHECK_FIRST_CONFIG } from '../constants'
 import { registrarCambio } from '../histogram/tracker'
 import { evaluarFrecuencia } from '../frequency/adapter'
 import type { JobPayload, RunnerResult } from '../types'
-import { extraerTextoDeHtml, extraerMencionesDeTexto, crearMencionesExtraidas } from '@/lib/ai/extractor-menciones'
+import { extraerTextoDeHtml, extraerMencionesDeTexto, crearMencionesExtraidas, type ExtractionResult } from '@/lib/ai/extractor-menciones'
 
 export async function run(payload: JobPayload): Promise<RunnerResult> {
   const fuenteId = payload.fuenteId as string
@@ -66,8 +66,8 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
         let mencionesEncontradas = 0
         if (texto.length > 100) {
           try {
-            const mencionesExtraidas = await extraerMencionesDeTexto(texto, medioId)
-            mencionesEncontradas = await crearMencionesExtraidas(mencionesExtraidas, medioId, url, titulo)
+            const resultado: ExtractionResult = await extraerMencionesDeTexto(texto, medioId)
+            mencionesEncontradas = await crearMencionesExtraidas(resultado, medioId, url, titulo)
           } catch (err) {
             console.warn(`[scrape-fuente] Error extrayendo menciones de ${url}:`, err)
           }

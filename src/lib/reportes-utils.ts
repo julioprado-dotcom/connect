@@ -24,7 +24,7 @@ import { getIndicadoresParaEje, getIndicadoresParaEjes, formatearIndicadoresProm
 /** Mencion con relaciones incluidas (persona, medio, ejesTematicos) */
 export interface MencionConRelaciones {
   id: string
-  personaId: string
+  personaId: string | null
   medioId: string
   titulo: string
   texto: string

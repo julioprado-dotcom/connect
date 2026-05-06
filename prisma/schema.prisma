@@ -68,7 +68,7 @@ model EjeTematico {
 
 model Mencion {
   id                String   @id @default(cuid())
-  personaId         String
+  personaId         String?
   medioId           String
   titulo            String
   texto             String   @default("")
@@ -87,7 +87,7 @@ model Mencion {
   comentariosCount  Int      @default(0)
   comentariosResumen String  @default("")
 
-  persona       Persona          @relation(fields: [personaId], references: [id])
+  persona       Persona?          @relation(fields: [personaId], references: [id])
   medio         Medio            @relation(fields: [medioId], references: [id])
   comentarios   Comentario[]
   ejesTematicos MencionTema[]

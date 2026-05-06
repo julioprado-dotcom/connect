@@ -38,11 +38,13 @@ export async function POST(request: NextRequest) {
 
         await applyAnalysisToMencion(mencion.id, result);
 
+        const personaLabel = mencion.persona?.nombre || 'Referencia tematica';
         analizadas++;
-        detalles.push(`${mencion.persona.nombre}: ${result.tipoMencion} / ${result.sentimiento} / [${result.ejesTematicos.join(',')}]`);
+        detalles.push(`${personaLabel}: ${result.tipoMencion} / ${result.sentimiento} / [${result.ejesTematicos.join(',')}]`);
       } catch {
         errores++;
-        detalles.push(`${mencion.persona.nombre}: ERROR`);
+        const personaLabel2 = mencion.persona?.nombre || 'Referencia tematica';
+        detalles.push(`${personaLabel2}: ERROR`);
       }
     }
 

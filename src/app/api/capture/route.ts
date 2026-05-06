@@ -57,7 +57,11 @@ export async function POST(request: NextRequest) {
     let totalMencionesNuevas = 0;
     let totalClasificadas = 0;
     let totalErrores = 0;
+    let totalTematicas = 0;
     const detalles: string[] = [];
+
+    // ─── PASO 1: Búsqueda por persona (Pipeline B original) ───
+    const allProcessedUrls = new Set<string>();
 
     for (const persona of personas) {
       totalBusquedas++;
@@ -110,6 +114,7 @@ export async function POST(request: NextRequest) {
           });
           nuevasParaPersona++;
           totalMencionesNuevas++;
+          allProcessedUrls.add(itemUrl);
 
           // Clasificar automáticamente con IA
           try {
@@ -127,6 +132,110 @@ export async function POST(request: NextRequest) {
         const errMsg = err instanceof Error ? err.message : 'Error desconocido';
         detalles.push(`${persona.nombre}: ERROR - ${errMsg}`);
       }
+    }
+
+    // ─── PASO 2: Búsqueda temática por ejes temáticos ────────
+    try {
+      const ejes = await db.ejeTematico.findMany({
+        where: { activo: true },
+        select: { id: true, nombre: true, keywords: true },
+      });
+
+      if (ejes.length > 0) {
+        detalles.push(`--- Busqueda tematica: ${ejes.length} ejes ---`);
+
+        for (const eje of ejes) {
+          if (!eje.keywords) continue;
+          const keywordsList = eje.keywords.split(',').map(k => k.trim()).filter(Boolean);
+          if (keywordsList.length === 0) continue;
+
+          totalBusquedas++;
+          try {
+            // Construir query con las top 3 keywords del eje
+            const keywordsQuery = keywordsList.slice(0, 3).map(k => `"${k}"`).join(' OR ');
+            const query = `(${keywordsQuery}) Bolivia ${SITES_QUERY}`;
+            const results = await zai.functions.invoke('web_search', { query, num: 5 });
+
+            const searchItems = (Array.isArray(results) ? results : []) as Array<{
+              title?: string;
+              snippet?: string;
+              url?: string;
+              link?: string;
+            }>;
+
+            let nuevasParaEje = 0;
+
+            for (const item of searchItems) {
+              const itemUrl = item.url || item.link || '';
+              if (!itemUrl) continue;
+
+              // Skip URLs already processed in Paso 1 or already in DB
+              if (allProcessedUrls.has(itemUrl)) continue;
+
+              // Check DB for existing
+              const existente = await db.mencion.findFirst({
+                where: { url: itemUrl },
+                select: { id: true },
+              });
+              if (existente) {
+                allProcessedUrls.add(itemUrl);
+                continue;
+              }
+
+              const medioNombre = detectMedioByDomain(itemUrl);
+              const medioId = medioNombre ? (medioMap.get(medioNombre) || null) : null;
+              if (!medioId) continue;
+
+              // Crear mencion tematica sin personaId
+              const mencion = await db.mencion.create({
+                data: {
+                  personaId: null,
+                  medioId,
+                  titulo: item.title || '',
+                  texto: item.snippet || '',
+                  url: itemUrl,
+                  tipoMencion: 'referencia_tematica',
+                  sentimiento: 'no_clasificado',
+                  verificado: false,
+                },
+              });
+
+              // Vincular al eje tematico via MencionTema
+              try {
+                await db.mencionTema.create({
+                  data: { mencionId: mencion.id, ejeTematicoId: eje.id },
+                });
+              } catch {
+                // Duplicado, ignorar
+              }
+
+              // Clasificar con IA
+              try {
+                const analysis = await analyzeMencion(mencion.titulo, mencion.texto);
+                await applyAnalysisToMencion(mencion.id, analysis);
+                totalClasificadas++;
+              } catch {
+                // Si falla, queda como referencia_tematica
+              }
+
+              nuevasParaEje++;
+              totalMencionesNuevas++;
+              totalTematicas++;
+              allProcessedUrls.add(itemUrl);
+            }
+
+            if (nuevasParaEje > 0) {
+              detalles.push(`  ${eje.nombre}: ${nuevasParaEje} menciones tematicas`);
+            }
+          } catch (err) {
+            const errMsg = err instanceof Error ? err.message : 'Error desconocido';
+            detalles.push(`  ${eje.nombre}: ERROR - ${errMsg}`);
+          }
+        }
+      }
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : 'Error desconocido';
+      detalles.push(`Busqueda tematica ERROR: ${errMsg}`);
     }
 
     // Registrar logs de captura por cada medio
@@ -147,6 +256,7 @@ export async function POST(request: NextRequest) {
       busquedas: totalBusquedas,
       mencionesNuevas: totalMencionesNuevas,
       clasificadas: totalClasificadas,
+      mencionesTematicas: totalTematicas,
       errores: totalErrores,
       detalles,
     });

@@ -63,7 +63,9 @@ export async function GET() {
       take: 10,
     });
 
-    const personaIds = topActoresGrouped.map(a => a.personaId);
+    const personaIds = topActoresGrouped
+      .map(a => a.personaId)
+      .filter((id): id is string => id !== null);
 
     // 1 query: todas las personas de una vez
     const personasBatch = personaIds.length > 0
@@ -96,6 +98,7 @@ export async function GET() {
     // ─── Process topActors en memoria (0 queries extra) ───
     const actorMencionesMap = new Map<string, typeof mencionesActores>();
     for (const m of mencionesActores) {
+      if (!m.personaId) continue; // Skip thematic mentions (no persona)
       const list = actorMencionesMap.get(m.personaId) || [];
       list.push(m);
       actorMencionesMap.set(m.personaId, list);
@@ -104,16 +107,19 @@ export async function GET() {
     const actorEjesMap = new Map<string, typeof ejesMenciones>();
     for (const em of ejesMenciones) {
       const pid = em.mencion.personaId;
+      if (!pid) continue; // Skip thematic mentions
       const list = actorEjesMap.get(pid) || [];
       list.push(em);
       actorEjesMap.set(pid, list);
     }
 
-    const topActoresData = topActoresGrouped.map((item) => {
-      const persona = personaMap.get(item.personaId);
+    const topActoresData = topActoresGrouped
+      .filter(item => item.personaId !== null)
+      .map((item) => {
+      const persona = personaMap.get(item.personaId!);
       if (!persona) return null;
 
-      const menciones = actorMencionesMap.get(item.personaId) || [];
+      const menciones = actorMencionesMap.get(item.personaId!) || [];
       const sentimientoCount: Record<string, number> = {};
       const temasCount: Record<string, number> = {};
 
@@ -134,7 +140,7 @@ export async function GET() {
         .slice(0, 5)
         .map(([tema, count]) => ({ tema, count }));
 
-      const ejes = actorEjesMap.get(item.personaId) || [];
+      const ejes = actorEjesMap.get(item.personaId!) || [];
       const ejesCountMap: Record<string, { nombre: string; slug: string; color: string; count: number }> = {};
       for (const em of ejes) {
         const key = em.ejeTematico.id;

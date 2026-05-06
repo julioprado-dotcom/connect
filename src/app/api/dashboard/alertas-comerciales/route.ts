@@ -122,7 +122,9 @@ export async function GET() {
       ...personaCountAnterior.keys(),
     ]);
 
-    const personaVariaciones = Array.from(allPersonaIds).map(pid => {
+    const personaVariaciones = Array.from(allPersonaIds)
+      .filter((pid): pid is string => pid !== null)
+      .map(pid => {
       const actual = personaCountActual.get(pid) || 0;
       const anterior = personaCountAnterior.get(pid) || 0;
       const variacion = anterior === 0 ? (actual > 0 ? 100 : 0) : Math.round(((actual - anterior) / anterior) * 100);
