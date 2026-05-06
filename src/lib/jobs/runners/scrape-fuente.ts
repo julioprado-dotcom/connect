@@ -7,6 +7,7 @@ import { CHECK_FIRST_CONFIG } from '../constants'
 import { registrarCambio } from '../histogram/tracker'
 import { evaluarFrecuencia } from '../frequency/adapter'
 import type { JobPayload, RunnerResult } from '../types'
+import { extraerTextoDeHtml, extraerMencionesDeTexto, crearMencionesExtraidas } from '@/lib/ai/extractor-menciones'
 
 export async function run(payload: JobPayload): Promise<RunnerResult> {
   const fuenteId = payload.fuenteId as string
@@ -18,6 +19,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
   }
 
   const startTime = Date.now()
+  let totalMencionesCreadas = 0
 
   try {
     // 1. Obtener datos de la fuente
@@ -55,11 +57,23 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
 
         const html = await response.text()
 
-        // 3. Extraer menciones del HTML
-        // Nota: la logica completa de parsing esta en el modulo de scraping existente
-        // Aqui creamos un CapturaLog y registramos la captura
+        // 3. Extraer titulo y texto del contenido
         const tituloMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)
         const titulo = tituloMatch ? tituloMatch[1].trim() : ''
+        const texto = extraerTextoDeHtml(html)
+
+        // 4. Extraer menciones con LLM si hay suficiente texto
+        let mencionesEncontradas = 0
+        if (texto.length > 100) {
+          try {
+            const mencionesExtraidas = await extraerMencionesDeTexto(texto, medioId)
+            mencionesEncontradas = await crearMencionesExtraidas(mencionesExtraidas, medioId, url, titulo)
+          } catch (err) {
+            console.warn(`[scrape-fuente] Error extrayendo menciones de ${url}:`, err)
+          }
+        }
+
+        totalMencionesCreadas += mencionesEncontradas
 
         // Registrar captura log
         await db.capturaLog.create({
@@ -68,11 +82,11 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
             nivel: fuente.medio.nivel,
             exitosa: true,
             totalArticulos: 1,
-            mencionesEncontradas: 0, // se actualiza si se encuentran menciones
+            mencionesEncontradas,
           },
         })
 
-        resultados.push({ url, status: response.status, titulo, menciones: 0 })
+        resultados.push({ url, status: response.status, titulo, menciones: mencionesEncontradas })
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error)
         resultados.push({ url, status: 0, titulo: '', menciones: 0 })
@@ -91,12 +105,12 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
 
     const responseTime = Date.now() - startTime
 
-    // 4. Actualizar histograma (registrar hora de cambio)
+    // 5. Actualizar histograma (registrar hora de cambio)
     await registrarCambio(fuenteId).catch(err => {
       console.warn(`[Runner:scrape] Error actualizando histograma:`, err)
     })
 
-    // 5. Evaluar frecuencia (restaurar si estaba degradada)
+    // 6. Evaluar frecuencia (restaurar si estaba degradada)
     await evaluarFrecuencia(fuenteId, true).catch(err => {
       console.warn(`[Runner:scrape] Error evaluando frecuencia:`, err)
     })
@@ -108,6 +122,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
         medioId,
         medioNombre: fuente.medio.nombre,
         urlsProcesadas: resultados.length,
+        totalMencionesCreadas,
         resultados,
         responseTime,
       },
