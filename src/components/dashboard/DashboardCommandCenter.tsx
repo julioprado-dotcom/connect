@@ -357,6 +357,19 @@ export function DashboardCommandCenter() {
   const diagnoses = sysMetrics?.diagnoses ?? [];
   const criticals = diagnoses.filter(d => d.severity === 'critical');
   const warnings = diagnoses.filter(d => d.severity === 'warning');
+  // Warnings triviales (informativos, no penalizan score)
+  const nonTrivialWarnings = warnings.filter(d => d.id !== 'dev-overhead' && d.id !== 'auth');
+
+  // Motivo del score (texto para mostrar junto al numero)
+  const scoreReason = useMemo(() => {
+    if (criticals.length > 0) {
+      return `${criticals.length} critico${criticals.length > 1 ? 's' : ''}: ${criticals.map(d => d.message).join(', ')}`;
+    }
+    if (nonTrivialWarnings.length > 0) {
+      return `${nonTrivialWarnings.length} advertencia${nonTrivialWarnings.length > 1 ? 's' : ''}: ${nonTrivialWarnings.map(d => d.message).join(', ')}`;
+    }
+    return '';
+  }, [criticals, nonTrivialWarnings]);
 
   // ─── StatusLevel derived from sysMetrics ───────────────
   const systemLevel: StatusLevel = useMemo(() => {
@@ -375,7 +388,9 @@ export function DashboardCommandCenter() {
 
   const uptimeLevel: StatusLevel = useMemo(() => {
     if (!sysMetrics?.uptime) return 'ok';
-    return sysMetrics.uptime < 300 ? 'warning' : 'ok';
+    if (sysMetrics.uptime < 300) return 'critical';
+    if (sysMetrics.uptime < 600) return 'warning';
+    return 'ok';
   }, [sysMetrics?.uptime]);
 
   const dbLevel: StatusLevel = useMemo(() => {
@@ -460,6 +475,11 @@ export function DashboardCommandCenter() {
                       value={healthScore !== null ? `${healthScore}%` : '--'}
                       size="md"
                     />
+                    {scoreReason && (
+                      <span className="text-[8px] text-muted-foreground max-w-[120px] truncate hidden lg:inline-block" title={scoreReason}>
+                        {scoreReason}
+                      </span>
+                    )}
                     <StatusOrb
                       level={memoryLevel}
                       icon={<Cpu className="h-3.5 w-3.5" />}

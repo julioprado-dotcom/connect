@@ -151,10 +151,20 @@ function diagnoseUptime(uptimeSeconds: number): Diagnosis {
   if (uptimeSeconds < 300) {
     return {
       id: 'uptime',
-      severity: 'warning',
+      severity: 'critical',
       message: 'Servidor reinicio recientemente',
-      detail: `Arriba hace ${formatUptime(uptimeSeconds)}. Posible crash o deploy reciente.`,
-      action: 'Revisar logs si no fue un reinicio programado.',
+      detail: `Arriba hace ${formatUptime(uptimeSeconds)}. No completado warmup (10 min).`,
+      action: 'Monitorear. Si no fue reinicio programado, revisar logs.',
+      team: 'sistemas',
+    };
+  }
+  if (uptimeSeconds < 600) {
+    return {
+      id: 'uptime',
+      severity: 'warning',
+      message: 'Estabilizando',
+      detail: `Arriba hace ${formatUptime(uptimeSeconds)}. Aun completando warmup.`,
+      action: 'Monitorear durante los proximos minutos.',
       team: 'sistemas',
     };
   }
@@ -255,7 +265,9 @@ export async function GET() {
     const oks = diagnoses.filter(d => d.severity === 'ok');
 
     // Score de salud: 100 si todo ok, baja con warnings/criticals
-    const healthScore = Math.max(0, 100 - (criticals.length * 30) - (warnings.length * 10));
+    // Excluir warnings informativos que no afectan la operacion real
+    const nonTrivialWarnings = warnings.filter(d => d.id !== 'dev-overhead' && d.id !== 'auth');
+    const healthScore = Math.max(0, 100 - (criticals.length * 30) - (nonTrivialWarnings.length * 10));
 
     return NextResponse.json({
       healthScore,
