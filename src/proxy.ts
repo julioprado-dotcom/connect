@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 
 /**
- * Middleware de seguridad — protege TODAS las rutas API destructivas
- * con validación REAL de JWT (no solo presencia del token).
+ * Proxy de seguridad — convención Next.js 16 (reemplaza middleware.ts).
  *
+ * Protege TODAS las rutas API destructivas con validación REAL de JWT.
  * Usa `jose` (Edge-compatible) para verificar firma JWT contra AUTH_SECRET.
  * NO invoca auth() — no necesita DB. Compatible con Edge Runtime.
  * NO agrega headers de seguridad (preserva iframe proxy Z.ai).
@@ -207,9 +207,9 @@ async function isAuthenticated(request: NextRequest): Promise<boolean> {
   return false;
 }
 
-// ── Middleware principal ─────────────────────────────────────────
+// ── Proxy principal (convención Next.js 16) ────────────────────
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const method = request.method.toUpperCase();
 
