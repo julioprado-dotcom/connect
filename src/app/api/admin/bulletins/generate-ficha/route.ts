@@ -122,6 +122,7 @@ export async function POST(request: NextRequest) {
         { role: 'user', content: userPrompt },
       ],
       temperature: temperatura,
+      signal: AbortSignal.timeout(60000),
     });
 
     const contenido = completion.choices[0]?.message?.content ?? '';
@@ -180,6 +181,9 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
+      console.error(`[TIMEOUT] LLM call exceeded 60s in generate-ficha`);
+    }
     console.error('[generate-ficha] Error:', error);
     const mensaje = error instanceof Error ? error.message : 'Error desconocido';
     return NextResponse.json(

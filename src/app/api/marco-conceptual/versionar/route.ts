@@ -14,31 +14,36 @@ export async function POST() {
       );
     }
 
-    // Desactivar versión actual
-    await db.marcoConceptual.update({
-      where: { id: marcoActual.id },
-      data: { activa: false },
-    });
+    // Transacción: desactivar + crear en una sola operación atómica
+    const nuevaVersion = await db.$transaction(async (tx) => {
+      // 1. Desactivar versión actual
+      await tx.marcoConceptual.updateMany({
+        where: { activa: true },
+        data: { activa: false },
+      });
 
-    // Crear nueva versión copiando todo
-    const nuevaVersion = await db.marcoConceptual.create({
-      data: {
-        version: marcoActual.version + 1,
-        activa: true,
-        principios: JSON.parse(JSON.stringify(marcoActual.principios)),
-        contextoInstitucional: JSON.parse(JSON.stringify(marcoActual.contextoInstitucional)),
-        lineasEditoriales: JSON.parse(JSON.stringify(marcoActual.lineasEditoriales)),
-        ejesInstitucionales: JSON.parse(JSON.stringify(marcoActual.ejesInstitucionales)),
-        escalaTratamiento: JSON.parse(JSON.stringify(marcoActual.escalaTratamiento)),
-        reglasDesambiguacion: JSON.parse(JSON.stringify(marcoActual.reglasDesambiguacion)),
-        criteriosRelevancia: JSON.parse(JSON.stringify(marcoActual.criteriosRelevancia)),
-        exclusionesEtica: JSON.parse(JSON.stringify(marcoActual.exclusionesEtica)),
-        terminologiaPermitida: JSON.parse(JSON.stringify(marcoActual.terminologiaPermitida)),
-        terminologiaProhibida: JSON.parse(JSON.stringify(marcoActual.terminologiaProhibida)),
-        preguntasFundamentales: JSON.parse(JSON.stringify(marcoActual.preguntasFundamentales)),
-        parametros: JSON.parse(JSON.stringify(marcoActual.parametros)),
-        creadoPor: 'admin',
-      },
+      // 2. Crear nueva versión copiando todo
+      const nueva = await tx.marcoConceptual.create({
+        data: {
+          version: marcoActual.version + 1,
+          activa: true,
+          principios: JSON.parse(JSON.stringify(marcoActual.principios)),
+          contextoInstitucional: JSON.parse(JSON.stringify(marcoActual.contextoInstitucional)),
+          lineasEditoriales: JSON.parse(JSON.stringify(marcoActual.lineasEditoriales)),
+          ejesInstitucionales: JSON.parse(JSON.stringify(marcoActual.ejesInstitucionales)),
+          escalaTratamiento: JSON.parse(JSON.stringify(marcoActual.escalaTratamiento)),
+          reglasDesambiguacion: JSON.parse(JSON.stringify(marcoActual.reglasDesambiguacion)),
+          criteriosRelevancia: JSON.parse(JSON.stringify(marcoActual.criteriosRelevancia)),
+          exclusionesEtica: JSON.parse(JSON.stringify(marcoActual.exclusionesEtica)),
+          terminologiaPermitida: JSON.parse(JSON.stringify(marcoActual.terminologiaPermitida)),
+          terminologiaProhibida: JSON.parse(JSON.stringify(marcoActual.terminologiaProhibida)),
+          preguntasFundamentales: JSON.parse(JSON.stringify(marcoActual.preguntasFundamentales)),
+          parametros: JSON.parse(JSON.stringify(marcoActual.parametros)),
+          creadoPor: 'admin',
+        },
+      });
+
+      return nueva;
     });
 
     return NextResponse.json({

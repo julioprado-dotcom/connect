@@ -96,6 +96,7 @@ REGLA: Compara la evolución del día. Si hay datos del Termómetro (apertura), 
         { role: 'user', content: userPrompt },
       ],
       temperature: PRODUCTOS.SALDO_DEL_DIA.temperatura,
+      signal: AbortSignal.timeout(60000),
     })
 
     const contenido = completion.choices[0]?.message?.content ?? 'Error: no se generó contenido'
@@ -113,6 +114,9 @@ REGLA: Compara la evolución del día. Si hay datos del Termómetro (apertura), 
       generadoEn: duracion,
     })
   } catch (error) {
+    if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
+      console.error(`[TIMEOUT] LLM call exceeded 60s in generate-saldo`);
+    }
     const mensaje = error instanceof Error ? error.message : 'Error desconocido'
     console.error('Error generando Saldo del Día:', error)
     return NextResponse.json(

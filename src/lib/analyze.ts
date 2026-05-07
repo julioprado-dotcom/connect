@@ -87,16 +87,26 @@ function extractCategorias(escalaJson: unknown): Array<{ codigo: string; nombre:
 
 /**
  * Check text against prohibited terminology from Marco Conceptual.
+ * Accepts string[] or { terminos: string[] } format.
  * Returns list of found terms (empty = clean).
  */
 function checkProhibitedTerms(
   texto: string,
   terminologiaProhibida: unknown,
 ): string[] {
-  if (!terminologiaProhibida || typeof terminologiaProhibida !== 'object') return [];
-  const obj = terminologiaProhibida as Record<string, unknown>;
-  const terms = obj.terminos;
-  if (!Array.isArray(terms)) return [];
+  if (!terminologiaProhibida) return [];
+
+  // Support both string[] and { terminos: string[] } formats
+  let terms: unknown[];
+  if (Array.isArray(terminologiaProhibida)) {
+    terms = terminologiaProhibida as unknown[];
+  } else if (typeof terminologiaProhibida === 'object' && terminologiaProhibida !== null) {
+    const obj = terminologiaProhibida as Record<string, unknown>;
+    terms = Array.isArray(obj.terminos) ? obj.terminos as unknown[] : [];
+  } else {
+    return [];
+  }
+
   const found: string[] = [];
   const lowerText = texto.toLowerCase();
   for (const t of terms) {
@@ -237,6 +247,7 @@ export async function analyzeMencion(titulo: string, texto: string): Promise<Ana
         },
       ],
       temperature: 0.2,
+      signal: AbortSignal.timeout(60000), // 60s timeout
     });
 
     const raw = (completion?.choices?.[0]?.message?.content || '').trim();

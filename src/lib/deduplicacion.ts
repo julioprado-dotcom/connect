@@ -99,7 +99,7 @@ function calcularHuella(
   accion: string,
   fechaStr: string,
 ): string {
-  return `${actor}|${tema}|${accion}|${fechaStr}`;
+  return `${normalizar(actor)}|${normalizar(tema)}|${normalizar(accion)}|${fechaStr}`;
 }
 
 // ─── Get date string YYYY-MM-DD ────────────────────────────────
@@ -250,6 +250,7 @@ CONTEXTO BOLIVIANO: En Bolivia, multiples medios reproducen cables de agencia (A
         },
       ],
       temperature: 0.0,
+      signal: AbortSignal.timeout(20000), // 20s timeout
     });
 
     const raw = (completion?.choices?.[0]?.message?.content || '').trim().toUpperCase();
@@ -357,6 +358,15 @@ export async function deduplicarMencion(
   // ─── PASO 3: Heurística rápida ───────────────────────────────
   const dudosos: CandidatoDudoso[] = [];
 
+  // Pre-cargar medios de candidatos para evitar N+1 queries
+  const candidatosMediosIds = [...new Set(candidateResults.map(c => c.medioId))];
+  const candidatosMediosMap = new Map(
+    (await db.medio.findMany({
+      where: { id: { in: candidatosMediosIds } },
+      select: { id: true, nombre: true },
+    })).map(m => [m.id, m]),
+  );
+
   for (const c of candidateResults) {
     const cActor = c.personaId ? 'actor-conocido' : 'sin-actor';
     const cAccion = extraerAccion(c.texto || c.textoCompleto || '');
@@ -375,12 +385,11 @@ export async function deduplicarMencion(
 
     // 3b: Mismo actor + tema + fecha, acción diferente → dudoso
     if (cActor === actor && cFechaStr === fechaStr) {
-      const medio = await db.medio.findUnique({ where: { id: c.medioId }, select: { nombre: true } });
       dudosos.push({
         id: c.id,
         resumen: c.texto || c.textoCompleto || '',
         texto: c.textoCompleto || c.texto || '',
-        medioNombre: medio?.nombre || 'Desconocido',
+        medioNombre: candidatosMediosMap.get(c.medioId)?.nombre || 'Desconocido',
         fecha: c.fechaCaptura,
         huella: cHuella,
       });
@@ -391,12 +400,11 @@ export async function deduplicarMencion(
     if (cActor === actor) {
       const diffHoras = Math.abs(c.fechaCaptura.getTime() - input.fecha.getTime()) / 3600000;
       if (diffHoras <= 72) { // 72h window for evolutivo
-        const medio = await db.medio.findUnique({ where: { id: c.medioId }, select: { nombre: true } });
         dudosos.push({
           id: c.id,
           resumen: c.texto || c.textoCompleto || '',
           texto: c.textoCompleto || c.texto || '',
-          medioNombre: medio?.nombre || 'Desconocido',
+          medioNombre: candidatosMediosMap.get(c.medioId)?.nombre || 'Desconocido',
           fecha: c.fechaCaptura,
           huella: cHuella,
         });
@@ -417,14 +425,31 @@ export async function deduplicarMencion(
 
   // ─── PASO 4: Verificación con LLM (solo top 3 dudosos) ───────
   const topDudosos = dudosos.slice(0, 3);
-  const medioNuevo = await db.medio.findUnique({
+
+  // Pre-cargar nombres de medios en una sola query (evitar N+1)
+  const medioNuevoObj = await db.medio.findUnique({
     where: { id: input.medioId },
-    select: { nombre: true },
+    select: { id: true, nombre: true },
   });
+  const mediosNecesariosIds = [...new Set(topDudosos.map(c => {
+    // Look up medioId from candidateResults
+    const orig = candidateResults.find(cr => cr.id === c.id);
+    return orig?.medioId || '';
+  }).filter(Boolean))];
+  const mediosMap = new Map(
+    (await db.medio.findMany({
+      where: { id: { in: mediosNecesariosIds } },
+      select: { id: true, nombre: true },
+    })).map(m => [m.id, m]),
+  );
+  // Resolver nombre del medio nuevo (usar pre-cargado o del map)
+  if (!mediosMap.has(input.medioId) && medioNuevoObj) {
+    mediosMap.set(input.medioId, medioNuevoObj);
+  }
 
   for (const candidato of topDudosos) {
     const veredicto = await verificarConLLM(candidato, {
-      medioNombre: medioNuevo?.nombre || 'Desconocido',
+      medioNombre: mediosMap.get(input.medioId)?.nombre || 'Desconocido',
       resumen: input.resumen,
       fecha: input.fecha,
     });

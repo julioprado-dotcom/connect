@@ -82,6 +82,7 @@ export async function regenerateWithRetry(params: {
           { role: 'user', content: enhancedPrompt },
         ],
         temperature: Math.min(temperatura, 0.8),
+        signal: AbortSignal.timeout(60000),
       });
 
       const contenido = completion.choices[0]?.message?.content ?? '';
@@ -138,6 +139,9 @@ export async function regenerateWithRetry(params: {
         `errores: ${validation.errores.length}`
       );
     } catch (error) {
+      if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
+        console.error(`[TIMEOUT] LLM call exceeded 60s in regenerateWithRetry (intento ${intento + 1})`);
+      }
       console.error(`[regeneration] Error en intento ${intento + 1}:`, error);
       lastResult = {
         exito: false,

@@ -51,7 +51,8 @@ const DEFAULT_ESCALA = [
   { codigo: 'tratamiento_agresivo', nombre: 'Agresivo' },
   { codigo: 'tratamiento_elogioso', nombre: 'Elogioso' },
   { codigo: 'tratamiento_ambiguo', nombre: 'Ambiguo' },
-  { codigo: 'tratamiento_agregado', nombre: 'Agregado (deduplicado)' },
+  // tratamiento_agregado es SOLO un valor INTERNO del sistema (asignado por deduplicación).
+  // No se expone al LLM porque el LLM jamás debe generar este valor.
   { codigo: 'sin_tratamiento', nombre: 'Sin clasificar' },
 ];
 
@@ -67,6 +68,62 @@ const DEFAULT_INTENCION = [
 ];
 
 const VALID_INTENCIONES = new Set(DEFAULT_INTENCION.map(i => i.codigo));
+
+// ─── In-memory cache for master data (TTL 60s) ──────────────
+
+let cacheMarcoConceptual: { data: MarcoData | null; expiry: number } | null = null;
+let cachePersonas: { data: any[]; expiry: number } | null = null;
+let cacheEjes: { data: any[]; expiry: number } | null = null;
+let cacheTemasRecientes: { data: any[]; expiry: number } | null = null;
+const CACHE_TTL = 60000; // 60 seconds
+
+async function getMarcoConceptualCached(): Promise<MarcoData | null> {
+  if (cacheMarcoConceptual && cacheMarcoConceptual.expiry > Date.now()) {
+    return cacheMarcoConceptual.data;
+  }
+  const data = await db.marcoConceptual.findFirst({ where: { activa: true } });
+  cacheMarcoConceptual = { data, expiry: Date.now() + CACHE_TTL };
+  return data;
+}
+
+async function getPersonasCached(): Promise<any[]> {
+  if (cachePersonas && cachePersonas.expiry > Date.now()) {
+    return cachePersonas.data;
+  }
+  const data = await db.persona.findMany({
+    where: { activa: true },
+    select: { id: true, nombre: true, partidoSigla: true, camara: true },
+  });
+  cachePersonas = { data, expiry: Date.now() + CACHE_TTL };
+  return data;
+}
+
+async function getEjesCached(): Promise<any[]> {
+  if (cacheEjes && cacheEjes.expiry > Date.now()) {
+    return cacheEjes.data;
+  }
+  const data = await db.ejeTematico.findMany({
+    where: { activo: true },
+    select: { id: true, nombre: true, slug: true, keywords: true },
+  });
+  cacheEjes = { data, expiry: Date.now() + CACHE_TTL };
+  return data;
+}
+
+async function getTemasRecientesCached(): Promise<any[]> {
+  if (cacheTemasRecientes && cacheTemasRecientes.expiry > Date.now()) {
+    return cacheTemasRecientes.data;
+  }
+  const treintaDiasAtras = new Date();
+  treintaDiasAtras.setDate(treintaDiasAtras.getDate() - 30);
+  const data = await db.mencionTema.findMany({
+    where: { mencion: { fechaCaptura: { gte: treintaDiasAtras } } },
+    include: { ejeTematico: { select: { nombre: true, keywords: true } } },
+    distinct: ['ejeTematicoId'],
+  });
+  cacheTemasRecientes = { data, expiry: Date.now() + CACHE_TTL };
+  return data;
+}
 
 // ─── Default Fundamental Questions ────────────────────────────
 
@@ -380,10 +437,10 @@ export async function extraerMencionesDeTexto(
   };
 
   try {
-    // 1. Load Marco Conceptual
+    // 1. Load Marco Conceptual (cached)
     let marco: MarcoData | null = null;
     try {
-      marco = await db.marcoConceptual.findFirst({ where: { activa: true } });
+      marco = await getMarcoConceptualCached();
     } catch {
       console.warn('[extractor-menciones] Error cargando marco conceptual, usando valores default');
     }
@@ -395,25 +452,11 @@ export async function extraerMencionesDeTexto(
     // 2. Build system prompt from marco
     const systemPrompt = buildSystemPrompt(marco);
 
-    // 3. Cargar datos de contexto desde la DB en paralelo
-    const treintaDiasAtras = new Date();
-    treintaDiasAtras.setDate(treintaDiasAtras.getDate() - 30);
-
-    // Build parallel queries — include client ejes if clientId provided
+    // 3. Cargar datos de contexto desde la DB en paralelo (cached)
     const dbQueries: Promise<unknown>[] = [
-      db.persona.findMany({
-        where: { activa: true },
-        select: { id: true, nombre: true, partidoSigla: true, camara: true },
-      }),
-      db.ejeTematico.findMany({
-        where: { activo: true },
-        select: { id: true, nombre: true, slug: true, keywords: true },
-      }),
-      db.mencionTema.findMany({
-        where: { mencion: { fechaCaptura: { gte: treintaDiasAtras } } },
-        include: { ejeTematico: { select: { nombre: true, keywords: true } } },
-        distinct: ['ejeTematicoId'],
-      }),
+      getPersonasCached(),
+      getEjesCached(),
+      getTemasRecientesCached(),
     ];
 
     // Load client-specific ejes if clientId is provided (FASE 4D)
@@ -494,6 +537,7 @@ export async function extraerMencionesDeTexto(
         { role: 'user', content: userContent },
       ],
       temperature: 0.1,
+      signal: AbortSignal.timeout(60000), // 60s timeout
     });
 
     const raw = (completion?.choices?.[0]?.message?.content || '').trim();
@@ -700,16 +744,22 @@ export async function crearMencionesExtraidas(
       }
 
       // DEDUPLICACION CROSS-MEDIO (FASE 4C)
-      const dedupResult = await deduplicarMencion({
-        personaId: leg.persona_id,
-        ejesTematicos: ejeIds,
-        resumen: resultado.resumen,
-        fecha: new Date(),
-        medioId,
-        textoOriginal: leg.contexto || leg.cita,
-      });
+      let dedupResult: Awaited<ReturnType<typeof deduplicarMencion>> | null = null;
+      try {
+        dedupResult = await deduplicarMencion({
+          personaId: leg.persona_id,
+          ejesTematicos: ejeIds,
+          resumen: resultado.resumen,
+          fecha: new Date(),
+          medioId,
+          textoOriginal: leg.contexto || leg.cita,
+        });
+      } catch (dedupError) {
+        console.error('[DEDUP-ERROR] Deduplicacion fallo, creando como original:', dedupError instanceof Error ? dedupError.message : dedupError);
+        // NO continue — la mención se crea como original (sin deduplicar) pero NO se pierde
+      }
 
-      if (dedupResult.decision === 'es_duplicado' && dedupResult.mencionOriginalId) {
+      if (dedupResult && dedupResult.decision === 'es_duplicado' && dedupResult.mencionOriginalId) {
         const medioObj = await db.medio.findUnique({ where: { id: medioId }, select: { nombre: true } });
         await actualizarCoberturaDuplicado(dedupResult.mencionOriginalId, {
           medioId,
@@ -725,10 +775,10 @@ export async function crearMencionesExtraidas(
 
       // Build dedup log
       const dedupLog = JSON.stringify({
-        decision: dedupResult.decision,
-        razon: dedupResult.razon,
+        decision: dedupResult?.decision || 'crear_original',
+        razon: dedupResult?.razon || 'dedup_fallo',
         timestamp: new Date().toISOString(),
-        ...(dedupResult.mencionOriginalId ? { candidatoId: dedupResult.mencionOriginalId } : {}),
+        ...(dedupResult?.mencionOriginalId ? { candidatoId: dedupResult.mencionOriginalId } : {}),
       });
 
       const mencion = await db.mencion.create({
@@ -741,7 +791,7 @@ export async function crearMencionesExtraidas(
           url,
           tipoMencion: 'no_clasificado',
           verificado: false,
-          ...(dedupResult.eventoId ? { eventoId: dedupResult.eventoId } : {}),
+          ...(dedupResult?.eventoId ? { eventoId: dedupResult.eventoId } : {}),
           deduplicacionLog: dedupLog,
           ...sharedData,
         },
