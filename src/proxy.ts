@@ -51,6 +51,62 @@ const PII_PROTECTED_GET: string[] = [
 
 const DESTRUCTIVE_METHODS = ['POST', 'PUT', 'DELETE', 'PATCH'];
 
+// ── API Key auth (FIX P0: Auth para endpoints de escritura) ─────
+const WRITE_METHODS = ['POST', 'PUT', 'DELETE', 'PATCH'];
+const API_KEY_PROTECTED_WRITE_ROUTES = [
+  '/api/admin',
+  '/api/jobs/worker',
+  '/api/jobs/scheduler',
+  '/api/capture',
+];
+const API_KEY_PROTECTED_PATCH_ROUTES = [
+  '/api/marco-conceptual',
+];
+const API_KEY_PROTECTED_POST_ROUTES = [
+  '/api/personas',
+  '/api/medios',
+  '/api/clientes',
+  '/api/ejes-cliente',
+  '/api/suscriptores',
+  '/api/boletines',
+];
+
+function isApiKeyProtectedRoute(pathname: string, method: string): boolean {
+  for (const route of API_KEY_PROTECTED_WRITE_ROUTES) {
+    if (pathname.startsWith(route) && WRITE_METHODS.includes(method)) return true;
+  }
+  if (method === 'PATCH') {
+    for (const route of API_KEY_PROTECTED_PATCH_ROUTES) {
+      if (pathname.startsWith(route)) return true;
+    }
+  }
+  if (method === 'POST') {
+    for (const route of API_KEY_PROTECTED_POST_ROUTES) {
+      if (pathname.startsWith(route)) return true;
+    }
+  }
+  return false;
+}
+
+function checkApiKey(request: NextRequest): NextResponse | null {
+  if (!isApiKeyProtectedRoute(request.nextUrl.pathname, request.method)) {
+    return null; // not a protected route, skip
+  }
+  const validKey = process.env.ADMIN_API_KEY;
+  if (!validKey && process.env.NODE_ENV === 'development') {
+    console.warn(`[AUTH SKIP - DEV] ${request.method} ${request.nextUrl.pathname}`);
+    return null; // allow in dev without key
+  }
+  const apiKey = request.headers.get('x-api-key');
+  if (!apiKey || apiKey !== validKey) {
+    return NextResponse.json(
+      { error: 'No autorizado', code: 'UNAUTHORIZED' },
+      { status: 401 }
+    );
+  }
+  return null; // valid
+}
+
 // ── Rate limit store (Edge-compatible, per-instance) ───────────
 const rateStore = new Map<string, { count: number; resetAt: number }>();
 
@@ -242,6 +298,10 @@ export async function proxy(request: NextRequest) {
       );
     }
   }
+
+  // ── API Key check (P0: escritura administrativa) ──
+  const apiKeyBlocked = checkApiKey(request);
+  if (apiKeyBlocked) return apiKeyBlocked;
 
   // Rutas de administración siempre protegidas (todos los métodos)
   if (isAlwaysProtected(pathname)) {
