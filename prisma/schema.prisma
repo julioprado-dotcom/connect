@@ -107,11 +107,14 @@ model Mencion {
   coberturasAdicionales String?
   /// Log de deduplicación (JSON): { decision, razon, timestamp, candidatoId? }
   deduplicacionLog String?
+  /// Intención del medio al publicar la nota: informativa, opinion, critica, elogiosa, reactiva, sin_intencion
+  intencionMedio        String?
 
   persona       Persona?          @relation(fields: [personaId], references: [id])
   medio         Medio            @relation(fields: [medioId], references: [id])
   comentarios   Comentario[]
   ejesTematicos MencionTema[]
+  ejesCliente     MencionClienteEje[]
 }
 
 model MencionTema {
@@ -207,6 +210,7 @@ model Cliente {
   fechaActualizacion DateTime @updatedAt
 
   contratos Contrato[]
+  ejesPersonalizados EjeTematicoCliente[]
 }
 
 model Contrato {
@@ -503,4 +507,40 @@ model CambioMarcoConceptual {
   creadoEn       DateTime        @default(now())
 
   @@map("cambio_marco_conceptual")
+}
+
+// ─── EJES TEMÁTICOS POR CLIENTE ────────────────────────────────
+
+model EjeTematicoCliente {
+  id             Int      @id @default(autoincrement())
+  clienteId      String
+  cliente        Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  nombre         String
+  descripcion    String?
+  keywords       String   /// JSON array: ["litio", "contrato", "YLB"]
+  activo         Boolean  @default(true)
+
+  /// Metadatos
+  creadoPor      String?
+  creadoEn       DateTime @default(now())
+  editadoPor     String?
+  editadoEn      DateTime?
+
+  /// Relación con menciones
+  menciones      MencionClienteEje[]
+
+  @@map("eje_tematico_cliente")
+}
+
+model MencionClienteEje {
+  id             Int             @id @default(autoincrement())
+  mencionId      String
+  mencion        Mencion         @relation(fields: [mencionId], references: [id], onDelete: Cascade)
+  ejeClienteId   Int
+  ejeCliente     EjeTematicoCliente @relation(fields: [ejeClienteId], references: [id], onDelete: Cascade)
+  confianza      Float?
+
+  @@unique([mencionId, ejeClienteId])
+  @@map("mencion_cliente_eje")
 }
