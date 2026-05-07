@@ -47,28 +47,22 @@ function ViewSkeleton() {
 /* Main page - slim orchestrator */
 export default function Dashboard() {
   const { loading, activeView, initialize } = useDashboardStore();
-  const [dismissing, setDismissing] = useState(false);
-  const [splashDone, setSplashDone] = useState(false);
 
-  // Cuando loading pasa de true a false → iniciar fade-out
-  const prevLoading = useState(loading)[0];
+  // Safety: force-dismiss splash after 12s regardless of store state
+  const [forceDismiss, setForceDismiss] = useState(false);
+  const handleSplashDone = useCallback(() => {}, []);
+
   useEffect(() => {
-    if (prevLoading && !loading) {
-      // Espera un frame para que AnimatePresence detecte el cambio
-      requestAnimationFrame(() => setDismissing(true));
-    }
-  }, [loading, prevLoading]);
-
-  const handleSplashDone = useCallback(() => {
-    setSplashDone(true);
+    const safety = setTimeout(() => setForceDismiss(true), 12_000);
+    return () => clearTimeout(safety);
   }, []);
 
   useEffect(() => {
     initialize();
   }, [initialize]);
 
-  // Mostrar splash mientras carga O durante el fade-out
-  const showSplash = loading || dismissing;
+  // Splash se muestra mientras carga; al pasar a false → AnimatePresence hace fade-out
+  const showSplash = loading && !forceDismiss;
 
   const views: Record<string, ReactNode> = {
     resumen: <ResumenView />,
@@ -96,7 +90,7 @@ export default function Dashboard() {
 
   return (
     <>
-      <AnimatePresence onExitComplete={() => setDismissing(false)}>
+      <AnimatePresence>
         {showSplash && (
           <motion.div
             key="splash-screen"
