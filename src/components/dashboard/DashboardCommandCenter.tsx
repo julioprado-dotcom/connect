@@ -424,14 +424,6 @@ export function DashboardCommandCenter() {
     return 'ok';
   }, [sysMetrics?.memoryUsage]);
 
-  const containerLevel: StatusLevel = useMemo(() => {
-    if (!sysMetrics?.memoryUsage?.cgroupLimit) return 'ok';
-    const cgroupPct = (sysMetrics.memoryUsage.cgroupUsage / Math.max(1, sysMetrics.memoryUsage.cgroupLimit)) * 100;
-    if (cgroupPct > 90) return 'critical';
-    if (cgroupPct > 70) return 'warning';
-    return 'ok';
-  }, [sysMetrics?.memoryUsage]);
-
   const uptimeLevel: StatusLevel = useMemo(() => {
     if (!sysMetrics?.uptime) return 'ok';
     if (sysMetrics.uptime < 300) return 'critical';
@@ -482,13 +474,6 @@ export function DashboardCommandCenter() {
   const memoryPct = useMemo(() => {
     if (!sysMetrics?.memoryUsage) return '--';
     return `${Math.round((sysMetrics.memoryUsage.heapUsed / Math.max(1, sysMetrics.memoryUsage.heapLimit)) * 100)}%`;
-  }, [sysMetrics?.memoryUsage]);
-
-  const containerStr = useMemo(() => {
-    if (!sysMetrics?.memoryUsage?.cgroupLimit) return '--';
-    const used = Math.round(sysMetrics.memoryUsage.cgroupUsage);
-    const limit = Math.round(sysMetrics.memoryUsage.cgroupLimit);
-    return `${used}/${limit} MB`;
   }, [sysMetrics?.memoryUsage]);
 
   const dbSizeStr = useMemo(() => {
@@ -551,14 +536,6 @@ export function DashboardCommandCenter() {
                       icon={<Cpu className="h-3.5 w-3.5" />}
                       label="Memoria"
                       value={memoryPct}
-                      size="md"
-                      horizontal={true}
-                    />
-                    <StatusOrb
-                      level={containerLevel}
-                      icon={<Monitor className="h-3.5 w-3.5" />}
-                      label="Contenedor"
-                      value={containerStr}
                       size="md"
                       horizontal={true}
                     />
