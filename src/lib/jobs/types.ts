@@ -168,9 +168,11 @@ export type TareaMantenimiento =
   | 'purge_menciones'
   | 'limpiar_jobs'
   | 'recalcular_scheduler'
+  | 'backup_snapshot'
+  | 'backup_archive'
 
 export interface MantenimientoResult {
-  tarea: TareaMantenimiento
+  tarea: TareaMantenimiento | string
   completada: boolean
   detalle: string
 }

@@ -35,6 +35,7 @@ const PUBLIC_ENDPOINTS: Array<{ path: string; methods: string[] }> = [
   { path: '/api/productos',                  methods: ['GET', 'POST'] },
   { path: '/api/jobs/fuentes',              methods: ['GET'] },
   { path: '/api/marco-conceptual',          methods: ['GET'] },
+  { path: '/api/backup',                    methods: ['GET', 'POST', 'PATCH'] },
 ];
 
 // ── Rutas que SIEMPRE requieren auth (todos los métodos) ──────
@@ -59,6 +60,7 @@ const API_KEY_PROTECTED_WRITE_ROUTES = [
   '/api/jobs/worker',
   '/api/jobs/scheduler',
   '/api/capture',
+  '/api/backup',
 ];
 const API_KEY_PROTECTED_PATCH_ROUTES = [
   '/api/marco-conceptual',
