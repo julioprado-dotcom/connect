@@ -19,6 +19,7 @@ import { useDashboardStore } from '@/stores/useDashboardStore';
 import { MiniGauge } from '@/components/dashboard/gauges/MiniGauge';
 import { TopVariations } from '@/components/dashboard/TopVariations';
 import { AlarmasComerciales } from '@/components/dashboard/AlarmasComerciales';
+import { PipelineMonitor } from '@/components/dashboard/PipelineMonitor';
 import { SENTIMIENTO_STYLES, TIPO_MENCION_LABELS } from '@/constants/ui';
 import { ALL_PRODUCTS } from '@/constants/nav';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
@@ -289,6 +290,10 @@ export function DashboardCommandCenter() {
   // AI Health state
   const [aiHealth, setAiHealth] = useState<AiHealthData | null>(null);
 
+  // Pipeline Monitor state (matches /api/jobs/stats response shape)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [pipelineData, setPipelineData] = useState<any>(null);
+
   // Marco Conceptual state
   const [mcResumen, setMcResumen] = useState<{
     inicializado: boolean;
@@ -325,6 +330,13 @@ export function DashboardCommandCenter() {
     } catch { /* silent */ }
   }, []);
 
+  const fetchPipelineStats = useCallback(async () => {
+    try {
+      const res = await fetchWithTimeout('/api/jobs/stats', { timeoutMs: 12_000 });
+      if (res.ok) setPipelineData(await res.json());
+    } catch { /* silent */ }
+  }, []);
+
   const fetchMC = useCallback(async () => {
     try {
       const res = await fetchWithTimeout('/api/marco-conceptual/resumen', { timeoutMs: 12_000 });
@@ -337,6 +349,7 @@ export function DashboardCommandCenter() {
   usePolling(fetchAlertasComerciales, 30_000);
   usePolling(fetchEntregasHoy, 30_000);
   usePolling(fetchAiHealth, 30_000);
+  usePolling(fetchPipelineStats, 15_000);
   usePolling(fetchMC, 60_000);
 
   // ─── Computed values ────────────────────────────────────
@@ -806,6 +819,14 @@ export function DashboardCommandCenter() {
               )}
             </CardContent>
           </Card>
+        </motion.div>
+
+        {/* FILA 3: Monitor de Pipeline */}
+        <motion.div custom={2} variants={fadeInUp}>
+          <PipelineMonitor
+            data={pipelineData}
+            onRefresh={fetchPipelineStats}
+          />
         </motion.div>
       </motion.div>
 

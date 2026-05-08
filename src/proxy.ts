@@ -59,6 +59,7 @@ const API_KEY_PROTECTED_WRITE_ROUTES = [
   '/api/admin',
   '/api/jobs/worker',
   '/api/jobs/scheduler',
+  '/api/jobs/maintenance',
   '/api/capture',
   '/api/backup',
 ];
