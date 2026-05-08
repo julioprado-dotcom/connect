@@ -332,7 +332,7 @@ export function DashboardCommandCenter() {
 
   const fetchPipelineStats = useCallback(async () => {
     try {
-      const res = await fetchWithTimeout('/api/jobs/stats', { timeoutMs: 12_000 });
+      const res = await fetchWithTimeout('/api/dashboard/pipeline', { timeoutMs: 12_000 });
       if (res.ok) setPipelineData(await res.json());
     } catch { /* silent */ }
   }, []);

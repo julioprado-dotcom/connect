@@ -2,64 +2,117 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Activity, Play, Pause, RotateCcw, Trash2, AlertTriangle,
   RefreshCw, Clock, Cpu, Database, Zap, ChevronDown, ChevronUp,
-  CheckCircle2, XCircle, Timer, Loader2, CircleDot, Wrench,
-  ArrowRight, MoreHorizontal, Layers, Gauge, Radio,
+  CheckCircle2, XCircle, Timer, Loader2, Wrench,
+  ArrowRight, Layers, Gauge, Radio, Eye, Send, Sparkles,
+  FileText, Calendar, AlertOctagon, ChevronRight,
 } from 'lucide-react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
-import type { QueueStats, CheckFirstStats, FuentesStats } from '@/lib/jobs/types';
-import type { StatusLevel } from './gauges/StatusOrb';
 
 // ─── Types ────────────────────────────────────────────────
 
-interface SchedulerStatus {
-  running: boolean;
-  totalTasks: number;
-  tasks: Array<{
-    expresion: string;
-    humana: string;
-  }>;
-}
-
-interface PipelineData {
-  cola: QueueStats;
-  worker: {
-    running: boolean;
-    uptime: string;
-    jobsCompleted: number;
-    jobsFailed: number;
-    jobsPerHour: number;
-    startTime: string | null;
-    lastJobTime: string | null;
+interface PipelineResponse {
+  timestamp: string;
+  horaBolivia: string;
+  diaSemana: string;
+  pasado: {
+    completados: JobItem[];
+    fallidos: JobFallidoItem[];
+    entregas: { total: number; enviadas: number; pendientes: number; fallidas: number };
+    productosIA: ProductoIA[];
   };
-  checkFirst: CheckFirstStats;
-  fuentes: FuentesStats;
-  scheduler: SchedulerStatus;
+  presente: {
+    enEjecucion: JobActivoItem[];
+    fuentes: FuenteItem[];
+    worker: WorkerStatus;
+    scheduler: SchedulerStatus;
+  };
+  futuro: {
+    proximosChecks: ProximoCheckItem[];
+    boletines: BoletinProgramado[];
+    mantenimiento: { hora: number; minuto: number; minutosHasta: number; estado: string };
+    entregasProgramadas: EntregaProgramada[];
+    colaPendiente: JobPendienteItem[];
+  };
 }
 
-interface ActionFeedback {
-  id: string;
-  tipo: 'exito' | 'error' | 'info';
-  mensaje: string;
-  timestamp: number;
+interface JobItem {
+  id: string; tipo: string; prioridad: number;
+  duracionSegundos: number | null; hace: string; fecha: string;
+  resultado: Record<string, unknown>;
 }
 
-interface RecentJob {
-  id: string;
-  tipo: string;
-  estado: string;
-  fechaCreacion: string;
-  fechaFin: string | null;
-  error: string | null;
-  intentos: number;
+interface JobFallidoItem {
+  id: string; tipo: string; prioridad: number;
+  error: string; intentos: number; maxIntentos: number;
+  puedeReintentar: boolean; duracionSegundos: number | null;
+  hace: string; fecha: string;
+  fuente: string | null; cliente: string | null; canal: string | null;
 }
 
-// ─── Helpers ──────────────────────────────────────────────
+interface ProductoIA {
+  id: string; tipo: string; menciones: number;
+  enlacesRotos: number; fecha: string; hace: string;
+}
+
+interface JobActivoItem {
+  id: string; tipo: string; prioridad: number;
+  elapsedSegundos: number; inicio: string | null; hace: string;
+  fuente: string | null; url: string | null; cliente: string | null; canal: string | null;
+}
+
+interface FuenteItem {
+  id: string; medioId: string; nombre: string; url: string;
+  tipo: string; categoria: string; activo: boolean; tipoCheck: string;
+  frecuenciaBase: string; frecuenciaActual: string; frecuenciaLabel: string;
+  esDegradado: boolean; estaMuerto: boolean;
+  ultimoCheck: string | null; ultimoCheckHace: string;
+  ultimoCambio: string | null; ultimoCambioHace: string;
+  totalChecks: number; totalCambios: number; checksSinCambio: number;
+  responseTime: number; error: string | null; horariosOptimos: number[];
+}
+
+interface WorkerStatus {
+  running: boolean; uptime: string; jobsPerHour: number;
+  lastJobTime: string | null; lastJobHace: string;
+  jobsCompleted: number; jobsFailed: number;
+}
+
+interface SchedulerStatus {
+  running: boolean; totalTasks: number;
+  tasks: Array<{ expresion: string; humana: string }>;
+}
+
+interface ProximoCheckItem {
+  medioId: string; nombre: string; url: string; tipo: string;
+  tipoCheck: string; frecuenciaLabel: string;
+  proximoCheck: number; minutosHasta: number;
+  horasOptimos: number[]; esDegradado: boolean;
+}
+
+interface BoletinProgramado {
+  tipo: string; hora: number; minuto: number;
+  minutosHasta: number; prioridad: number; estado: string;
+}
+
+interface EntregaProgramada {
+  id: string; tipoBoletin: string; canal: string;
+  clienteNombre: string; fechaProgramada: string | null;
+  minutosHasta: number | null;
+}
+
+interface JobPendienteItem {
+  id: string; tipo: string; prioridad: number;
+  hace: string; programadoPara: string | null;
+  fuente: string | null; cliente: string | null;
+}
+
+// ─── Constants ────────────────────────────────────────────
 
 const JOB_TYPE_LABELS: Record<string, string> = {
   check_fuente: 'Check Fuente',
@@ -83,114 +136,31 @@ const JOB_TYPE_COLORS: Record<string, string> = {
   mantenimiento: 'text-stone-500',
 };
 
-const ESTADO_BADGE: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; className: string }> = {
-  pendiente: { variant: 'outline', className: 'border-amber-500/40 text-amber-700 dark:text-amber-400' },
-  en_progreso: { variant: 'default', className: 'bg-sky-500/20 text-sky-700 dark:text-sky-300' },
-  completado: { variant: 'secondary', className: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' },
-  fallido: { variant: 'destructive', className: 'bg-red-500/15 text-red-700 dark:text-red-400' },
-  cancelado: { variant: 'secondary', className: 'text-muted-foreground' },
+const PRIORIDAD_COLORS: Record<number, string> = {
+  0: 'bg-red-500', 1: 'bg-orange-500', 3: 'bg-amber-500',
+  5: 'bg-blue-500', 7: 'bg-gray-400', 9: 'bg-stone-400',
 };
 
-function timeAgo(date: string | null): string {
-  if (!date) return '--';
-  const diff = Date.now() - new Date(date).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'ahora';
-  if (mins < 60) return `hace ${mins}m`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `hace ${hours}h`;
-  return `hace ${Math.floor(hours / 24)}d`;
+function formatDuration(secs: number | null): string {
+  if (!secs) return '--';
+  if (secs < 60) return `${secs}s`;
+  return `${Math.floor(secs / 60)}m ${secs % 60}s`;
 }
 
-function formatDuration(ms: number): string {
-  if (ms < 1000) return `${Math.round(ms)}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
-  return `${(ms / 60000).toFixed(1)}m`;
+function formatMins(mins: number): string {
+  if (mins < 60) return `${mins}m`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${h}h ${m}m`;
 }
 
-// ─── Sub-components ───────────────────────────────────────
+// ─── Action Feedback ──────────────────────────────────────
 
-function MetricBox({
-  icon,
-  label,
-  value,
-  subValue,
-  color,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  subValue?: string;
-  color?: string;
-  onClick?: () => void;
-}) {
-  return (
-    <div
-      className={`flex flex-col items-center gap-0.5 py-2 px-3 rounded-lg bg-muted/40 border border-border/50 min-w-0 ${onClick ? 'cursor-pointer hover:bg-muted/70 transition-colors' : ''}`}
-      onClick={onClick}
-    >
-      <div className="text-muted-foreground">{icon}</div>
-      <span className={`text-base font-bold ${color || 'text-foreground'}`}>{value}</span>
-      <span className="text-[9px] text-muted-foreground leading-tight text-center">{label}</span>
-      {subValue && <span className="text-[8px] text-muted-foreground/70">{subValue}</span>}
-    </div>
-  );
+interface Feedback {
+  id: string; tipo: 'exito' | 'error' | 'info'; mensaje: string;
 }
 
-function PulseDot({ active, color = 'bg-emerald-500' }: { active: boolean; color?: string }) {
-  return (
-    <span className={`relative flex h-2.5 w-2.5 ${active ? '' : 'opacity-30'}`}>
-      {active && <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${color} opacity-75`} />}
-      <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${active ? color : 'bg-muted-foreground/40'}`} />
-    </span>
-  );
-}
-
-function ActionButton({
-  icon,
-  label,
-  color,
-  loading,
-  onClick,
-  confirmLabel,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  color?: string;
-  loading?: boolean;
-  onClick: () => void;
-  confirmLabel?: string;
-}) {
-  const [confirming, setConfirming] = useState(false);
-
-  const handleClick = () => {
-    if (confirmLabel && !confirming) {
-      setConfirming(true);
-      setTimeout(() => setConfirming(false), 3000);
-      return;
-    }
-    setConfirming(false);
-    onClick();
-  };
-
-  return (
-    <Button
-      variant="outline"
-      size="sm"
-      className={`text-[10px] gap-1.5 h-7 px-2 ${color || ''} ${confirming ? 'border-red-500/50 bg-red-500/10' : ''}`}
-      disabled={loading}
-      onClick={handleClick}
-    >
-      {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : icon}
-      <span>{confirming && confirmLabel ? confirmLabel : label}</span>
-    </Button>
-  );
-}
-
-// ─── Feedback Toast ───────────────────────────────────────
-
-function FeedbackToast({ feedback, onDismiss }: { feedback: ActionFeedback; onDismiss: (id: string) => void }) {
+function FeedbackToast({ fb, onDismiss }: { fb: Feedback; onDismiss: (id: string) => void }) {
   const colors = {
     exito: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
     error: 'border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-400',
@@ -201,104 +171,76 @@ function FeedbackToast({ feedback, onDismiss }: { feedback: ActionFeedback; onDi
     error: <XCircle className="h-3.5 w-3.5" />,
     info: <AlertTriangle className="h-3.5 w-3.5" />,
   };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
-      className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-[11px] ${colors[feedback.tipo]}`}
-      onClick={() => onDismiss(feedback.id)}
+      className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-[11px] cursor-pointer ${colors[fb.tipo]}`}
+      onClick={() => onDismiss(fb.id)}
     >
-      {icons[feedback.tipo]}
-      <span className="flex-1">{feedback.mensaje}</span>
-      <span className="text-[9px] opacity-60">{timeAgo(new Date(feedback.timestamp).toISOString())}</span>
+      {icons[fb.tipo]}
+      <span className="flex-1">{fb.mensaje}</span>
     </motion.div>
   );
 }
 
+// ─── Pulse Dot ────────────────────────────────────────────
+
+function PulseDot({ active, color = 'bg-emerald-500' }: { active: boolean; color?: string }) {
+  return (
+    <span className={`relative flex h-2 w-2 ${active ? '' : 'opacity-30'}`}>
+      {active && <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${color} opacity-75`} />}
+      <span className={`relative inline-flex rounded-full h-2 w-2 ${active ? color : 'bg-muted-foreground/40'}`} />
+    </span>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════
-// Main Component: PipelineMonitor
+// Main Component
 // ═══════════════════════════════════════════════════════════
 
 interface PipelineMonitorProps {
-  /** Los datos del pipeline ya obtenidos por el padre (via polling) */
-  data: PipelineData | null;
-  /** Forzar refresh manual desde el padre */
+  data: PipelineResponse | null;
   onRefresh: () => void;
 }
 
 export function PipelineMonitor({ data, onRefresh }: PipelineMonitorProps) {
-  // UI State
   const [expanded, setExpanded] = useState(false);
-  const [showRecent, setShowRecent] = useState(false);
+  const [section, setSection] = useState<'pasado' | 'presente' | 'futuro'>('presente');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [feedbacks, setFeedbacks] = useState<ActionFeedback[]>([]);
-  const [recentJobs, setRecentJobs] = useState<RecentJob[]>([]);
-  const [loadingJobs, setLoadingJobs] = useState(false);
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
 
-  // ─── Feedback management ──────────────────────────────
-  const addFeedback = useCallback((tipo: ActionFeedback['tipo'], mensaje: string) => {
-    const fb: ActionFeedback = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      tipo,
-      mensaje,
-      timestamp: Date.now(),
-    };
+  // ─── Feedback ──────────────────────────────────────────
+  const addFeedback = useCallback((tipo: Feedback['tipo'], mensaje: string) => {
+    const fb: Feedback = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, tipo, mensaje };
     setFeedbacks(prev => [fb, ...prev].slice(0, 5));
-    // Auto-dismiss after 8s
-    setTimeout(() => {
-      setFeedbacks(prev => prev.filter(f => f.id !== fb.id));
-    }, 8000);
-  }, []);
-
-  const dismissFeedback = useCallback((id: string) => {
-    setFeedbacks(prev => prev.filter(f => f.id !== id));
+    setTimeout(() => setFeedbacks(prev => prev.filter(f => f.id !== fb.id)), 8000);
   }, []);
 
   // ─── Actions ──────────────────────────────────────────
   const executeAction = useCallback(async (
-    actionId: string,
-    url: string,
-    body: Record<string, unknown>,
-    successMsg: string,
+    actionId: string, url: string, body: Record<string, unknown>, successMsg: string,
   ) => {
     setActionLoading(actionId);
     try {
       const res = await fetchWithTimeout(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        timeoutMs: 15_000,
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body), timeoutMs: 15_000,
       });
-      const data = await res.json();
-      if (res.ok) {
-        addFeedback('exito', data.mensaje || successMsg);
-        // Refresh data after action
-        setTimeout(onRefresh, 500);
-      } else {
-        addFeedback('error', data.error || `Error en ${actionId}`);
-      }
-    } catch (err) {
-      addFeedback('error', `Error de conexion: ${err instanceof Error ? err.message : actionId}`);
-    } finally {
-      setActionLoading(null);
-    }
+      const json = await res.json();
+      if (res.ok) { addFeedback('exito', json.mensaje || successMsg); setTimeout(onRefresh, 500); }
+      else { addFeedback('error', json.error || `Error en ${actionId}`); }
+    } catch (err) { addFeedback('error', `Error: ${err instanceof Error ? err.message : actionId}`); }
+    finally { setActionLoading(null); }
   }, [addFeedback, onRefresh]);
 
   const toggleWorker = useCallback(() => {
-    const isRunning = data?.worker?.running;
-    executeAction(
-      'worker',
-      '/api/jobs/worker',
+    const isRunning = data?.presente?.worker?.running;
+    executeAction('worker', '/api/jobs/worker',
       { accion: isRunning ? 'pause' : 'resume' },
-      isRunning ? 'Worker pausado' : 'Worker reanudado',
-    );
-  }, [data?.worker?.running, executeAction]);
-
-  const recalcScheduler = useCallback(() => {
-    executeAction('scheduler', '/api/jobs/scheduler', { accion: 'recalcular' }, 'Scheduler recalculado');
-  }, [executeAction]);
+      isRunning ? 'Worker pausado' : 'Worker reanudado');
+  }, [data?.presente?.worker?.running, executeAction]);
 
   const purgeCompleted = useCallback(() => {
     executeAction('purge_c', '/api/jobs/maintenance', { accion: 'purge_completados', dias: 3 }, 'Completados limpiados');
@@ -309,507 +251,626 @@ export function PipelineMonitor({ data, onRefresh }: PipelineMonitorProps) {
   }, [executeAction]);
 
   const reclaimOrphans = useCallback(() => {
-    executeAction('reclaim', '/api/jobs/maintenance', { accion: 'reclaim_huerfanos', timeoutMin: 10 }, 'Huerfanos recuperados');
+    executeAction('reclaim', '/api/jobs/maintenance', { accion: 'reclaim_huerfanos' }, 'Huerfanos recuperados');
   }, [executeAction]);
 
-  // ─── Recent jobs ──────────────────────────────────────
-  const fetchRecentJobs = useCallback(async () => {
-    setLoadingJobs(true);
-    try {
-      const res = await fetchWithTimeout('/api/jobs?limit=10&estado=fallido', { timeoutMs: 10_000 });
-      if (res.ok) {
-        const json = await res.json();
-        setRecentJobs(json.jobs || []);
-      }
-    } catch { /* silent */ }
-    setLoadingJobs(false);
-  }, []);
-
-  const handleShowRecent = useCallback(() => {
-    if (!showRecent) fetchRecentJobs();
-    setShowRecent(prev => !prev);
-  }, [showRecent, fetchRecentJobs]);
-
-  // ─── Cancel job ───────────────────────────────────────
   const cancelJob = useCallback(async (jobId: string) => {
     try {
-      const res = await fetchWithTimeout(`/api/jobs/${jobId}`, {
-        method: 'DELETE',
-        timeoutMs: 10_000,
-      });
-      if (res.ok) {
-        addFeedback('exito', 'Job cancelado');
-        fetchRecentJobs();
-        setTimeout(onRefresh, 500);
-      } else {
-        const data = await res.json();
-        addFeedback('error', data.error || 'No se pudo cancelar');
-      }
-    } catch {
-      addFeedback('error', 'Error de conexion al cancelar');
-    }
-  }, [addFeedback, fetchRecentJobs, onRefresh]);
+      const res = await fetchWithTimeout(`/api/jobs/${jobId}`, { method: 'DELETE', timeoutMs: 10_000 });
+      if (res.ok) { addFeedback('exito', 'Job cancelado'); setTimeout(onRefresh, 500); }
+      else { const d = await res.json(); addFeedback('error', d.error || 'No se pudo cancelar'); }
+    } catch { addFeedback('error', 'Error de conexion'); }
+  }, [addFeedback, onRefresh]);
 
-  // ─── Trigger manual job ───────────────────────────────
-  const triggerJob = useCallback(async (tipo: string) => {
-    executeAction(`trigger_${tipo}`, '/api/jobs', { tipo, prioridad: 7 }, `${JOB_TYPE_LABELS[tipo] || tipo} encolado`);
-  }, [executeAction]);
+  // ─── Computed ──────────────────────────────────────────
+  const fallidosCount = data?.pasado?.fallidos?.length ?? 0;
+  const enEjecucionCount = data?.presente?.enEjecucion?.length ?? 0;
+  const workerRunning = data?.presente?.worker?.running ?? false;
 
-  // ─── Computed: pipeline health level ──────────────────
-  const pipelineLevel: StatusLevel = useMemo(() => {
-    if (!data) return 'ok';
-    if (data.cola.fallidos24h > 10) return 'critical';
-    if (!data.worker.running) return 'warning';
-    if (data.cola.fallidos24h > 3) return 'warning';
-    if (data.cola.pendientes > 50) return 'warning';
-    return 'ok';
-  }, [data]);
-
-  const levelColors: Record<StatusLevel, string> = {
-    ok: 'border-l-emerald-500',
-    warning: 'border-l-amber-500',
-    danger: 'border-l-orange-500',
-    critical: 'border-l-red-500',
-  };
+  const borderColor = useMemo(() => {
+    if (fallidosCount > 5) return 'border-l-red-500';
+    if (fallidosCount > 0) return 'border-l-amber-500';
+    if (enEjecucionCount > 0) return 'border-l-sky-500';
+    if (workerRunning) return 'border-l-emerald-500';
+    return 'border-l-stone-400';
+  }, [fallidosCount, enEjecucionCount, workerRunning]);
 
   // ═══════════════════════════════════════════════════════
   // Render
   // ═══════════════════════════════════════════════════════
 
+  if (!data) {
+    return (
+      <Card className="border border-l-4 border-l-muted">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 py-4 justify-center text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-xs">Cargando pipeline...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const { pasado, presente, futuro } = data;
+
   return (
-    <Card className={`border-l-4 ${levelColors[pipelineLevel]} overflow-hidden`}>
+    <Card className={`border border-l-4 ${borderColor} overflow-hidden`}>
       <CardContent className="p-4 space-y-3">
 
         {/* ── Header ── */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <Activity className="h-4 w-4 text-primary" />
-            <span className="text-sm font-semibold text-foreground">Monitor de Pipeline</span>
-            <PulseDot active={data?.worker?.running ?? false} />
-            <Badge
-              variant="secondary"
-              className={`text-[9px] px-1.5 py-0 ${
-                pipelineLevel === 'critical' ? 'bg-red-500/15 text-red-600 dark:text-red-400' :
-                pipelineLevel === 'warning' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' :
-                'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-              }`}
-            >
-              {data?.worker?.running ? 'Activo' : 'Pausado'}
-            </Badge>
+            <span className="text-sm font-semibold">Monitor de Pipeline</span>
+            <PulseDot active={workerRunning} />
+            <span className="text-[10px] text-muted-foreground">{data.horaBolivia} — {data.diaSemana}</span>
           </div>
           <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-[10px] gap-1 h-6 px-2"
-              onClick={() => { onRefresh(); }}
-            >
-              <RefreshCw className="h-3 w-3" />
-              Refresh
+            <Button variant="ghost" size="sm" className="text-[10px] gap-1 h-6 px-2" onClick={onRefresh}>
+              <RefreshCw className="h-3 w-3" /> Refresh
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-[10px] gap-1 h-6 px-2"
-              onClick={() => setExpanded(prev => !prev)}
-            >
+            <Button variant="ghost" size="sm" className="text-[10px] gap-1 h-6 px-2"
+              onClick={() => setExpanded(p => !p)}>
               {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              {expanded ? 'Menos' : 'Mas'}
+              {expanded ? 'Menos' : 'Expandir'}
             </Button>
           </div>
         </div>
 
-        {/* ── Feedbacks (toasts) ── */}
+        {/* ── Feedback toasts ── */}
         <AnimatePresence>
-          {feedbacks.length > 0 && (
-            <div className="space-y-1.5">
-              {feedbacks.map(fb => (
-                <FeedbackToast key={fb.id} feedback={fb} onDismiss={dismissFeedback} />
-              ))}
-            </div>
-          )}
+          {feedbacks.map(fb => <FeedbackToast key={fb.id} fb={fb} onDismiss={id => setFeedbacks(p => p.filter(f => f.id !== id))} />)}
         </AnimatePresence>
 
-        {/* ══ COMPACT VIEW (always visible) ══ */}
-        {!expanded && data && (
+        {/* ══════ COMPACT VIEW ══════ */}
+        {!expanded && (
           <div className="space-y-3">
-            {/* Metrics row */}
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-              <MetricBox
-                icon={<Layers className="h-3.5 w-3.5" />}
-                label="Pendientes"
-                value={data.cola.pendientes}
-                color={data.cola.pendientes > 50 ? 'text-amber-600 dark:text-amber-400' : undefined}
-              />
-              <MetricBox
-                icon={<Loader2 className="h-3.5 w-3.5" />}
-                label="En Progreso"
-                value={data.cola.enProgreso}
-              />
-              <MetricBox
-                icon={<CheckCircle2 className="h-3.5 w-3.5" />}
-                label="Completados 24h"
-                value={data.cola.completados24h}
-              />
-              <MetricBox
-                icon={<XCircle className="h-3.5 w-3.5" />}
-                label="Fallidos 24h"
-                value={data.cola.fallidos24h}
-                color={data.cola.fallidos24h > 3 ? 'text-red-600 dark:text-red-400' : undefined}
-              />
-              <MetricBox
-                icon={<Gauge className="h-3.5 w-3.5" />}
-                label="Promedio"
-                value={data.cola.tiempoPromedioMs > 0 ? formatDuration(data.cola.tiempoPromedioMs) : '--'}
-                subValue="por job"
-              />
-              <MetricBox
-                icon={<Timer className="h-3.5 w-3.5" />}
-                label="Worker"
-                value={data.worker.running ? `${data.worker.jobsPerHour}/h` : 'Pausado'}
-                subValue={data.worker.lastJobTime ? timeAgo(data.worker.lastJobTime) : 'sin actividad'}
-                color={data.worker.running ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}
-                onClick={toggleWorker}
-              />
+            {/* 3-column summary: Pasado / Presente / Futuro */}
+            <div className="grid grid-cols-3 gap-2">
+              {/* PASADO */}
+              <div className="p-2 rounded-lg bg-muted/30 border border-border/40 space-y-1">
+                <p className="text-[9px] font-medium text-muted-foreground uppercase tracking-wider">Pasado (24h)</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">{pasado.entregas.enviadas}</span>
+                  <span className="text-[9px] text-muted-foreground">entregadas</span>
+                </div>
+                {pasado.fallidos.length > 0 && (
+                  <div className="flex items-center gap-1">
+                    <XCircle className="h-3 w-3 text-red-500" />
+                    <span className="text-[10px] text-red-600 dark:text-red-400">{pasado.fallidos.length} fallido{pasado.fallidos.length > 1 ? 's' : ''}</span>
+                  </div>
+                )}
+                {pasado.productosIA.length > 0 && (
+                  <div className="flex items-center gap-1">
+                    <Sparkles className="h-3 w-3 text-violet-500" />
+                    <span className="text-[10px] text-muted-foreground">{pasado.productosIA.length} productos IA</span>
+                  </div>
+                )}
+              </div>
+
+              {/* PRESENTE */}
+              <div className="p-2 rounded-lg bg-muted/30 border border-border/40 space-y-1">
+                <p className="text-[9px] font-medium text-muted-foreground uppercase tracking-wider">Ahora</p>
+                <div className="flex items-center gap-1">
+                  <PulseDot active={workerRunning} />
+                  <span className={`text-[10px] font-medium ${workerRunning ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                    {workerRunning ? 'Activo' : 'Pausado'}
+                  </span>
+                </div>
+                {presente.enEjecucion.length > 0 ? (
+                  <div className="flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin text-sky-500" />
+                    <span className="text-[10px] text-foreground truncate">
+                      {JOB_TYPE_LABELS[presente.enEjecucion[0].tipo] || presente.enEjecucion[0].tipo}
+                      {presente.enEjecucion[0].fuente ? `: ${presente.enEjecucion[0].fuente}` : ''}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground">Sin jobs en ejecución</span>
+                )}
+                <div className="text-[9px] text-muted-foreground">
+                  {presente.fuentes.filter(f => f.activo).length} fuentes ·
+                  {presente.fuentes.filter(f => f.esDegradado).length} degradadas ·
+                  {presente.fuentes.filter(f => f.estaMuerto).length} muertas
+                </div>
+              </div>
+
+              {/* FUTURO */}
+              <div className="p-2 rounded-lg bg-muted/30 border border-border/40 space-y-1">
+                <p className="text-[9px] font-medium text-muted-foreground uppercase tracking-wider">Próximo</p>
+                {futuro.boletines.length > 0 ? (
+                  <div className="flex items-center gap-1">
+                    <FileText className="h-3 w-3 text-amber-500" />
+                    <span className="text-[10px] text-foreground truncate">
+                      {futuro.boletines[0].tipo.replace(/_/g, ' ')}
+                    </span>
+                    <span className="text-[9px] text-muted-foreground ml-auto">
+                      en {formatMins(futuro.boletines[0].minutosHasta)}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground">Sin boletines programados</span>
+                )}
+                {futuro.proximosChecks.length > 0 && (
+                  <div className="flex items-center gap-1">
+                    <Radio className="h-3 w-3 text-sky-500" />
+                    <span className="text-[10px] text-foreground truncate">
+                      {futuro.proximosChecks[0].nombre}
+                    </span>
+                    <span className="text-[9px] text-muted-foreground ml-auto">
+                      en {formatMins(futuro.proximosChecks[0].minutosHasta)}
+                    </span>
+                  </div>
+                )}
+                {futuro.entregasProgramadas.length > 0 && (
+                  <div className="flex items-center gap-1">
+                    <Send className="h-3 w-3 text-teal-500" />
+                    <span className="text-[10px] text-muted-foreground">
+                      {futuro.entregasProgramadas.length} entrega{futuro.entregasProgramadas.length > 1 ? 's' : ''} pendiente{futuro.entregasProgramadas.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Quick actions row */}
+            {/* Quick actions */}
             <div className="flex flex-wrap gap-1.5">
-              <ActionButton
-                icon={data.worker.running ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-                label={data.worker.running ? 'Pausar Worker' : 'Reanudar Worker'}
-                loading={actionLoading === 'worker'}
-                onClick={toggleWorker}
-              />
-              <ActionButton
-                icon={<RotateCcw className="h-3 w-3" />}
-                label="Recalcular Scheduler"
-                loading={actionLoading === 'scheduler'}
-                onClick={recalcScheduler}
-              />
-              <ActionButton
-                icon={<Trash2 className="h-3 w-3" />}
-                label="Limpiar Completados"
-                loading={actionLoading === 'purge_c'}
-                onClick={purgeCompleted}
-                confirmLabel="Confirmar limpieza?"
-              />
-              <ActionButton
-                icon={<Trash2 className="h-3 w-3" />}
-                label="Limpiar Fallidos"
-                color="text-red-600 dark:text-red-400"
-                loading={actionLoading === 'purge_f'}
-                onClick={purgeFailed}
-                confirmLabel="Confirmar?"
-              />
-              <ActionButton
-                icon={<Wrench className="h-3 w-3" />}
-                label="Recuperar Huerfanos"
-                loading={actionLoading === 'reclaim'}
-                onClick={reclaimOrphans}
-              />
+              <Button variant="outline" size="sm" className="text-[10px] gap-1 h-7 px-2"
+                disabled={actionLoading === 'worker'} onClick={toggleWorker}>
+                {actionLoading === 'worker' ? <Loader2 className="h-3 w-3 animate-spin" /> :
+                  workerRunning ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+                {workerRunning ? 'Pausar' : 'Reanudar'}
+              </Button>
+              <Button variant="outline" size="sm" className="text-[10px] gap-1 h-7 px-2"
+                disabled={actionLoading === 'reclaim'} onClick={reclaimOrphans}>
+                <Wrench className="h-3 w-3" /> Recuperar Huerfanos
+              </Button>
+              <Button variant="outline" size="sm" className="text-[10px] gap-1 h-7 px-2"
+                disabled={actionLoading === 'purge_c'} onClick={purgeCompleted}>
+                <Trash2 className="h-3 w-3" /> Limpiar Completados
+              </Button>
+              <Button variant="outline" size="sm" className="text-[10px] gap-1 h-7 px-2 text-red-600 dark:text-red-400"
+                disabled={actionLoading === 'purge_f'} onClick={purgeFailed}>
+                <Trash2 className="h-3 w-3" /> Limpiar Fallidos
+              </Button>
             </div>
           </div>
         )}
 
-        {/* ══ EXPANDED VIEW ══ */}
-        {expanded && data && (
+        {/* ══════ EXPANDED VIEW ══════ */}
+        {expanded && (
           <div className="space-y-4">
 
-            {/* ── 3-column metrics ── */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Tab selector */}
+            <div className="flex gap-1 bg-muted/40 rounded-lg p-1">
+              {(['pasado', 'presente', 'futuro'] as const).map(s => (
+                <button key={s} onClick={() => setSection(s)}
+                  className={`flex-1 text-center py-1.5 rounded-md text-[11px] font-medium transition-all ${
+                    section === s ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}>
+                  {s === 'pasado' ? 'Pasado' : s === 'presente' ? 'Presente' : 'Futuro'}
+                  {s === 'pasado' && pasado.fallidos.length > 0 && (
+                    <span className="ml-1 inline-flex items-center justify-center h-4 w-4 rounded-full bg-red-500/20 text-red-600 dark:text-red-400 text-[9px]">
+                      {pasado.fallidos.length}
+                    </span>
+                  )}
+                  {s === 'presente' && presente.enEjecucion.length > 0 && (
+                    <span className="ml-1 inline-flex items-center justify-center h-4 w-4 rounded-full bg-sky-500/20 text-sky-600 dark:text-sky-400 text-[9px] animate-pulse">
+                      {presente.enEjecucion.length}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
 
-              {/* Col 1: Queue */}
-              <div className="space-y-2">
-                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Cola de Trabajos</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <MetricBox
-                    icon={<Layers className="h-3.5 w-3.5" />}
-                    label="Pendientes"
-                    value={data.cola.pendientes}
-                    color={data.cola.pendientes > 50 ? 'text-amber-600 dark:text-amber-400' : undefined}
-                  />
-                  <MetricBox
-                    icon={<Loader2 className="h-3.5 w-3.5" />}
-                    label="En Progreso"
-                    value={data.cola.enProgreso}
-                  />
-                  <MetricBox
-                    icon={<CheckCircle2 className="h-3.5 w-3.5" />}
-                    label="Completados 24h"
-                    value={data.cola.completados24h}
-                    color="text-emerald-600 dark:text-emerald-400"
-                  />
-                  <MetricBox
-                    icon={<XCircle className="h-3.5 w-3.5" />}
-                    label="Fallidos 24h"
-                    value={data.cola.fallidos24h}
-                    color={data.cola.fallidos24h > 3 ? 'text-red-600 dark:text-red-400' : undefined}
-                  />
-                </div>
-                {data.cola.tiempoPromedioMs > 0 && (
-                  <p className="text-[10px] text-muted-foreground">
-                    Tiempo promedio: <span className="font-medium text-foreground">{formatDuration(data.cola.tiempoPromedioMs)}</span>
-                  </p>
-                )}
-              </div>
-
-              {/* Col 2: Worker + CheckFirst */}
-              <div className="space-y-2">
-                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Worker</p>
-                <div className="flex items-center gap-2 mb-1">
-                  <PulseDot active={data.worker.running} />
-                  <span className={`text-xs font-medium ${data.worker.running ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                    {data.worker.running ? 'Ejecutando' : 'Pausado'}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground ml-auto">
-                    Uptime: {data.worker.uptime || '--'}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <MetricBox
-                    icon={<Gauge className="h-3.5 w-3.5" />}
-                    label="Jobs/hora"
-                    value={data.worker.jobsPerHour}
-                  />
-                  <MetricBox
-                    icon={<Clock className="h-3.5 w-3.5" />}
-                    label="Ultimo Job"
-                    value={data.worker.lastJobTime ? timeAgo(data.worker.lastJobTime) : '--'}
-                  />
+            {/* ═══ PASADO ═══ */}
+            {section === 'pasado' && (
+              <div className="space-y-3">
+                {/* Entregas summary */}
+                <div className="grid grid-cols-4 gap-2">
+                  <div className="text-center p-2 rounded-lg bg-muted/30">
+                    <span className="text-sm font-bold">{pasado.entregas.total}</span>
+                    <p className="text-[9px] text-muted-foreground">Total</p>
+                  </div>
+                  <div className="text-center p-2 rounded-lg bg-emerald-500/5">
+                    <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{pasado.entregas.enviadas}</span>
+                    <p className="text-[9px] text-muted-foreground">Enviadas</p>
+                  </div>
+                  <div className="text-center p-2 rounded-lg bg-amber-500/5">
+                    <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{pasado.entregas.pendientes}</span>
+                    <p className="text-[9px] text-muted-foreground">Pendientes</p>
+                  </div>
+                  <div className="text-center p-2 rounded-lg bg-red-500/5">
+                    <span className="text-sm font-bold text-red-600 dark:text-red-400">{pasado.entregas.fallidas}</span>
+                    <p className="text-[9px] text-muted-foreground">Fallidas</p>
+                  </div>
                 </div>
 
-                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mt-3">Check-First</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <MetricBox
-                    icon={<AlertTriangle className="h-3.5 w-3.5" />}
-                    label="Con Cambios"
-                    value={data.checkFirst.conCambios24h}
-                    color="text-emerald-600 dark:text-emerald-400"
-                  />
-                  <MetricBox
-                    icon={<CheckCircle2 className="h-3.5 w-3.5" />}
-                    label="Sin Cambios"
-                    value={data.checkFirst.sinCambios24h}
-                  />
-                </div>
-                {data.checkFirst.tasaAhorro > 0 && (
-                  <p className="text-[10px] text-muted-foreground">
-                    Tasa ahorro check-first: <span className="font-medium text-emerald-600 dark:text-emerald-400">{data.checkFirst.tasaAhorro}%</span>
-                  </p>
-                )}
-              </div>
-
-              {/* Col 3: Fuentes + Scheduler */}
-              <div className="space-y-2">
-                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Fuentes</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <MetricBox
-                    icon={<Radio className="h-3.5 w-3.5" />}
-                    label="Activas"
-                    value={data.fuentes.activas}
-                    color="text-emerald-600 dark:text-emerald-400"
-                  />
-                  <MetricBox
-                    icon={<Zap className="h-3.5 w-3.5" />}
-                    label="Cambios Hoy"
-                    value={data.fuentes.conCambiosHoy}
-                  />
-                  <MetricBox
-                    icon={<AlertTriangle className="h-3.5 w-3.5" />}
-                    label="Degradadas"
-                    value={data.fuentes.degradadas}
-                    color={data.fuentes.degradadas > 0 ? 'text-amber-600 dark:text-amber-400' : undefined}
-                  />
-                  <MetricBox
-                    icon={<XCircle className="h-3.5 w-3.5" />}
-                    label="Con Error"
-                    value={data.fuentes.conError}
-                    color={data.fuentes.conError > 0 ? 'text-red-600 dark:text-red-400' : undefined}
-                  />
-                </div>
-
-                {data.fuentes.topProductoras?.length > 0 && (
-                  <div className="mt-1 space-y-0.5">
-                    <p className="text-[9px] text-muted-foreground">Top productoras:</p>
-                    {data.fuentes.topProductoras.slice(0, 3).map((fp, i) => (
-                      <div key={i} className="flex items-center gap-1 text-[10px]">
-                        <ArrowRight className="h-2 w-2 text-muted-foreground/50" />
-                        <span className="text-foreground truncate">{fp.medio}</span>
-                        <span className="text-muted-foreground ml-auto">{fp.cambios}</span>
-                      </div>
-                    ))}
+                {/* Productos IA */}
+                {pasado.productosIA.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
+                      <Sparkles className="h-3 w-3 inline mr-1 text-violet-500" />Productos IA generados hoy
+                    </p>
+                    <div className="space-y-1">
+                      {pasado.productosIA.map(p => (
+                        <div key={p.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/20 border border-border/30">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText className="h-3 w-3 text-violet-500 shrink-0" />
+                            <span className={`text-[10px] font-medium truncate ${JOB_TYPE_COLORS.generar_boletin}`}>
+                              {p.tipo.replace(/_/g, ' ')}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-[9px] text-muted-foreground shrink-0">
+                            <span>{p.menciones} menc.</span>
+                            <span>{p.hace}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
-                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mt-3">Scheduler</p>
-                <div className="flex items-center gap-2">
-                  <PulseDot active={data.scheduler?.running ?? false} />
-                  <span className="text-[11px] font-medium">
-                    {data.scheduler?.running ? `${data.scheduler.totalTasks} tareas` : 'Inactivo'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* ── Admin Actions ── */}
-            <div className="space-y-2">
-              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Acciones del Administrador</p>
-              <div className="flex flex-wrap gap-2">
-                <ActionButton
-                  icon={data.worker.running ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-                  label={data.worker.running ? 'Pausar Worker' : 'Reanudar Worker'}
-                  loading={actionLoading === 'worker'}
-                  onClick={toggleWorker}
-                />
-                <ActionButton
-                  icon={<RotateCcw className="h-3 w-3" />}
-                  label="Recalcular Scheduler"
-                  loading={actionLoading === 'scheduler'}
-                  onClick={recalcScheduler}
-                />
-                <ActionButton
-                  icon={<Trash2 className="h-3 w-3" />}
-                  label="Purgar Completados (>3d)"
-                  loading={actionLoading === 'purge_c'}
-                  onClick={purgeCompleted}
-                  confirmLabel="Confirmar limpieza"
-                />
-                <ActionButton
-                  icon={<Trash2 className="h-3 w-3" />}
-                  label="Purgar Fallidos (>7d)"
-                  color="text-red-600 dark:text-red-400"
-                  loading={actionLoading === 'purge_f'}
-                  onClick={purgeFailed}
-                  confirmLabel="Confirmar purge"
-                />
-                <ActionButton
-                  icon={<Wrench className="h-3 w-3" />}
-                  label="Recuperar Huerfanos"
-                  loading={actionLoading === 'reclaim'}
-                  onClick={reclaimOrphans}
-                />
-              </div>
-
-              {/* Manual job trigger */}
-              <div className="space-y-1.5 mt-2">
-                <p className="text-[9px] text-muted-foreground">Disparar job manualmente:</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {(['check_fuente', 'scrape_fuente', 'verificar_enlaces', 'mantenimiento'] as const).map(tipo => (
-                    <ActionButton
-                      key={tipo}
-                      icon={<Zap className="h-3 w-3" />}
-                      label={JOB_TYPE_LABELS[tipo]}
-                      color={JOB_TYPE_COLORS[tipo]}
-                      loading={actionLoading === `trigger_${tipo}`}
-                      onClick={() => triggerJob(tipo)}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* ── Recent Failed Jobs ── */}
-            <div className="space-y-2 border-t border-border/50 pt-3">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                  Jobs Fallidos Recientes
-                </p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-[9px] gap-1 h-5 px-1.5"
-                  onClick={handleShowRecent}
-                >
-                  {showRecent ? 'Ocultar' : 'Mostrar'}
-                  {showRecent ? <ChevronUp className="h-2.5 w-2.5" /> : <ChevronDown className="h-2.5 w-2.5" />}
-                </Button>
-              </div>
-
-              {data.cola.fallidos24h === 0 && (
-                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 py-2">
-                  <CheckCircle2 className="h-4 w-4" />
-                  <span className="text-xs font-medium">Sin fallidos en las ultimas 24 horas</span>
-                </div>
-              )}
-
-              {showRecent && (
-                <div className="space-y-1.5">
-                  {loadingJobs ? (
-                    <div className="flex items-center gap-2 py-3 justify-center text-muted-foreground">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      <span className="text-[10px]">Cargando jobs fallidos...</span>
-                    </div>
-                  ) : recentJobs.length > 0 ? (
-                    recentJobs.map(job => {
-                      const estadoStyle = ESTADO_BADGE[job.estado] || ESTADO_BADGE.cancelado;
-                      return (
-                        <div
-                          key={job.id}
-                          className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted/30 border border-border/30"
-                        >
+                {/* Jobs completados */}
+                {pasado.completados.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
+                      <CheckCircle2 className="h-3 w-3 inline mr-1 text-emerald-500" />Jobs completados
+                    </p>
+                    <div className="space-y-1">
+                      {pasado.completados.slice(0, 10).map(j => (
+                        <div key={j.id} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted/20 border border-border/30">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5">
-                              <span className={`text-[10px] font-medium ${JOB_TYPE_COLORS[job.tipo] || 'text-foreground'}`}>
-                                {JOB_TYPE_LABELS[job.tipo] || job.tipo}
+                              <span className={`text-[10px] font-medium ${JOB_TYPE_COLORS[j.tipo] || 'text-foreground'}`}>
+                                {JOB_TYPE_LABELS[j.tipo] || j.tipo}
                               </span>
-                              <Badge variant={estadoStyle.variant} className={`text-[8px] px-1 py-0 h-4 ${estadoStyle.className}`}>
-                                {job.estado.replace('_', ' ')}
-                              </Badge>
+                              <span className="text-[9px] text-muted-foreground">{j.hace}</span>
                             </div>
-                            <p className="text-[9px] text-muted-foreground mt-0.5 truncate">
-                              {job.error || 'Sin error registrado'} · {job.intentos} intento{job.intentos > 1 ? 's' : ''} · {timeAgo(job.fechaCreacion)}
-                            </p>
                           </div>
-                          {(job.estado === 'pendiente' || job.estado === 'fallido') && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-[9px] h-6 px-1.5 text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                              onClick={() => cancelJob(job.id)}
-                            >
-                              <XCircle className="h-3 w-3" />
-                            </Button>
-                          )}
+                          <div className="flex items-center gap-2 text-[9px] text-muted-foreground shrink-0">
+                            {j.duracionSegundos !== null && (
+                              <span className="flex items-center gap-0.5">
+                                <Timer className="h-2.5 w-2.5" />{formatDuration(j.duracionSegundos)}
+                              </span>
+                            )}
+                            <span className={`inline-block h-1.5 w-1.5 rounded-full ${PRIORIDAD_COLORS[j.prioridad] || 'bg-gray-400'}`} title={`P${j.prioridad}`} />
+                          </div>
                         </div>
-                      );
-                    })
-                  ) : (
-                    <p className="text-[10px] text-muted-foreground text-center py-2">
-                      No se encontraron jobs fallidos
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* ── Scheduler Tasks ── */}
-            {data.scheduler?.tasks?.length > 0 && (
-              <div className="space-y-2 border-t border-border/50 pt-3">
-                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                  Tareas Programadas ({data.scheduler.running ? 'activas' : 'inactivas'})
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                  {data.scheduler.tasks.map((tarea, i) => (
-                    <div key={i} className="flex items-center gap-2 p-1.5 rounded-md bg-muted/20">
-                      <PulseDot active={data.scheduler.running} color={data.scheduler.running ? 'bg-sky-500' : 'bg-muted-foreground/40'} />
-                      <span className="text-[10px] text-foreground truncate flex-1">{tarea.humana}</span>
-                      <span className="text-[9px] text-muted-foreground font-mono">{tarea.expresion}</span>
+                      ))}
                     </div>
-                  ))}
+                  </div>
+                )}
+
+                {/* Jobs fallidos */}
+                {pasado.fallidos.length > 0 ? (
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
+                      <XCircle className="h-3 w-3 inline mr-1 text-red-500" />Jobs fallidos — diagnosticar y actuar
+                    </p>
+                    <div className="space-y-1.5">
+                      {pasado.fallidos.map(j => (
+                        <div key={j.id} className="p-2 rounded-lg bg-red-500/5 border border-red-500/20">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className={`text-[10px] font-medium ${JOB_TYPE_COLORS[j.tipo] || 'text-red-600 dark:text-red-400'}`}>
+                                {JOB_TYPE_LABELS[j.tipo] || j.tipo}
+                              </span>
+                              {j.fuente && <span className="text-[9px] text-muted-foreground truncate max-w-[100px]">{j.fuente}</span>}
+                              {j.cliente && <span className="text-[9px] text-muted-foreground">→ {j.cliente}</span>}
+                              {j.canal && <Badge variant="outline" className="text-[8px] px-1 py-0 h-4">{j.canal}</Badge>}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-[9px] text-muted-foreground">{j.hace}</span>
+                              <Button variant="ghost" size="sm" className="text-[9px] h-6 px-1.5 text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                                onClick={() => cancelJob(j.id)}>
+                                <XCircle className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                          <p className="text-[9px] text-red-600 dark:text-red-400 font-medium truncate">{j.error}</p>
+                          <p className="text-[9px] text-muted-foreground">
+                            {j.intentos}/{j.maxIntentos} intentos
+                            {j.duracionSegundos !== null && ` · ${formatDuration(j.duracionSegundos)}`}
+                            {j.fuente && ` · Fuente: ${j.fuente}`}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 py-2">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span className="text-xs font-medium">Sin fallidos en las últimas 24 horas</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ═══ PRESENTE ═══ */}
+            {section === 'presente' && (
+              <div className="space-y-3">
+                {/* Worker status */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2 rounded-lg bg-muted/30 border border-border/40 space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <PulseDot active={workerRunning} />
+                      <span className={`text-[11px] font-medium ${workerRunning ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                        Worker {workerRunning ? 'Ejecutando' : 'Pausado'}
+                      </span>
+                    </div>
+                    <div className="text-[9px] text-muted-foreground">
+                      Uptime: {presente.worker.uptime} · {presente.worker.jobsPerHour} jobs/h
+                    </div>
+                    <div className="text-[9px] text-muted-foreground">
+                      Último job: {presente.worker.lastJobHace}
+                    </div>
+                    <div className="text-[9px] text-muted-foreground">
+                      Completados: {presente.worker.jobsCompleted} · Fallidos: {presente.worker.jobsFailed}
+                    </div>
+                  </div>
+                  <div className="p-2 rounded-lg bg-muted/30 border border-border/40 space-y-1">
+                    <p className="text-[9px] font-medium text-muted-foreground uppercase tracking-wider">Scheduler</p>
+                    <div className="flex items-center gap-1.5">
+                      <PulseDot active={presente.scheduler.running} />
+                      <span className="text-[11px] font-medium">
+                        {presente.scheduler.running ? `${presente.scheduler.totalTasks} tareas activas` : 'Inactivo'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Jobs en ejecución ahora */}
+                {presente.enEjecucion.length > 0 ? (
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
+                      <Loader2 className="h-3 w-3 inline mr-1 animate-spin text-sky-500" />Ejecutando ahora
+                    </p>
+                    <div className="space-y-1.5">
+                      {presente.enEjecucion.map(j => (
+                        <div key={j.id} className="p-2 rounded-lg bg-sky-500/5 border border-sky-500/20">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className={`text-[10px] font-medium ${JOB_TYPE_COLORS[j.tipo]}`}>
+                                {JOB_TYPE_LABELS[j.tipo] || j.tipo}
+                              </span>
+                              {j.fuente && <span className="text-[9px] text-foreground truncate max-w-[120px]">{j.fuente}</span>}
+                              {j.cliente && <span className="text-[9px] text-muted-foreground">→ {j.cliente}</span>}
+                            </div>
+                            <span className="text-[10px] text-sky-600 dark:text-sky-400 font-mono">
+                              {formatDuration(j.elapsedSegundos)}
+                            </span>
+                          </div>
+                          <div className="text-[9px] text-muted-foreground mt-0.5">
+                            Iniciado {j.hace}
+                            {j.url && <span className="block truncate">{j.url}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-muted-foreground">Ningún job en ejecución en este momento</p>
+                )}
+
+                {/* Fuentes */}
+                {presente.fuentes.length > 0 ? (
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
+                      <Radio className="h-3 w-3 inline mr-1" />Fuentes ({presente.fuentes.filter(f => f.activo).length} activas)
+                    </p>
+                    <div className="space-y-1">
+                      {presente.fuentes.slice(0, 10).map(f => (
+                        <div key={f.id}
+                          className={`flex items-center justify-between gap-2 p-1.5 rounded-lg border ${
+                            f.estaMuerto ? 'bg-red-500/5 border-red-500/20' :
+                            f.esDegradado ? 'bg-amber-500/5 border-amber-500/20' :
+                            f.error ? 'bg-orange-500/5 border-orange-500/20' :
+                            'bg-muted/20 border-border/30'
+                          }`}>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`inline-block h-1.5 w-1.5 rounded-full ${
+                                f.estaMuerto ? 'bg-red-500' : f.esDegradado ? 'bg-amber-500' : f.error ? 'bg-orange-500' : 'bg-emerald-500'
+                              }`} />
+                              <span className="text-[10px] font-medium text-foreground truncate">{f.nombre}</span>
+                              <Badge variant="outline" className="text-[8px] px-1 py-0 h-4">{f.frecuenciaLabel}</Badge>
+                            </div>
+                            <div className="text-[9px] text-muted-foreground">
+                              {f.ultimoCheckHace !== 'nunca' ? `Check: ${f.ultimoCheckHace}` : 'Sin checks'}
+                              {f.ultimoCambioHace !== 'nunca' && ` · Cambio: ${f.ultimoCambioHace}`}
+                              {f.error && <span className="text-orange-600 dark:text-orange-400"> · {f.error}</span>}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 text-[9px] text-muted-foreground shrink-0">
+                            {f.responseTime > 0 && <span>{f.responseTime}ms</span>}
+                            {f.totalCambios}/{f.totalChecks}
+                          </div>
+                        </div>
+                      ))}
+                      {presente.fuentes.length > 10 && (
+                        <p className="text-[9px] text-muted-foreground text-center">+{presente.fuentes.length - 10} fuentes más</p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-muted-foreground">No hay fuentes configuradas</p>
+                )}
+
+                {/* Actions */}
+                <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-2">
+                  <Button variant="outline" size="sm" className="text-[10px] gap-1 h-7 px-2"
+                    disabled={actionLoading === 'worker'} onClick={toggleWorker}>
+                    {actionLoading === 'worker' ? <Loader2 className="h-3 w-3 animate-spin" /> :
+                      workerRunning ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+                    {workerRunning ? 'Pausar Worker' : 'Reanudar Worker'}
+                  </Button>
+                  <Button variant="outline" size="sm" className="text-[10px] gap-1 h-7 px-2"
+                    disabled={actionLoading === 'reclaim'} onClick={reclaimOrphans}>
+                    <Wrench className="h-3 w-3" /> Recuperar Huerfanos
+                  </Button>
                 </div>
               </div>
             )}
-          </div>
-        )}
 
-        {/* ── Loading state ── */}
-        {!data && (
-          <div className="py-6 text-center text-muted-foreground">
-            <div className="animate-pulse flex flex-col items-center gap-2">
-              <Activity className="h-5 w-5 opacity-40" />
-              <span className="text-xs">Cargando pipeline...</span>
-            </div>
+            {/* ═══ FUTURO ═══ */}
+            {section === 'futuro' && (
+              <div className="space-y-3">
+                {/* Próximos checks de fuentes */}
+                {futuro.proximosChecks.length > 0 ? (
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
+                      <Radio className="h-3 w-3 inline mr-1 text-sky-500" />Próximos checks de fuentes
+                    </p>
+                    <div className="space-y-1">
+                      {futuro.proximosChecks.map((c, i) => (
+                        <div key={c.medioId}
+                          className={`flex items-center justify-between gap-2 p-2 rounded-lg border ${
+                            i === 0 ? 'bg-sky-500/5 border-sky-500/20' : 'bg-muted/20 border-border/30'
+                          }`}>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-[10px] font-medium text-foreground truncate ${
+                                c.esDegradado ? 'text-amber-600 dark:text-amber-400' : ''
+                              }`}>{c.nombre}</span>
+                              <Badge variant="outline" className="text-[8px] px-1 py-0 h-4">{c.tipoCheck}</Badge>
+                              {c.esDegradado && <AlertTriangle className="h-3 w-3 text-amber-500" />}
+                            </div>
+                            <div className="text-[9px] text-muted-foreground">
+                              {c.frecuenciaLabel} · Próximo: {String(c.proximoCheck).padStart(2, '0')}:00
+                              · Horarios: [{c.horasOptimos.join(', ')}]
+                            </div>
+                          </div>
+                          <span className={`text-[11px] font-mono shrink-0 ${
+                            i === 0 ? 'text-sky-600 dark:text-sky-400' : 'text-muted-foreground'
+                          }`}>
+                            {i === 0 && c.minutosHasta < 30 ? 'AHORA' : formatMins(c.minutosHasta)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-muted-foreground">No hay fuentes programadas para check</p>
+                )}
+
+                {/* Boletines programados */}
+                {futuro.boletines.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
+                      <FileText className="h-3 w-3 inline mr-1 text-amber-500" />Boletines programados
+                    </p>
+                    <div className="space-y-1">
+                      {futuro.boletines.map((b, i) => (
+                        <div key={b.tipo}
+                          className={`flex items-center justify-between gap-2 p-2 rounded-lg border ${
+                            i === 0 ? 'bg-amber-500/5 border-amber-500/20' : 'bg-muted/20 border-border/30'
+                          }`}>
+                          <div className="flex items-center gap-1.5">
+                            <FileText className={`h-3 w-3 ${i === 0 ? 'text-amber-500' : 'text-muted-foreground'}`} />
+                            <span className={`text-[10px] font-medium ${i === 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                              {b.tipo.replace(/_/g, ' ')}
+                            </span>
+                            <Badge variant="outline" className="text-[8px] px-1 py-0 h-4">
+                              P{b.prioridad}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2 text-[9px] shrink-0">
+                            <span>{String(b.hora).padStart(2, '0')}:{String(b.minuto).padStart(2, '0')}</span>
+                            <span className={i === 0 ? 'text-amber-600 dark:text-amber-400 font-medium' : 'text-muted-foreground'}>
+                              {b.estado === 'en ventana' ? 'EN VENTANA' : `en ${formatMins(b.minutosHasta)}`}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Mantenimiento */}
+                <div className="flex items-center justify-between p-2 rounded-lg bg-muted/20 border border-border/30">
+                  <div className="flex items-center gap-1.5">
+                    <Wrench className="h-3 w-3 text-stone-500" />
+                    <span className="text-[10px] font-medium">Mantenimiento automático</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
+                    <span>04:00</span>
+                    <Badge variant="outline" className="text-[8px] px-1 py-0 h-4">{futuro.mantenimiento.estado}</Badge>
+                  </div>
+                </div>
+
+                {/* Entregas programadas */}
+                {futuro.entregasProgramadas.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
+                      <Send className="h-3 w-3 inline mr-1 text-teal-500" />Entregas programadas
+                    </p>
+                    <div className="space-y-1">
+                      {futuro.entregasProgramadas.map(e => (
+                        <div key={e.id} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted/20 border border-border/30">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] font-medium text-foreground truncate">
+                                {e.tipoBoletin.replace(/_/g, ' ')}
+                              </span>
+                              <span className="text-[9px] text-muted-foreground">{e.clienteNombre}</span>
+                            </div>
+                            <div className="text-[9px] text-muted-foreground">{e.canal}</div>
+                          </div>
+                          <div className="text-[9px] text-muted-foreground shrink-0">
+                            {e.minutosHasta !== null ? `en ${formatMins(e.minutosHasta)}` : 'Sin fecha'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Cola pendiente */}
+                {futuro.colaPendiente.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
+                      <Layers className="h-3 w-3 inline mr-1" />Cola de jobs (próximos a ejecutar)
+                    </p>
+                    <div className="space-y-1">
+                      {futuro.colaPendiente.map(j => (
+                        <div key={j.id} className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-muted/20 border border-border/30">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`inline-block h-1.5 w-1.5 rounded-full ${PRIORIDAD_COLORS[j.prioridad] || 'bg-gray-400'}`} />
+                              <span className={`text-[10px] font-medium ${JOB_TYPE_COLORS[j.tipo] || 'text-foreground'}`}>
+                                {JOB_TYPE_LABELS[j.tipo] || j.tipo}
+                              </span>
+                              {j.fuente && <span className="text-[9px] text-muted-foreground truncate max-w-[100px]">{j.fuente}</span>}
+                            </div>
+                          </div>
+                          <span className="text-[9px] text-muted-foreground">{j.hace}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Scheduler tasks */}
+                {presente.scheduler.tasks.length > 0 && (
+                  <div className="border-t border-border/50 pt-2">
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
+                      Tareas del scheduler ({presente.scheduler.tasks.length})
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                      {presente.scheduler.tasks.map((t, i) => (
+                        <div key={i} className="flex items-center gap-2 p-1.5 rounded-md bg-muted/20">
+                          <PulseDot active={presente.scheduler.running} />
+                          <span className="text-[10px] text-foreground truncate flex-1">{t.humana}</span>
+                          <span className="text-[9px] text-muted-foreground font-mono">{t.expresion}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </CardContent>

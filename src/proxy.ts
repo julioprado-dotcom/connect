@@ -32,6 +32,7 @@ const PUBLIC_ENDPOINTS: Array<{ path: string; methods: string[] }> = [
   { path: '/api/menciones',                 methods: ['GET'] },
   { path: '/api/entregas',                  methods: ['GET'] },
   { path: '/api/jobs/stats',                methods: ['GET'] },
+  { path: '/api/dashboard/pipeline',         methods: ['GET'] },
   { path: '/api/productos',                  methods: ['GET', 'POST'] },
   { path: '/api/jobs/fuentes',              methods: ['GET'] },
   { path: '/api/marco-conceptual',          methods: ['GET'] },
