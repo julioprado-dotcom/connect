@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { safeError } from '@/lib/rate-guard';
+import { scrapingState } from '@/lib/scraping-state';
 
 export async function GET() {
   try {
@@ -34,7 +35,8 @@ export async function GET() {
       ultimaAlerta,
     ] = await Promise.all([
       db.persona.count({ where: { activa: true } }),
-      db.fuenteEstado.count({ where: { activo: true } }),
+      // Fuentes en monitoreo activo: solo si hay fase activa
+      scrapingState.faseActual > 0 ? scrapingState.scrapeFuentes.length : 0,
       db.mencion.count({ where: { fechaCaptura: { gte: hoy, lt: manana } } }),
       db.mencion.count({ where: { fechaCaptura: { gte: inicioSemana } } }),
       db.reporte.count(),

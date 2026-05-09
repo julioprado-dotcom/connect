@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
 import { enqueue } from '@/lib/jobs/queue'
 import { ensureWorkerRunning } from '@/lib/jobs'
+import { scrapingState } from '@/lib/scraping-state'
 
 // ── Configuración de fases ─────────────────────────────────────────
 
@@ -47,18 +48,10 @@ const FASES: FaseConfig[] = [
   },
 ]
 
-// ── Estado en memoria ───────────────────────────────────────────────
+// ── Estado en memoria (local — no necesita compartirse con stats) ──
 
-type EstadoFase = 'inactivo' | 'listo' | 'ejecutando' | 'pausado' | 'detenido'
-
-let faseActual: number = 0
-let estadoFase: EstadoFase = 'inactivo'
-let scrapeEnProgreso: boolean = false
-let scrapePausado: boolean = false
 let scrapeActualIndex: number = 0
 let scrapeTotalFuentes: number = 0
-let scrapeFuentes: Array<{ id: string; medioId: string; nombre: string }> = []
-let fuentesSeleccionadasIds: Set<string> = new Set()
 let scrapeResultados: Array<{
   fuenteId: string
   nombre: string
@@ -73,9 +66,8 @@ let ultimoScrapeInicio: string | null = null
 
 export async function GET() {
   try {
-    // Solo contar fuentes activas si hay una fase activa
-    // (sin fase activa, el contador debe ser 0 para evitar contradicción con UI)
-    const fuentesActivas = faseActual > 0
+    // Contar fuentes activas en DB solo si hay fase activa
+    const fuentesActivas = scrapingState.faseActual > 0
       ? await db.fuenteEstado.count({ where: { activo: true } })
       : 0
 
@@ -84,6 +76,11 @@ export async function GET() {
     const resultadosActuales = scrapeResultados.length > 0
       ? scrapeResultados
       : []
+
+    // Monitoreo activo = fuentes en la fase actual (0 si no hay fase)
+    const monitoreoActivas = scrapingState.faseActual > 0
+      ? scrapingState.scrapeFuentes.length
+      : 0
 
     // Si hay fase activa, mostrar fuentes incluidas
     let fuentesIncluidas: Array<{
@@ -97,8 +94,8 @@ export async function GET() {
       seleccionado: boolean
     }> = []
 
-    if (faseActual > 0) {
-      const faseConfig = FASES[faseActual - 1]
+    if (scrapingState.faseActual > 0) {
+      const faseConfig = FASES[scrapingState.faseActual - 1]
       const whereClause: Record<string, unknown> = {}
       if (faseConfig.filtros.nivel?.length) {
         whereClause.medio = { nivel: { in: faseConfig.filtros.nivel } }
@@ -126,19 +123,20 @@ export async function GET() {
         ultimoCheck: f.ultimoCheck ? String(f.ultimoCheck) : null,
         totalCambios: f.totalCambios,
         activo: f.activo,
-        seleccionado: fuentesSeleccionadasIds.has(f.id),
+        seleccionado: scrapingState.fuentesSeleccionadasIds.has(f.id),
       }))
     }
 
     return NextResponse.json({
-      faseActual,
-      estadoFase,
-      faseConfig: faseActual > 0 ? FASES[faseActual - 1] : null,
+      faseActual: scrapingState.faseActual,
+      estadoFase: scrapingState.estadoFase,
+      faseConfig: scrapingState.faseActual > 0 ? FASES[scrapingState.faseActual - 1] : null,
       fasesDisponibles: FASES,
       fuentesActivas,
       fuentesTotales,
-      scrapeEnProgreso,
-      scrapePausado,
+      monitoreoActivas,
+      scrapeEnProgreso: scrapingState.scrapeEnProgreso,
+      scrapePausado: scrapingState.scrapePausado,
       scrapeProgreso: scrapeTotalFuentes > 0
         ? { actual: scrapeActualIndex, total: scrapeTotalFuentes }
         : null,
@@ -172,9 +170,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Permitir cambio de fase incluso si hay algo en progreso — detener primero
-        if (scrapeEnProgreso || scrapePausado) {
-          scrapeEnProgreso = false
-          scrapePausado = false
+        if (scrapingState.scrapeEnProgreso || scrapingState.scrapePausado) {
+          scrapingState.scrapeEnProgreso = false
+          scrapingState.scrapePausado = false
           console.log('[ScrapingPhase] Deteniendo proceso anterior al cambiar de fase')
         }
 
@@ -213,19 +211,22 @@ export async function POST(request: NextRequest) {
           })
         }
 
-        faseActual = targetFase
-        estadoFase = 'listo'
-        scrapeFuentes = fuentes.map(f => ({
+        // Actualizar estado compartido
+        scrapingState.faseActual = targetFase
+        scrapingState.estadoFase = 'listo'
+        scrapingState.scrapeFuentes = fuentes.map(f => ({
           id: f.id,
           medioId: f.medioId,
           nombre: f.medio.nombre,
         }))
-        fuentesSeleccionadasIds = new Set(fuentes.map(f => f.id))
+        scrapingState.fuentesSeleccionadasIds = new Set(fuentes.map(f => f.id))
+        scrapingState.scrapeEnProgreso = false
+        scrapingState.scrapePausado = false
+
+        // Reset estado local
         scrapeResultados = []
         scrapeActualIndex = 0
         scrapeTotalFuentes = 0
-        scrapeEnProgreso = false
-        scrapePausado = false
         ultimoScrapeInicio = null
 
         console.log(
@@ -247,21 +248,21 @@ export async function POST(request: NextRequest) {
       case 'ejecutar': {
         ensureWorkerRunning()
 
-        if (scrapeEnProgreso && !scrapePausado) {
+        if (scrapingState.scrapeEnProgreso && !scrapingState.scrapePausado) {
           return NextResponse.json(
             { error: 'Ya hay un scrape en ejecución. Pausa o detén primero.' },
             { status: 409 },
           )
         }
 
-        if (faseActual === 0) {
+        if (scrapingState.faseActual === 0) {
           return NextResponse.json(
             { error: 'No hay fase activa. Inicia una fase primero.' },
             { status: 400 },
           )
         }
 
-        if (scrapeFuentes.length === 0) {
+        if (scrapingState.scrapeFuentes.length === 0) {
           return NextResponse.json(
             { error: 'No hay fuentes en la fase actual' },
             { status: 400 },
@@ -269,13 +270,12 @@ export async function POST(request: NextRequest) {
         }
 
         // Si estaba pausado, reanudar desde donde quedó
-        const reanudando = scrapePausado
+        const reanudando = scrapingState.scrapePausado
         if (!reanudando) {
-          // Iniciar desde cero
           scrapeActualIndex = 0
-          scrapeTotalFuentes = scrapeFuentes.length
+          scrapeTotalFuentes = scrapingState.scrapeFuentes.length
           ultimoScrapeInicio = new Date().toISOString()
-          scrapeResultados = scrapeFuentes.map(f => ({
+          scrapeResultados = scrapingState.scrapeFuentes.map(f => ({
             fuenteId: f.id,
             nombre: f.nombre,
             estado: 'pendiente',
@@ -283,9 +283,9 @@ export async function POST(request: NextRequest) {
           }))
         }
 
-        scrapeEnProgreso = true
-        scrapePausado = false
-        estadoFase = 'ejecutando'
+        scrapingState.scrapeEnProgreso = true
+        scrapingState.scrapePausado = false
+        scrapingState.estadoFase = 'ejecutando'
 
         // Ejecutar en background
         ejecutarScrapeSecuencial(reanudando)
@@ -302,15 +302,15 @@ export async function POST(request: NextRequest) {
 
       // ── Pausar scrape en progreso ─────────────────
       case 'pausar': {
-        if (!scrapeEnProgreso) {
+        if (!scrapingState.scrapeEnProgreso) {
           return NextResponse.json(
             { error: 'No hay scrape en progreso para pausar' },
             { status: 400 },
           )
         }
 
-        scrapePausado = true
-        estadoFase = 'pausado'
+        scrapingState.scrapePausado = true
+        scrapingState.estadoFase = 'pausado'
         console.log(
           `[ScrapingPhase] Scrape pausado en fuente ${scrapeActualIndex}/${scrapeTotalFuentes}`,
         )
@@ -324,13 +324,12 @@ export async function POST(request: NextRequest) {
 
       // ── Reanudar (alias de ejecutar cuando está pausado) ──
       case 'reanudar': {
-        if (!scrapePausado) {
+        if (!scrapingState.scrapePausado) {
           return NextResponse.json(
             { error: 'No hay scrape pausado para reanudar' },
             { status: 400 },
           )
         }
-        // Reutilizar la lógica de ejecutar
         return POST(new NextRequest('http://internal', {
           method: 'POST',
           body: JSON.stringify({ accion: 'ejecutar' }),
@@ -339,18 +338,17 @@ export async function POST(request: NextRequest) {
 
       // ── Detener scrape completamente ──────────────
       case 'detener': {
-        if (!scrapeEnProgreso && !scrapePausado) {
+        if (!scrapingState.scrapeEnProgreso && !scrapingState.scrapePausado) {
           return NextResponse.json(
             { error: 'No hay scrape activo para detener' },
             { status: 400 },
           )
         }
 
-        scrapeEnProgreso = false
-        scrapePausado = false
-        estadoFase = 'detenido'
+        scrapingState.scrapeEnProgreso = false
+        scrapingState.scrapePausado = false
+        scrapingState.estadoFase = 'detenido'
 
-        // Marcar fuentes pendientes como pausadas/detenidas
         for (const r of scrapeResultados) {
           if (r.estado === 'pendiente') {
             r.estado = 'pausado'
@@ -368,18 +366,17 @@ export async function POST(request: NextRequest) {
 
       // ── Retroceder a la fase anterior ────────────
       case 'retroceder_fase': {
-        if (faseActual <= 1) {
+        if (scrapingState.faseActual <= 1) {
           return NextResponse.json(
             { error: 'Ya estás en la Fase 1 — no hay fase anterior' },
             { status: 400 },
           )
         }
 
-        // Detener scrape si está activo
-        scrapeEnProgreso = false
-        scrapePausado = false
+        scrapingState.scrapeEnProgreso = false
+        scrapingState.scrapePausado = false
 
-        const faseAnterior = faseActual - 1
+        const faseAnterior = scrapingState.faseActual - 1
         return POST(new NextRequest('http://internal', {
           method: 'POST',
           body: JSON.stringify({ accion: 'iniciar_fase', faseId: faseAnterior }),
@@ -388,18 +385,17 @@ export async function POST(request: NextRequest) {
 
       // ── Avanzar a la siguiente fase ───────────────
       case 'avanzar_fase': {
-        if (faseActual >= FASES.length) {
+        if (scrapingState.faseActual >= FASES.length) {
           return NextResponse.json(
             { error: 'Ya estás en la última fase' },
             { status: 400 },
           )
         }
 
-        // Detener scrape si está activo
-        scrapeEnProgreso = false
-        scrapePausado = false
+        scrapingState.scrapeEnProgreso = false
+        scrapingState.scrapePausado = false
 
-        const siguienteFase = faseActual + 1
+        const siguienteFase = scrapingState.faseActual + 1
         return POST(new NextRequest('http://internal', {
           method: 'POST',
           body: JSON.stringify({ accion: 'iniciar_fase', faseId: siguienteFase }),
@@ -408,14 +404,14 @@ export async function POST(request: NextRequest) {
 
       // ── Seleccionar fuentes manualmente ───────────
       case 'seleccionar_fuentes': {
-        if (faseActual === 0) {
+        if (scrapingState.faseActual === 0) {
           return NextResponse.json(
             { error: 'Activa una fase primero' },
             { status: 400 },
           )
         }
 
-        if (scrapeEnProgreso && !scrapePausado) {
+        if (scrapingState.scrapeEnProgreso && !scrapingState.scrapePausado) {
           return NextResponse.json(
             { error: 'Detén o pausa el scrape antes de cambiar fuentes' },
             { status: 409 },
@@ -429,7 +425,6 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        // Validar que todos los IDs existen
         const fuentesValidas = await db.fuenteEstado.findMany({
           where: { id: { in: fuenteIds } },
           include: { medio: { select: { nombre: true } } },
@@ -442,24 +437,22 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        // Actualizar fuentes activas en DB
         await db.fuenteEstado.updateMany({ data: { activo: false } })
         await db.fuenteEstado.updateMany({
           where: { id: { in: fuenteIds } },
           data: { activo: true },
         })
 
-        // Actualizar estado en memoria
-        scrapeFuentes = fuentesValidas.map(f => ({
+        scrapingState.scrapeFuentes = fuentesValidas.map(f => ({
           id: f.id,
           medioId: f.medioId,
           nombre: f.medio.nombre,
         }))
-        fuentesSeleccionadasIds = new Set(fuenteIds)
+        scrapingState.fuentesSeleccionadasIds = new Set(fuenteIds)
+        scrapingState.estadoFase = 'listo'
         scrapeResultados = []
         scrapeActualIndex = 0
         scrapeTotalFuentes = 0
-        estadoFase = 'listo'
 
         console.log(
           `[ScrapingPhase] Fuentes seleccionadas manualmente: ${fuentesValidas.map(f => f.medio.nombre).join(', ')}`,
@@ -511,17 +504,18 @@ export async function POST(request: NextRequest) {
 
       // ── Reiniciar (volver a fase 0) ───────────────
       case 'reiniciar': {
-        scrapeEnProgreso = false
-        scrapePausado = false
+        scrapingState.scrapeEnProgreso = false
+        scrapingState.scrapePausado = false
 
         await db.fuenteEstado.updateMany({ data: { activo: false } })
 
-        faseActual = 0
-        estadoFase = 'inactivo'
+        scrapingState.faseActual = 0
+        scrapingState.estadoFase = 'inactivo'
+        scrapingState.scrapeFuentes = []
+        scrapingState.fuentesSeleccionadasIds = new Set()
+
         scrapeActualIndex = 0
         scrapeTotalFuentes = 0
-        scrapeFuentes = []
-        fuentesSeleccionadasIds = new Set()
         scrapeResultados = []
         ultimoScrapeInicio = null
 
@@ -594,18 +588,16 @@ export async function POST(request: NextRequest) {
 // ── Scrape secuencial en background ────────────────────────────────
 
 async function ejecutarScrapeSecuencial(reanudando: boolean = false): Promise<void> {
-  const DELAY_ENTRE_FUENTES = 30_000 // 30 segundos entre fuentes
+  const DELAY_ENTRE_FUENTES = 30_000
   const startIndex = reanudando ? scrapeActualIndex : 0
 
   console.log(
-    `[ScrapingPhase] ${reanudando ? 'Reanudando' : 'Iniciando'} scrape secuencial: ${scrapeFuentes.length - startIndex} fuentes restantes`,
+    `[ScrapingPhase] ${reanudando ? 'Reanudando' : 'Iniciando'} scrape secuencial: ${scrapingState.scrapeFuentes.length - startIndex} fuentes restantes`,
   )
 
-  for (let i = startIndex; i < scrapeFuentes.length; i++) {
-    // Verificar si fue pausado o detenido
-    if (!scrapeEnProgreso || scrapePausado) {
-      console.log(`[ScrapingPhase] ${scrapePausado ? 'Pausado' : 'Detenido'} en fuente ${i + 1}/${scrapeFuentes.length}`)
-      // Marcar pendientes como pausados
+  for (let i = startIndex; i < scrapingState.scrapeFuentes.length; i++) {
+    if (!scrapingState.scrapeEnProgreso || scrapingState.scrapePausado) {
+      console.log(`[ScrapingPhase] ${scrapingState.scrapePausado ? 'Pausado' : 'Detenido'} en fuente ${i + 1}/${scrapingState.scrapeFuentes.length}`)
       for (let j = i; j < scrapeResultados.length; j++) {
         if (scrapeResultados[j].estado === 'pendiente') {
           scrapeResultados[j].estado = 'pausado'
@@ -614,10 +606,9 @@ async function ejecutarScrapeSecuencial(reanudando: boolean = false): Promise<vo
       return
     }
 
-    const fuente = scrapeFuentes[i]
+    const fuente = scrapingState.scrapeFuentes[i]
     scrapeActualIndex = i + 1
 
-    // Marcar como scrapeando
     const resultIdx = scrapeResultados.findIndex(r => r.fuenteId === fuente.id)
     if (resultIdx >= 0) {
       scrapeResultados[resultIdx].estado = 'scrapeando'
@@ -627,7 +618,7 @@ async function ejecutarScrapeSecuencial(reanudando: boolean = false): Promise<vo
 
     try {
       console.log(
-        `[ScrapingPhase] (${i + 1}/${scrapeFuentes.length}) Encolando check para "${fuente.nombre}"...`,
+        `[ScrapingPhase] (${i + 1}/${scrapingState.scrapeFuentes.length}) Encolando check para "${fuente.nombre}"...`,
       )
 
       await enqueue({
@@ -646,7 +637,6 @@ async function ejecutarScrapeSecuencial(reanudando: boolean = false): Promise<vo
         }
       }
 
-      // Contar menciones
       try {
         const medioId = fuente.medioId
         const mencionesRecientes = await db.mencion.count({
@@ -671,24 +661,22 @@ async function ejecutarScrapeSecuencial(reanudando: boolean = false): Promise<vo
       }
     }
 
-    // Delay entre fuentes
-    if (i < scrapeFuentes.length - 1 && scrapeEnProgreso && !scrapePausado) {
+    if (i < scrapingState.scrapeFuentes.length - 1 && scrapingState.scrapeEnProgreso && !scrapingState.scrapePausado) {
       console.log(
         `[ScrapingPhase] Esperando ${DELAY_ENTRE_FUENTES / 1000}s antes de la siguiente fuente...`,
       )
-      // Delay particionado para poder detectar pausa/detener
       const steps = 10
       const stepDelay = DELAY_ENTRE_FUENTES / steps
       for (let s = 0; s < steps; s++) {
-        if (!scrapeEnProgreso || scrapePausado) break
+        if (!scrapingState.scrapeEnProgreso || scrapingState.scrapePausado) break
         await sleep(stepDelay)
       }
     }
   }
 
-  scrapeEnProgreso = false
-  scrapePausado = false
-  estadoFase = 'listo'
+  scrapingState.scrapeEnProgreso = false
+  scrapingState.scrapePausado = false
+  scrapingState.estadoFase = 'listo'
   console.log(
     `[ScrapingPhase] Scrape secuencial finalizado. ${scrapeResultados.filter(r => r.estado === 'completado').length}/${scrapeTotalFuentes} exitosos`,
   )

@@ -48,6 +48,7 @@ interface ScrapingPhaseState {
   fasesDisponibles: FaseConfig[]
   fuentesActivas: number
   fuentesTotales: number
+  monitoreoActivas: number
   scrapeEnProgreso: boolean
   scrapePausado: boolean
   scrapeProgreso: { actual: number; total: number } | null

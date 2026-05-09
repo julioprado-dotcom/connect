@@ -35,7 +35,7 @@ const PUBLIC_ENDPOINTS: Array<{ path: string; methods: string[] }> = [
   { path: '/api/dashboard/pipeline',         methods: ['GET'] },
   { path: '/api/productos',                  methods: ['GET', 'POST'] },
   { path: '/api/jobs/fuentes',              methods: ['GET'] },
-  { path: '/api/scraping/phase',            methods: ['GET'] },
+  { path: '/api/scraping/phase',            methods: ['GET', 'POST'] },
   { path: '/api/marco-conceptual',          methods: ['GET'] },
   { path: '/api/backup',                    methods: ['GET', 'POST', 'PATCH'] },
 ];
@@ -62,7 +62,6 @@ const API_KEY_PROTECTED_WRITE_ROUTES = [
   '/api/jobs/worker',
   '/api/jobs/scheduler',
   '/api/jobs/maintenance',
-  '/api/scraping/phase',
   '/api/capture',
   '/api/backup',
 ];
