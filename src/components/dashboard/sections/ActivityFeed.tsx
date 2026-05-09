@@ -107,7 +107,7 @@ export function ActivityFeed({ data, mediosHealth, setActiveView }: ActivityFeed
         </Card>
       </motion.div>
 
-      {/* Estado de fuentes */}
+      {/* Salud de medios — consolidado con PipelineMonitor */}
       <motion.div
         variants={fadeInUp}
         initial="hidden"
@@ -119,7 +119,7 @@ export function ActivityFeed({ data, mediosHealth, setActiveView }: ActivityFeed
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Monitor className="h-4 w-4 text-muted-foreground" />
-                Estado de fuentes
+                Salud de medios
               </CardTitle>
               <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
                 Salud general <ChevronRight className="h-3 w-3" />

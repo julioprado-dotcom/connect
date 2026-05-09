@@ -73,9 +73,11 @@ let ultimoScrapeInicio: string | null = null
 
 export async function GET() {
   try {
-    const fuentesActivas = await db.fuenteEstado.count({
-      where: { activo: true },
-    })
+    // Solo contar fuentes activas si hay una fase activa
+    // (sin fase activa, el contador debe ser 0 para evitar contradicción con UI)
+    const fuentesActivas = faseActual > 0
+      ? await db.fuenteEstado.count({ where: { activo: true } })
+      : 0
 
     const fuentesTotales = await db.fuenteEstado.count()
 

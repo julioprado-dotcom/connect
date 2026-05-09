@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Play, Square, ChevronRight, ChevronLeft, RotateCcw, CheckCircle2,
-  XCircle, Loader2, AlertTriangle, Zap, Eye, Pause, SkipForward,
-  Globe, Clock, BarChart3, Check, ListChecks, ArrowLeft, ArrowRight,
+  XCircle, Loader2, AlertTriangle, Pause,
+  Globe, BarChart3, Check, ListChecks,
 } from 'lucide-react'
 import { fetchWithTimeout } from '@/lib/fetch-utils'
 
@@ -63,7 +63,6 @@ export function ScrapingPhaseControl() {
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
-  const [showFuentes, setShowFuentes] = useState(false)
   const [seleccionando, setSeleccionando] = useState(false)
   const [fuentesSeleccionadas, setFuentesSeleccionadas] = useState<Set<string>>(new Set())
 
@@ -205,10 +204,9 @@ export function ScrapingPhaseControl() {
             <Button variant="ghost" size="sm" onClick={() => setExpanded(!expanded)} className="h-7 px-2 text-xs">
               {expanded ? 'Compactar' : 'Expandir'}
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowFuentes(!showFuentes)} className="h-7 px-2 text-xs">
-              <ListChecks className="h-3 w-3 mr-1" />
-              {state.fuentesActivas}/{state.fuentesTotales}
-            </Button>
+            <span className="text-[10px] text-slate-400">
+              {state.faseActual > 0 ? `${state.fuentesActivas}/${state.fuentesTotales} fuentes` : `${state.fuentesTotales} disponibles`}
+            </span>
           </div>
         </div>
       </CardHeader>
@@ -683,61 +681,6 @@ export function ScrapingPhaseControl() {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════════════
-            PANEL DE FUENTES
-        ══════════════════════════════════════════════════════ */}
-        {showFuentes && (
-          <div className="border-t border-slate-100 dark:border-slate-700 pt-2 space-y-1">
-            <div className="flex items-center justify-between text-xs mb-1">
-              <span className="font-medium text-slate-600 dark:text-slate-300">
-                Fuentes ({state.fuentesIncluidas.length})
-              </span>
-              <span className="text-[10px] text-slate-400">
-                {state.fuentesActivas} activas / {state.fuentesTotales} total
-              </span>
-            </div>
-            <div className="max-h-40 overflow-y-auto space-y-0.5">
-              {state.fuentesIncluidas.length === 0 ? (
-                <p className="text-xs text-slate-400 italic py-1">
-                  Activa una fase para ver las fuentes incluidas
-                </p>
-              ) : (
-                state.fuentesIncluidas.map((f) => (
-                  <div
-                    key={f.id}
-                    className="flex items-center justify-between py-0.5 px-2 text-[11px] hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <Badge
-                        variant="outline"
-                        className="h-4 px-1 text-[9px] bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
-                      >
-                        N{f.nivel}
-                      </Badge>
-                      <span className="text-slate-700 dark:text-slate-300">{f.nombre}</span>
-                      <span className="text-slate-400">({f.tipoCheck})</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {f.totalCambios > 0 && (
-                        <span className="text-emerald-500">{f.totalCambios} cambios</span>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => accion('ejecutar_uno', { fuenteId: f.id })}
-                        disabled={isRunning || loading === 'ejecutar_uno'}
-                        className="h-5 px-1.5 text-[10px] text-blue-600"
-                      >
-                        <Zap className="h-2.5 w-2.5 mr-0.5" />
-                        Check
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   )
