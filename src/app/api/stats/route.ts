@@ -34,7 +34,7 @@ export async function GET() {
       ultimaAlerta,
     ] = await Promise.all([
       db.persona.count({ where: { activa: true } }),
-      db.medio.count({ where: { activo: true } }),
+      db.fuenteEstado.count({ where: { activo: true } }),
       db.mencion.count({ where: { fechaCaptura: { gte: hoy, lt: manana } } }),
       db.mencion.count({ where: { fechaCaptura: { gte: inicioSemana } } }),
       db.reporte.count(),

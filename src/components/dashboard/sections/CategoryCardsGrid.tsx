@@ -115,7 +115,7 @@ export function CategoryCardsGrid({ data, mediosHealth, setActiveView }: Categor
         viewId="captura"
         onClick={() => setActiveView('captura')}
         kpis={[
-          { value: data.totalMedios, label: 'Fuentes' },
+          { value: data.totalMedios, label: 'Monitoreando' },
           { value: `${Math.round(saludPercent)}%`, label: 'Salud', color: saludPercent >= 80 ? 'text-emerald-600 dark:text-emerald-400' : saludPercent >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400' },
           { value: totalCapturasHoy, label: 'Capturas' },
         ]}
