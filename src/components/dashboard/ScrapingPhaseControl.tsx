@@ -27,6 +27,7 @@ interface ScrapeResultado {
   estado: 'pendiente' | 'scrapeando' | 'completado' | 'error' | 'pausado'
   menciones: number
   error?: string
+  detalle?: string
   duracionMs?: number
 }
 
@@ -154,7 +155,9 @@ export function ScrapingPhaseControl() {
     )
   }
 
-  const completados = state.scrapeResultados.filter(r => r.estado === 'completado').length
+  const completados = state.scrapeResultados.filter(r => r.estado === 'completado' && !r.error).length
+  const sinCambios = state.scrapeResultados.filter(r => r.estado === 'completado' && r.error && r.menciones === 0).length
+  const conError = state.scrapeResultados.filter(r => r.estado === 'completado' && r.error && r.menciones > 0).length
   const errores = state.scrapeResultados.filter(r => r.estado === 'error').length
   const pausados = state.scrapeResultados.filter(r => r.estado === 'pausado').length
   const totalMenciones = state.scrapeResultados.reduce((sum, r) => sum + r.menciones, 0)
@@ -444,6 +447,16 @@ export function ScrapingPhaseControl() {
             <span className="flex items-center gap-1 text-emerald-600">
               <CheckCircle2 className="h-3 w-3" /> {completados}
             </span>
+            {sinCambios > 0 && (
+              <span className="flex items-center gap-1 text-slate-400">
+                <CheckCircle2 className="h-3 w-3 opacity-50" /> {sinCambios}
+              </span>
+            )}
+            {conError > 0 && (
+              <span className="flex items-center gap-1 text-amber-600">
+                <AlertTriangle className="h-3 w-3" /> {conError}
+              </span>
+            )}
             {pausados > 0 && (
               <span className="flex items-center gap-1 text-amber-600">
                 <Pause className="h-3 w-3" /> {pausados}
@@ -621,6 +634,8 @@ export function ScrapingPhaseControl() {
                   <span className="font-medium text-slate-600 dark:text-slate-300">Resultados</span>
                   <div className="flex items-center gap-2 text-[10px]">
                     <span className="text-emerald-600">{completados} OK</span>
+                    {sinCambios > 0 && <span className="text-slate-400">{sinCambios} sin camb.</span>}
+                    {conError > 0 && <span className="text-amber-600">{conError} advert.</span>}
                     {pausados > 0 && <span className="text-amber-600">{pausados} paus.</span>}
                     {errores > 0 && <span className="text-red-600">{errores} err</span>}
                     {totalMenciones > 0 && <span className="text-blue-600">{totalMenciones} menc.</span>}
@@ -638,8 +653,17 @@ export function ScrapingPhaseControl() {
                       {r.estado === 'scrapeando' && (
                         <Loader2 className="h-3 w-3 text-blue-500 animate-spin" />
                       )}
-                      {r.estado === 'completado' && (
+                      {r.estado === 'completado' && r.error && r.menciones > 0 && (
+                        <AlertTriangle className="h-3 w-3 text-amber-500" />
+                      )}
+                      {r.estado === 'completado' && r.error && r.menciones === 0 && (
+                        <AlertTriangle className="h-3 w-3 text-amber-500" />
+                      )}
+                      {r.estado === 'completado' && !r.error && r.menciones > 0 && (
                         <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                      )}
+                      {r.estado === 'completado' && !r.error && r.menciones === 0 && (
+                        <CheckCircle2 className="h-3 w-3 text-emerald-500 opacity-40" />
                       )}
                       {r.estado === 'error' && (
                         <XCircle className="h-3 w-3 text-red-500" />
@@ -658,7 +682,12 @@ export function ScrapingPhaseControl() {
                           {r.menciones} menc.
                         </Badge>
                       )}
-                      {r.error && (
+                      {r.error && r.estado === 'completado' && (
+                        <span className="text-[10px] text-amber-600 max-w-[120px] truncate" title={r.error}>
+                          {r.error}
+                        </span>
+                      )}
+                      {r.error && r.estado === 'error' && (
                         <span className="text-[10px] text-red-500 max-w-[120px] truncate" title={r.error}>
                           {r.error}
                         </span>

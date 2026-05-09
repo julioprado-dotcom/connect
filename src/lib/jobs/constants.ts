@@ -65,15 +65,15 @@ export const FRECUENCIA_BASE_POR_CATEGORIA: Record<string, string> = {
 export const FRECUENCIA_BASE_POR_MEDIO: Record<string, string> = {
   // Nivel 1 — Top 5 con 4x/dia
   'la-razon.com': '1h',
-  'deber.com.bo': '1h',
+  'eldeber.com.bo': '1h',
   'lostiempos.com': '1h',
-  'anf.com.bo': '1h',
+  'rtpbolivia.com.bo': '1h',
   'abi.bo': '1h',
 
   // TV principales — 2x/dia
   'unitel.bo': '4h',
   'reduno.tv': '4h',
-  'atb.com.bo': '4h',
+  'atb.com.bo': '1h',
 
   // Fuentes oficiales lentas — 1x/semana
   'tribunal sup electoral': '1w',
@@ -88,13 +88,13 @@ export const FRECUENCIA_BASE_POR_MEDIO: Record<string, string> = {
 
 export const HORARIOS_DEFAULT: Record<string, number[]> = {
   'la-razon.com': [7, 8, 10, 11],
-  'deber.com.bo': [7, 8, 10, 11],
+  'eldeber.com.bo': [7, 8, 10, 11],
   'lostiempos.com': [7, 8, 10, 11],
-  'anf.com.bo': [7, 8, 10, 11],
+  'rtpbolivia.com.bo': [7, 8, 10, 11],
   'abi.bo': [8, 9, 15, 16],
   'unitel.bo': [7, 14],
   'reduno.tv': [7, 14],
-  'atb.com.bo': [7, 14],
+  'atb.com.bo': [7, 10, 14, 17],
   'bcb': [9],
 }
 

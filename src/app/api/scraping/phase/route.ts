@@ -30,7 +30,7 @@ const FASES: FaseConfig[] = [
     descripcion: '4 fuentes principales — verificación de scraping',
     maxFuentes: 4,
     filtros: { nivel: ['1'] },
-    fuentesEspecificas: ['ABI', 'ATB', 'El Deber', 'RTP'],
+    fuentesEspecificas: ['ABI', 'ATB', 'La Razón', 'El Deber'],
     criterioExito: 'Scrape responde + IA extrae menciones con sentido',
   },
   {
@@ -61,6 +61,7 @@ let scrapeResultados: Array<{
   estado: 'pendiente' | 'scrapeando' | 'completado' | 'error' | 'pausado'
   menciones: number
   error?: string
+  detalle?: string
   duracionMs?: number
 }> = []
 let ultimoScrapeInicio: string | null = null
@@ -667,10 +668,55 @@ async function ejecutarScrapeSecuencial(reanudando: boolean = false): Promise<vo
       const procesado = await esperarProcesamiento(fuente.id, 120_000)
 
       if (resultIdx >= 0) {
-        scrapeResultados[resultIdx].estado = procesado ? 'completado' : 'error'
         scrapeResultados[resultIdx].duracionMs = Date.now() - startTime
+
         if (!procesado) {
+          scrapeResultados[resultIdx].estado = 'error'
           scrapeResultados[resultIdx].error = 'Timeout esperando procesamiento'
+        } else {
+          // Job was processed — fetch actual result from DB
+          try {
+            const lastJob = await db.job.findFirst({
+              where: {
+                tipo: 'check_fuente',
+                payload: { contains: fuente.id },
+                estado: { in: ['completado', 'fallido'] },
+                fechaInicio: { gte: new Date(startTime) },
+              },
+              orderBy: { fechaFin: 'desc' },
+            })
+
+            if (!lastJob) {
+              scrapeResultados[resultIdx].estado = 'error'
+              scrapeResultados[resultIdx].error = 'Job procesado pero no encontrado en DB'
+            } else if (lastJob.estado === 'fallido') {
+              scrapeResultados[resultIdx].estado = 'completado'
+              scrapeResultados[resultIdx].error = lastJob.error || 'Job fallido'
+            } else {
+              // Job completado — parse resultado to check cambiado
+              let resultadoData: Record<string, unknown> = {}
+              try {
+                resultadoData = lastJob.resultado ? JSON.parse(lastJob.resultado) : {}
+              } catch { /* ignore parse errors */ }
+
+              const cambiado = resultadoData.cambiado === true
+              const detalle = resultadoData.detalle as string | undefined
+
+              scrapeResultados[resultIdx].estado = 'completado'
+              scrapeResultados[resultIdx].detalle = detalle
+
+              if (!cambiado) {
+                // No changes detected — set error to the detalle explanation
+                scrapeResultados[resultIdx].error = detalle || 'Sin cambios detectados'
+              }
+              // If cambiado === true, no error — true success
+            }
+          } catch (dbErr) {
+            const dbMsg = dbErr instanceof Error ? dbErr.message : String(dbErr)
+            console.error(`[ScrapingPhase] Error leyendo resultado de "${fuente.nombre}": ${dbMsg}`)
+            scrapeResultados[resultIdx].estado = 'error'
+            scrapeResultados[resultIdx].error = `Error leyendo resultado: ${dbMsg}`
+          }
         }
       }
 
