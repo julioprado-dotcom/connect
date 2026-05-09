@@ -9,7 +9,6 @@
 import { startWorker, stopWorker, registerDefaultRunners, getWorkerStats } from './worker'
 import { startHealthMonitor, stopHealthMonitor } from './health'
 import { startScheduler, stopScheduler } from './scheduler'
-import { startContainerGuardian, stopContainerGuardian } from './container-guardian'
 
 
 let initialized = false
@@ -31,7 +30,13 @@ export async function initJobSystem(): Promise<void> {
   startHealthMonitor()
 
   // 4. Iniciar Container Guardian (cada 30s — monitorea cgroup real)
-  startContainerGuardian()
+  // Import dinámico para evitar que Turbopack analice fs/child_process en Edge context
+  try {
+    const { startContainerGuardian } = await import('./container-guardian')
+    startContainerGuardian()
+  } catch (err) {
+    console.warn('[Jobs] Container Guardian no disponible (Edge Runtime):', (err as Error).message)
+  }
 
   // 5. Iniciar scheduler (node-cron para fuentes y boletines)
   await startScheduler()
@@ -61,9 +66,13 @@ export function getStats() {
 }
 
 // Detener todo el sistema
-export function shutdownJobSystem(): void {
+export async function shutdownJobSystem(): Promise<void> {
   stopScheduler()
-  stopContainerGuardian()
+  // Container Guardian — dynamic import para evitar Edge analysis
+  try {
+    const { stopContainerGuardian } = await import('./container-guardian')
+    stopContainerGuardian()
+  } catch { /* ya no estaba activo */ }
   stopHealthMonitor()
   stopWorker()
   initialized = false

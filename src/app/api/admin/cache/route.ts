@@ -11,7 +11,6 @@ import {
   purgeOldBackups,
   formatMB,
 } from '@/lib/browser-runtime'
-import { getGuardianStatus, manualDropPageCache } from '@/lib/jobs/container-guardian'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,7 +23,13 @@ export async function GET() {
     const container = getContainerMetrics()
     const cache = getCacheMetrics()
     const uptime = process.uptime()
-    const guardian = getGuardianStatus()
+    // Guardian: dynamic import para evitar Edge analysis
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let guardian: any = {}
+    try {
+      const mod = await import('@/lib/jobs/container-guardian')
+      guardian = mod.getGuardianStatus()
+    } catch { /* guardian no disponible */ }
 
     // Nivel de presión (0-100) — ahora pesa más el cgroup que el heap
     const pressureScore = Math.round(
@@ -93,7 +98,11 @@ export async function POST(request: NextRequest) {
     switch (accion) {
       case 'drop_cache': {
         // Liberar page cache del SO sin reiniciar
-        const success = manualDropPageCache()
+        let success = false
+        try {
+          const mod = await import('@/lib/jobs/container-guardian')
+          success = mod.manualDropPageCache()
+        } catch { /* guardian no disponible */ }
         resultados.push({
           target: 'page_cache (SO)',
           success,
