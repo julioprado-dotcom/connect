@@ -9,24 +9,23 @@ export async function register() {
   if (setupDone) return
 
   try {
-    // 0. Verificar DB — health check antes de iniciar sistemas
-    const { db } = await import('@/lib/db')
-    const [personas, medios, ejes] = await Promise.all([
-      db.persona.count(),
-      db.medio.count(),
-      db.ejeTematico.count(),
-    ])
-    const dbPath = (process.env.DATABASE_URL || '').replace(/^file:/, '')
-    console.log(
-      `[Instrumentation] DB check: "${dbPath}" — ` +
-      `${personas} personas, ${medios} medios, ${ejes} ejes`
-    )
-    if (personas === 0 && medios === 0) {
-      console.error(
-        `[Instrumentation] ⚠️  DB VACÍA detectada en "${dbPath}". ` +
-        `Posible DATABASE_URL incorrecto. Verificar .env vs scripts/_db-path.sh`
+    // 0. Auto-recovery: diagnosticar DB y recovery si está degradada
+    const { ejecutarAutoRecovery } = await import('@/lib/auto-recovery')
+    const recovery = await ejecutarAutoRecovery()
+    if (recovery.ejecutado) {
+      console.log(
+        `[Instrumentation] Auto-recovery ejecutado: ${recovery.acciones.join(', ')}`
       )
     }
+    const { db } = await import('@/lib/db')
+    const dbPath = (process.env.DATABASE_URL || '').replace(/^file:/, '')
+    console.log(
+      `[Instrumentation] DB: "${dbPath}" — ` +
+      `${recovery.diagnostico.conteos.personas} personas, ` +
+      `${recovery.diagnostico.conteos.medios} medios, ` +
+      `${recovery.diagnostico.conteos.fuentes} fuentes, ` +
+      `${recovery.diagnostico.conteos.ejes} ejes`
+    )
 
     // 1. Iniciar Job System (worker, scheduler, health monitor)
     const { initJobSystem } = await import('@/lib/jobs')

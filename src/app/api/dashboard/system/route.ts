@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { getWorkerStats } from '@/lib/jobs/worker';
+import { getSchedulerStatus } from '@/lib/jobs/scheduler';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -209,6 +211,64 @@ function diagnoseDevOverhead(): Diagnosis {
   }
 }
 
+function diagnoseWorker(stats: ReturnType<typeof getWorkerStats>): Diagnosis {
+  if (!stats.running) {
+    return {
+      id: 'worker',
+      severity: 'critical',
+      message: 'Worker detenido',
+      detail: 'El worker no esta procesando jobs. Las fuentes no se estan monitoreando.',
+      action: 'El worker se reinicia automaticamente desde ensureWorkerRunning() en cualquier API call. Si persiste, verificar logs del servidor.',
+      team: 'desarrollo',
+    };
+  }
+  if (stats.lastJobTime === null) {
+    return {
+      id: 'worker',
+      severity: 'warning',
+      message: 'Worker sin actividad',
+      detail: `Worker corriendo hace ${stats.uptime} pero sin jobs procesados. Puede no haber fuentes activas o tareas programadas.`,
+      action: 'Verificar fuentes activas y scheduler. Usar /api/scraping/phase para iniciar monitoreo.',
+      team: 'administrador',
+    };
+  }
+  return {
+    id: 'worker',
+    severity: 'ok',
+    message: 'Worker activo',
+    detail: `${stats.jobsCompleted} completados, ${stats.jobsFailed} fallidos (${stats.jobsPerHour} jobs/h). Ultimo job: ${stats.lastJobTime ? stats.lastJobTime.toISOString() : 'nunca'}.`,
+  };
+}
+
+function diagnoseScheduler(stats: ReturnType<typeof getSchedulerStatus>): Diagnosis {
+  if (!stats.running) {
+    return {
+      id: 'scheduler',
+      severity: 'critical',
+      message: 'Scheduler detenido',
+      detail: 'No hay tareas programadas. Los checks de fuentes no se ejecutaran automaticamente.',
+      action: 'El scheduler se reinicia con rescheduleAll(). Verificar /api/jobs/scheduler con accion=recalcular.',
+      team: 'desarrollo',
+    };
+  }
+  if (stats.totalTasks === 0) {
+    return {
+      id: 'scheduler',
+      severity: 'warning',
+      message: 'Scheduler sin tareas',
+      detail: 'Scheduler corriendo pero sin tareas programadas. No hay fuentes activas para monitorear.',
+      action: 'Ejecutar /api/seed-fuentes para crear fuentes y /api/jobs/scheduler para reprogramar.',
+      team: 'administrador',
+    };
+  }
+  return {
+    id: 'scheduler',
+    severity: 'ok',
+    message: 'Scheduler activo',
+    detail: `${stats.totalTasks} tareas programadas. Checks automaticos en ejecucion.`,
+  };
+}
+
 function diagnoseAuth(): Diagnosis {
   const hasSecret = !!process.env.AUTH_SECRET;
   if (!hasSecret) {
@@ -250,8 +310,18 @@ export async function GET() {
       cgroupLimit: Math.round(cgroup.limit / (1024 * 1024) * 100) / 100,
     };
 
+    // --- Señales vitales backend (Worker + Scheduler) ---
+    const workerStats = getWorkerStats();
+    const schedulerStatus = getSchedulerStatus();
+    const backendVitals = {
+      worker: workerStats,
+      scheduler: schedulerStatus,
+    };
+
     // --- Diagnósticos ---
     const diagnoses: Diagnosis[] = [
+      diagnoseWorker(workerStats),
+      diagnoseScheduler(schedulerStatus),
       diagnoseMemory(mem, heapLimit, cgroup),
       diagnoseContainer(cgroup),
       diagnoseDatabase(dbSize),
@@ -284,6 +354,7 @@ export async function GET() {
       diagnoses,
       memoryUsage,
       dbSize,
+      backendVitals,
       uptime: uptimeSeconds,
       uptimeFormatted: formatUptime(uptimeSeconds),
       environment: process.env.NODE_ENV || 'unknown',

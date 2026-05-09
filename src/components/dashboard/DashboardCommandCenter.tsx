@@ -86,6 +86,10 @@ const QuickActions = dynamic(
   () => import('./sections/QuickActions').then(m => ({ default: m.QuickActions })),
   { ssr: false, loading: () => <Card className="border"><CardContent className="p-4 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></CardContent></Card> }
 );
+const CachePressurePanel = dynamic(
+  () => import('./sections/CachePressurePanel').then(m => ({ default: m.CachePressurePanel })),
+  { ssr: false, loading: () => <Card className="border"><CardContent className="p-4 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></CardContent></Card> }
+);
 
 // ─── Already-dynamic heavy sub-components ─────────────────────
 
@@ -240,6 +244,11 @@ export function DashboardCommandCenter() {
         <motion.div custom={3} variants={fadeInUp}>
           <ChunkErrorBoundary>
             <ScrapingPhaseControl />
+          </ChunkErrorBoundary>
+        </motion.div>
+        <motion.div custom={4} variants={fadeInUp}>
+          <ChunkErrorBoundary>
+            <CachePressurePanel />
           </ChunkErrorBoundary>
         </motion.div>
       </motion.div>

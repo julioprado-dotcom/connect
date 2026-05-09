@@ -38,7 +38,7 @@ function walkCauses(error: unknown): Array<{ code?: string; message?: string }> 
 
   while (current && depth < 5) {
     if (current instanceof Error) {
-      const raw = current as Record<string, unknown>
+      const raw = current as unknown as Record<string, unknown>
       const code = typeof raw.code === 'string' ? raw.code : undefined
       results.push({ code, message: current.message })
       current = raw.cause
