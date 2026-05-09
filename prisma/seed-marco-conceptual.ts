@@ -369,7 +369,18 @@ async function main() {
       activa: true,
       principios,
       contextoInstitucional,
-      lineasEditoriales: {},
+      lineasEditoriales: {
+        descripcion: "Clasificación de líneas editoriales de medios bolivianos. El sistema identifica la orientación predominante de cada medio para contextualizar el tratamiento periodístico.",
+        categorias: [
+          { codigo: "oficialista", nombre: "Oficialista / Pro-gobierno", definicion: "Cobertura favorable o alineada con el gobierno de turno.", criterios_identificacion: ["Titulares positivos hacia gobierno", "Fuentes gubernamentales como vocería principal", "Columnistas afines al partido de gobierno"] },
+          { codigo: "opositor", nombre: "Opositor / Crítica al gobierno", definicion: "Cobertura predominantemente crítica al gobierno de turno.", criterios_identificacion: ["Titulares críticos hacia gobierno", "Denuncias e investigaciones como sello editorial", "Fuentes opositoras y sociedad civil"] },
+          { codigo: "independiente", nombre: "Independiente / Plural", definicion: "Equilibrio en cobertura con múltiples perspectivas.", criterios_identificacion: ["Variedad de fuentes", "Investigación propia sin orientación política", "Correcciones públicas"] },
+          { codigo: "institucional", nombre: "Institucional / Especializada", definicion: "Cobertura sectorial sin orientación partidaria. Foco en datos.", criterios_identificacion: ["Cobertura focalizada en un sector", "Lenguaje técnico con datos", "Fuentes institucionales"] },
+          { codigo: "popular", nombre: "Popular / Sensacionalista", definicion: "Noticias policiales, espectaculares y de impacto emocional.", criterios_identificacion: ["Titulares de impacto emocional", "Cobertura política superficial", "Notas policiales y espectáculo"] },
+          { codigo: "comunitaria", nombre: "Comunitaria / Alternativa", definicion: "Cobertura local, indígena, campesina o social.", criterios_identificacion: ["Cobertura local/departamental", "Voces de organizaciones sociales", "Temas de territorio y recursos"] }
+        ],
+        notas: ["La línea editorial se evalúa por NOTA individual, no por medio completo.", "La clasificación NO implica juicio de valor.", "Si no se puede determinar → clasificar como 'no determinada' (NO adivinar)."]
+      },
       ejesInstitucionales: {
         descripcion: "Los 12 Ejes Temáticos Institucionales son universales, neutrales y aplican a TODOS los productos del sistema (gratuitos y pagos). Definidos por relevancia legislativa/general. Los ejes PERSONALIZADOS por cliente van en EjeTematicoCliente (tabla separada).",
         ejes: [
@@ -390,12 +401,36 @@ async function main() {
         dimensiones: ['produccion', 'precio', 'conflicto', 'regulacion', 'infraestructura'],
       },
       escalaTratamiento,
-      reglasDesambiguacion: {},
+      reglasDesambiguacion: {
+        descripcion: "Reglas para resolver ambigüedades en nombres, entidades, eventos y siglas.",
+        reglas: [
+          { tipo: "nombres_personas", nombre: "Desambiguación de Nombres", contexto: "Bolivia tiene apellidos muy comunes (Mamani, Quispe, Choque, Condori, Flores, Pérez).", reglas: ["Apellido común SIN cargo/institución → NO vincular a persona del sistema", "Verificar cargo + departamento + partido", "Si hay ambigüedad → marcar 'nombre ambiguo'"] },
+          { tipo: "siglas_instituciones", nombre: "Desambiguación de Siglas", contexto: "Múltiples instituciones con siglas similares.", reglas: ["ALP = Asamblea Legislativa Plurinacional", "YPFB = Yacimientos Petrolíferos Fiscales Bolivianos", "TSE = Tribunal Supremo Electoral", "MAS = Movimiento al Socialismo", "COB = Central Obrera Boliviana", "Sigla no reconocida → 'sigla no identificada'"] },
+          { tipo: "eventos_temporales", nombre: "Eventos y Fechas", contexto: "Eventos recurrentes pueden confundirse entre años.", reglas: ["Verificar período legislativo actual", "Protestas: ¿evento actual o referencia histórica?", "Proyectos de ley: ¿en trámite o antecedente?"] },
+          { tipo: "geograficos", nombre: "Geográfica", contexto: "Ciudades con nombres compartidos entre departamentos.", reglas: ["Inferir por actores mencionados", "Ambigüedad → 'ubicación ambigua'", "Frontera: registrar departamento y país"] },
+          { tipo: "medios", nombre: "Medios de Comunicación", contexto: "Nombres genéricos de medios.", reglas: ["El Diario = periódico de La Paz", "La Razón = periódico de La Paz", "El Pueblo = periódico de Sucre", "Medio no registrado → 'medio no monitoreado'"] }
+        ],
+        principio_general: "Ante la duda, NO asignar. Es preferible marcar como 'ambiguo' que asignar incorrectamente."
+      },
       criteriosRelevancia,
       exclusionesEtica,
       terminologiaPermitida,
       terminologiaProhibida,
-      preguntasFundamentales: {},
+      preguntasFundamentales: {
+        descripcion: "Las preguntas fundamentales del periodismo institucional que el sistema debe responder para cada mención. Basado en el Principio 9 (Rigor Periodístico).",
+        preguntas: [
+          { codigo: "que", nombre: "Qué", definicion: "El evento principal de la nota.", reglas: ["Distinguir evento principal de secundarios", "Tipo: anuncio, denuncia, debate, resolución judicial"] },
+          { codigo: "quien", nombre: "Quién", definicion: "Actores: quien declara, quien es mencionado, quien es afectado.", reglas: ["Distinguir 'quien declara' vs 'quien es mencionado'", "Colectivos: gobierno, oposición, bancadas, gremios", "Registrar cargo institucional"] },
+          { codigo: "cuando", nombre: "Cuándo", definicion: "Fecha exacta o referencia temporal.", reglas: ["Fecha publicación ≠ fecha evento", "Eventos de larga duración: registrar inicio y continuidad"] },
+          { codigo: "como", nombre: "Cómo", definicion: "Mecanismo, canal y tono del evento.", reglas: ["Canal: sesión, entrevista, conferencia, comunicado", "Tono: formal, agresivo, conciliador, evasivo"] },
+          { codigo: "por_que", nombre: "Por Qué", definicion: "Causas inmediatas. Causas (algo pasó porque...).", reglas: ["Registrar causas DECLARADAS, no inferidas", "NO confundir con 'para qué' (intención)", "Sin causas → 'No especificadas en la fuente'"] },
+          { codigo: "para_que", nombre: "Para Qué", definicion: "Intención declarada o inferible. Intención (objetivo de...).", reglas: ["Intención del actor + intención del medio", "Inferidas llevan marca '[inferido]'", "Mayor riesgo de sesgo del LLM → confianza explícita"] },
+          { codigo: "a_quienes_afecta", nombre: "A Quiénes Afecta", definicion: "Personas o instituciones impactadas.", reglas: ["Directos, indirectos, potenciales", "Inferidos siempre con marca '[inferido]'", "Incluir nivel: nacional/departamental/municipal"] },
+          { codigo: "donde", nombre: "Dónde", definicion: "Contexto geográfico e institucional.", reglas: ["Nivel: nacional, departamental, municipal, internacional, virtual", "Fronteras: departamento + país vecino"] }
+        ],
+        principio_general: "Si el texto no responde una pregunta → 'No especificado en la fuente'. NUNCA inventar.",
+        estructura_json: { que: "String", quien: { declara: "String?", afectado_directo: "String?", mencionados: "String[]" }, cuando: "String?", como: "String?", por_que: "String?", para_que: { actor: "String?", medio: "String?", confianza: "String" }, a_quienes_afecta: { directos: "String[]", indirectos: "String[]", potenciales: "String[]", mencionados_en_texto: "Boolean" }, donde: "String?" }
+      },
       parametros,
       creadoPor: "sistema",
     },
