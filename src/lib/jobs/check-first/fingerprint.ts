@@ -78,20 +78,37 @@ export async function checkFingerprint(
     const responseTime = Date.now() - startTime
 
     if (!response.ok) {
+      // Detección específica de WAF (Cloudflare, Akamai, etc.)
+      const server = response.headers.get('server') || ''
+      const isWAF = server.includes('cloudflare') || response.status === 403
+      const wafError = isWAF ? `waf_blocked: ${server} — requiere navegador headless` : `HTTP ${response.status}`
+
       return {
         cambiado: false,
         tecnica: 'fingerprint',
-        detalle: `HTTP ${response.status}: ${response.statusText} [${responseTime}ms]`,
+        detalle: isWAF
+          ? `WAF bloqueo (${server}) — detección automática, fuente desactivada [${responseTime}ms]`
+          : `HTTP ${response.status}: ${response.statusText} [${responseTime}ms]`,
         responseTime,
-        error: `HTTP ${response.status}`,
+        error: wafError,
       }
     }
 
-    // Verificar Content-Length como shortcut (si no cambio, probablemente sin cambios)
-    const contentLength = response.headers.get('content-length')
-    // TODO: podriamos guardar content-length en FuenteEstado para shortcut
-
     const html = await response.text()
+
+    // Verificar si el contenido es una challenge page (WAF que devolvió 200 con JS challenge)
+    const isChallengePage = html.includes('Just a moment') ||
+      html.includes('cf-browser-verification') ||
+      html.includes('challenge-platform')
+    if (isChallengePage && html.length < 10000) {
+      return {
+        cambiado: false,
+        tecnica: 'fingerprint',
+        detalle: `WAF JS Challenge detectado (200 con challenge page, ${html.length}b) [${responseTime}ms]`,
+        responseTime,
+        error: `waf_blocked: Cloudflare JS Challenge — requiere navegador headless`,
+      }
+    }
 
     // Extraer contenido relevante y normalizar
     const relevant = extractRelevantContent(html)

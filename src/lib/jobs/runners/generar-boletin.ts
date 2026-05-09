@@ -123,11 +123,24 @@ function buildContenidoBoletin(
   const fecha = formatFechaBolivia(fechas.fechaFin)
   const totalMenciones = menciones.length
 
-  let resumen = `[${tipo}] ${fecha} - ${totalMenciones} menciones procesadas`
+  let resumen: string
+
+  if (totalMenciones === 0) {
+    resumen = `[${tipo}] ${fecha} - Sin menciones capturadas. Verificar fuentes activas y jobs de scraping.`
+  } else {
+    resumen = `[${tipo}] ${fecha} - ${totalMenciones} menciones procesadas`
+  }
 
   const secciones: string[] = []
   secciones.push(`*${tipo} - ${fecha}*`)
   secciones.push(`Total de menciones: ${totalMenciones}`)
+
+  if (totalMenciones === 0) {
+    secciones.push('')
+    secciones.push('No se encontraron menciones en el periodo consultado.')
+    secciones.push('Posibles causas: fuentes inactivas, sin checks recientes, o sin scraping ejecutado.')
+    secciones.push('Revisar: dashboard Jobs > Fuentes > verificar estado de check-fuente.')
+  }
 
   // Indicadores
   if (Object.keys(indicadores).length > 0) {

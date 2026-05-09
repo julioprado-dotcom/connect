@@ -2,6 +2,10 @@
 // Wrapper de fetch que maneja certificados TLS mal configurados
 // Algunos sitios bolivianos (ej: abi.bo) tienen cadenas de certificados incompletas
 // Intenta fetch normal primero (seguro), y si falla por TLS, usa https nativo con rejectUnauthorized: false
+//
+// NOTA: Este archivo importa node:https, lo cual genera warnings de Edge Runtime en Turbopack.
+// Eso es esperado y no bloquea: instrumentation.ts (Node.js runtime) es quien orquesta los checks.
+// Las API routes que usan check-first se ejecutan en Node.js runtime, no Edge.
 
 import https from 'node:https'
 import type { IncomingHttpHeaders } from 'node:http'
