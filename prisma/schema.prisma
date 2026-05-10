@@ -360,11 +360,24 @@ model FuenteEstado {
   error            String   @default("")
   responseTime     Int      @default(0)           // Último tiempo de respuesta en ms
 
+  // ── Source Lifecycle ──
+  estado           String   @default("creada")      // "creada"|"validando"|"activa"|"inactiva"|"deprecada"
+  ultimoCheckOk    DateTime?                       // Timestamp of last successful Check-First
+  ultimoHeadline   DateTime?                       // Timestamp of last headline/link extraction
+  ultimoTexto      DateTime?                       // Timestamp of last full text extraction
+  ultimoMencion    DateTime?                       // Timestamp of last mention created from this source
+  totalHeadlines   Int      @default(0)            // Lifetime headlines extracted
+  totalTexto       Int      @default(0)            // Lifetime full-text articles extracted
+  totalMenciones   Int      @default(0)            // Lifetime mentions generated from this source
+  strategyValid    String   @default("")           // Check-first strategy that works ("rss","head","fingerprint")
+  strategyScrape   String   @default("")           // Scrape strategy that works
+
   medio            Medio    @relation(fields: [medioId], references: [id])
 
   @@index([medioId])
   @@index([ultimoCheck])
   @@index([activo])
+  @@index([estado])
 }
 
 // ─── CONFIG: Definición de indicadores ─────────────────────

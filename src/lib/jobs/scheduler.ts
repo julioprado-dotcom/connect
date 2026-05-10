@@ -69,7 +69,7 @@ export function stopScheduler(): void {
 // Programar checks para todas las fuentes activas
 async function scheduleCheckJobs(): Promise<void> {
   const fuentes = await db.fuenteEstado.findMany({
-    where: { activo: true },
+    where: { estado: 'activa' },
     include: { medio: true },
   })
 

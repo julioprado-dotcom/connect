@@ -88,12 +88,23 @@ function isTLSError(error: unknown): boolean {
 }
 
 // Fetch con fallback TLS inseguro para sitios con certificados rotos
+// Manejo explícito de 304: si el fetch nativo retorna 304, no activa TLS fallback.
+// Si el TLS fallback recibe 304, lo retorna como Response válida (sin body significativo).
 export async function safeFetch(
   url: string,
   init: RequestInit = {},
 ): Promise<Response> {
   try {
-    return await fetch(url, init)
+    const response = await fetch(url, init)
+
+    // 304 Not Modified — respuesta válida, no activar fallback
+    // La capa superior (checkETag, checkRSS) sabe manejar este status
+    if (response.status === 304) {
+      return response
+    }
+
+    // Solo si el fetch falla por error (no por status HTTP), intentar TLS fallback
+    return response
   } catch (error: unknown) {
     const errMsg = error instanceof Error ? error.message : String(error)
     const tlsDetected = isTLSError(error)
@@ -138,13 +149,21 @@ function httpsFetch(url: string, init: RequestInit = {}): Promise<Response> {
       const chunks: Buffer[] = []
       res.on('data', (chunk: Buffer) => chunks.push(chunk))
       res.on('end', () => {
-        const body = Buffer.concat(chunks)
-        const response = new Response(body, {
-          status: res.statusCode || 200,
-          statusText: res.statusMessage || '',
-          headers: normalizeHeaders(res.headers),
-        })
-        resolve(response)
+        try {
+          const body = Buffer.concat(chunks)
+          const response = new Response(body, {
+            status: res.statusCode || 200,
+            statusText: res.statusMessage || '',
+            headers: normalizeHeaders(res.headers),
+          })
+          resolve(response)
+        } catch (endError: unknown) {
+          // Captura excepciones síncronas en el callback end (ej: body corrupto, 304 inesperado)
+          // que de otro modo se convertirían en uncaughtException
+          const msg = endError instanceof Error ? endError.message : String(endError)
+          console.error('[safeFetch] Error en res.on(end) para ' + url + ': ' + msg)
+          reject(endError instanceof Error ? endError : new Error(msg))
+        }
       })
       res.on('error', (err: Error) => reject(err))
     })

@@ -36,6 +36,7 @@ export function getRunner(tipo: JobTipo): RunnerFn | undefined {
 
 interface WorkerState {
   running: boolean
+  idle: boolean              // true = hace polling pero no ejecuta jobs
   startTime: Date | null
   jobsCompleted: number
   jobsFailed: number
@@ -49,6 +50,7 @@ function getWorkerState(): WorkerState {
   if (!_g.__decodex_worker__) {
     _g.__decodex_worker__ = {
       running: false,
+      idle: true,             // por defecto arranca en idle hasta warmup
       startTime: null,
       jobsCompleted: 0,
       jobsFailed: 0,
@@ -62,6 +64,7 @@ function getWorkerState(): WorkerState {
 // Estadisticas del worker
 export function getWorkerStats() {
   const ws = getWorkerState()
+  const mode = ws.idle ? 'idle' : 'active'
   const uptime = ws.startTime
     ? Math.floor((Date.now() - ws.startTime.getTime()) / 1000)
     : 0
@@ -75,6 +78,7 @@ export function getWorkerStats() {
 
   return {
     running: ws.running,
+    mode,
     uptime: uptime > 0 ? `${hours}h ${minutes}m ${seconds}s` : '0s',
     jobsCompleted: ws.jobsCompleted,
     jobsFailed: ws.jobsFailed,
@@ -84,16 +88,35 @@ export function getWorkerStats() {
   }
 }
 
-// Iniciar el worker (background, no bloquea el hilo principal)
-export function startWorker(): void {
+// Iniciar el worker en modo IDLE (polling pero no ejecuta jobs)
+export function startWorkerIdle(): void {
   const ws = getWorkerState()
   if (ws.running) {
     console.log('[Worker] Ya esta corriendo')
     return
   }
   ws.running = true
+  ws.idle = true
   ws.startTime = new Date()
-  console.log('[Worker] Iniciado (globalThis shared state)')
+  console.log('[Worker] Iniciado en modo IDLE (esperando warmup)')
+
+  workerLoop().catch(err => {
+    console.error('[Worker] Error fatal:', err)
+    ws.running = false
+  })
+}
+
+// Iniciar el worker (background, no bloquea el hilo principal)
+export function startWorker(): void {
+  const ws = getWorkerState()
+  if (ws.running && !ws.idle) {
+    console.log('[Worker] Ya esta corriendo en modo productivo')
+    return
+  }
+  ws.running = true
+  ws.idle = false
+  if (!ws.startTime) ws.startTime = new Date()
+  console.log('[Worker] Activado — modo productivo')
 
   // Ejecutar en background
   workerLoop().catch(err => {
@@ -106,6 +129,7 @@ export function startWorker(): void {
 export function stopWorker(): void {
   const ws = getWorkerState()
   ws.running = false
+  ws.idle = false
   console.log('[Worker] Detenido')
 }
 
@@ -126,6 +150,12 @@ async function workerLoop(): Promise<void> {
       const jobId = job.id as string
       const tipo = job.tipo as JobTipo
       const payload = job.payload as JobPayload
+
+      // Si el worker está en idle, no ejecutar jobs — solo esperar
+      if (ws.idle) {
+        await sleep(WORKER_CONFIG.pollIntervalMs)
+        continue
+      }
 
       console.log(`[Worker] Ejecutando job ${jobId} (${tipo}) prioridad=${job.prioridad}`)
 

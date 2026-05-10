@@ -123,6 +123,15 @@ export const WORKER_CONFIG = {
   errorBackoffMs: 10000,    // espera si hay error del sistema
 }
 
+// ── Configuracion de Arranque Diferido ──────────────────────────────────
+// El servidor espera este tiempo antes de activar el scheduler y worker productivo.
+// Permite que Next.js compile rutas, GC pase su primera pasada, y Container Guardian
+// establezca baseline de memoria antes de que los jobs comiencen a consumir recursos.
+
+export const WARMUP_CONFIG = {
+  delayMs: 120_000,         // 2 minutos de estabilización antes de activar jobs
+}
+
 // ── Configuracion del Container Guardian ──────────────────────────────
 
 export const GUARDIAN_CONFIG = {

@@ -92,7 +92,7 @@ export async function diagnosticarDB(): Promise<DBDiagnosis> {
  * Crea FuenteEstado para todos los medios activos que no tienen uno.
  * Lógica idéntica a /api/seed-fuentes pero invocable desde instrumentation.
  */
-export async function seedFuentes(): Promise<{ creados: number; activados: number }> {
+export async function seedFuentes(): Promise<{ creados: number }> {
   const medios = await db.medio.findMany({
     where: { activo: true, url: { not: '' } },
     orderBy: [{ nivel: 'asc' }, { nombre: 'asc' }],
@@ -100,7 +100,7 @@ export async function seedFuentes(): Promise<{ creados: number; activados: numbe
 
   if (medios.length === 0) {
     console.log('[AutoRecovery] No hay medios para crear fuentes')
-    return { creados: 0, activados: 0 }
+    return { creados: 0 }
   }
 
   const existentes = await db.fuenteEstado.findMany({
@@ -109,13 +109,12 @@ export async function seedFuentes(): Promise<{ creados: number; activados: numbe
   const existentesSet = new Set(existentes.map(e => e.medioId))
 
   let creados = 0
-  let activados = 0
 
   for (const medio of medios) {
     const frecuenciaBase = FRECUENCIA_POR_NIVEL[medio.nivel] || '6h'
     const tipoCheck = tipoCheckParaCategoria(medio.tipo)
-    const activo = medio.nivel === '1'  // Solo nivel 1 activo por defecto
-
+    // Sources start as "validando" — not activated by level
+    // They become "activa" only after a successful check-first validation
     try {
       await db.fuenteEstado.upsert({
         where: { medioId: medio.id },
@@ -125,15 +124,14 @@ export async function seedFuentes(): Promise<{ creados: number; activados: numbe
           tipoCheck,
           frecuenciaBase,
           frecuenciaActual: frecuenciaBase,
-          activo,
+          activo: false,
+          estado: 'validando',
         },
         update: {
-          // Si ya existe pero está inactivo y es nivel 1, reactivar
-          ...(activo ? { activo: true } : {}),
+          // Only re-create if missing — never auto-reactivate
         },
       })
       creados++
-      if (activo) activados++
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error)
       console.warn(`[AutoRecovery] Error creando fuente para ${medio.nombre}: ${msg}`)
@@ -141,9 +139,9 @@ export async function seedFuentes(): Promise<{ creados: number; activados: numbe
   }
 
   console.log(
-    `[AutoRecovery] Fuentes: ${creados} procesadas, ${activados} activadas (nivel 1)`
+    `[AutoRecovery] Fuentes: ${creados} creadas/actualizadas (estado: validando — requieren check-first)`
   )
-  return { creados, activados }
+  return { creados }
 }
 
 // ── Recovery: Reactivar Scheduler ────────────────────────────────────
@@ -586,7 +584,7 @@ export async function ejecutarAutoRecovery(): Promise<RecoveryResult> {
   if (diagnostico.conteos.fuentes < SALUD_THRESHOLDS.fuentes) {
     const resultado = await seedFuentes()
     acciones.push(
-      `Fuentes seed: ${resultado.creados} creadas, ${resultado.activados} activadas`
+      `Fuentes seed: ${resultado.creados} creadas/actualizadas (estado: validando)`
     )
 
     // Verificar fuentes con checks vacíos — resetear fingerprint para re-check

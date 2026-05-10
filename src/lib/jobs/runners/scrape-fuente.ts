@@ -76,6 +76,16 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
     const notas = extraerLinksDeNoticias(html, fuente.url, MAX_LINKS)
     console.log(`[scrape-fuente] FASE 1: ${notas.length} links de notas extraídos de ${fuente.medio.nombre}`)
 
+    // Update capacity: headline extraction succeeded
+    await db.fuenteEstado.update({
+      where: { id: fuenteId },
+      data: {
+        ultimoHeadline: new Date(),
+        totalHeadlines: { increment: notas.length },
+        strategyScrape: 'link-extraction',
+      },
+    }).catch(() => {})
+
     if (notas.length === 0) {
       // Fallback: si no se pudieron extraer links, procesar la homepage como antes
       console.log(`[scrape-fuente] No se extrajeron links, fallback a procesamiento de homepage`)
@@ -192,6 +202,16 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
           descargada: true,
           menciones,
         })
+
+        // Update capacity: mentions created from this source
+        await db.fuenteEstado.update({
+          where: { id: fuenteId },
+          data: {
+            ultimoMencion: new Date(),
+            totalMenciones: { increment: menciones },
+            totalTexto: { increment: 1 },
+          },
+        }).catch(() => {})
 
         console.log(`[scrape-fuente] → ${menciones} menciones (${resultado.es_relevante ? 'RELEVANTE' : 'no relevante'}, ${resultado.tratamientoPeriodistico})`)
       } catch (err) {

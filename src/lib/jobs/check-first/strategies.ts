@@ -309,6 +309,17 @@ export async function checkFuente(fuenteId: string): Promise<CheckResult & {
     datosActualizacionFinal.tipoCheck = estrategiaExitosa
   }
 
+  // Update capacity demonstration timestamps
+  datosActualizacionFinal.ultimoCheckOk = new Date()
+  datosActualizacionFinal.strategyValid = estrategiaExitosa
+
+  // If source is "validando" or "creada" and check succeeded, promote to "activa"
+  if (fuente.estado === 'validando' || fuente.estado === 'creada') {
+    datosActualizacionFinal.estado = 'activa'
+    datosActualizacionFinal.activo = true
+    console.log(`[CheckFirst] ${fuente.medio.nombre}: promovida de "${fuente.estado || 'creada'}" a "activa"`)
+  }
+
   // Si TODAS fallaron, marcar error
   if (!estrategiaExitosa) {
     console.error(

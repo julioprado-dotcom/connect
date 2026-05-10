@@ -144,7 +144,8 @@ export async function POST(request: NextRequest) {
         data: {
           medioId: medio.id,
           url: medio.url,
-          activo: medio.activo,
+          activo: false,
+          estado: 'validando',
           frecuenciaBase,
           frecuenciaActual: frecuenciaBase,
           tipoCheck: medio.tipo === 'red_social' ? 'api' : 'head',

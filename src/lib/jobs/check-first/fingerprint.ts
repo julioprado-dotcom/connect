@@ -77,6 +77,16 @@ export async function checkFingerprint(
 
     const responseTime = Date.now() - startTime
 
+    // 304 Not Modified — sin descarga de contenido
+    if (response.status === 304) {
+      return {
+        cambiado: false,
+        tecnica: 'fingerprint',
+        detalle: `304 Not Modified (contenido sin cambios) [${responseTime}ms]`,
+        responseTime,
+      }
+    }
+
     if (!response.ok) {
       // Detección específica de WAF (Cloudflare, Akamai, etc.)
       const server = response.headers.get('server') || ''

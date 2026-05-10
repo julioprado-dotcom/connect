@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { KPICard } from '@/components/shared/KPICard';
 import {
   Clock, Loader2, CheckCircle2, XCircle, RefreshCw,
-  Pause, Play, Calendar, Database, Zap, Trash2,
+  Pause, Play, Calendar, Database, Zap, Trash2, CircleStop, SquareSlash,
 } from 'lucide-react';
 
 // -- Types --
@@ -66,6 +66,7 @@ interface JobItem {
   fechaCreacion: string;
   fechaInicio: string | null;
   fechaFin: string | null;
+  proximaEjecucion: string | null;
   resultado: Record<string, unknown> | null;
   error: string | null;
 }
@@ -120,6 +121,7 @@ const JOB_TYPE_LABELS: Record<string, string> = {
 
 const ESTADO_COLORS: Record<string, string> = {
   pendiente: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+  pausado: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
   en_progreso: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
   completado: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
   fallido: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
@@ -128,6 +130,7 @@ const ESTADO_COLORS: Record<string, string> = {
 
 const ESTADO_LABELS: Record<string, string> = {
   pendiente: 'Pendiente',
+  pausado: 'Pausado',
   en_progreso: 'En Progreso',
   completado: 'Completado',
   fallido: 'Fallido',
@@ -179,6 +182,17 @@ function formatUptime(uptime: string): string {
   return uptime;
 }
 
+// Verificar si un job está pausado (proxEjecucion en año 2099)
+function isJobPaused(job: JobItem): boolean {
+  if (job.estado !== 'pendiente' || !job.proximaEjecucion) return false;
+  return new Date(job.proximaEjecucion).getTime() > Date.now() + 365 * 24 * 60 * 60 * 1000;
+}
+
+// Obtener estado visual (pausado vs pendiente)
+function jobDisplayState(job: JobItem): string {
+  return isJobPaused(job) ? 'pausado' : job.estado;
+}
+
 function payloadSummary(payload: Record<string, unknown> | null): string {
   if (!payload) return '--';
   const keys = Object.keys(payload);
@@ -218,8 +232,12 @@ export function JobsView() {
   const [workerAction, setWorkerAction] = useState<'pause' | 'resume' | null>(null);
   const [workerStatus, setWorkerStatus] = useState<'running' | 'paused' | null>(null);
 
+  // Job action state (per-job)
+  const [jobAction, setJobAction] = useState<string | null>(null);
+
   // Scheduler action state
   const [schedulerActioning, setSchedulerActioning] = useState(false);
+  const [schedulerStatus, setSchedulerStatus] = useState<'running' | 'paused' | null>(null);
 
   // Stats refresh counter
   const [refreshCounter, setRefreshCounter] = useState(0);
@@ -237,6 +255,16 @@ export function JobsView() {
     } finally {
       setStatsLoading(false);
     }
+  }, []);
+
+  // -- Fetch Scheduler status --
+  const fetchSchedulerStatus = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const res = await fetch('/api/jobs/scheduler', { signal });
+      if (!res.ok) return;
+      const data = await res.json();
+      setSchedulerStatus(data?.running ? 'running' : 'paused');
+    } catch { /* silent */ }
   }, []);
 
   // -- Fetch Jobs --
@@ -278,14 +306,16 @@ export function JobsView() {
   useEffect(() => {
     const controller = new AbortController();
     fetchStats(controller.signal);
+    fetchSchedulerStatus(controller.signal);
     const interval = setInterval(() => {
       fetchStats(controller.signal);
+      fetchSchedulerStatus(controller.signal);
     }, 10000);
     return () => {
       clearInterval(interval);
       controller.abort();
     };
-  }, [fetchStats, refreshCounter]);
+  }, [fetchStats, fetchSchedulerStatus, refreshCounter]);
 
   // -- Fetch jobs/fuentes when tab is active --
   useEffect(() => {
@@ -335,6 +365,78 @@ export function JobsView() {
       setTimeout(handleRefresh, 500);
     } catch { /* silent */ } finally {
       setSchedulerActioning(false);
+    }
+  };
+
+  // -- Scheduler pause/resume --
+  const handleSchedulerToggle = async () => {
+    setSchedulerActioning(true);
+    try {
+      const accion = schedulerStatus === 'running' ? 'pause' : 'resume';
+      const res = await fetch('/api/jobs/scheduler', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion }),
+      });
+      if (res.ok) {
+        setSchedulerStatus(accion === 'pause' ? 'paused' : 'running');
+        setTimeout(handleRefresh, 500);
+      }
+    } catch { /* silent */ } finally {
+      setSchedulerActioning(false);
+    }
+  };
+
+  // -- Job individual actions --
+  const handleJobPause = async (jobId: string) => {
+    setJobAction(jobId);
+    try {
+      await fetch(`/api/jobs/${jobId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: 'pausar' }),
+      });
+      setTimeout(handleRefresh, 500);
+    } catch { /* silent */ } finally {
+      setJobAction(null);
+    }
+  };
+
+  const handleJobResume = async (jobId: string) => {
+    setJobAction(jobId);
+    try {
+      await fetch(`/api/jobs/${jobId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: 'reanudar' }),
+      });
+      setTimeout(handleRefresh, 500);
+    } catch { /* silent */ } finally {
+      setJobAction(null);
+    }
+  };
+
+  const handleJobDelete = async (jobId: string) => {
+    setJobAction(jobId);
+    try {
+      await fetch(`/api/jobs/${jobId}?hard=true`, {
+        method: 'DELETE',
+      });
+      setTimeout(handleRefresh, 500);
+    } catch { /* silent */ } finally {
+      setJobAction(null);
+    }
+  };
+
+  const handleJobCancel = async (jobId: string) => {
+    setJobAction(jobId);
+    try {
+      await fetch(`/api/jobs/${jobId}`, {
+        method: 'DELETE',
+      });
+      setTimeout(handleRefresh, 500);
+    } catch { /* silent */ } finally {
+      setJobAction(null);
     }
   };
 
@@ -472,6 +574,22 @@ export function JobsView() {
           Recalcular Horarios
         </Button>
         <Button
+          variant={schedulerStatus === 'paused' ? 'default' : 'outline'}
+          size="sm"
+          onClick={handleSchedulerToggle}
+          disabled={schedulerActioning}
+          className="text-xs gap-1.5"
+        >
+          {schedulerActioning ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : schedulerStatus === 'running' ? (
+            <SquareSlash className="h-3 w-3" />
+          ) : (
+            <Play className="h-3 w-3" />
+          )}
+          {schedulerStatus === 'running' ? 'Pausar Scheduler' : 'Reanudar Scheduler'}
+        </Button>
+        <Button
           variant="outline"
           size="sm"
           onClick={handleForceCheck}
@@ -581,7 +699,12 @@ export function JobsView() {
               </div>
             ) : jobs && jobs.length > 0 ? (
               <div className="space-y-1.5 max-h-[600px] overflow-y-auto custom-scrollbar">
-                {jobs.map((job) => (
+                {jobs.map((job) => {
+                  const paused = isJobPaused(job);
+                  const displayState = paused ? 'pausado' : job.estado;
+                  const acting = jobAction === job.id;
+
+                  return (
                   <div
                     key={job.id}
                     className="flex items-center gap-3 p-2.5 rounded-lg border border-border hover:bg-muted/30 transition-colors"
@@ -595,8 +718,8 @@ export function JobsView() {
                       P{job.prioridad}
                     </span>
                     {/* Status */}
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${ESTADO_COLORS[job.estado] || 'bg-stone-100 text-stone-600'}`}>
-                      {ESTADO_LABELS[job.estado] || job.estado}
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${ESTADO_COLORS[displayState] || 'bg-stone-100 text-stone-600'}`}>
+                      {ESTADO_LABELS[displayState] || displayState}
                     </span>
                     {/* Payload summary */}
                     <p className="text-[10px] text-muted-foreground truncate flex-1 min-w-0">
@@ -618,8 +741,53 @@ export function JobsView() {
                     <span className="text-[9px] text-muted-foreground shrink-0 whitespace-nowrap">
                       {relativeTime(job.fechaCreacion)}
                     </span>
+                    {/* Action buttons */}
+                    {acting ? (
+                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground shrink-0" />
+                    ) : (
+                      <div className="flex items-center gap-1 shrink-0">
+                        {/* Pause/Resume */}
+                        {(job.estado === 'pendiente' || job.estado === 'en_progreso') && !paused && (
+                          <button
+                            onClick={() => handleJobPause(job.id)}
+                            title="Pausar job"
+                            className="p-1 rounded hover:bg-amber-100 dark:hover:bg-amber-900/30 text-amber-600 dark:text-amber-400 transition-colors"
+                          >
+                            <CircleStop className="h-3 w-3" />
+                          </button>
+                        )}
+                        {paused && (
+                          <button
+                            onClick={() => handleJobResume(job.id)}
+                            title="Reanudar job"
+                            className="p-1 rounded hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 transition-colors"
+                          >
+                            <Play className="h-3 w-3" />
+                          </button>
+                        )}
+                        {/* Cancel (soft) for pendiente/en_progreso */}
+                        {(job.estado === 'pendiente' || job.estado === 'en_progreso') && (
+                          <button
+                            onClick={() => handleJobCancel(job.id)}
+                            title="Cancelar job"
+                            className="p-1 rounded hover:bg-orange-100 dark:hover:bg-orange-900/30 text-orange-600 dark:text-orange-400 transition-colors"
+                          >
+                            <XCircle className="h-3 w-3" />
+                          </button>
+                        )}
+                        {/* Hard delete for any state */}
+                        <button
+                          onClick={() => handleJobDelete(job.id)}
+                          title="Eliminar job"
+                          className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 dark:text-red-400 transition-colors"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-12">

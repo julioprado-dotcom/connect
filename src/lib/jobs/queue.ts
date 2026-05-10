@@ -147,6 +147,73 @@ export async function cancel(jobId: string): Promise<boolean> {
   }
 }
 
+// Constante para identificar jobs pausados (proxEjecucion en año 2099)
+const PAUSED_UNTIL = new Date('2099-01-01T00:00:00.000Z')
+
+// Pausar un job: si está en_progreso se resetea a pendiente.
+// Se usa proxEjecucion = 2099 para que el worker no lo tome.
+export async function pauseJob(jobId: string): Promise<boolean> {
+  try {
+    const job = await db.job.findUnique({ where: { id: jobId } })
+    if (!job) return false
+
+    // Solo se pueden pausar jobs pendientes o en_progreso
+    if (job.estado !== 'pendiente' && job.estado !== 'en_progreso') return false
+
+    await db.job.update({
+      where: { id: jobId },
+      data: {
+        estado: 'pendiente',
+        fechaInicio: null,
+        proximaEjecucion: PAUSED_UNTIL,
+      },
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
+// Reanudar un job pausado: restaurar proximaEjecucion a ahora
+export async function resumeJob(jobId: string): Promise<boolean> {
+  try {
+    const job = await db.job.findUnique({ where: { id: jobId } })
+    if (!job) return false
+
+    // Solo se pueden reanudar jobs pendientes con pausa activa
+    if (job.estado !== 'pendiente') return false
+    const isPaused = job.proximaEjecucion && new Date(job.proximaEjecucion).getTime() > Date.now() + 365 * 24 * 60 * 60 * 1000
+    if (!isPaused) return false
+
+    await db.job.update({
+      where: { id: jobId },
+      data: {
+        proximaEjecucion: new Date(),
+      },
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
+// Verificar si un job está en estado pausado
+export function isJobPaused(job: { proximaEjecucion: Date | string | null; estado: string }): boolean {
+  if (job.estado !== 'pendiente') return false
+  if (!job.proximaEjecucion) return false
+  return new Date(job.proximaEjecucion).getTime() > Date.now() + 365 * 24 * 60 * 60 * 1000
+}
+
+// Eliminar (hard delete) un job de la base de datos
+export async function deleteJob(jobId: string): Promise<boolean> {
+  try {
+    await db.job.delete({ where: { id: jobId } })
+    return true
+  } catch {
+    return false
+  }
+}
+
 // Obtener conteo de jobs por estado
 export async function countByEstado(): Promise<Record<string, number>> {
   const jobs = await db.job.groupBy({

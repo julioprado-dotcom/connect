@@ -1,21 +1,28 @@
 // Inicializacion del sistema de Job Queue - DECODEX Bolivia
-// Punto de entrada unico: initJobSystem()
+// Punto de entrada unico: initJobSystem() + activateProductiveMode()
 //
 // IMPORTANTE: En Next.js con Turbopack, instrumentation.ts y los API routes
 // corren en contextos de modulo diferentes. Por eso usamos globalThis en
 // worker.ts para compartir estado. Esta funcion es idempotente — se puede
 // llamar desde instrumentation.ts Y desde API routes sin duplicar workers.
+//
+// Flujo de arranque:
+//   1. initJobSystem()          → registra runners, worker IDLE, health, guardian (sin scheduler)
+//   2. [warmup de 2 minutos]
+//   3. activateProductiveMode() → scheduler + worker productivo
 
-import { startWorker, stopWorker, registerDefaultRunners, getWorkerStats } from './worker'
+import { startWorkerIdle, startWorker, stopWorker, registerDefaultRunners, getWorkerStats } from './worker'
 import { startHealthMonitor, stopHealthMonitor } from './health'
 import { startScheduler, stopScheduler } from './scheduler'
 import { enqueue } from './queue'
+import { WARMUP_CONFIG } from './constants'
 
 
 // Flag de inicializacion via globalThis — en Next.js Turbopack,
 // instrumentation.ts y API routes corren en contextos de modulo
 // diferentes. Module-level variables NO se comparten.
 const _gi = globalThis as unknown as { __decodex_jobs_initialized__: boolean | undefined }
+const _ga = globalThis as unknown as { __decodex_jobs_active__: boolean | undefined }
 
 function isInitialized(): boolean {
   return _gi.__decodex_jobs_initialized__ === true
@@ -23,39 +30,31 @@ function isInitialized(): boolean {
 function setInitialized(v: boolean): void {
   _gi.__decodex_jobs_initialized__ = v
 }
+function isActive(): boolean {
+  return _ga.__decodex_jobs_active__ === true
+}
+function setActive(v: boolean): void {
+  _ga.__decodex_jobs_active__ = v
+}
 
-// Iniciar todo el sistema (llamar una sola vez)
+// Iniciar sistema en modo IDLE (sin scheduler, sin ejecución de jobs)
+// El worker hace polling pero no procesa nada hasta activateProductiveMode()
 export async function initJobSystem(): Promise<void> {
   if (isInitialized()) return
   setInitialized(true)
 
-  console.log('[Jobs] Iniciando sistema de Job Queue...')
+  console.log('[Jobs] Iniciando sistema de Job Queue (modo IDLE)...')
 
-  // 1. Registrar runners por defecto (mantenimiento)
+  // 1. Registrar runners por defecto
   registerDefaultRunners()
 
-  // 2. Iniciar worker (background loop)
-  startWorker()
-
-  // 2b. Primera tarea del worker: test de conectividad
-  // TEMPORALMENTE DESACTIVADO: cada restart encolaba un connectivity_test que bloqueaba
-  // la cola. Se reactivará cuando se implemente como prioridad baja no-bloqueante.
-  // enqueue({
-  //   tipo: 'connectivity_test',
-  //   prioridad: 0,
-  //   payload: { reason: 'startup' },
-  // }).then(jobId => {
-  //   console.log(`[Jobs] Connectivity test encolado (${jobId}) como primera tarea post-restart`)
-  // }).catch(err => {
-  //   console.warn('[Jobs] Error encolando connectivity test:', (err as Error).message)
-  // })
-  console.log('[Jobs] Connectivity test desactivado temporalmente — cola liberada para check_fuente')
+  // 2. Iniciar worker en modo IDLE (polling pero no ejecuta)
+  startWorkerIdle()
 
   // 3. Iniciar health monitor (cada 60s)
   startHealthMonitor()
 
   // 4. Iniciar Container Guardian (cada 30s — monitorea cgroup real)
-  // Import dinámico para evitar que Turbopack analice fs/child_process en Edge context
   try {
     const { startContainerGuardian } = await import('./container-guardian')
     startContainerGuardian()
@@ -63,10 +62,28 @@ export async function initJobSystem(): Promise<void> {
     console.warn('[Jobs] Container Guardian no disponible (Edge Runtime):', (err as Error).message)
   }
 
-  // 5. Iniciar scheduler (node-cron para fuentes y boletines)
+  console.log('[Jobs] Sistema inicializado — worker IDLE, sin scheduler')
+  console.log(`[Jobs] Warmup configurado: ${WARMUP_CONFIG.delayMs / 1000}s antes de activar modo productivo`)
+}
+
+// Activar modo productivo (scheduler + worker ejecuta jobs)
+// Debe llamarse DESPUÉS del warmup para que el servidor esté estable
+export async function activateProductiveMode(): Promise<void> {
+  if (isActive()) {
+    console.log('[Jobs] Modo productivo ya está activo')
+    return
+  }
+  setActive(true)
+
+  console.log('[Jobs] Activando modo productivo...')
+
+  // 1. Activar worker (sale de idle, comienza a ejecutar jobs)
+  startWorker()
+
+  // 2. Iniciar scheduler (node-cron para fuentes y boletines)
   await startScheduler()
 
-  console.log('[Jobs] Sistema de Job Queue iniciado')
+  console.log('[Jobs] Modo productivo activo — scheduler + worker ejecutando')
 }
 
 // Garantizar que el worker esté corriendo — llamado desde API routes
@@ -87,6 +104,7 @@ export { registerRunner } from './worker'
 export function getStats() {
   return {
     worker: getWorkerStats(),
+    productive: isActive(),
   }
 }
 
@@ -101,5 +119,6 @@ export async function shutdownJobSystem(): Promise<void> {
   stopHealthMonitor()
   stopWorker()
   setInitialized(false)
+  setActive(false)
   console.log('[Jobs] Sistema detenido')
 }
