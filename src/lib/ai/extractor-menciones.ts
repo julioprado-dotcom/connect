@@ -75,6 +75,7 @@ let cacheMarcoConceptual: { data: MarcoData | null; expiry: number } | null = nu
 let cachePersonas: { data: any[]; expiry: number } | null = null;
 let cacheEjes: { data: any[]; expiry: number } | null = null;
 let cacheTemasRecientes: { data: any[]; expiry: number } | null = null;
+let cacheIndicadores: { data: any[]; expiry: number } | null = null;
 const CACHE_TTL = 60000; // 60 seconds
 
 async function getMarcoConceptualCached(): Promise<MarcoData | null> {
@@ -123,6 +124,31 @@ async function getTemasRecientesCached(): Promise<any[]> {
   });
   cacheTemasRecientes = { data, expiry: Date.now() + CACHE_TTL };
   return data;
+}
+
+async function getIndicadoresCached(): Promise<any[]> {
+  if (cacheIndicadores && cacheIndicadores.expiry > Date.now()) {
+    return cacheIndicadores.data;
+  }
+  // Obtener últimos valores de indicadores activos (uno por indicador, el más reciente)
+  const indicadores = await db.indicador.findMany({
+    where: { activo: true },
+    select: {
+      id: true,
+      nombre: true,
+      slug: true,
+      categoria: true,
+      unidad: true,
+      formatoNumero: true,
+      valores: {
+        orderBy: { fecha: 'desc' },
+        take: 1,
+        select: { valor: true, valorTexto: true, fecha: true, confiable: true },
+      },
+    },
+  });
+  cacheIndicadores = { data: indicadores, expiry: Date.now() + CACHE_TTL };
+  return indicadores;
 }
 
 // ─── Default Fundamental Questions ────────────────────────────
@@ -483,6 +509,7 @@ export async function extraerMencionesDeTexto(
       getPersonasCached(),
       getEjesCached(),
       getTemasRecientesCached(),
+      getIndicadoresCached(),
     ];
 
     // Load client-specific ejes if clientId is provided (FASE 4D)
@@ -496,7 +523,7 @@ export async function extraerMencionesDeTexto(
       );
     }
 
-    const [personas, ejes, temasRecientes] = await Promise.all(dbQueries) as [any[], any[], any[]];
+    const [personas, ejes, temasRecientes, indicadores] = await Promise.all(dbQueries) as [any[], any[], any[], any[]];
 
     if (personas.length === 0 && ejes.length === 0) return emptyResult;
 
@@ -541,6 +568,29 @@ export async function extraerMencionesDeTexto(
       ejesClienteSection = `\nEJES TEMÁTICOS DEL CLIENTE (clasifica solo si el texto coincide claramente):\n${ejesCliente.map(e => `- CLIENTE_EJE_ID: ${e.id} | ${e.nombre} (keywords: ${e.keywords})`).join('\n')}\n`;
     }
 
+    // 6c. Build indicadores actuales section (reference context for LLM)
+    // Los indicadores NO se extraen con IA, pero sus valores se pasan como contexto
+    // para que el LLM tenga referencias reales al clasificar notas económicas
+    let indicadoresSection = '';
+    const indicadoresConValor = indicadores.filter(ind =>
+      ind.valores && ind.valores.length > 0 && ind.valores[0].confiable
+    );
+    if (indicadoresConValor.length > 0) {
+      const fechaMasReciente = indicadoresConValor
+        .reduce((max, ind) => {
+          const f = new Date(ind.valores[0].fecha);
+          return f > max ? f : max;
+        }, new Date(0));
+      indicadoresSection = `\nINDICADORES ACTUALES (referencia — NO extraer, solo usar como contexto):\n`;
+      indicadoresSection += `(Última actualización: ${fechaMasReciente.toISOString().split('T')[0]})\n`;
+      for (const ind of indicadoresConValor) {
+        const v = ind.valores[0];
+        const valorFormateado = v.valorTexto || v.valor.toFixed(ind.formatoNumero || 2);
+        indicadoresSection += `- ${ind.nombre}: ${valorFormateado} ${ind.unidad}\n`;
+      }
+      indicadoresSection += '\n';
+    }
+
     // 7. Truncar texto si es muy largo (max ~4000 chars para el LLM)
     const textoTruncado = texto.length > 4000
       ? texto.substring(0, 4000) + '...'
@@ -553,6 +603,7 @@ export async function extraerMencionesDeTexto(
     if (listaKeywords) {
       userContent += `KEYWORDS DE INTERÉS: ${listaKeywords}\n\n`;
     }
+    userContent += indicadoresSection;
     userContent += `TEXTO DE LA NOTICIA:\n${textoTruncado}`;
 
     // 9. Llamada al LLM
