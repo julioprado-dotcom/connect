@@ -38,16 +38,18 @@ export async function initJobSystem(): Promise<void> {
   startWorker()
 
   // 2b. Primera tarea del worker: test de conectividad
-  // Al reiniciar, el worker debe verificar que puede contactar el mundo exterior.
-  enqueue({
-    tipo: 'connectivity_test',
-    prioridad: 0,
-    payload: { reason: 'startup' },
-  }).then(jobId => {
-    console.log(`[Jobs] Connectivity test encolado (${jobId}) como primera tarea post-restart`)
-  }).catch(err => {
-    console.warn('[Jobs] Error encolando connectivity test:', (err as Error).message)
-  })
+  // TEMPORALMENTE DESACTIVADO: cada restart encolaba un connectivity_test que bloqueaba
+  // la cola. Se reactivará cuando se implemente como prioridad baja no-bloqueante.
+  // enqueue({
+  //   tipo: 'connectivity_test',
+  //   prioridad: 0,
+  //   payload: { reason: 'startup' },
+  // }).then(jobId => {
+  //   console.log(`[Jobs] Connectivity test encolado (${jobId}) como primera tarea post-restart`)
+  // }).catch(err => {
+  //   console.warn('[Jobs] Error encolando connectivity test:', (err as Error).message)
+  // })
+  console.log('[Jobs] Connectivity test desactivado temporalmente — cola liberada para check_fuente')
 
   // 3. Iniciar health monitor (cada 60s)
   startHealthMonitor()

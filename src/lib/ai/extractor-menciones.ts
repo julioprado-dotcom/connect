@@ -159,7 +159,19 @@ type MarcoData = NonNullable<Awaited<ReturnType<typeof db.marcoConceptual.findFi
 function safeJson<T>(field: unknown, fallback: T): T {
   if (field === null || field === undefined) return fallback;
   try {
-    return typeof field === 'string' ? (JSON.parse(field) as T) : (field as T);
+    if (typeof field === 'string') {
+      const parsed = JSON.parse(field);
+      // Si esperamos un array pero no lo es, usar fallback
+      if (Array.isArray(fallback) && !Array.isArray(parsed)) return fallback;
+      return parsed as T;
+    }
+    // Prisma puede devolver JSON como objeto ya parseado
+    if (typeof field === 'object') {
+      // Si esperamos un array pero field no lo es, usar fallback
+      if (Array.isArray(fallback) && !Array.isArray(field)) return fallback;
+      return field as T;
+    }
+    return fallback;
   } catch {
     return fallback;
   }
@@ -505,7 +517,7 @@ export async function extraerMencionesDeTexto(
     // 6. Construir lista combinada de keywords de interés
     const todasKeywords = new Set<string>();
     for (const eje of ejes) {
-      if (eje.keywords) {
+      if (eje.keywords && typeof eje.keywords === 'string') {
         for (const kw of eje.keywords.split(',').map((k: string) => k.trim().toLowerCase()).filter(Boolean)) {
           todasKeywords.add(kw);
         }
@@ -513,7 +525,7 @@ export async function extraerMencionesDeTexto(
     }
     // Agregar keywords de temas recientes para detección de tendencias
     for (const tm of temasRecientes) {
-      if (tm.ejeTematico.keywords) {
+      if (tm.ejeTematico?.keywords && typeof tm.ejeTematico.keywords === 'string') {
         for (const kw of tm.ejeTematico.keywords.split(',').map((k: string) => k.trim().toLowerCase()).filter(Boolean)) {
           todasKeywords.add(kw);
         }
@@ -558,7 +570,25 @@ export async function extraerMencionesDeTexto(
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return emptyResult;
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(jsonMatch[0]);
+    } catch (parseErr) {
+      console.warn('[extractor-menciones] JSON parse falló, primerosp 500 chars:', raw.substring(0, 500));
+      return emptyResult;
+    }
+
+    if (!parsed || typeof parsed !== 'object') {
+      console.warn('[extractor-menciones] LLM no devolvió objeto válido');
+      return emptyResult;
+    }
+
+    // Garantizar que todos los campos array sean realmente arrays
+    function ensureArray(val: unknown): any[] {
+      if (Array.isArray(val)) return val;
+      if (val && typeof val === 'object' && 'length' in val) return Array.from(val as ArrayLike<unknown>);
+      return [];
+    }
 
     // 10. Validar y normalizar resultado
     const validPersonIds = new Set(personas.map(p => p.id));
@@ -569,8 +599,7 @@ export async function extraerMencionesDeTexto(
     const confianzasValidas = new Set(['alta', 'media', 'baja']);
 
     // Legisladores (key in LLM output: legisladores_mencionados)
-    const legisladores = Array.isArray(parsed.legisladores_mencionados)
-      ? parsed.legisladores_mencionados
+    const legisladores = ensureArray(parsed.legisladores_mencionados)
           .filter((m: Record<string, unknown>) =>
             m.persona_id && validPersonIds.has(m.persona_id as string) && m.cita
           )
@@ -579,13 +608,11 @@ export async function extraerMencionesDeTexto(
             persona_id: m.persona_id,
             cita: String(m.cita),
             contexto: String(m.contexto || ''),
-          }))
-      : [];
+          }));
 
     // Ejes (LLM returns "ejes_institucionales", we map to ejes_mencionados)
-    const ejesRaw = parsed.ejes_institucionales || parsed.ejes_mencionados || [];
-    const ejesMencionados = Array.isArray(ejesRaw)
-      ? ejesRaw
+    const ejesRaw = parsed.ejes_institucionales || parsed.ejes_mencionados;
+    const ejesMencionados = ensureArray(ejesRaw)
           .filter((e: Record<string, unknown>) =>
             e.eje_id && validEjeIds.has(e.eje_id as string) && e.cita
           )
@@ -596,13 +623,10 @@ export async function extraerMencionesDeTexto(
             relevancia: relevanciasValidas.has(String(e.relevancia || ''))
               ? String(e.relevancia) as 'alta' | 'media' | 'baja'
               : 'media' as const,
-          }))
-      : [];
+          }));
 
     // Ejes del cliente (LLM returns "ejes_cliente") — FASE 4D
-    const ejesClienteRaw = parsed.ejes_cliente || [];
-    const ejesClienteParsed = Array.isArray(ejesClienteRaw)
-      ? ejesClienteRaw
+    const ejesClienteParsed = ensureArray(parsed.ejes_cliente)
           .filter((e: Record<string, unknown>) =>
             e.eje_cliente_id && validEjeClienteIds.has(Number(e.eje_cliente_id)) && e.cita
           )
@@ -613,16 +637,13 @@ export async function extraerMencionesDeTexto(
             relevancia: relevanciasValidas.has(String(e.relevancia || ''))
               ? String(e.relevancia) as 'alta' | 'media' | 'baja'
               : 'media' as const,
-          }))
-      : [];
+          }));
 
     // Temas
-    const temas = Array.isArray(parsed.temas_detectados)
-      ? parsed.temas_detectados
+    const temas = ensureArray(parsed.temas_detectados)
           .map((t: string) => String(t).trim().toLowerCase())
           .filter(Boolean)
-          .slice(0, 5)
-      : [];
+          .slice(0, 5);
 
     // Tratamiento periodístico
     const tratamiento = tratamientosValidos.has(String(parsed.tratamiento_periodistico || ''))
