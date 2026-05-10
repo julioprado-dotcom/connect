@@ -7,7 +7,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { HardDrive, Trash2, Database, Cpu, Gauge, RefreshCw, Shield, Zap } from 'lucide-react'
+import { HardDrive, Trash2, Database, Cpu, Gauge, RefreshCw, Shield, Zap, Save } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -54,6 +54,10 @@ interface CacheData {
       level: string
       action: string
     }>
+  }
+  backup: {
+    config: { archivo: string; tamanio: string; fecha: string } | null
+    operacional: { archivo: string; tamanio: string; fecha: string } | null
   }
   uptime: {
     seconds: number
@@ -348,6 +352,40 @@ export function CachePressurePanel() {
                 ({new Date(data.guardian.lastActionTime).toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })})
               </span>
             )}
+          </div>
+        )}
+
+        {/* ── Backup Diferencial por Dominio ──────────────────────────── */}
+        {(data.backup?.config || data.backup?.operacional) && (
+          <div className="px-2 py-1.5 rounded-md bg-muted/30 border border-border/50">
+            <p className="text-[9px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+              <Save className="h-3 w-3" />
+              Backup Diferencial
+            </p>
+            <div className="space-y-1">
+              {data.backup.config && (
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-muted-foreground">CONFIG <span className="text-muted-foreground/60">(24h)</span></span>
+                  <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                    {data.backup.config.tamanio}
+                    <span className="text-muted-foreground/60 ml-1">
+                      {new Date(data.backup.config.fecha).toLocaleString('es-BO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </span>
+                </div>
+              )}
+              {data.backup.operacional && (
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-muted-foreground">OPERACIONAL <span className="text-muted-foreground/60">(7d)</span></span>
+                  <span className="font-mono text-blue-600 dark:text-blue-400">
+                    {data.backup.operacional.tamanio}
+                    <span className="text-muted-foreground/60 ml-1">
+                      {new Date(data.backup.operacional.fecha).toLocaleString('es-BO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

@@ -311,8 +311,12 @@ export async function proxy(request: NextRequest) {
   const apiKeyBlocked = checkApiKey(request);
   if (apiKeyBlocked) return apiKeyBlocked;
 
-  // Rutas de administración siempre protegidas (todos los métodos)
-  if (isAlwaysProtected(pathname)) {
+  // Rutas de administración protegidas por auth
+  // Excepción: endpoints de solo-lectura necesarios para el dashboard sin auth (iframe mode v07)
+  const ADMIN_READONLY_PUBLIC = ['/api/admin/cache', '/api/admin/status']
+  const isAdminReadOnlyPublic = method === 'GET' && ADMIN_READONLY_PUBLIC.some((r) => pathname.startsWith(r))
+
+  if (isAlwaysProtected(pathname) && !isAdminReadOnlyPublic) {
     const authed = await isAuthenticated(request);
     if (!authed) {
       return NextResponse.json(

@@ -31,6 +31,19 @@ export async function GET() {
       guardian = mod.getGuardianStatus()
     } catch { /* guardian no disponible */ }
 
+    // Backup diferencial: último backup config y operacional
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let backupInfo: any = { config: null, operacional: null }
+    try {
+      const { listBackups } = await import('@/lib/backup')
+      const backups = await listBackups()
+      // Buscar el último backup de cada dominio en archives
+      const configBackup = backups.find(b => b.tipo === 'archive' && b.archivo.startsWith('config-'))
+      const opBackup = backups.find(b => b.tipo === 'archive' && b.archivo.startsWith('operacional-'))
+      if (configBackup) backupInfo.config = { archivo: configBackup.archivo, tamanio: configBackup.tamanio, fecha: configBackup.fecha }
+      if (opBackup) backupInfo.operacional = { archivo: opBackup.archivo, tamanio: opBackup.tamanio, fecha: opBackup.fecha }
+    } catch { /* backup info no disponible */ }
+
     // Nivel de presión (0-100) — ahora pesa más el cgroup que el heap
     const pressureScore = Math.round(
       (memory.heapPct * 0.25) + (container.pct * 0.55) +
@@ -65,6 +78,7 @@ export async function GET() {
         // Últimas 20 snapshots para gráfica de tendencia
         snapshots: guardian.snapshots,
       },
+      backup: backupInfo,
       uptime: {
         seconds: Math.round(uptime),
         formatted: formatUptime(uptime),
