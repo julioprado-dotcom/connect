@@ -43,10 +43,13 @@ export async function startScheduler(): Promise<void> {
   // 1. Programar checks de fuentes
   await scheduleCheckJobs()
 
-  // 2. Programar generacion de boletines
+  // 2. Programar captura de indicadores Tier 1
+  await scheduleIndicatorJobs()
+
+  // 3. Programar generacion de boletines
   scheduleBoletinJobs()
 
-  // 3. Programar mantenimiento nocturno
+  // 4. Programar mantenimiento nocturno
   scheduleMaintenanceJob()
 
   console.log(`[Scheduler] ${getState().tasks.length} tareas programadas`)
@@ -251,6 +254,73 @@ function scheduleBoletinJobs(): void {
   console.log(`[Scheduler] Programados ${entries.length} boletines ONION200`)
 }
 
+// Programar captura de indicadores Tier 1 (08:00 AM todos los dias)
+async function scheduleIndicatorJobs(): Promise<void> {
+  // Verificar que haya indicadores Tier 1 en la DB
+  const indicadoresTier1 = await db.indicador.count({
+    where: { activo: true, tier: 1 },
+  })
+
+  if (indicadoresTier1 === 0) {
+    console.log('[Scheduler] No hay indicadores Tier 1 para programar')
+    return
+  }
+
+  // Captura batch Tier 1: 08:00 AM (hora Bolivia, UTC-4)
+  // node-cron usa hora local del servidor (UTC), 08:00 Bolivia = 12:00 UTC
+  const expresion = '0 12 * * *'
+
+  if (!cron.validate(expresion)) return
+
+  const task = cron.schedule(expresion, async () => {
+    try {
+      // Proteccion: no encolar si ya hay un capture pendiente
+      const pendingCapture = await db.job.findFirst({
+        where: {
+          tipo: 'capture_indicador',
+          estado: 'pendiente',
+        },
+      })
+
+      if (pendingCapture) {
+        console.log('[Scheduler] capture_indicador ya pendiente, saltando')
+        return
+      }
+
+      // Proteccion: verificar que no se haya capturado en las ultimas 23 horas
+      const ayer = new Date()
+      ayer.setHours(ayer.getHours() - 23)
+
+      const recentCapture = await db.job.findFirst({
+        where: {
+          tipo: 'capture_indicador',
+          estado: 'completado',
+          fechaFin: { gte: ayer },
+        },
+      })
+
+      if (recentCapture) {
+        console.log(`[Scheduler] capture_indicador ejecutado recientemente (${recentCapture.fechaFin?.toISOString()}), saltando`)
+        return
+      }
+
+      await enqueue({
+        tipo: 'capture_indicador',
+        prioridad: 3,
+        payload: { capturarTodos: true },
+      })
+
+      console.log(`[Scheduler] capture_indicador (Tier 1 batch) encolado (${formatCronHuman(expresion)})`)
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error)
+      console.error(`[Scheduler] Error en captura indicadores: ${msg}`)
+    }
+  })
+
+  getState().tasks.push(task)
+  console.log(`[Scheduler] Captura indicadores Tier 1 programada (${formatCronHuman(expresion)}) — ${indicadoresTier1} indicadores activos`)
+}
+
 // Programar mantenimiento nocturno (04:00 AM todos los dias)
 function scheduleMaintenanceJob(): void {
   const entry = getMantenimientoCronEntry()
@@ -313,6 +383,7 @@ export async function rescheduleAll(): Promise<void> {
 
   // Re-programar
   await scheduleCheckJobs()
+  await scheduleIndicatorJobs()
   scheduleBoletinJobs()
   scheduleMaintenanceJob()
 
