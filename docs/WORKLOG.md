@@ -1,5 +1,116 @@
 # DECODEX Bolivia — Worklog
 
+## 2026-05-10 — Integración Z.ai page_reader: 15 fuentes activas, diagnóstico scraper
+
+### Objetivo
+Activar Z.ai page_reader en el pipeline de scraping para bypassar limitaciones del contenedor
+(TLS, Cloudflare 403, DNS) y habilitar monitoreo masivo de fuentes.
+
+### Acciones realizadas
+
+#### 1. Activación masiva de fuentes
+- Las 15 fuentes de FuenteEstado cambiaron a `activo=true` + `tipoCheck='zai'`
+- Antes: solo 4 activas (1 con zai, 3 con fetch directo fallando)
+- Después: 15 activas, todas usando Z.ai page_reader como estrategia primaria
+
+#### 2. Pruebas masivas de conectividad Z.ai
+
+| Fuente | Z.ai | Error | Diagnóstico |
+|--------|------|-------|-------------|
+| la-razon.com | ✅ OK (1.2M chars) | — | Funcional |
+| boliviaverifica.bo | ✅ OK (179K chars) | — | Funcional |
+| elmundo.com.bo | ✅ OK (639K chars) | — | Funcional |
+| abi.bo | ✅ OK (144K chars) | — | Funcional |
+| lostiempos.com | ✅ OK (cambio detectado) | — | Funcional |
+| eju.tv | ✅ OK | — | Funcional (procesado en cola) |
+| opinion.com.bo | ✅ OK | — | Funcional (procesado en cola) |
+| reduno.tv | ✅ OK | — | Funcional (procesado en cola) |
+| unitel.bo | ✅ OK | — | Funcional (procesado en cola) |
+| vision360.bo | ✅ OK | — | Funcional (procesado en cola) |
+| anf.com.bo | ❌ FAIL | DNS could not be resolved | Dominio caído |
+| atb.com.bo | ❌ FAIL | ERR_CERT_COMMON_NAME_INVALID | Certificado SSL roto |
+| tvbolivia.tv | ❌ FAIL | DNS could not be resolved | Dominio caído |
+| deber.com.bo | ❌ FAIL | DNS could not be resolved | Dominio caído |
+| eldiario.net.bo | ❌ FAIL | DNS could not be resolved | Dominio caído |
+
+**Resultado: 10/15 fuentes funcionan con Z.ai. 5 fallan por dominios caídos (no es problema del sistema).**
+
+#### 3. Diagnóstico del pipeline de productos
+
+**CAPTURA — Funcionando:**
+- check_fuente: 33 jobs completados, detección de cambios operativa
+- scrape_fuente: 8 scrapes completados
+- Fuentes con cambios detectados: La Razón (4), Bolivia Verifica (2), ABI (1), El Mundo (1), Los Tiempos (1)
+
+**PRODUCTOS — Sin generar (cuello de botella identificado):**
+- 0 reportes generados
+- 0 entregas
+- 0 boletines
+- Solo 1 mención creada (de 8 scrapes)
+
+**CONTENIDO — Muy bajo:**
+- Menciones: 1
+- Indicadores configurados: 0
+- Indicadores valores: 0
+
+**COMERCIAL — Vacío:**
+- Clientes: 0, Contratos: 0, Suscriptores: 0
+
+#### 4. Observaciones clave sobre el scraper
+
+El scraper (`scrape-fuente.ts`) descarga HTML correctamente con Z.ai pero casi no crea menciones.
+De 8 scrapes exitosos, solo 1 generó una mención (ABI). Las demás devolvieron `totalMencionesCreadas: 0`.
+
+**Causas probables (sin modificar código, solo observación):**
+- El parser de HTML puede no estar adaptado a la estructura de cada sitio
+- Las fuentes Z.ai devuelven HTML limpio (procesado por Jina reader), no HTML crudo
+- El extractor de enlaces/artículos puede no encontrar patrones en el HTML procesado
+- Posible doble `recordRequest` en scrape-fuente.ts línea 60 (bug conocido T5)
+
+### Proximas acciones (priorizadas)
+
+1. **REVISAR scrape-fuente.ts** — Entender por qué 7/8 scrapes no crean menciones
+   - Verificar qué devuelve el HTML de Z.ai vs lo que espera el parser
+   - Corregir doble `recordRequest` (bug T5)
+   - Adaptar extractores a HTML limpio de Jina reader
+
+2. **PROBAR extractor manual** — Tomar HTML de La Razón (1.2M chars disponible) y verificar
+   que el parser identifica artículos y extrae datos correctamente
+
+3. **VERIFICAR dominios caídos** — Buscar URLs alternativas para las 5 fuentes caídas:
+   - ANF: ¿anf.com.bo sigue existiendo? Buscar mirror
+   - ATB: Certificado SSL roto → ¿www.atb.com.bo funciona?
+   - El Deber: ¿eldeber.com.bo vs deber.com.bo?
+   - El Diario: ¿eldiario.net.bo caído?
+   - Bolivia TV: ¿tvbolivia.tv caído?
+
+4. **INDICADORES** — Tabla Indicador vacía, no hay capturers activos
+
+5. **JOB SYSTEM** — Worker secuencial se cuelga cuando un Z.ai tarda mucho.
+   Considerar timeout por job.
+
+### Commits previos de esta sesión
+- 871aede: fix: pipeline scraping end-to-end funcional con Z.ai SDK
+- 84ab1c8: feat: integrar Z.ai SDK page_reader como fallback para scraping
+
+### Protocolo de reinicio verificado
+```bash
+# Verificar: curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
+# Si 000 → levantar:
+cd /home/z/my-project/connect && (setsid ./node_modules/.bin/next start -p 3000 > /dev/null 2>&1 &)
+# IMPORTANTE: usar ./node_modules/.bin/next (npx resuelve versión equivocada)
+```
+
+### Notas de entorno
+- Los procesos background (`nohup`, `setsid`) NO sobreviven entre llamadas de herramienta
+- El worker loop corre dentro del proceso Next.js, requiere servidor vivo para procesar
+- Jobs insertados manualmente en SQLite con fechas string NO funcionan con Prisma
+  (deben insertarse via Prisma Client para formato DateTime correcto)
+- Worker secuencial: si un job se cuelga, toda la cola se bloquea
+  (reclaim manual: UPDATE Job SET estado='pendiente' WHERE estado='en_progreso')
+
+---
+
 ## 2026-05-09 — Sistema de Backup y Archivo (Anti-Purge)
 
 ### Problema resuelto
