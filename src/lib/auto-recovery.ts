@@ -32,6 +32,25 @@ function tipoCheckParaCategoria(tipo: string): string {
   return 'head'
 }
 
+// Dominios conocidos como caídos (DNS/SSL rotos — verificados 2026-05-10)
+// Estas fuentes se marcan directamente como 'deprecada' para no gastar ciclos de scheduler
+const DOMINIOS_DEPRECADOS = new Set([
+  'anf.com.bo',       // DNS could not be resolved
+  'atb.com.bo',       // ERR_CERT_COMMON_NAME_INVALID
+  'tvbolivia.tv',     // DNS could not be resolved
+  'deber.com.bo',     // DNS could not be resolved
+  'eldiario.net.bo',  // DNS could not be resolved
+])
+
+function dominioDeprecado(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, '')
+    return DOMINIOS_DEPRECADOS.has(hostname)
+  } catch {
+    return false
+  }
+}
+
 // ── Diagnóstico ────────────────────────────────────────────────────────
 
 interface DBDiagnosis {
@@ -115,6 +134,10 @@ export async function seedFuentes(): Promise<{ creados: number }> {
     const tipoCheck = tipoCheckParaCategoria(medio.tipo)
     // Sources start as "validando" — not activated by level
     // They become "activa" only after a successful check-first validation
+    // Known dead domains skip directly to "deprecada" (T5: 5 fuentes muertas)
+    const esDeprecado = dominioDeprecado(medio.url)
+    const estadoInicial = esDeprecado ? 'deprecada' : 'validando'
+
     try {
       await db.fuenteEstado.upsert({
         where: { medioId: medio.id },
@@ -125,12 +148,15 @@ export async function seedFuentes(): Promise<{ creados: number }> {
           frecuenciaBase,
           frecuenciaActual: frecuenciaBase,
           activo: false,
-          estado: 'validando',
+          estado: estadoInicial,
         },
         update: {
           // Only re-create if missing — never auto-reactivate
         },
       })
+      if (esDeprecado) {
+        console.log(`[AutoRecovery] Fuente ${medio.nombre}: dominio deprecado (${medio.url}) → "deprecada"`)
+      }
       creados++
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error)
