@@ -4,7 +4,7 @@
 // Solución integral: no parches — recovery completo en un solo punto.
 
 import db from '@/lib/db'
-import { readFileSync } from 'fs'
+import { readFileSync, copyFileSync, existsSync, mkdirSync, readdirSync, statSync, unlinkSync } from 'fs'
 import { join } from 'path'
 
 // ── Configuración ──────────────────────────────────────────────────────
@@ -608,4 +608,130 @@ export async function ejecutarAutoRecovery(): Promise<RecoveryResult> {
   }
 
   return { ejecutado: true, acciones, diagnostico }
+}
+
+// ── Backup Periódico de DB ────────────────────────────────────────────
+
+// Configuración de backup
+const BACKUP_CONFIG = {
+  maxBackups: 5,           // Máximo de backups a mantener
+  intervalMs: 6 * 60 * 60 * 1000,  // 6 horas entre backups
+  cycleThreshold: 100,     // O cada 100 ciclos de scraping
+} as const
+
+// Estado del contador de ciclos (persiste en memoria durante la sesión)
+let scrapeCycleCount = 0
+let lastBackupTime = 0
+
+/**
+ * Incrementa el contador de ciclos de scraping y ejecuta backup
+ * si se alcanza el umbral de ciclos o el intervalo de tiempo.
+ *
+ * Llamar después de cada ciclo completo de scrape-fuente.
+ * Usa fs.copyFileSync() — NO usa git para el backup.
+ *
+ * Backups se guardan en: prisma/db/backups/custom-YYYY-MM-DD-HHMMSS.db
+ */
+export function checkAndBackupDB(): { backed: boolean; path?: string; error?: string } {
+  scrapeCycleCount++
+  const now = Date.now()
+  const timeElapsed = now - lastBackupTime
+
+  // Verificar si toca backup por ciclos O por tiempo
+  const byCycles = scrapeCycleCount >= BACKUP_CONFIG.cycleThreshold
+  const byTime = lastBackupTime === 0 || timeElapsed >= BACKUP_CONFIG.intervalMs
+
+  if (!byCycles && !byTime) {
+    return { backed: false }
+  }
+
+  // Ejecutar backup
+  try {
+    const dbPath = join(process.cwd(), 'prisma', 'db', 'custom.db')
+    const backupDir = join(process.cwd(), 'prisma', 'db', 'backups')
+
+    // Verificar que la DB existe
+    if (!existsSync(dbPath)) {
+      return { backed: false, error: `DB no encontrada: ${dbPath}` }
+    }
+
+    // Crear directorio de backups si no existe
+    if (!existsSync(backupDir)) {
+      mkdirSync(backupDir, { recursive: true })
+    }
+
+    // Generar nombre de backup con timestamp
+    const now_date = new Date()
+    const ts = now_date.toISOString()
+      .replace(/[:.]/g, '-')
+      .replace('T', '_')
+      .slice(0, 19)  // YYYY-MM-DD_HH-MM-SS
+    const backupPath = join(backupDir, `custom-${ts}.db`)
+
+    // Copiar DB (sincrono — bloqueante pero seguro para SQLite)
+    copyFileSync(dbPath, backupPath)
+
+    // Obtener tamaño del backup
+    const backupStats = statSync(backupPath)
+    const sizeKB = Math.round(backupStats.size / 1024)
+
+    // Limpiar backups antiguos (mantener solo los últimos N)
+    cleanOldBackups(backupDir)
+
+    // Resetear contadores
+    scrapeCycleCount = 0
+    lastBackupTime = now
+
+    console.log(
+      `[Backup] DB respaldada: ${backupPath} (${sizeKB} KB) ` +
+      `[${byCycles ? `${scrapeCycleCount} ciclos` : `${Math.round(timeElapsed / 60000)}min`}]`
+    )
+
+    return { backed: true, path: backupPath }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error(`[Backup] Error al respaldar DB: ${msg}`)
+    return { backed: false, error: msg }
+  }
+}
+
+/**
+ * Limpia los backups más antiguos, manteniendo solo los últimos MAX_BACKUPS.
+ * Ordena por fecha de modificación (más reciente primero).
+ */
+function cleanOldBackups(backupDir: string): void {
+  try {
+    const files = readdirSync(backupDir)
+      .filter(f => f.startsWith('custom-') && f.endsWith('.db'))
+      .map(f => ({
+        name: f,
+        path: join(backupDir, f),
+        mtime: statSync(join(backupDir, f)).mtimeMs,
+      }))
+      .sort((a, b) => b.mtime - a.mtime)  // Más reciente primero
+
+    // Eliminar los que exceden el máximo
+    if (files.length > BACKUP_CONFIG.maxBackups) {
+      const toDelete = files.slice(BACKUP_CONFIG.maxBackups)
+      for (const file of toDelete) {
+        try {
+          unlinkSync(file.path)
+          console.log(`[Backup] Backup antiguo eliminado: ${file.name}`)
+        } catch {
+          // Ignorar errores al eliminar — no es crítico
+        }
+      }
+    }
+  } catch {
+    // Si el directorio no existe o hay error, no es crítico
+  }
+}
+
+/**
+ * Ejecuta un backup inmediato (forzado).
+ * Útil para antes de operaciones destructivas o al cerrar sesión.
+ */
+export function backupNow(): { backed: boolean; path?: string; error?: string } {
+  scrapeCycleCount = BACKUP_CONFIG.cycleThreshold  // Forzar trigger
+  return checkAndBackupDB()
 }
