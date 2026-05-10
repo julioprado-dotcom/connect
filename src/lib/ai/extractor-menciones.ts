@@ -568,9 +568,12 @@ export async function extraerMencionesDeTexto(
       ejesClienteSection = `\nEJES TEMÁTICOS DEL CLIENTE (clasifica solo si el texto coincide claramente):\n${ejesCliente.map(e => `- CLIENTE_EJE_ID: ${e.id} | ${e.nombre} (keywords: ${e.keywords})`).join('\n')}\n`;
     }
 
-    // 6c. Build indicadores actuales section (reference context for LLM)
-    // Los indicadores NO se extraen con IA, pero sus valores se pasan como contexto
-    // para que el LLM tenga referencias reales al clasificar notas económicas
+    // 6c. Build indicadores actuales section (insumos para productos + contexto)
+    // Los indicadores NO se extraen con IA (Pipeline A es 100% regex), pero sus valores
+    // cumplen una doble función: (1) contexto de referencia para clasificar notas económicas
+    // y (2) insumos para generación de productos (boletines, reportes, alertas).
+    // El LLM debe usar estos valores para enriquecer clasificaciones temáticas y detectar
+    // si la noticia contiene datos que actualicen o contradigan estos indicadores.
     let indicadoresSection = '';
     const indicadoresConValor = indicadores.filter(ind =>
       ind.valores && ind.valores.length > 0 && ind.valores[0].confiable
@@ -581,8 +584,10 @@ export async function extraerMencionesDeTexto(
           const f = new Date(ind.valores[0].fecha);
           return f > max ? f : max;
         }, new Date(0));
-      indicadoresSection = `\nINDICADORES ACTUALES (referencia — NO extraer, solo usar como contexto):\n`;
+      indicadoresSection = `\nINDICADORES ACTUALES (doble uso: contexto de clasificación + insumos para productos como boletines y reportes):\n`;
       indicadoresSection += `(Última actualización: ${fechaMasReciente.toISOString().split('T')[0]})\n`;
+      indicadoresSection += `Estos valores son referencia real para tu análisis. Si la noticia menciona datos que contradigan\n`;
+      indicadoresSection += `o actualicen algún indicador, destácalo en el resumen — esa información alimenta productos del sistema.\n\n`;
       for (const ind of indicadoresConValor) {
         const v = ind.valores[0];
         const valorFormateado = v.valorTexto || v.valor.toFixed(ind.formatoNumero || 2);

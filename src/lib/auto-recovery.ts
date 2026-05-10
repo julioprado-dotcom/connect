@@ -4,6 +4,8 @@
 // Solución integral: no parches — recovery completo en un solo punto.
 
 import db from '@/lib/db'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 
 // ── Configuración ──────────────────────────────────────────────────────
 
@@ -355,6 +357,172 @@ export async function seedMarcoConceptual(): Promise<boolean> {
   }
 }
 
+// ── Recovery: Seed de Personas (legisladores) ───────────────────────
+
+// Mapeo de siglas de partido — normalización (mismo que /api/seed)
+const PARTIDO_MAP: Record<string, string> = {
+  'PDC': 'Partido Demócrata Cristiano',
+  'LIBRE': 'Libre', 'UNIDAD': 'Unidad',
+  'APB SÚMATE': 'APB Súmate', 'AP': 'Acción Panamericana',
+  'MAS IPSP': 'Movimiento al Socialismo - IPSP',
+  'BIA YUQUI': 'Bia Yuqui', 'CC': 'Comunidad Ciudadana',
+  'MNR': 'Movimiento Nacionalista Revolucionario',
+  'MTS': 'Movimiento Tercer Sistema',
+  'PAN-BOL': 'Poder Andino Amazónico', 'JUNTOS': 'Juntos',
+  'FRI': 'Frente Revolucionario de Izquierda', 'VERDE': 'Partido Verde',
+  'PODEMOS': 'Poder Democrático Social', 'MIR': 'Movimiento de Izquierda Revolucionaria',
+  'ADN': 'Acción Democrática Nacionalista', 'NFR': 'Nueva Fuerza Republicana',
+  'UCS': 'Unidad Cívica Solidaridad',
+}
+
+const DEPARTAMENTOS: Record<string, string> = {
+  'Chuquisaca': 'Chuquisaca', 'La paz': 'La Paz', 'La Paz': 'La Paz',
+  'Cochabamba': 'Cochabamba', 'Oruro': 'Oruro', 'Potosí': 'Potosí', 'Potosi': 'Potosí',
+  'Tarija': 'Tarija', 'Santa cruz': 'Santa Cruz', 'Santa Cruz': 'Santa Cruz',
+  'Beni': 'Beni', 'Pando': 'Pando',
+}
+
+function normalizarPartido(sigla: string, nombre: string): { sigla: string; nombre: string } {
+  let siglaLimpia = (sigla || '').toUpperCase().trim()
+  const sNorm = siglaLimpia.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  if (sNorm.includes('APB') && sNorm.includes('SUMATE')) siglaLimpia = 'APB SÚMATE'
+  return { sigla: siglaLimpia, nombre: PARTIDO_MAP[siglaLimpia] || nombre || siglaLimpia }
+}
+
+function normalizarDepto(dep: string): string {
+  if (!dep) return ''
+  const d = dep.charAt(0).toUpperCase() + dep.slice(1).toLowerCase()
+  return DEPARTAMENTOS[d] || d
+}
+
+/**
+ * Carga legisladores desde JSON si la tabla Persona está vacía/degradada.
+ * Fuentes: data/senadores_completo.json + data/legisladores_2025_2030.json
+ * No elimina datos existentes — solo inserta los que faltan (idempotente).
+ */
+export async function seedPersonas(): Promise<{ senadores: number; diputados: number }> {
+  const existentes = await db.persona.count()
+  if (existentes >= SALUD_THRESHOLDS.personas) {
+    console.log(`[AutoRecovery] Personas ya cargadas: ${existentes}. Omitiendo seed.`)
+    return { senadores: 0, diputados: 0 }
+  }
+
+  console.log(`[AutoRecovery] Personas insuficientes: ${existentes}/${SALUD_THRESHOLDS.personas}. Ejecutando seed...`)
+
+  let senadores = 0
+  let diputados = 0
+
+  // 1. Senadores desde senadores_completo.json
+  try {
+    const senadoresRaw = JSON.parse(
+      readFileSync(join(process.cwd(), 'data', 'senadores_completo.json'), 'utf-8')
+    )
+    for (const sen of senadoresRaw) {
+      const nombre = String(sen.nombre || '').replace(/\s+/g, ' ').trim()
+      if (!nombre) continue
+
+      // Evitar duplicados: verificar por nombre + camara
+      const existe = await db.persona.findFirst({
+        where: { nombre, camara: 'Senadores' },
+      })
+      if (existe) { senadores++; continue }
+
+      const partido = normalizarPartido(String(sen.partido_sigla || ''), String(sen.partido || ''))
+      await db.persona.create({
+        data: {
+          nombre,
+          camara: 'Senadores',
+          departamento: normalizarDepto(String(sen.departamento || '')),
+          partido: partido.nombre,
+          partidoSigla: partido.sigla,
+          tipo: String(sen.es_titular) === 'true' ? 'Titular' : 'Suplente',
+          cargoDirectiva: sen.cargo_directiva ? String(sen.cargo_directiva) : null,
+          email: sen.email ? String(sen.email) : null,
+          fotoUrl: sen.foto_url ? String(sen.foto_url) : '',
+          periodo: '2025-2030',
+        },
+      })
+      senadores++
+    }
+    console.log(`[AutoRecovery] Senadores insertados: ${senadores}`)
+  } catch (error) {
+    console.error('[AutoRecovery] Error cargando senadores:', error instanceof Error ? error.message : error)
+  }
+
+  // 2. Diputados desde legisladores_2025_2030.json (array de 334, filtrar camara='Diputados')
+  try {
+    const legisladoresRaw = JSON.parse(
+      readFileSync(join(process.cwd(), 'data', 'legisladores_2025_2030.json'), 'utf-8')
+    )
+    const diputadosData = (Array.isArray(legisladoresRaw) ? legisladoresRaw : legisladoresRaw.diputados || [])
+      .filter((d: Record<string, unknown>) => d.camara === 'Diputados' || d.tipo === 'Diputados')
+
+    for (const dip of diputadosData) {
+      const nombre = String(dip.nombre || '').replace(/\s+/g, ' ').trim()
+      if (!nombre) continue
+
+      const existe = await db.persona.findFirst({
+        where: { nombre, camara: 'Diputados' },
+      })
+      if (existe) { diputados++; continue }
+
+      const partido = normalizarPartido(String(dip.partidoSigla || dip.partido_sigla || ''), String(dip.partido || ''))
+      await db.persona.create({
+        data: {
+          nombre,
+          camara: 'Diputados',
+          departamento: normalizarDepto(String(dip.departamento || '')),
+          partido: partido.nombre,
+          partidoSigla: partido.sigla,
+          tipo: String(dip.tipo || 'Titular'),
+          cargoDirectiva: dip.cargoDirectiva ? String(dip.cargoDirectiva) : null,
+          email: null,
+          fotoUrl: String(dip.foto_url || ''),
+          periodo: '2025-2030',
+        },
+      })
+      diputados++
+    }
+    console.log(`[AutoRecovery] Diputados insertados: ${diputados}`)
+  } catch (error) {
+    console.error('[AutoRecovery] Error cargando diputados:', error instanceof Error ? error.message : error)
+  }
+
+  const total = senadores + diputados
+  console.log(`[AutoRecovery] Seed Personas completado: ${total} legisladores (${senadores} senadores, ${diputados} diputados)`)
+  return { senadores, diputados }
+}
+
+// ── Recovery: Seed de Indicadores (Tier 1) ───────────────────────────
+
+/**
+ * Ejecuta seed de indicadores si la tabla está vacía/degradada.
+ * Reutiliza seedIndicadores() de capturer-tier1 (mismos 50 indicadores ONION200).
+ * Idempotente: usa upsert por slug, no duplica.
+ */
+export async function seedIndicadoresAuto(): Promise<number> {
+  const existentes = await db.indicador.count()
+  if (existentes >= 10) {
+    console.log(`[AutoRecovery] Indicadores ya cargados: ${existentes}. Omitiendo seed.`)
+    return 0
+  }
+
+  console.log(`[AutoRecovery] Indicadores insuficientes: ${existentes}. Ejecutando seed...`)
+
+  try {
+    const { seedIndicadores } = await import('@/lib/indicadores/capturer-tier1')
+    await seedIndicadores()
+
+    const nuevos = await db.indicador.count()
+    const creados = nuevos - existentes
+    console.log(`[AutoRecovery] Indicadores: ${creados} creados, total ${nuevos}`)
+    return creados
+  } catch (error) {
+    console.error('[AutoRecovery] Error cargando indicadores:', error instanceof Error ? error.message : error)
+    return 0
+  }
+}
+
 // ── Recovery Principal ────────────────────────────────────────────────
 
 export interface RecoveryResult {
@@ -400,6 +568,18 @@ export async function ejecutarAutoRecovery(): Promise<RecoveryResult> {
     } else {
       acciones.push('Marco Conceptual: error al crear (requiere intervención manual)')
     }
+  }
+
+  // ── Recovery de Personas ──
+  if (diagnostico.conteos.personas < SALUD_THRESHOLDS.personas) {
+    const resultado = await seedPersonas()
+    acciones.push(`Personas seed: ${resultado.senadores} senadores + ${resultado.diputados} diputados`)
+  }
+
+  // ── Recovery de Indicadores ──
+  if (diagnostico.conteos.indicadores < 10) {
+    const creados = await seedIndicadoresAuto()
+    acciones.push(`Indicadores seed: ${creados} creados`)
   }
 
   // ── Recovery de Fuentes ──

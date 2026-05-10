@@ -17,15 +17,18 @@ export async function register() {
         `[Instrumentation] Auto-recovery ejecutado: ${recovery.acciones.join(', ')}`
       )
     }
+    // Verificar conteos reales POST-recovery
     const { db } = await import('@/lib/db')
+    const [personas, medios, fuentes, ejes, indicadores] = await Promise.all([
+      db.persona.count(), db.medio.count(), db.fuenteEstado.count(),
+      db.ejeTematico.count(), db.indicador.count(),
+    ])
     const dbPath = (process.env.DATABASE_URL || '').replace(/^file:/, '')
     console.log(
       `[Instrumentation] DB: "${dbPath}" — ` +
-      `${recovery.diagnostico.conteos.personas} personas, ` +
-      `${recovery.diagnostico.conteos.medios} medios, ` +
-      `${recovery.diagnostico.conteos.fuentes} fuentes, ` +
-      `${recovery.diagnostico.conteos.ejes} ejes, ` +
-      `MC: ${recovery.diagnostico.conteos.marcoConceptual ? 'activo' : 'NO configurado'}`
+      `${personas} personas, ${medios} medios, ${fuentes} fuentes, ` +
+      `${ejes} ejes, ${indicadores} indicadores` +
+      (recovery.ejecutado ? ` [recovery: ${recovery.acciones.join('; ')}]` : '')
     )
 
     // 1. Iniciar Job System (worker, scheduler, health monitor)
