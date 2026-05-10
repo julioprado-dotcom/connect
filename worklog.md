@@ -22,3 +22,28 @@ Stage Summary:
 - Dashboard controls now visible without expanding: Pausar/Reanudar, Forzar Check, Reprogramar, Huerfanos, Limpiar
 - Mini historial always visible with color-coded status (red=fail, amber=error, green=changed, gray=no change)
 - All changes pass TypeScript compilation
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Persistencia de Base de Datos — DB trackeada en git
+
+Work Log:
+- Configurado GitHub remote con PAT (julioprado-dotcom/connect)
+- Sincronizado local con origin/main (reset --hard)
+- .env cambiado: DATABASE_URL="file:./prisma/db/custom.db"
+- scripts/_db-path.sh actualizado con PROJECT_ROOT dinámico
+- Descubierto: sandbox inyecta DATABASE_URL a nivel sistema, sobreescribiendo .env
+- db.ts modificado para forzar ruta canónica (prisma/db/custom.db) via process.env override
+- Verificado: DB real = /home/z/my-project/prisma/db/custom.db (173 personas, 33 medios, 30 fuentes)
+- prisma@6.19.3 instalado como devDependency (CLI v7 incompatible con schema v6)
+- checkAndBackupDB() agregado a auto-recovery.ts: backup cada 6h o 100 ciclos
+- backupNow() para backup forzado antes de ops destructivas
+- cleanOldBackups(): máximo 5 backups, elimina el más antiguo
+- Backup verificado: 440 KB copiado a prisma/db/backups/
+
+Stage Summary:
+- 3 commits pushados a GitHub: 88c32d6, aac0421, 30ce15c
+- DB ahora persiste via repo (prisma/db/custom.db trackeada en git)
+- Sandbox ya no puede perder datos operacionales al destruirse
+- Backup automático cada 6h/100 ciclos con rotación de 5 archivos
