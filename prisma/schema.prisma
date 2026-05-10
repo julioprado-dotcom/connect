@@ -356,12 +356,14 @@ model FuenteEstado {
   frecuenciaActual String   @default("6h")
 
   // Estado operativo
-  activo           Boolean  @default(true)
+  activo           Boolean  @default(false)     // Computed by lifecycle: estado === 'activa'
+  fallosConsecutivos Int    @default(0)          // Conteo de checks fallidos seguidos (resets on success)
   error            String   @default("")
   responseTime     Int      @default(0)           // Último tiempo de respuesta en ms
 
   // ── Source Lifecycle ──
   estado           String   @default("creada")      // "creada"|"validando"|"activa"|"inactiva"|"deprecada"
+  capaActual       Int      @default(0)           // Capa de capacidad demostrada (0-4)
   ultimoCheckOk    DateTime?                       // Timestamp of last successful Check-First
   ultimoHeadline   DateTime?                       // Timestamp of last headline/link extraction
   ultimoTexto      DateTime?                       // Timestamp of last full text extraction
