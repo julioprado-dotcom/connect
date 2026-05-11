@@ -132,3 +132,32 @@ Stage Summary:
 - 4 medium issues identified for correction (ConfigWidget dead type, Estrategia Fase 4 contradiction, Jobs API sampling bias, productos-summary null guard)
 - Build passes clean
 
+---
+Task ID: fix-all-issues
+Agent: Main Agent
+Task: Corregir todos los issues verificados en el repositorio
+
+Work Log:
+- P1: productos-summary null guard — e.contrato?.cliente?.nombre ?? 'Sin cliente'
+- P2: EstrategiaWidget Fase 4 estado 'pendiente' → 'en_progreso', hitos completados
+- P3: ConfigWidget grid 3→5 cols (responsive), muestra nodeVersion + databaseSize, elimina dead type SystemMetrics
+- P4: Jobs API jobsByType usa db.job.groupBy() global en vez de reduce sobre 10 recientes
+- P5: AuditoriaWidget elimina campos muertos (medioId, url, estaMuerto, strategyValid) de interface y mapping
+- P6: JobsWidget agrega contador 'Cancelados' (grid 4→5 cols)
+- P7: ConfigWidget agrega error state con AlertCircle + mensaje 'Reintentara automaticamente'
+- P8: Generadores API importa safeError, elimina spread redundante
+- P9: clientes-summary null-check en fechaCreacion (?.toISOString() ?? fallback)
+- P10: Crea time-helpers.ts compartido, migra 7 widgets (Auditoria, Capturas, Jobs, Alertas, Fuentes, MencionesRecientes, Suscriptores)
+- P11: ejes-summary reemplaza N+1 (47 queries) con single groupBy + Map
+- P12: EstrategiaWidget elimina React import, version dinamica via NEXT_PUBLIC_APP_VERSION
+
+Build: exitoso sin errores TypeScript
+Commit: 34f6b8b pushado a origin/main
+15 archivos modificados, 115 insertions, 152 deletions (net -37 lineas)
+
+Stage Summary:
+- Todos los 15 issues corregidos en un solo commit atomico
+- Creacion de time-helpers.ts como utilidad compartida (DRY)
+- 0 errores TypeScript, build limpio
+- Push exitoso a GitHub
+
