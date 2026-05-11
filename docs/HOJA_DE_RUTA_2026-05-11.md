@@ -376,7 +376,7 @@ El Dashboard actual (`DashboardCommandCenter.tsx`) ya tiene algunos componentes 
 | **Fase 1** | Eje 1 | Crítica | Corregir safeFetch + agregar process handlers. Sin esto el servidor puede crashear en cualquier momento. |
 | **Fase 2** | Eje 2 | Alta | Implementar arranque diferido con warmup de 2 minutos. |
 | **Fase 3** | Eje 3 | Alta | Migrar modelo de fuentes: schema Prisma + ciclo de vida + reglas automáticas. |
-| **Fase 4** | Eje 4 | Media | Rediseño del Dashboard: widgets colapsables/expandibles, cobertura completa del sidebar. |
+| **Fase 4** | Eje 4 | Media | ~~Rediseño del Dashboard: widgets colapsables/expandibles, cobertura completa del sidebar.~~ **DONE** — 20 widgets, 4 ejes (4A-4E), 18 secciones sidebar con eco 1:1. Build exitoso. Commit: `404774a`. |
 
 La Fase 1 y 2 pueden ejecutarse en paralelo (no dependen entre sí). La Fase 3 depende de la Fase 1 (necesita el sistema estable para probar). La Fase 4 depende de la Fase 3 (necesita el modelo de estado de fuentes para el widget de health).
 

@@ -68,3 +68,47 @@ Stage Summary:
 - Documento de diseño: docs/DASHBOARD_DESIGN.md (695 lineas)
 - Mapeo completo de 18 secciones sidebar con especificacion 3-tier por widget
 - Plan de implementacion definido para sub-bloques 4B-4E
+
+---
+Task ID: 4d
+Agent: Main Agent
+Task: Axis 4D — Domain Coverage Dashboard (8 widgets)
+
+Work Log:
+- Verificados 8 endpoints API existentes: personas-summary, menciones-summary, reportes-summary, clientes-summary, contratos-summary, suscriptores-summary, ejes-summary, productos-summary
+- Solo existian 4 widgets (AlertasWidget, IndicadoresWidget, FuentesWidget, MediosWidget)
+- Creados 8 widgets nuevos: PersonasRadarWidget, MencionesRecientesWidget, BoletinesWidget, ReportesWidget, ClientesWidget, ContratosWidget, SuscriptoresWidget, EjesTematicosWidget
+- Integrados en DashboardCommandCenter con 6 GroupHeaders nuevos
+- Build exitoso, commit 895380f pushado a GitHub
+
+Stage Summary:
+- 8 widgets (+1672 lineas) cubriendo: Personas, Menciones, Boletines, Reportes, Clientes, Contratos, Suscriptores, Ejes Tematicos
+- Todos siguen patron: 'use client', fetchWithTimeout, usePolling, CollapsibleWidget, ChunkErrorBoundary
+- Commit: 895380f
+
+---
+Task ID: 4e
+Agent: Main Agent
+Task: Axis 4E — Widgets Grupo 3 + Layout Final + Verificacion
+
+Work Log:
+- Investigado sidebar (nav.ts): 18 secciones en 4 grupos
+- Verificados modelos Prisma: CapturaLog y Job existen; Generador, AuditoriaFuente, SistemaConfig NO existen
+- Creados 3 endpoints API: generadores-summary (hardcoded), capturas-summary (CapturaLog), jobs-summary (Job)
+- Creados 6 widgets: GeneradoresWidget, AuditoriaWidget, CapturasWidget, JobsWidget, ConfigWidget, EstrategiaWidget
+- Integrados en DashboardCommandCenter con grid 2-columnas para pares
+- Verificacion echo 1:1 con 18 secciones sidebar completada
+- TypeScript limpio, build exitoso
+- 7 commits individuales: e856074, 1c6c933, 9f7d1f1, f8f1c0b, 73a7049, 4b34a7f, 404774a
+- HOJA_DE_RUTA actualizada: Fase 4 marcada DONE
+
+Stage Summary:
+- Dashboard completo: ~20 widgets cubriendo 18 secciones sidebar
+- 4 ejes implementados: 4A (analisis), 4C (ONION200+Alertas+Config), 4D (dominio), 4E (operaciones+estrategia)
+- Roadmap widget: 5 fases, 15/19 hitos completados (79%)
+- Generadores placeholder: 4 generadores del plan comercial (hardcoded hasta modelo Prisma)
+- Auditoria reutiliza fuentes-summary con score de salud calculado
+- Capturas y Jobs leen datos reales de CapturaLog y Job
+- ConfigWidget lee system metrics + muestra parametros hardcoded
+- Build: compilado exitosamente sin errores TypeScript
+- Push final: commit 404774a
