@@ -193,3 +193,57 @@ cd /home/z/my-project/connect && (setsid ./node_modules/.bin/next start -p 3000 
 - Migración PostgreSQL para producción
 - Autenticación funcional (PostMessage API)
 - Desacoplar configuración Bolivia (country-agnostic)
+
+---
+
+## 2026-05-11 — Axis 4C: Widgets Grupo 1 (Alertas, Indicadores, Fuentes, Medios)
+
+### Objetivo
+Crear 4 widgets nuevos para el dashboard con sus APIs summary correspondientes.
+Integrarlos en DashboardCommandCenter con el sistema 3-tier CollapsibleWidget.
+
+### Acciones realizadas
+
+#### 1. Widget: Alertas Tempranas (NUEVO)
+- **Archivo:** `src/components/dashboard/widgets/AlertasWidget.tsx`
+- **API:** `src/app/api/dashboard/alertas-summary/route.ts`
+- Consulta menciones con tratamiento critico/agresivo
+- 3 contadores: criticas, agresivas, total
+- Lista ultimas 10 alertas con persona, medio, tratamiento, timestamp
+- Status semantico: error si agresivas>5, warn si hay alertas, ok si no
+- Estado vacio: "Sin alertas registradas" con status idle
+
+#### 2. Widget: Indicadores (NUEVO)
+- **Archivo:** `src/components/dashboard/widgets/IndicadoresWidget.tsx`
+- **API:** `src/app/api/dashboard/indicadores-summary/route.ts`
+- Consulta Indicador con include valores (ultimos 2 para tendencia)
+- Tendencia up/down/stable calculada automaticamente
+- Color por categoria: monetario, minero, climatico, economico, hidrocarburos, social
+- Delta porcentual cuando hay 2 valores
+- Badge "no confiable" si el ultimo valor no es confiable
+
+#### 3. Widget: Fuentes Monitoreadas (NUEVO)
+- **Archivo:** `src/components/dashboard/widgets/FuentesWidget.tsx`
+- **API:** `src/app/api/dashboard/fuentes-summary/route.ts`
+- Usa `determinarCapa()` de source-lifecycle.ts para capa real C0-C4
+- Distribucion visual por capa con barra de colores
+- Tabla con estado, frecuencia, ultimo check, fallos consecutivos
+- Badges de capa (C0-C4) y estado (activa/validando/inactiva/deprecada)
+- Status semantico: error si >30% inactivas, warn si hay degradadas
+
+#### 4. Widget: Medios Registrados (NUEVO)
+- **Archivo:** `src/components/dashboard/widgets/MediosWidget.tsx`
+- **API:** `src/app/api/dashboard/medios-summary/route.ts`
+- Consulta medios con include fuenteEstado y count menciones
+- Contadores: total, activos, monitoreados
+- Distribucion por categoria con badges de color
+- Lista medios con tipo, nivel, menciones, departamento, capa de fuente
+
+#### 5. Integracion en DashboardCommandCenter
+- 4 widgets lazy-loaded con dynamic import + ChunkErrorBoundary
+- 3 nuevos GroupHeaders: "ONION200" (violeta), "Alertas Tempranas" (rojo), "Configuracion" (sky)
+- Fuentes + Medios en grid 2 columnas
+- Layout: Sistema → Analisis → ONION200 → Alertas Tempranas → Configuracion → Acciones Rapidas
+
+### Commits
+- 5ee31b7: axis-4c: 4 nuevos widgets + 4 APIs summary
