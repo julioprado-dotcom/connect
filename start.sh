@@ -3,7 +3,7 @@
 # Uso: bash start.sh [--dev] [--build]
 
 set -e
-cd "$(dirname "$0")"
+cd "$(dirname "$0")" 2>/dev/null || cd /home/z/my-project
 
 MODE="${1:---dev}"
 PROJECT_DIR="/home/z/my-project"

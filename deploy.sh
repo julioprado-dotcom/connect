@@ -2,10 +2,10 @@
 # DECODEX v0.13.0 — Deploy Script
 # Usage: bash deploy.sh
 
-cd /home/z/my-project/connect
+cd /home/z/my-project
 
 # Leer DB path del archivo centralizado
-source "$(dirname "$0")/decodeX-bolivia/scripts/_db-path.sh"
+source "${PROJECT_DIR:-/home/z/my-project}/decodeX-bolivia/scripts/_db-path.sh"
 export DATABASE_URL="file:${DECODEX_DB_PATH}"
 export AUTH_TRUST_HOST=true
 export AUTH_SECRET="decodex-dev-secret-key-2025-test"

@@ -1,7 +1,7 @@
 #!/bin/bash
 PIDFILE="/tmp/connect-daemon.pid"
 LOGFILE="/tmp/connect-server.log"
-cd /home/z/my-project/connect
+cd /home/z/my-project
 
 # Stop existing
 if [ -f "$PIDFILE" ]; then
