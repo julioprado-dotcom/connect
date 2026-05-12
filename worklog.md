@@ -207,3 +207,25 @@ Stage Summary:
 - El start.sh del sandbox ejecutará: bun install → prisma generate → bun run dev
 - El proceso será hijo de init (PID 1), no sujeto a cgroup killing
 - NECESITA: Reinicio del contenedor desde la plataforma Z.ai
+---
+Task ID: 1
+Agent: Super Z (main)
+Task: Reconstruir entorno DECODEX Bolivia (ONION200 v0.15.0) tras sandbox release
+
+Work Log:
+- Verificado estado del sandbox: proyecto presente, DB OK (6.9MB), git OK (origin configurado)
+- node_modules AUSENTE — bun install con cache no creó directorio
+- Corregido .env a DATABASE_URL=file:/home/z/my-project/db/custom.db
+- Ejecutado bun install limpio (rm -rf node_modules bun.lock) → 680 paquetes, 951MB
+- Ejecutado prisma generate + db push → DB sincronizada (173 personas, 33 medios, 30 fuentes, 35 ejes)
+- Ejecutado next build → 65 páginas, 0 errores, 33 warnings (Edge Runtime, preexistentes)
+- Intentado levantar servidor manualmente → sandbox mata procesos no gestionados por start.sh
+- Creado /home/z/my-project/.zscripts/dev.sh — script de inicio personalizado para start.sh
+- Actualizado /home/sync/repo.tar (20MB) con .zscripts/dev.sh incluido
+- Problema identificado: bun install usa cache y no crea node_modules cuando solo existe bun.lock
+
+Stage Summary:
+- Entorno listo para levantar en próximo reinicio del sandbox
+- .zscripts/dev.sh asegura instalación limpia + prisma + dev server
+- repo.tar actualizado en /home/sync/ para persistencia
+- USUARIO DEBE REINICIAR SANDBOX para que start.sh ejecute .zscripts/dev.sh
