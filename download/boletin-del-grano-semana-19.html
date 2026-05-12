@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Boletín del Grano — Semana 19</title>
+      
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap');
+
+    @page {
+      size: A4;
+      margin: 20mm 15mm;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Georgia', 'Times New Roman', serif;
+      font-size: 11px;
+      line-height: 1.6;
+      color: #1b1a17;
+      background: #faf6f1;
+    }
+
+    .page-break { page-break-before: always; }
+
+    /* ── Títulos ── */
+    h1, h2, h3, h4, h5, h6 {
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    /* ── Portada ── */
+    .portada {
+      text-align: center;
+      padding: 100px 50px 80px;
+      background: linear-gradient(160deg, #3e2723 0%, #4e342e 50%, #6d4c41 100%);
+      color: #ffffff;
+      border-radius: 10px;
+      margin-bottom: 0;
+      min-height: 650px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .portada::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background:
+        radial-gradient(circle at 20% 80%, rgba(255,255,255,0.04) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.06) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .portada-icono {
+      font-size: 48px;
+      margin-bottom: 24px;
+      opacity: 0.9;
+    }
+
+    .portada h1 {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: 3px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .portada .subtitulo {
+      font-family: 'Georgia', serif;
+      font-size: 15px;
+      font-style: italic;
+      opacity: 0.85;
+      margin-bottom: 32px;
+      letter-spacing: 0.5px;
+    }
+
+    .portada .periodo {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      opacity: 0.9;
+      margin-bottom: 6px;
+      letter-spacing: 0.3px;
+    }
+
+    .portada .semana-info {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 11px;
+      opacity: 0.7;
+      margin-bottom: 24px;
+    }
+
+    .portada .marca {
+      position: absolute;
+      bottom: 20px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 9px;
+      opacity: 0.5;
+      letter-spacing: 1px;
+    }
+
+    /* ── Badge de tensión ── */
+    .tension-badge {
+      display: inline-block;
+      padding: 6px 20px;
+      border-radius: 20px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border: 2px solid;
+    }
+
+    /* ── Secciones ── */
+    .seccion {
+      background: #f0ebe3;
+      border: 1px solid #bcaaa4;
+      border-radius: 6px;
+      padding: 20px 22px;
+      margin-bottom: 16px;
+      page-break-inside: avoid;
+    }
+
+    .seccion-titulo {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: #3e2723;
+      border-bottom: 2px solid #6d4c41;
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .seccion-titulo .num {
+      display: inline-block;
+      background: #3e2723;
+      color: #ffffff;
+      width: 22px;
+      height: 22px;
+      line-height: 22px;
+      text-align: center;
+      border-radius: 50%;
+      font-size: 11px;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    /* ── Resumen ── */
+    .resumen-texto {
+      font-size: 11.5px;
+      line-height: 1.8;
+      color: #1b1a17;
+      padding: 14px 18px;
+      background: #faf6f1;
+      border-radius: 4px;
+      border-left: 4px solid #6d4c41;
+    }
+
+    .resumen-texto p {
+      margin-bottom: 12px;
+    }
+
+    .resumen-texto p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* ── Stats Grid ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stat-card {
+      background: #faf6f1;
+      border-radius: 6px;
+      padding: 14px 10px;
+      text-align: center;
+      border: 1px solid #bcaaa4;
+    }
+
+    .stat-valor {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: #3e2723;
+    }
+
+    .stat-etiqueta {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 9px;
+      color: #8d7b74;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    /* ── Tablas ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10px;
+    }
+
+    thead th {
+      background: #3e2723;
+      color: #ffffff;
+      padding: 8px 10px;
+      text-align: left;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    tbody td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #bcaaa4;
+      vertical-align: middle;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #faf6f1;
+    }
+
+    tbody tr:nth-child(odd) {
+      background: #f0ebe3;
+    }
+
+    /* ── Barra de cobertura ── */
+    .barra-track {
+      width: 100%;
+      height: 14px;
+      background: #bcaaa4;
+      border-radius: 7px;
+      overflow: hidden;
+    }
+
+    .barra-fill {
+      height: 100%;
+      border-radius: 7px;
+      background: #6d4c41;
+    }
+
+    /* ── Noticia destacada ── */
+    .noticia-card {
+      background: #faf6f1;
+      border: 1px solid #bcaaa4;
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      border-left: 4px solid #6d4c41;
+    }
+
+    .noticia-titulo {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      color: #1b1a17;
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+
+    .noticia-meta {
+      font-size: 9px;
+      color: #8d7b74;
+      margin-bottom: 8px;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .noticia-resumen {
+      font-size: 10.5px;
+      line-height: 1.6;
+      color: #1b1a17;
+      margin-bottom: 8px;
+    }
+
+    .noticia-ejes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .eje-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #6d4c4118;
+      color: #4e342e;
+      border-radius: 10px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 8px;
+      font-weight: 600;
+      border: 1px solid #6d4c4130;
+    }
+
+    /* ── Fuentes ranking badge ── */
+    .fuente-nueva-badge {
+      display: inline-block;
+      padding: 1px 6px;
+      background: #6d4c41;
+      color: #ffffff;
+      border-radius: 8px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 7px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-left: 6px;
+    }
+
+    /* ── Nota metodológica ── */
+    .metodo-lista {
+      padding: 12px 18px;
+      background: #faf6f1;
+      border-radius: 4px;
+      border-left: 4px solid #bcaaa4;
+    }
+
+    .metodo-lista ul {
+      padding-left: 18px;
+      margin: 0;
+    }
+
+    .metodo-lista li {
+      font-size: 10px;
+      line-height: 1.7;
+      color: #1b1a17;
+      margin-bottom: 2px;
+    }
+
+    /* ── Pie de página ── */
+    .footer {
+      text-align: center;
+      padding: 16px;
+      margin-top: 24px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 8px;
+      color: #8d7b74;
+      border-top: 1px solid #bcaaa4;
+      letter-spacing: 0.5px;
+    }
+
+    .footer .footer-linea1 {
+      font-weight: 700;
+      color: #4e342e;
+      margin-bottom: 2px;
+    }
+
+    .footer .footer-linea2 {
+      font-weight: 400;
+      opacity: 0.7;
+    }
+
+    /* ── Marca de agua ── */
+    .watermark {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 7px;
+      color: #8d7b74;
+      opacity: 0.25;
+      transform: rotate(-15deg);
+      pointer-events: none;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center;
+      padding: 24px;
+      color: #8d7b74;
+      font-style: italic;
+    }
+
+    /* ── Análisis narrativo ── */
+    .analisis-texto {
+      font-size: 11px;
+      line-height: 1.8;
+      color: #1b1a17;
+      padding: 14px 18px;
+      background: #fff8e1;
+      border-radius: 4px;
+      border-left: 4px solid #6d4c41;
+    }
+
+    .analisis-texto p {
+      margin-bottom: 10px;
+    }
+
+    .analisis-texto p:last-child {
+      margin-bottom: 0;
+    }
+  </style>
+
+    </head>
+    <body>
+      <div class="portada">
+      <div class="portada-icono">&#9749;</div>
+      <h1>Boletín del Grano</h1>
+      <div class="subtitulo">Café de Especialidad Bolivia — Análisis Semanal</div>
+      <div class="periodo">Invalid Date al Invalid Date</div>
+      <div class="semana-info">Semana 19 &bull; Versión DECODEX v0.16.0</div>
+      <div style="margin-top: 20px;">
+        <span class="tension-badge" style="color: #c62828; background: #c6282818; border-color: #c62828;">
+          Tensión ALTA
+        </span>
+      </div>
+      <div class="marca">DECODEX Bolivia &mdash; decodebolivia.org</div>
+    </div>
+  
+    <div class="page-break"></div>
+
+    
+    <div class="seccion">
+      <div class="seccion-titulo"><span class="num">2</span>Resumen Ejecutivo</div>
+      <div class="resumen-texto"><p>La semana del 6 al 12 de mayo de 2026 estuvo marcada por la recuperación parcial del precio internacional del café arábica, que cerró en 185.40 USD/libra en el C-market, un incremento del 3.2% respecto a la semana anterior. Este repunte llega en un momento crítico para los productores bolivianos, que se preparan para el inicio de la cosecha principal en las Yungas de La Paz y Caranavi. Sin embargo, el pronóstico del SENAMHI advierte sobre probabilidades de heladas tempranas en zonas altas (&gt;1,800 msnm) para la próxima semana, lo que genera incertidumbre sobre la fase de desarrollo del grano. En el plano regulatorio, el IBCE emitió un boletín sobre los nuevos requisitos de trazabilidad de la EUDR europea que entrará en vigencia en diciembre, exigiendo coordenadas GPS de las fincas productoras para cualquier exportación a la Unión Europea. Tres cooperativas de Caranavi reportaron dificultades para cumplir con esta exigencia por falta de equipamiento GPS.</p></div>
+    </div>
+  
+
+    
+    <div class="seccion">
+      <div class="seccion-titulo"><span class="num">3</span>Estadísticas Clave</div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-valor">4</div>
+          <div class="stat-etiqueta">Noticias Totales</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-valor">25</div>
+          <div class="stat-etiqueta">Fuentes Monitoreadas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-valor">5</div>
+          <div class="stat-etiqueta">Ejes Activados</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-valor" style="font-size: 18px;">MODERADO</div>
+          <div class="stat-etiqueta">Nivel de Actividad</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-valor" style="font-size: 18px;">185.40 USD/libra</div>
+          <div class="stat-etiqueta">Precio C-Market</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-valor" style="font-size: 18px;">+3.2%</div>
+          <div class="stat-etiqueta">Variación Semanal</div>
+        </div>
+      </div>
+    </div>
+  
+
+    <div class="page-break"></div>
+
+    
+    <div class="seccion">
+      <div class="seccion-titulo"><span class="num">4</span>Mapa de Tensiones</div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 30%;">Eje Temático</th>
+            <th style="width: 40%;">Cobertura</th>
+            <th style="width: 15%; text-align: center;">Noticias</th>
+            <th style="width: 15%; text-align: center;">Tendencia</th>
+          </tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td style="font-weight: 600;">Mercado y Precios</td>
+          <td>
+            <div class="barra-track">
+              <div class="barra-fill" style="width: 30%;"></div>
+            </div>
+            <div style="font-family: 'Montserrat', sans-serif; font-size: 9px; color: #8d7b74; margin-top: 2px;">30%</div>
+          </td>
+          <td style="text-align: center; font-weight: 600;">1</td>
+          <td style="text-align: center; font-size: 16px; color: #2e7d32; font-weight: 700;">↑</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 600;">Clima y Producción</td>
+          <td>
+            <div class="barra-track">
+              <div class="barra-fill" style="width: 25%;"></div>
+            </div>
+            <div style="font-family: 'Montserrat', sans-serif; font-size: 9px; color: #8d7b74; margin-top: 2px;">25%</div>
+          </td>
+          <td style="text-align: center; font-weight: 600;">1</td>
+          <td style="text-align: center; font-size: 16px; color: #2e7d32; font-weight: 700;">↑</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 600;">Política y Regulación</td>
+          <td>
+            <div class="barra-track">
+              <div class="barra-fill" style="width: 35%;"></div>
+            </div>
+            <div style="font-family: 'Montserrat', sans-serif; font-size: 9px; color: #8d7b74; margin-top: 2px;">35%</div>
+          </td>
+          <td style="text-align: center; font-weight: 600;">2</td>
+          <td style="text-align: center; font-size: 16px; color: #2e7d32; font-weight: 700;">↑</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 600;">Logística y Exportación</td>
+          <td>
+            <div class="barra-track">
+              <div class="barra-fill" style="width: 15%;"></div>
+            </div>
+            <div style="font-family: 'Montserrat', sans-serif; font-size: 9px; color: #8d7b74; margin-top: 2px;">15%</div>
+          </td>
+          <td style="text-align: center; font-weight: 600;">1</td>
+          <td style="text-align: center; font-size: 16px; color: #6d4c41; font-weight: 700;">→</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 600;">Innovación y Técnica</td>
+          <td>
+            <div class="barra-track">
+              <div class="barra-fill" style="width: 15%;"></div>
+            </div>
+            <div style="font-family: 'Montserrat', sans-serif; font-size: 9px; color: #8d7b74; margin-top: 2px;">15%</div>
+          </td>
+          <td style="text-align: center; font-weight: 600;">1</td>
+          <td style="text-align: center; font-size: 16px; color: #6d4c41; font-weight: 700;">→</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 600;">Ferias y Oportunidades</td>
+          <td>
+            <div class="barra-track">
+              <div class="barra-fill" style="width: 0%;"></div>
+            </div>
+            <div style="font-family: 'Montserrat', sans-serif; font-size: 9px; color: #8d7b74; margin-top: 2px;">0%</div>
+          </td>
+          <td style="text-align: center; font-weight: 600;">0</td>
+          <td style="text-align: center; font-size: 16px; color: #6d4c41; font-weight: 700;">→</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 600;">Cadena y Contexto</td>
+          <td>
+            <div class="barra-track">
+              <div class="barra-fill" style="width: 10%;"></div>
+            </div>
+            <div style="font-family: 'Montserrat', sans-serif; font-size: 9px; color: #8d7b74; margin-top: 2px;">10%</div>
+          </td>
+          <td style="text-align: center; font-weight: 600;">0</td>
+          <td style="text-align: center; font-size: 16px; color: #6d4c41; font-weight: 700;">→</td>
+        </tr>
+      </tbody>
+      </table>
+    </div>
+  
+
+    
+    <div class="seccion">
+      <div class="seccion-titulo"><span class="num">5</span>Noticias Destacadas</div>
+      
+        <div class="noticia-card" style="border-left-color: #ef6c00;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+            <div class="noticia-titulo">Precio del café arábica sube 3.2% tras tres semanas de caída</div>
+            <span class="tension-badge" style="color: #ef6c00; background: #ef6c0018; border-color: #ef6c00; font-size: 8px; padding: 3px 10px; flex-shrink: 0; margin-left: 8px;">
+              MEDIA
+            </span>
+          </div>
+          <div class="noticia-meta">
+            Investing.com &bull; 12 mayo 2026 &bull; 3 fuentes
+          </div>
+          <div class="noticia-resumen">El C-market cerró la semana en 185.40 USD/libra, rompiendo una racha de tres semanas a la baja. Los analistas atribuyen el repunte a la reducción de inventarios en Brasil y la demanda sostenida de Estados Unidos.</div>
+          <div class="noticia-ejes"><span class="eje-tag">Mercado y Precios</span></div>
+        </div>
+      
+        <div class="noticia-card" style="border-left-color: #c62828;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+            <div class="noticia-titulo">SENAMHI advierte probabilidades de heladas tempranas en zonas cafeteras</div>
+            <span class="tension-badge" style="color: #c62828; background: #c6282818; border-color: #c62828; font-size: 8px; padding: 3px 10px; flex-shrink: 0; margin-left: 8px;">
+              ALTA
+            </span>
+          </div>
+          <div class="noticia-meta">
+            ABI &bull; 11 mayo 2026 &bull; 2 fuentes
+          </div>
+          <div class="noticia-resumen">El pronóstico del SENAMHI advierte sobre heladas tempranas en zonas altas (&gt;1,800 msnm) de Caranavi y las Yungas para la próxima semana, generando incertidumbre sobre la fase de desarrollo del grano.</div>
+          <div class="noticia-ejes"><span class="eje-tag">Clima y Producción</span></div>
+        </div>
+      
+        <div class="noticia-card" style="border-left-color: #c62828;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+            <div class="noticia-titulo">IBCE emite boletín sobre nuevos requisitos EUDR para exportación de café</div>
+            <span class="tension-badge" style="color: #c62828; background: #c6282818; border-color: #c62828; font-size: 8px; padding: 3px 10px; flex-shrink: 0; margin-left: 8px;">
+              ALTA
+            </span>
+          </div>
+          <div class="noticia-meta">
+            IBCE &bull; 10 mayo 2026 &bull; 4 fuentes
+          </div>
+          <div class="noticia-resumen">Nuevos requisitos de trazabilidad de la EUDR europea exigen coordenadas GPS de las fincas productoras para cualquier exportación a la Unión Europea. Tres cooperativas de Caranavi reportan dificultades para cumplir.</div>
+          <div class="noticia-ejes"><span class="eje-tag">Política y Regulación</span><span class="eje-tag">Logística y Exportación</span></div>
+        </div>
+      
+        <div class="noticia-card" style="border-left-color: #ef6c00;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+            <div class="noticia-titulo">Cooperativa CENAPROC presenta café especial en feria internacional</div>
+            <span class="tension-badge" style="color: #ef6c00; background: #ef6c0018; border-color: #ef6c00; font-size: 8px; padding: 3px 10px; flex-shrink: 0; margin-left: 8px;">
+              MEDIA
+            </span>
+          </div>
+          <div class="noticia-meta">
+            Perfect Daily Grind &bull; 9 mayo 2026 &bull; 2 fuentes
+          </div>
+          <div class="noticia-resumen">La cooperativa CENAPROC de Caranavi presentó tres lotes de café especial con procesamiento anaeróbico en la Specialty Coffee Expo. Dos lotes obtuvieron puntajes SCA superiores a 86.</div>
+          <div class="noticia-ejes"><span class="eje-tag">Ferias y Oportunidades</span><span class="eje-tag">Innovación y Técnica</span></div>
+        </div>
+      
+    </div>
+  
+
+    <div class="page-break"></div>
+
+    
+    <div class="seccion">
+      <div class="seccion-titulo"><span class="num">6</span>Índice de Fuentes</div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 10%; text-align: center;">#</th>
+            <th style="width: 70%;">Fuente</th>
+            <th style="width: 20%; text-align: center;">Noticias</th>
+          </tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td style="font-weight: 700; text-align: center; color: #4e342e;">1</td>
+          <td style="font-weight: 600;">IBCE</td>
+          <td style="text-align: center; font-weight: 700; color: #3e2723;">4</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 700; text-align: center; color: #4e342e;">2</td>
+          <td style="font-weight: 600;">Investing.com</td>
+          <td style="text-align: center; font-weight: 700; color: #3e2723;">3</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 700; text-align: center; color: #4e342e;">3</td>
+          <td style="font-weight: 600;">Perfect Daily Grind<span class="fuente-nueva-badge">NUEVA</span></td>
+          <td style="text-align: center; font-weight: 700; color: #3e2723;">2</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 700; text-align: center; color: #4e342e;">4</td>
+          <td style="font-weight: 600;">ABI</td>
+          <td style="text-align: center; font-weight: 700; color: #3e2723;">2</td>
+        </tr>
+      </tbody>
+      </table>
+    </div>
+  
+
+    
+    <div class="seccion">
+      <div class="seccion-titulo"><span class="num">7</span>Cruce Transversal</div>
+      <div class="analisis-texto"><p>Las 4 noticias de la semana activaron 5 de los 7 ejes temáticos. Se observa una conexión directa entre regulación (EUDR) y logística de exportación, ya que los requisitos europeos impactan directamente la capacidad de las cooperativas bolivianas para acceder al mercado más rentable. El clima y los precios muestran dinámicas independientes pero complementarias: las heladas amenazan la oferta local mientras la recuperación del C-market mejora el panorama de ingresos.</p></div>
+    </div>
+  
+
+    
+    <div class="seccion">
+      <div class="seccion-titulo"><span class="num">8</span>Tendencia y Proyección</div>
+      <div class="analisis-texto"><p>Se recomienda monitorear: (1) evolución del precio C-market la próxima semana, (2) pronósticos climáticos actualizados del SENAMHI para zonas cafeteras, (3) avances en la implementación EUDR y posible extensión de plazos, (4) resultados de la Specialty Coffee Expo para lotes bolivianos.</p></div>
+    </div>
+  
+
+    
+    <div class="seccion">
+      <div class="seccion-titulo"><span class="num">9</span>Nota Metodológica</div>
+
+      <p style="font-size: 10.5px; line-height: 1.7; color: #1b1a17; margin-bottom: 14px;">
+        El <strong>Boletín del Grano</strong> es un producto de análisis semanal elaborado por
+        <strong>DECODEX Bolivia</strong> que monitorea, clasifica y analiza la información pública
+        relevante sobre café de especialidad en Bolivia. El boletín cubre siete ejes temáticos
+        internos que permiten una lectura transversal de la coyuntura cafetera nacional.
+      </p>
+
+      <p style="font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700; color: #3e2723; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
+        Periodo de cobertura
+      </p>
+      <p style="font-size: 10.5px; color: #1b1a17; margin-bottom: 14px;">
+        Invalid Date al Invalid Date
+      </p>
+
+      <p style="font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700; color: #3e2723; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
+        Fuentes monitoreadas (18)
+      </p>
+      <div class="metodo-lista">
+        <ul><li>El Deber</li><li>Los Tiempos</li><li>Página Siete</li><li>El Diario</li><li>Opinión</li><li>ABI</li><li>ERBOL</li><li>Bolivia TV</li><li>IBCE</li><li>SENASAG</li><li>OIC Café</li><li>SCA</li><li>Perfect Daily Grind</li><li>Coffee Review</li><li>Minuta de Café</li><li>Investing.com</li><li>TradingView</li><li>Reuters</li></ul>
+      </div>
+
+      <p style="font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700; color: #3e2723; margin-bottom: 6px; margin-top: 14px; text-transform: uppercase; letter-spacing: 0.5px;">
+        Palabras clave de búsqueda
+      </p>
+      <p style="font-size: 10.5px; color: #1b1a17; line-height: 1.6; padding: 10px 14px; background: #faf6f1; border-radius: 4px;">
+        196 keywords activas en 7 ejes temáticos internos + Lente 9 DECODEX.
+      </p>
+
+      <p style="font-size: 9px; color: #8d7b74; margin-top: 14px; font-style: italic; line-height: 1.6;">
+        Este documento es de carácter informativo y no representa una posición institucional.
+        Las fuentes citadas son de acceso público. Para consultas: decodebolivia.org
+      </p>
+    </div>
+  
+
+    
+  <div class="watermark">DECODEX Bolivia</div>
+  <div class="footer">
+    <div class="footer-linea1">DECODEX Bolivia &mdash; decodebolivia.org</div>
+    <div class="footer-linea2">BOLET&Iacute;N DEL GRANO &mdash; Caf&eacute; de Especialidad Bolivia</div>
+  </div>
+    </body>
+    </html>
