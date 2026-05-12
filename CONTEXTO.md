@@ -20,7 +20,6 @@ CONTEXTO — DECODEX Bolivia v0.14.0
             cwd: '/home/z/my-project',
             stdio: ['ignore', log, log],
             detached: true,
-            env: {...process.env, DATABASE_URL: 'file:/home/z/my-project/db/custom.db'}
           }
         );
         child.unref();

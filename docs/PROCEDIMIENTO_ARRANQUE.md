@@ -56,7 +56,6 @@ COMANDO DE ARRANQUE:
         cwd: '/home/z/my-project',
         stdio: ['ignore', log, log],
         detached: true,
-        env: {...process.env, DATABASE_URL: 'file:/home/z/my-project/db/custom.db'}
       }
     );
     child.unref();
@@ -107,7 +106,7 @@ Si la base de datos no existe:
     cd /home/z/my-project && bunx prisma db push
 
 Si .env tiene DATABASE_URL incorrecto:
-    echo "DATABASE_URL=file:/home/z/my-project/db/custom.db" > .env
+    echo "DATABASE_URL=file:/home/z/my-project/prisma/db/custom.db" > .env
 
 ============================================================================
 MODO DESARROLLO (OPCIONAL)
@@ -126,7 +125,6 @@ Para desarrollo con hot-reload, reemplazar ['start'] por ['dev', '--turbopack']:
         cwd: '/home/z/my-project',
         stdio: ['ignore', log, log],
         detached: true,
-        env: {...process.env, DATABASE_URL: 'file:/home/z/my-project/db/custom.db'}
       }
     );
     child.unref();
