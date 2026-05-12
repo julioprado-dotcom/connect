@@ -168,6 +168,7 @@ export type TareaMantenimiento =
   | 'limpiar_logs'
   | 'purge_menciones'
   | 'limpiar_jobs'
+  | 'limpiar_homepage_html'
   | 'recalcular_scheduler'
   | 'backup_snapshot'
   | 'backup_archive'

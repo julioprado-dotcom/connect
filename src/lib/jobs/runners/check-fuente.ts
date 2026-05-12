@@ -4,6 +4,7 @@
 import type { JobPayload, RunnerResult } from '../types'
 import { checkFuente } from '../check-first/strategies'
 import { enqueue } from '../queue'
+import { setHtml } from '../html-cache'
 
 export async function run(payload: JobPayload): Promise<RunnerResult> {
   const fuenteId = payload.fuenteId as string
@@ -21,19 +22,23 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
 
     if (result.cambiado) {
       // Encolar scrape_fuente automaticamente al detectar cambio
-      // Si check-first (Z.ai) descargó el HTML, pasarlo en el payload para evitar doble descarga
+      // FIX MEMORIA: Si check-first descargó HTML, guardarlo en cache compartido
+      // en lugar de pasarlo por payload del job (evita serializar MB en la tabla Job)
       if (medioId) {
         const urls = (result.datosNuevos as Array<{link?: string}> | undefined)
           ?.map(d => d.link).filter(Boolean)
         const homepageHtml = (result.datosActualizacion as Record<string, unknown> | undefined)
           ?.homepageHtml as string | undefined
+        if (homepageHtml) {
+          setHtml(fuenteId, homepageHtml)
+        }
         await enqueue({
           tipo: 'scrape_fuente',
           payload: {
             fuenteId,
             medioId,
             ...(urls?.length ? { urls } : {}),
-            ...(homepageHtml ? { homepageHtml } : {}),
+            // homepageHtml ya NO se pasa por payload — se lee desde html-cache
           },
           prioridad: 1, // alta prioridad para scrape tras cambio detectado
         }).catch(err => {

@@ -17,6 +17,7 @@ import { zaiFetch } from '../fetch/zai-fetcher'
 import { extraerLinksDeNoticias, extraerLeadDeBloque, type NotaLink } from '../link-extractor'
 import { trijarNotas, type TriajeResult } from '../keyword-triaje'
 import { checkAndBackupDB } from '@/lib/auto-recovery'
+import { getHtml, clearHtml } from '../html-cache'
 
 // ─── Configuración ───────────────────────────────────────────
 
@@ -31,7 +32,8 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
   const fuenteId = payload.fuenteId as string
   const medioId = payload.medioId as string
   const urls = payload.urls as string[] | undefined
-  const homepageHtmlFromCheck = payload.homepageHtml as string | undefined
+  // FIX MEMORIA: Leer HTML desde cache compartido en lugar del payload del job
+  const homepageHtmlFromCheck = getHtml(fuenteId) ?? undefined
 
   if (!fuenteId || !medioId) {
     return { success: false, error: 'scrape_fuente requiere fuenteId y medioId' }
@@ -64,7 +66,9 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
     let html = ''
     if (homepageHtmlFromCheck && homepageHtmlFromCheck.length > 500) {
       html = homepageHtmlFromCheck
-      console.log(`[scrape-fuente] HTML reutilizado de check-first (${(html.length / 1024).toFixed(0)} KB) — sin descarga extra`)
+      console.log(`[scrape-fuente] HTML reutilizado de html-cache (${(html.length / 1024).toFixed(0)} KB) — sin descarga extra`)
+      // FIX MEMORIA: Liberar cache después de consumirlo
+      clearHtml(fuenteId)
     } else {
       html = await descargarHomepage(fuente.url)
       console.log(`[scrape-fuente] HTML descargado de nuevo (${html ? (html.length / 1024).toFixed(0) : 0} KB)`)

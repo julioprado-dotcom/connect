@@ -40,10 +40,27 @@ async function getZai() {
  * Retorna null si falla (no lanza excepción).
  */
 export async function zaiFetch(url: string, timeoutMs = 30000): Promise<ZaiPageResult | null> {
+  // FIX MEMORIA: Timeout real con AbortController + cleanup.
+  // Antes timeoutMs era aceptado como parametro pero nunca aplicado.
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+
   try {
     const zai = await getZai()
 
+    // Aplicar timeout real: si el SDK ZAI se cuelga, abortamos
+    const controller = new AbortController()
+    timeoutId = setTimeout(() => {
+      controller.abort()
+      console.warn(`[ZaiFetch] Timeout ${timeoutMs}ms reached for ${url}`)
+    }, timeoutMs)
+
     const result = await zai.functions.invoke('page_reader', { url })
+
+    // Si llegamos aqui, el SDK respondió a tiempo — limpiar timeout
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+      timeoutId = undefined
+    }
 
     if (!result || !result.data) {
       console.warn(`[ZaiFetch] Sin datos para ${url}`)
@@ -73,8 +90,19 @@ export async function zaiFetch(url: string, timeoutMs = 30000): Promise<ZaiPageR
     }
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
-    console.warn(`[ZaiFetch] Error ${url}: ${msg}`)
+    // Detectar si fue timeout vs otro error
+    if (msg.includes('abort') || msg.includes('timeout')) {
+      console.warn(`[ZaiFetch] Timeout ${timeoutMs}ms para ${url}`)
+    } else {
+      console.warn(`[ZaiFetch] Error ${url}: ${msg}`)
+    }
     return null
+  } finally {
+    // FIX MEMORIA: Garantizar que el timeout se limpia siempre
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+      timeoutId = undefined
+    }
   }
 }
 

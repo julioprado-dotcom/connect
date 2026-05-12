@@ -18,6 +18,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
   const tareas = (payload.tareas as TareaMantenimiento[]) || [
     'recalcular_horarios',
     'degradar_fuentes',
+    'limpiar_homepage_html',
     'limpiar_jobs',
   ]
 
@@ -194,6 +195,47 @@ async function ejecutarTarea(tarea: TareaMantenimiento): Promise<MantenimientoRe
         tarea,
         completada: true,
         detalle: `${completados} completados y ${fallidos} fallidos purgados [archivados en backup previo]`,
+      }
+    }
+
+    case 'limpiar_homepage_html': {
+      // FIX MEMORIA: Limpiar homepageHtml de FuenteEstado que tenga más de 6 horas
+      // Este campo se usa solo para pasar HTML entre check→scrape, no es necesario persistirlo.
+      // Con el nuevo html-cache.ts, ya no se necesita en DB para nada.
+      const cutoff = new Date(Date.now() - 6 * 60 * 60 * 1000)
+      const fuentesConHtml = await db.fuenteEstado.findMany({
+        where: {
+          homepageHtml: { not: '' },
+          ultimoCheck: { lt: cutoff },
+        },
+        select: { id: true, homepageHtml: true },
+      })
+
+      if (fuentesConHtml.length === 0) {
+        return {
+          tarea,
+          completada: true,
+          detalle: 'No hay homepageHtml antiguo que limpiar',
+        }
+      }
+
+      // Calcular espacio liberado antes de limpiar
+      const totalBytes = fuentesConHtml.reduce(
+        (sum, f) => sum + (f.homepageHtml?.length ?? 0), 0
+      )
+      const totalKB = Math.round(totalBytes / 1024)
+
+      await db.fuenteEstado.updateMany({
+        where: {
+          id: { in: fuentesConHtml.map(f => f.id) },
+        },
+        data: { homepageHtml: '' },
+      })
+
+      return {
+        tarea,
+        completada: true,
+        detalle: `Limpieza: ${fuentesConHtml.length} fuentes, ${totalKB} KB liberados de homepageHtml (cutoff: 6h)`,
       }
     }
 

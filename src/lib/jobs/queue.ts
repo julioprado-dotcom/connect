@@ -87,14 +87,46 @@ export async function dequeue(): Promise<Record<string, unknown> | null> {
 
 // Marcar job como completado
 export async function complete(jobId: string, resultado: Record<string, unknown>): Promise<void> {
+  // FIX MEMORIA: Limpiar HTML grande del resultado antes de persistir en DB.
+  // homepageHtml puede ser 1-1.5 MB y ya no se necesita después de que scrape consume el cache.
+  const cleanResultado = cleanHtmlFromResultado(resultado)
+
   await db.job.update({
     where: { id: jobId },
     data: {
       estado: 'completado',
       fechaFin: new Date(),
-      resultado: JSON.stringify(resultado),
+      resultado: JSON.stringify(cleanResultado),
     },
   })
+}
+
+/**
+ * Elimina campos grandes de HTML del resultado de un job antes de serializar.
+ * Esto evita que la tabla Job crezca con payloads de megabytes.
+ */
+function cleanHtmlFromResultado(resultado: Record<string, unknown>): Record<string, unknown> {
+  const cleaned = { ...resultado }
+
+  // Limpiar homepageHtml de datosActualizacion (viene de check-first strategies)
+  if (cleaned.datosActualizacion && typeof cleaned.datosActualizacion === 'object') {
+    const datos = { ...(cleaned.datosActualizacion as Record<string, unknown>) }
+    if (datos.homepageHtml) {
+      const sizeKB = Math.round((datos.homepageHtml as string).length / 1024)
+      delete datos.homepageHtml
+      console.log(`[Queue] Cleaned ${sizeKB} KB homepageHtml from datosActualizacion before persist`)
+    }
+    cleaned.datosActualizacion = datos
+  }
+
+  // Limpiar homepageHtml directo del resultado (si viene desde check-fuente)
+  if (cleaned.homepageHtml) {
+    const sizeKB = Math.round((cleaned.homepageHtml as string).length / 1024)
+    delete cleaned.homepageHtml
+    console.log(`[Queue] Cleaned ${sizeKB} KB homepageHtml from resultado before persist`)
+  }
+
+  return cleaned
 }
 
 // Marcar job como fallido (con reintentos o cancelacion)

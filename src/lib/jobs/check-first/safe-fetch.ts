@@ -9,11 +9,14 @@
 
 import https from 'node:https'
 import type { IncomingHttpHeaders } from 'node:http'
+import { CHECK_FIRST_CONFIG } from '../constants'
 
 // Agente TLS inseguro reutilizable (conexiones keep-alive)
+// FIX MEMORIA #6: Limitar maxFreeSockets para evitar acumulación de conexiones idle
 const insecureAgent = new https.Agent({
   rejectUnauthorized: false,
   keepAlive: true,
+  maxFreeSockets: 5,     // FIX: limitar sockets idle (antes sin límite)
   maxSockets: 10,
   timeout: 15_000,
 })
@@ -146,8 +149,17 @@ function httpsFetch(url: string, init: RequestInit = {}): Promise<Response> {
     }
 
     const req = https.request(reqOptions, (res) => {
+      // FIX MEMORIA #7: Aplicar maxContentBytes para evitar respuestas HTTP masivas
       const chunks: Buffer[] = []
-      res.on('data', (chunk: Buffer) => chunks.push(chunk))
+      let totalSize = 0
+      res.on('data', (chunk: Buffer) => {
+        totalSize += chunk.length
+        if (totalSize > CHECK_FIRST_CONFIG.maxContentBytes) {
+          req.destroy(new Error(`Response too large: ${totalSize} > ${CHECK_FIRST_CONFIG.maxContentBytes} bytes`))
+          return
+        }
+        chunks.push(chunk)
+      })
       res.on('end', () => {
         try {
           const body = Buffer.concat(chunks)
@@ -178,8 +190,12 @@ function httpsFetch(url: string, init: RequestInit = {}): Promise<Response> {
         req.destroy(new Error('Aborted'))
         return
       }
-      init.signal.addEventListener('abort', () => {
-        req.destroy(new Error('Aborted'))
+      // FIX MEMORIA #6: Remover listener al completar para evitar acumulación
+      const onAbort = () => { req.destroy(new Error('Aborted')) }
+      init.signal.addEventListener('abort', onAbort)
+      // Limpiar listener cuando la request termine (éxito o error)
+      req.on('close', () => {
+        init.signal!.removeEventListener('abort', onAbort)
       })
     }
 
