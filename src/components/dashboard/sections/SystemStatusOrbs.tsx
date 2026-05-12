@@ -102,6 +102,12 @@ export function SystemStatusOrbs({ sysMetrics, entregasHoy, aiHealth, mcResumen,
   }, [entregasHoy]);
 
   // AI diagnostic message (for diagnostics panel)
+  const hasMcWarning = useMemo(() => {
+    if (!mcResumen) return false;
+    if (!mcResumen.inicializado) return true;
+    return (mcResumen.vacios && mcResumen.vacios.length > 0) ?? false;
+  }, [mcResumen]);
+
   const aiDiagnostic = useMemo(() => {
     if (!aiHealth) return null;
     if (aiHealth.statusLevel === 'critical') {
@@ -199,16 +205,9 @@ export function SystemStatusOrbs({ sysMetrics, entregasHoy, aiHealth, mcResumen,
               {mcResumen && (
                 <div className="flex items-center gap-1.5">
                   {mcResumen.inicializado ? (
-                    <>
-                      <span className="text-[9px] font-medium text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
-                        MC v{mcResumen.version}
-                      </span>
-                      {mcResumen.vacios && mcResumen.vacios.length > 0 && (
-                        <span className="text-[9px] text-amber-500" title={`Directrices vacías: ${mcResumen.vacios.join(', ')}`}>
-                          <AlertTriangle className="h-3 w-3" />
-                        </span>
-                      )}
-                    </>
+                    <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${mcResumen.vacios && mcResumen.vacios.length > 0 ? 'text-amber-600 bg-amber-50 dark:bg-amber-950/30' : 'text-muted-foreground bg-muted/50'}`}>
+                      MC v{mcResumen.version}
+                    </span>
                   ) : (
                     <span className="text-[9px] font-medium text-red-500 bg-red-50 dark:bg-red-950/30 px-1.5 py-0.5 rounded">
                       MC no configurado
@@ -262,7 +261,31 @@ export function SystemStatusOrbs({ sysMetrics, entregasHoy, aiHealth, mcResumen,
                   </div>
                 </div>
               )}
-              {criticals.length === 0 && warnings.length === 0 && !aiDiagnostic && (
+              {/* Diagnóstico: Marco Conceptual con directrices vacías */}
+              {mcResumen && !mcResumen.inicializado && (
+                <div key="mc-not-configured" className="flex items-start gap-2">
+                  <XCircle className="h-3.5 w-3.5 text-red-500 mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-medium text-red-600 dark:text-red-400">Marco Conceptual no configurado</p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5">Ir a Configuración &gt; Marco Conceptual para inicializar</p>
+                  </div>
+                </div>
+              )}
+              {mcResumen && mcResumen.inicializado && mcResumen.vacios && mcResumen.vacios.length > 0 && (
+                <div key="mc-vacios" className="flex items-start gap-2">
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400">Marco Conceptual: directrices sin contenido</p>
+                    <p className="text-[9px] text-amber-700/70 dark:text-amber-400/70 mt-0.5">
+                      Vacíos: {mcResumen.vacios.join(', ')}
+                    </p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5">
+                      Ir a Configuración &gt; Marco Conceptual para completar
+                    </p>
+                  </div>
+                </div>
+              )}
+              {criticals.length === 0 && warnings.length === 0 && !aiDiagnostic && !hasMcWarning && (
                 <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                   <CheckCircle2 className="h-4 w-4" />
                   <span className="text-xs font-medium">Todo normal</span>
