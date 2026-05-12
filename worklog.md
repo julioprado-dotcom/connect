@@ -161,3 +161,26 @@ Stage Summary:
 - 0 errores TypeScript, build limpio
 - Push exitoso a GitHub
 
+---
+Task ID: 1
+Agent: Main Agent
+Task: Restaurar servicio desde GitHub y levantar servidor
+
+Work Log:
+- Buscó exhaustivamente en todo el filesystem — proyecto no estaba en el sandbox
+- Usuario proporcionó credenciales GitHub: https://github.com/julioprado-dotcom/connect
+- Clonó repo exitosamente con git clone (token GH)
+- Restauró .git con historial completo (15 commits)
+- Restauró DB desde backup: backups/snapshot-20260509-000013.db
+- Creó .env desde .env.example
+- Instaló dependencias: bun install (683 packages)
+- Generó Prisma client: prisma generate + db push
+- Build exitoso: next build (65 páginas, 0 errores, 32 warnings Edge Runtime)
+- Servidor arranca OK pero el sandbox Z.ai mata procesos background en ~5s
+- Caddy proxy en puerto 81 → localhost:3000 (funciona cuando next está vivo)
+
+Stage Summary:
+- Código completo restaurado en /home/z/my-project/
+- Build listo en .next/
+- DB restaurada con 173 personas, 33 medios, 30 fuentes, 35 ejes, 12 indicadores
+- BLOQUEANTE: Sandbox mata procesos en background — necesita deploy desde plataforma Z.ai
