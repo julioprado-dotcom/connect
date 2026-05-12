@@ -101,6 +101,35 @@ REGLAS:
 - Fechas en formato es-BO (America/La_Paz)
 - No emitir juicios de valor politico`,
 
+  BOLETIN_DEL_GRANO: `Eres un analista especializado en la cadena productiva de café de especialidad boliviano. Tu tarea es generar el BOLETÍN DEL GRANO, el reporte semanal del sector cafetero de Bolivia para DECODEX.
+
+CONTEXTO: El boletín cubre la cadena completa del café de especialidad boliviano: productores, procesadores, torradores, cafeterías y exportadores. Público objetivo: asociación de actores de la cadena cafetera.
+
+EJES TEMÁTICOS INTERNOS (7):
+1. Mercado y Precios (C-market, FOB, cotizaciones)
+2. Clima y Producción (eventos climáticos, cosechas, plagas)
+3. Política y Regulación (SENASAG, EUDR, FDA, normativas)
+4. Logística y Exportación (fletes, puertos, rutas)
+5. Innovación y Técnica (procesamiento, cata, SCA)
+6. Ferias y Oportunidades (SCA Expo, Cup of Excellence)
+7. Cadena y Contexto (cooperativas, consumo interno, contexto)
+
+INSTRUCCIONES DE FORMATO:
+- Titulo: "BOLETÍN DEL GRANO — Semana del [fecha inicio] al [fecha fin] de [mes] de [año]"
+- Extension: 1500-2000 palabras
+- Tono: especializado, sectorial, con datos concretos
+- Estructura: 9 secciones (Portada, Resumen Ejecutivo, Estadísticas Clave, Mapa de Tensiones, Noticias Destacadas, Índice de Fuentes, Cruce Transversal, Tendencia y Proyección, Nota Metodológica)
+
+REGLAS CRÍTICAS:
+- SOLO usar datos proporcionados. NUNCA inventar noticias, datos ni tendencias.
+- Si hay menos de 10 noticias relevantes: indicar "Cobertura limitada para el período analizado"
+- Si hay 0 noticias relevantes: NO generar el boletín, registrar en log.
+- Fechas en formato es-BO (America/La_Paz)
+- Una noticia puede activar múltiples ejes (los porcentajes pueden sumar >100%)
+- Asignar nivel de tensión: ALTA (impacto rentabilidad/supervivencia), MEDIA (oportunidad/moderado), BAJA (informativo)
+- Precios internacionales siempre en USD/libra
+- Conexiones entre ejes (ej: clima afectó producción → impactó precios)`,
+
   ALERTA_TEMPRANA: `Eres un monitor de medios en tiempo real de DECODEX Bolivia. Tu tarea es generar una ALERTA TEMPRANA para distribucion inmediata por WhatsApp.
 
 INSTRUCCIONES DE FORMATO:
@@ -463,6 +492,33 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     },
     systemPrompt: SYSTEM_PROMPTS.FICHA_LEGISLADOR,
   },
+
+  // ── Sectorial: Café de Especialidad ──
+  BOLETIN_DEL_GRANO: {
+    tipo: 'BOLETIN_DEL_GRANO',
+    nombre: 'Boletín del Grano',
+    nombreCorto: 'El Grano',
+    descripcion: 'Reporte semanal especializado en café de especialidad boliviano. Cubre la cadena productiva completa: precios, clima, regulación, logística, innovación, ferias y contexto.',
+    categoria: 'premium_mid',
+    frecuencia: 'semanal',
+    horarioEnvio: 'Lunes 08:00 AM',
+    longitudPaginas: 5,
+    longitudMinLectura: 10,
+    canales: ['email', 'pdf'],
+    periodoDefault: 7,
+    palabrasObjetivo: 1800,
+    temperatura: 0.4,
+    activo: true,
+    generador: {
+      tipo: 'generico',
+      ventana: 'semanal',
+      filtros: ['fecha'],
+      requierePreview: false,
+      panelId: null,
+      descripcionVentana: 'Semana completa (lunes — domingo)',
+    },
+    systemPrompt: SYSTEM_PROMPTS.BOLETIN_DEL_GRANO,
+  },
 }
 
 // ─── Combos de Productos ──────────────────────────────────────────
@@ -566,6 +622,10 @@ export const ETIQUETAS_ENTREGA: Record<TipoBoletin, { whatsapp: string; email: s
   ALERTA_TEMPRANA: {
     whatsapp: '🚨 ALERTA TEMPRANA — {evento}',
     email: 'Alerta Temprana: {evento} | DECODEX',
+  },
+  BOLETIN_DEL_GRANO: {
+    whatsapp: '☕ BOLETÍN DEL GRANO — Semana {semana}',
+    email: 'Boletín del Grano: Café de Especialidad Bolivia — Semana del {inicio} al {fin} | DECODEX',
   },
 }
 

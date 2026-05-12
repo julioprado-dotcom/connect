@@ -112,7 +112,8 @@ export function getDateRange(tipo: string): { fechaInicio: Date; fechaFin: Date 
   const hoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate())
 
   switch (tipo) {
-    case 'EL_RADAR': {
+    case 'EL_RADAR':
+    case 'BOLETIN_DEL_GRANO': {
       // Semana pasada (lunes a domingo)
       const diaSemana = hoy.getDay()
       const lunesPasado = new Date(hoy)

@@ -17,6 +17,7 @@ export type TipoBoletin =
   | 'FICHA_LEGISLADOR'    // Ficha individual — a solicitud
   | 'FOCO_DE_LA_SEMANA'   // Radar temático semanal gratuito — awareness
   | 'ALERTA_TEMPRANA'     // Alertas en tiempo real por WhatsApp — premium alta
+  | 'BOLETIN_DEL_GRANO'   // Boletín semanal café de especialidad Bolivia — sectorial cafetero
 
 // ─── Categorías de Boletín ─────────────────────────────────────────
 
@@ -24,7 +25,7 @@ export type CategoriaBoletin = 'gratuito' | 'premium' | 'premium_mid' | 'premium
 
 // ─── Frecuencias ──────────────────────────────────────────────────
 
-export type FrecuenciaBoletin = 'diario_am' | 'diario_pm' | 'diario' | 'semanal' | 'mensual' | 'bajo_demanda' | 'tiempo_real'
+export type FrecuenciaBoletin = 'diario_am' | 'diario_pm' | 'diario' | 'semanal' | 'mensual' | 'bajo_demanda' | 'tiempo_real' | 'semanal_lunes'
 
 // ─── Canal de Entrega ─────────────────────────────────────────────
 

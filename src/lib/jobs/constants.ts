@@ -116,6 +116,7 @@ export const BOLETINES_SCHEDULE: BoletinSchedule[] = [
   { hora: 9,  minuto: 0, tipo: 'EL_FOCO',           prioridad: 5 },
   { hora: 8,  minuto: 0, tipo: 'EL_RADAR',          prioridad: 5 },
   { hora: 10, minuto: 0, tipo: 'EL_ESPECIALIZADO',  prioridad: 5 },
+  { hora: 8,  minuto: 0, tipo: 'BOLETIN_DEL_GRANO', prioridad: 5 },
 ]
 
 // ── Configuracion del Worker ───────────────────────────────────────────
