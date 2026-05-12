@@ -10,6 +10,7 @@ export interface CronEntry {
   diaSemana?: number    // 0=domingo, 1=lunes, ... 6=sabado (null = todos los dias)
   expresion: string     // expresion cron
   tipo: string          // 'check_fuente', 'generar_boletin', etc.
+  tipoBoletin?: string  // para boletines: tipo de producto real (EL_TERMOMETRO, etc.)
   prioridad: number     // prioridad del job a encolar
 }
 
@@ -46,6 +47,7 @@ export function getBoletinCronEntries(): CronEntry[] {
     horario: b.hora,
     expresion: `${b.minuto} ${b.hora} * * 1-5`, // lunes a viernes
     tipo: 'generar_boletin',
+    tipoBoletin: b.tipo,  // preservar el tipo de producto real
     prioridad: b.prioridad,
   }))
 }

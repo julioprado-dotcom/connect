@@ -260,16 +260,17 @@ function scheduleBoletinJobs(): void {
         const pendingCount = await db.job.count({ where: { estado: 'pendiente' } })
         if (pendingCount >= QUEUE_LIMITS.maxPendingJobs) return
 
+        const productType = entry.tipoBoletin || entry.tipo
         await enqueue({
           tipo: 'generar_boletin',
           prioridad: entry.prioridad as 0 | 1 | 3 | 5 | 7 | 9,
           payload: {
-            tipoBoletin: entry.tipo,
+            tipoBoletin: productType,
             programado: true,
           },
         })
 
-        console.log(`[Scheduler] Boletin ${entry.tipo} encolado (${formatCronHuman(entry.expresion)})`)
+        console.log(`[Scheduler] Boletin ${productType} encolado (${formatCronHuman(entry.expresion)})`)
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error)
         console.error(`[Scheduler] Error en boletin ${entry.tipo}: ${msg}`)

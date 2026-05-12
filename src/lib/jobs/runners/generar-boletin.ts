@@ -5,6 +5,7 @@
 import db from '@/lib/db'
 import { getMencionesForBulletin, getProductConfig, formatFechaBolivia } from '@/lib/bulletin/product-generator'
 import { buildDeliveryPayload } from '@/lib/bulletin/delivery'
+import { PRODUCTOS } from '@/constants/products'
 import type { TipoBoletin } from '@/types/bulletin'
 import type { JobPayload, RunnerResult } from '../types'
 
@@ -23,10 +24,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
     // 1. Verificar que el producto existe
     const config = getProductConfig(tipoBoletin)
     if (!config) {
-      const productosValidos = [
-        'EL_TERMOMETRO', 'SALDO_DEL_DIA', 'EL_FOCO', 'EL_RADAR',
-        'EL_ESPECIALIZADO', 'FICHA_LEGISLADOR', 'BOLETIN_SECTORIAL',
-      ].join(', ')
+      const productosValidos = Object.keys(PRODUCTOS).join(', ')
       console.error(`[generar_boletin] Producto no válido: "${tipoBoletin}". Productos configurados: ${productosValidos}`)
       return {
         success: false,

@@ -249,3 +249,25 @@ Stage Summary:
 - Todas las rutas (.env, docs, scripts) ahora apuntan a la misma ruta
 - db.ts mantiene el override como safety net (defensa en profundidad)
 - Servidor nunca se reinició durante las correcciones
+---
+Task ID: 1
+Agent: Main Agent
+Task: Investigar y corregir job fallido de Boletín + Ejecutar PASO 2 (extracción retroactiva)
+
+Work Log:
+- Investigado job fallido: error "Producto generar_boletin no configurado"
+- Root cause: Bug en cron-builder.ts sobreescribe b.tipo con 'generar_boletin' (job type) en vez de preservar el tipo real del producto
+- Fix 1: cron-builder.ts — añadido campo tipoBoletin a CronEntry interface y getBoletinCronEntries()
+- Fix 2: scheduler.ts — usando entry.tipoBoletin en vez de entry.tipo para el payload
+- Fix 3: generar-boletin.ts — lista de productos dinámica desde PRODUCTOS (eliminado BOLETIN_SECTORIAL fantasma)
+- Ejecutado dry-run de extracción retroactiva: Leo.bo funcionó (76 URLs en 7 días), otras fuentes fallaron (patrones incorrectos)
+- Corregido script: redirect:follow en fetch, añadido La Razón, Correo del Sur, El Potosí
+- Ejecutada extracción real: Leo.bo 76 URLs procesadas → 0 menciones (LLM classifier descartó como no relevantes)
+- Worker activo (1h 40m uptime), 85 jobs completados en 24h
+
+Stage Summary:
+- Bug crítico de boletines corregido: los 5 boletines programados (EL_TERMOMETRO, SALDO_DEL_DIA, EL_FOCO, EL_RADAR, EL_ESPECIALIZADO) ahora funcionarán correctamente
+- Extracción retroactiva ejecutada pero con resultado bajo: solo Leo.bo tiene patrón de archivo funcional
+- El LLM classifier filtra artículos que no mencionan legisladores rastreados ni ejes temáticos
+- Necesario: ajustar umbrales del clasificador LLM o ampliar criterios de relevancia para retroactivos
+- Fuentes que bloquean scraping (403): elpotosi.net, opinion.com.bo

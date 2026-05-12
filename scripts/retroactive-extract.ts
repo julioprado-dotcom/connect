@@ -33,7 +33,19 @@ const DRY_RUN = process.argv.includes('--dry-run')
 const FUENTES_NIVEL_A: Record<string, { tipo: 'sitemap' | 'archivo_fecha'; sitemapUrl?: string; urlPattern?: string }> = {
   'eldia.com.bo': {
     tipo: 'archivo_fecha',
-    urlPattern: 'https://eldia.com.bo/{YYYY}-{MM}-{DD}/',
+    urlPattern: 'https://eldia.com.bo/{YYYY}/{MM}/{DD}/',
+  },
+  'la-razon.com': {
+    tipo: 'sitemap',
+    sitemapUrl: 'https://la-razon.com/sitemap_index.xml',
+  },
+  'correodelsur.com': {
+    tipo: 'archivo_fecha',
+    urlPattern: 'https://correodelsur.com/{YYYY}/{MM}/{DD}/',
+  },
+  'elpotosi.net': {
+    tipo: 'sitemap',
+    sitemapUrl: 'https://elpotosi.net/sitemap.xml',
   },
   'boliviaverifica.bo': {
     tipo: 'sitemap',
@@ -141,8 +153,9 @@ async function getSourceInfo(url: string): Promise<{ id: string; medioId: string
 async function fetchXml(url: string): Promise<string> {
   try {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 15000)
+    const timeout = setTimeout(() => controller.abort(), 20000)
     const res = await fetch(url, {
+      redirect: 'follow',
       headers: {
         'User-Agent': 'DECODEX-Bot/0.15.0 (Inteligencia Mediática Bolivia)',
         'Accept': 'application/xml, text/xml, */*',
@@ -237,6 +250,7 @@ async function extractArticleUrlsFromArchive(archiveUrl: string): Promise<string
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 15000)
     const res = await fetch(archiveUrl, {
+      redirect: 'follow',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': 'text/html,*/*',
