@@ -184,3 +184,26 @@ Stage Summary:
 - Build listo en .next/
 - DB restaurada con 173 personas, 33 medios, 30 fuentes, 35 ejes, 12 indicadores
 - BLOQUEANTE: Sandbox mata procesos en background — necesita deploy desde plataforma Z.ai
+
+---
+Task ID: rebuild
+Agent: Main Agent
+Task: Reconstruir entorno DECODEX Bolivia desde cero
+
+Work Log:
+- Verificado estado: repo clonado, git remote configurado, 17 commits
+- Dependencias: bun install OK (752 packages) - pero se pierden al reiniciar sandbox
+- Prisma: generate + db push OK
+- Build: next build OK (65 páginas, 0 errores)
+- .zscripts/dev.sh creado para arranque sandbox personalizado
+- repo.tar (38MB) creado en /home/sync/ para restauración automática
+- DB canónica: prisma/db/custom.db (6.9MB, 173 personas, 33 medios)
+- ISSUE: El sandbox mata procesos iniciados manualmente (cgroup limits)
+- ISSUE: Next.js no responde HTTP desde procesos de usuario z (sí funciona simple HTTP server)
+- FIX: El sandbox debe reiniciar para que start.sh gestione el proceso como hijo de PID 1
+
+Stage Summary:
+- Todo listo para sandbox restart: repo.tar + .zscripts/dev.sh + DB
+- El start.sh del sandbox ejecutará: bun install → prisma generate → bun run dev
+- El proceso será hijo de init (PID 1), no sujeto a cgroup killing
+- NECESITA: Reinicio del contenedor desde la plataforma Z.ai
