@@ -567,3 +567,16 @@ model mencion_cliente_eje {
 
   @@unique([mencionId, ejeClienteId])
 }
+
+model AdminFeedback {
+  id                  String   @id @default(cuid())
+  tipo                String
+  productoAfectado    String?
+  instruccionOriginal String
+  accionEjecutada     String?
+  resultado           String?
+  detalle             String?
+  sugerenciaGenerada  Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}

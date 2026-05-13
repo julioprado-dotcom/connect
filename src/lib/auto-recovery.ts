@@ -62,7 +62,7 @@ interface DBDiagnosis {
     fuentes: number
     ejes: number
     indicadores: number
-    marcoConceptual: boolean
+    marco_conceptual: boolean
   }
 }
 
@@ -77,7 +77,7 @@ export async function diagnosticarDB(): Promise<DBDiagnosis> {
     db.fuenteEstado.count(),
     db.ejeTematico.count(),
     db.indicador.count(),
-    db.marcoConceptual.count({ where: { activa: true } }),
+    db.marco_conceptual.count({ where: { activa: true } }),
   ])
 
   const problemas: string[] = []
@@ -101,7 +101,7 @@ export async function diagnosticarDB(): Promise<DBDiagnosis> {
   return {
     sana: problemas.length === 0,
     problemas,
-    conteos: { personas, medios, fuentes, ejes, indicadores, marcoConceptual: mcActivos > 0 },
+    conteos: { personas, medios, fuentes, ejes, indicadores, marco_conceptual: mcActivos > 0 },
   }
 }
 
@@ -201,7 +201,7 @@ export async function verificarScheduler(): Promise<boolean> {
  * pero como función invocable desde el auto-recovery.
  */
 export async function seedMarcoConceptual(): Promise<boolean> {
-  const existente = await db.marcoConceptual.findFirst({ where: { activa: true } })
+  const existente = await db.marco_conceptual.findFirst({ where: { activa: true } })
   if (existente) {
     console.log(`[AutoRecovery] Marco Conceptual ya existe (v${existente.version}). Omitiendo.`)
     return false
@@ -352,7 +352,7 @@ export async function seedMarcoConceptual(): Promise<boolean> {
       activar_clasificacion_auto: true
     }
 
-    await db.marcoConceptual.create({
+    await db.marco_conceptual.create({
       data: {
         version: 1,
         activa: true,
@@ -585,7 +585,7 @@ export async function ejecutarAutoRecovery(): Promise<RecoveryResult> {
   }
 
   // ── Recovery de Marco Conceptual ──
-  if (!diagnostico.conteos.marcoConceptual) {
+  if (!diagnostico.conteos.marco_conceptual) {
     const mcCreado = await seedMarcoConceptual()
     if (mcCreado) {
       acciones.push('Marco Conceptual v1 creado (seed automático)')

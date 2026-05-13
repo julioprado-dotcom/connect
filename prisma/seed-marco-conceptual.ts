@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Verificar si ya existe un marco
-  const existente = await prisma.marcoConceptual.findFirst({ where: { activa: true } });
+  const existente = await prisma.marco_conceptual.findFirst({ where: { activa: true } });
   if (existente) {
     console.log(`Ya existe un marco conceptual activo (v${existente.version}). Abortando.`);
     return;
@@ -363,7 +363,7 @@ async function main() {
     activar_clasificacion_auto: true
   };
 
-  const marco = await prisma.marcoConceptual.create({
+  const marco = await prisma.marco_conceptual.create({
     data: {
       version: 1,
       activa: true,

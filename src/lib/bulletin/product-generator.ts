@@ -45,15 +45,15 @@ export async function getMencionesForBulletin(
   const menciones = await db.mencion.findMany({
     where,
     include: {
-      persona: {
+      Persona: {
         select: { id: true, nombre: true, partidoSigla: true, camara: true, departamento: true },
       },
-      medio: {
+      Medio: {
         select: { id: true, nombre: true, tipo: true },
       },
-      ejesTematicos: {
+      MencionTema: {
         select: {
-          ejeTematico: { select: { id: true, nombre: true, slug: true, color: true } },
+          EjeTematico: { select: { id: true, nombre: true, slug: true, color: true } },
         },
       },
     },
@@ -70,19 +70,19 @@ export async function getMencionesForBulletin(
     fechaPublicacion: m.fechaPublicacion,
     fechaCaptura: m.fechaCaptura,
     tipoMencion: m.tipoMencion,
-    persona: m.persona?.nombre ?? null,
+    persona: m.Persona?.nombre ?? null,
     personaId: m.personaId,
-    partidoSigla: m.persona?.partidoSigla ?? null,
-    camara: m.persona?.camara ?? null,
-    medio: m.medio?.nombre ?? 'Desconocido',
-    medioTipo: m.medio?.tipo ?? null,
+    partidoSigla: m.Persona?.partidoSigla ?? null,
+    camara: m.Persona?.camara ?? null,
+    medio: m.Medio?.nombre ?? 'Desconocido',
+    medioTipo: m.Medio?.tipo ?? null,
     sentimiento: m.tratamientoPeriodistico || m.sentimiento,
     tratamientoPeriodistico: m.tratamientoPeriodistico,
     intencionMedio: m.intencionMedio,
     confianzaClasificacion: m.confianzaClasificacion,
-    temas: m.ejesTematicos.map((et) => et.ejeTematico.nombre),
-    temasSlugs: m.ejesTematicos.map((et) => et.ejeTematico.slug),
-    temasColores: m.ejesTematicos.map((et) => et.ejeTematico.color),
+    temas: m.MencionTema.map((et) => et.EjeTematico.nombre),
+    temasSlugs: m.MencionTema.map((et) => et.EjeTematico.slug),
+    temasColores: m.MencionTema.map((et) => et.EjeTematico.color),
     reach: m.reach,
     verificado: m.verificado,
   }))
@@ -126,18 +126,25 @@ export function getDateRange(tipo: string): { fechaInicio: Date; fechaFin: Date 
     case 'EL_TERMOMETRO':
     case 'EL_FOCO':
     case 'EL_ESPECIALIZADO':
+    case 'SALDO_DEL_DIA':
+    case 'EL_HILO':
+    case 'ALERTA_TEMPRANA':
     default: {
-      // Ultimos 7 dias
+      // Últimos 7 días (inclusive hoy hasta fin de día)
       const inicio = new Date(hoy)
       inicio.setDate(hoy.getDate() - 7)
-      return { fechaInicio: inicio, fechaFin: hoy }
+      const maniana = new Date(hoy)
+      maniana.setDate(hoy.getDate() + 1)
+      return { fechaInicio: inicio, fechaFin: maniana }
     }
 
     case 'FICHA_LEGISLADOR': {
-      // Ultimos 30 dias
+      // Últimos 30 días (inclusive hoy hasta fin de día)
       const inicio30 = new Date(hoy)
       inicio30.setDate(hoy.getDate() - 30)
-      return { fechaInicio: inicio30, fechaFin: hoy }
+      const maniana30 = new Date(hoy)
+      maniana30.setDate(hoy.getDate() + 1)
+      return { fechaInicio: inicio30, fechaFin: maniana30 }
     }
   }
 }

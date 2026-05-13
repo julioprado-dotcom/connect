@@ -93,9 +93,9 @@ export async function POST(request: NextRequest) {
       ? await db.mencionLente.findMany({
           where: { lenteId: lente9.id },
           include: {
-            mencion: {
+            Mencion: {
               include: {
-                medio: { select: { nombre: true } },
+                Medio: { select: { nombre: true } },
               },
             },
           },
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     const finSemana = new Date(domingoPasado.getFullYear(), domingoPasado.getMonth(), domingoPasado.getDate(), 23, 59, 59);
 
     const mencionesSemana = mencionesRelacionadas.filter((mr) => {
-      const fechaPub = mr.mencion.fechaPublicacion || mr.mencion.fechaCaptura;
+      const fechaPub = mr.Mencion.fechaPublicacion || mr.Mencion.fechaCaptura;
       const fecha = new Date(fechaPub);
       return fecha >= inicioSemana && fecha <= finSemana;
     });
@@ -175,19 +175,19 @@ export async function POST(request: NextRequest) {
     } else {
       // Procesar menciones reales
       const clasificadas = mencionesSemana.map((mr) => {
-        const texto = `${mr.mencion.titulo} ${mr.mencion.texto || ''} ${mr.mencion.textoCompleto || ''}`;
+        const texto = `${mr.Mencion.titulo} ${mr.Mencion.texto || ''} ${mr.Mencion.textoCompleto || ''}`;
         const { ejes, tension } = clasificarNoticia(texto);
         return {
-          titulo: mr.mencion.titulo,
-          medio: mr.mencion.medio?.nombre || 'Desconocido',
-          fecha: mr.mencion.fechaPublicacion
-            ? new Date(mr.mencion.fechaPublicacion).toLocaleDateString('es-BO')
+          titulo: mr.Mencion.titulo,
+          medio: mr.Mencion.Medio?.nombre || 'Desconocido',
+          fecha: mr.Mencion.fechaPublicacion
+            ? new Date(mr.Mencion.fechaPublicacion).toLocaleDateString('es-BO')
             : '',
-          resumen: (mr.mencion.texto || mr.mencion.titulo).slice(0, 200),
+          resumen: (mr.Mencion.texto || mr.Mencion.titulo).slice(0, 200),
           ejes,
           tension,
           fuentes: 1,
-          url: mr.mencion.url || undefined,
+          url: mr.Mencion.url || undefined,
         } as BoletinGranoNoticia;
       });
 
@@ -289,6 +289,7 @@ export async function POST(request: NextRequest) {
     // Guardar como Reporte
     const reporte = await db.reporte.create({
       data: {
+        id: crypto.randomUUID(),
         tipo: 'BOLETIN_DEL_GRANO',
         fechaInicio: inicioSemana,
         fechaFin: finSemana,

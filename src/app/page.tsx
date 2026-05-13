@@ -10,6 +10,11 @@ import { DashboardShell, LoadingScreen } from '@/components/dashboard/DashboardS
 /* Lazy-loaded views - code splitting via next/dynamic */
 const loading = () => <ViewSkeleton />;
 
+const AIAssistantPanel = dynamic(
+  () => import('@/components/dashboard/AIAssistantPanel').then(m => ({ default: m.AIAssistantPanel })),
+  { ssr: false }
+);
+
 const ResumenView = dynamic(() => import('@/components/views/ResumenView').then(m => ({ default: m.ResumenView })), { ssr: false, loading });
 const MencionesView = dynamic(() => import('@/components/views/MencionesView').then(m => ({ default: m.MencionesView })), { ssr: false, loading });
 const ClientesView = dynamic(() => import('@/components/views/ClientesView').then(m => ({ default: m.ClientesView })), { ssr: false, loading });
@@ -113,6 +118,9 @@ export default function Dashboard() {
           {views[activeView] || <ResumenView />}
         </DashboardShell>
       )}
+
+      {/* AI Assistant floating widget — renders on top of everything */}
+      {!loading && <AIAssistantPanel />}
     </>
   );
 }

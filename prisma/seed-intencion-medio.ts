@@ -7,7 +7,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  const marco = await prisma.marcoConceptual.findFirst({ where: { activa: true } });
+  const marco = await prisma.marco_conceptual.findFirst({ where: { activa: true } });
   if (!marco) {
     console.log('No hay marco conceptual activo. Abortando.');
     return;
@@ -77,7 +77,7 @@ async function main() {
   // Log change before updating
   const valorAnterior = JSON.stringify(marco.escalaTratamiento);
 
-  await prisma.marcoConceptual.update({
+  await prisma.marco_conceptual.update({
     where: { id: marco.id },
     data: {
       escalaTratamiento: escala,
@@ -87,7 +87,7 @@ async function main() {
   });
 
   // Record the change in history
-  await prisma.cambioMarcoConceptual.create({
+  await prisma.cambio_marco_conceptual.create({
     data: {
       marcoId: marco.id,
       campo: 'escalaTratamiento.intencion_medio',
