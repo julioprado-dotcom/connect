@@ -1,26 +1,3 @@
-// ═══════════════════════════════════════════════════════════════
-// DECODEX Bolivia — Prisma Schema v0.14.0
-// ═══════════════════════════════════════════════════════════════
-//
-// CLASIFICACIÓN DE TABLAS POR DOMINIO:
-//
-//   CONFIG (master data, baja volatilidad):
-//     Persona, Medio, EjeTematico, MarcoConceptual, CambioMarcoConceptual,
-//     Cliente, Contrato, EjeTematicoCliente, FuenteEstado, Indicador,
-//     Suscriptor, SuscriptorGratuito
-//
-//   OPERACIONAL (datos capturados/procesados, alta volatilidad):
-//     Mencion, MencionTema, MencionClienteEje, Comentario, CapturaLog,
-//     Job, Reporte, Entrega, ReporteSectorial, ReporteEje, EnvioReporte,
-//     IndicadorValor, IndicadorEvaluacion
-//
-//   AUTH (NextAuth v5):
-//     User, Account, Session, VerificationToken
-//
-// NOTA: Cuando el volumen operacional supere 50K registros,
-// evaluar separación física en dos archivos DB.
-// ═══════════════════════════════════════════════════════════════
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -30,500 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─── CONFIG: Legisladores a monitorear ────────────────────────
-
-model Persona {
-  id              String   @id @default(cuid())
-  nombre          String
-  camara          String
-  departamento    String
-  partido         String
-  partidoSigla    String
-  tipo            String
-  cargoDirectiva  String?
-  email           String?
-  fotoUrl         String   @default("")
-  activa          Boolean  @default(true)
-  periodo         String   @default("2025-2030")
-  fechaCreacion   DateTime @default(now())
-  fechaActualizacion DateTime @updatedAt
-
-  menciones Mencion[]
-  reportes  Reporte[]
-}
-
-// ─── CONFIG: Medios de comunicación ──────────────────────────
-
-model Medio {
-  id            String   @id @default(cuid())
-  nombre        String
-  url           String   @default("")
-  tipo          String
-  categoria     String   @default("corporativo") // oficial, corporativo, regional, alternativo, red_social
-  nivel         String   @default("1") // prioridad de captura: 1=alta, 2=media, 3=baja
-  departamento  String?  // para medios regionales
-  plataformas        String   @default("") // "web,facebook,youtube,tiktok,x"
-  notas               String   @default("")
-  pais                String   @default("Bolivia")
-  activo              Boolean  @default(true)
-  fechaCreacion       DateTime @default(now())
-  frecuenciaOverride  String   @default("") // JSON: override temporal por contrato
-
-  menciones      Mencion[]
-  capturaLogs    CapturaLog[]
-  fuenteEstado   FuenteEstado?
-}
-
-// ─── CONFIG: Ejes temáticos de análisis ──────────────────────
-
-model EjeTematico {
-  id            String   @id @default(cuid())
-  parentId      String?
-  nombre        String
-  slug          String   @unique
-  icono         String   @default("")
-  color         String   @default("")
-  descripcion   String   @default("")
-  keywords      String   @default("")
-  dimension     String   @default("")   // produccion, precio, conflicto, regulacion, infraestructura
-  activo        Boolean  @default(true)
-  orden         Int      @default(0)
-  /// Clasificación v2: "estructural" para los 9 ejes nuevos, "legacy" para los ejes originales
-  tipo          String   @default("legacy") // "estructural" | "legacy"
-
-  parent        EjeTematico?  @relation("EjeTematicoHierarchy", fields: [parentId], references: [id])
-  children      EjeTematico[] @relation("EjeTematicoHierarchy")
-
-  menciones       MencionTema[]
-  mencionesV2     Mencion[]       @relation("MencionEjeEstructural")
-  keywordEjes     Keyword[]
-}
-
-// ─── OPERACIONAL: Menciones capturadas ─────────────────────
-
-model Mencion {
-  id                String   @id @default(cuid())
-  personaId         String?
-  medioId           String
-  titulo            String
-  texto             String   @default("")
-  url               String   @default("")
-  fechaPublicacion  DateTime?
-  fechaCaptura      DateTime @default(now())
-  tipoMencion       String   @default("mencion_pasiva")
-  temas             String   @default("")
-  reach             Int      @default(0)
-  verificado        Boolean  @default(false)
-  fechaCreacion     DateTime @default(now())
-  enlaceActivo      Boolean  @default(true)
-  fechaVerificacion DateTime?
-  textoCompleto     String   @default("")
-  comentariosCount  Int      @default(0)
-  comentariosResumen String  @default("")
-
-  /// @deprecated — mantener por compatibilidad. Reemplazado por tratamientoPeriodistico.
-  sentimiento         String   @default("no_clasificado")
-  /// Reemplaza a sentimiento. Valores: tratamiento_informativo, tratamiento_analitico, tratamiento_critico,
-  /// tratamiento_editorial, tratamiento_agresivo, tratamiento_elogioso, tratamiento_ambiguo, sin_tratamiento
-  tratamientoPeriodistico String?
-  /// Nivel de confianza de la clasificación: "alta", "media", "baja"
-  confianzaClasificacion String?
-  /// Respuestas a las 8 preguntas periodísticas fundamentales (JSON)
-  preguntasFundamentales Json?
-  /// Si es duplicado de otra mención
-  esDuplicado         Boolean  @default(false)
-  /// Si es duplicado, referencia a la mención original
-  mencionOriginalId   String?
-  /// JSON array con IDs de medios adicionales donde aparece la misma noticia
-  mediosRelacionados  String?
-  /// ID compuesto para agrupar evoluciones de un evento: "{actor}|{tema}|{fecha_inicio}"
-  eventoId            String?
-  /// JSON con detalles de coberturas adicionales (cross-medio)
-  coberturasAdicionales String?
-  /// Log de deduplicación (JSON): { decision, razon, timestamp, candidatoId? }
-  deduplicacionLog String?
-  /// Intención del medio al publicar la nota: informativa, opinion, critica, elogiosa, reactiva, sin_intencion
-  intencionMedio        String?
-
-  /// v2: Eje estructural principal (clasificación nueva)
-  ejeEstructuralId String?
-
-  persona       Persona?          @relation(fields: [personaId], references: [id])
-  medio         Medio            @relation(fields: [medioId], references: [id])
-  comentarios   Comentario[]
-  ejesTematicos MencionTema[]
-  ejesCliente     MencionClienteEje[]
-  ejeEstructural EjeTematico?     @relation("MencionEjeEstructural", fields: [ejeEstructuralId], references: [id])
-  @@index([ejeEstructuralId])
-  lentes        MencionLente[]
-}
-
-// ─── CONFIG: Lentes transversales v2 ───────────────────────
-
-model Lente {
-  id          String   @id @default(cuid())
-  nombre      String
-  slug        String   @unique
-  descripcion String   @default("")
-  activo      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  menciones     MencionLente[]
-  keywordLentes Keyword[]
-}
-
-// ─── CONFIG: Keywords para ejes y lentes v2 ──────────────────
-
-model Keyword {
-  id        String   @id @default(cuid())
-  termino   String
-  lenteId   String?
-  ejeId     String?
-  activo    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  lente Lente?         @relation(fields: [lenteId], references: [id])
-  eje   EjeTematico?   @relation(fields: [ejeId], references: [id])
-}
-
-// ─── OPERACIONAL: Relación Mención↔Lente v2 ─────────────────
-
-model MencionLente {
-  id        String   @id @default(cuid())
-  mencionId String
-  lenteId   String
-  createdAt DateTime @default(now())
-
-  mencion Mencion @relation(fields: [mencionId], references: [id], onDelete: Cascade)
-  lente   Lente    @relation(fields: [lenteId], references: [id], onDelete: Cascade)
-
-  @@unique([mencionId, lenteId])
-}
-
-// ─── OPERACIONAL: Relación Mención↔Eje (legacy) ─────────────
-
-model MencionTema {
-  id            String   @id @default(cuid())
-  mencionId     String
-  ejeTematicoId String
-
-  mencion     Mencion     @relation(fields: [mencionId], references: [id], onDelete: Cascade)
-  ejeTematico EjeTematico @relation(fields: [ejeTematicoId], references: [id], onDelete: Cascade)
-
-  @@unique([mencionId, ejeTematicoId])
-}
-
-// ─── OPERACIONAL: Reportes generados ───────────────────────
-
-model Reporte {
-  id                     String   @id @default(cuid())
-  tipo                   String   // ONION200: EL_TERMOMETRO, SALDO_DEL_DIA, EL_FOCO, EL_ESPECIALIZADO, EL_RADAR, EL_INFORME_CERRADO, VOZ_Y_VOTO, EL_HILO, ficha_legislador
-  personaId              String?
-  fechaInicio            DateTime
-  fechaFin               DateTime
-  resumen                String   @default("")
-  pdfUrl                 String   @default("")
-  enviado                Boolean  @default(false)
-  fechaEnvio             DateTime?
-  totalMenciones         Int      @default(0)
-  sentimientoPromedio    Float    @default(0)
-  temasPrincipales       String   @default("")
-  fechaCreacion          DateTime @default(now())
-  totalComentarios       Int      @default(0)
-  sentimientoComentarios String   @default("")
-  enlacesRotos           Int      @default(0)
-  contenido              String   @default("") // JSON del contenido estructurado del reporte
-  clasificadores         String   @default("") // JSON con datos por clasificador
-
-  persona Persona? @relation(fields: [personaId], references: [id])
-}
-
-// ─── OPERACIONAL: Comentarios de artículos ─────────────────
-
-model Comentario {
-  id              String   @id @default(cuid())
-  mencionId       String
-  autor           String   @default("")
-  texto           String
-  sentimiento     String   @default("no_clasificado")
-  fechaComentario DateTime?
-  fechaCaptura    DateTime @default(now())
-
-  mencion Mencion @relation(fields: [mencionId], references: [id], onDelete: Cascade)
-}
-
-// ─── CONFIG: Suscriptores legacy ────────────────────────────
-
-model Suscriptor {
-  id               String   @id @default(cuid())
-  nombre           String
-  email            String
-  whatsapp         String?
-  plan             String   @default("basico")
-  fechaSuscripcion DateTime @default(now())
-  activo           Boolean  @default(true)
-}
-
-// ─── OPERACIONAL: Logs de captura ──────────────────────────
-
-model CapturaLog {
-  id                   String   @id @default(cuid())
-  fecha                DateTime @default(now())
-  medioId              String
-  nivel                String   @default("1")
-  totalArticulos       Int      @default(0)
-  mencionesEncontradas Int      @default(0)
-  exitosa              Boolean  @default(false)
-  errores              String   @default("")
-
-  medio Medio @relation(fields: [medioId], references: [id])
-}
-
-// ─── CONFIG: Clientes ONION200 ─────────────────────────────
-
-model Cliente {
-  id               String   @id @default(cuid())
-  nombre           String
-  nombreContacto   String   @default("")
-  email            String
-  telefono         String   @default("")
-  whatsapp         String   @default("")
-  organizacion     String   @default("")
-  segmento         String   @default("otro") // "partido_politico", "movimiento_social", "ong", "embajada", "legislador", "medio", "academico", "otro"
-  plan             String   @default("basico") // "basico", "avanzado", "institucional"
-  estado           String   @default("activo") // "activo", "suspendido", "cancelado"
-  parlamentarios   String   @default("") // JSON: lista de IDs de Persona asignadas al cliente
-  ejesContratados  String   @default("") // JSON: lista de slugs de EjeTematico contratados
-  notas            String   @default("")
-  // Datos de facturacion
-  ci               String   @default("") // Cedula de Identidad del cliente
-  razonSocial      String   @default("") // Nombre o razon social para la factura
-  nit              String   @default("") // Numero de Identificacion Tributaria para facturacion
-  fechaCreacion    DateTime @default(now())
-  fechaActualizacion DateTime @updatedAt
-
-  contratos Contrato[]
-  ejesPersonalizados EjeTematicoCliente[]
-}
-
-// ─── CONFIG: Contratos por cliente ─────────────────────────
-
-model Contrato {
-  id               String   @id @default(cuid())
-  clienteId        String
-  tipoProducto     String                       // ONION200: "EL_TERMOMETRO", "SALDO_DEL_DIA", "EL_FOCO", "EL_ESPECIALIZADO", etc.
-  mediosAsignados  String   @default("")         // JSON: lista de IDs de Medio monitoreados para este contrato
-  ejesTematicos    String   @default("")         // JSON: lista de slugs de EjeTematico incluidos
-  parlamentarios   String   @default("")         // JSON: lista de IDs de Persona monitoreados
-  frecuencia       String   @default("diario")   // "diario", "semanal", "quincenal", "mensual"
-  formatoEntrega   String   @default("whatsapp") // "whatsapp", "email", "ambos"
-  fechaInicio      DateTime
-  fechaFin         DateTime?
-  montoMensual     Float    @default(0)
-  moneda           String   @default("Bs")
-  estado           String   @default("activo")   // "activo", "pausado", "vencido", "cancelado"
-  notas            String   @default("")
-  fechaCreacion    DateTime @default(now())
-  fechaActualizacion DateTime @updatedAt
-
-  cliente  Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
-  entregas Entrega[]
-}
-
-// ─── OPERACIONAL: Tracking de entregas ─────────────────────
-
-model Entrega {
-  id               String    @id @default(cuid())
-  contratoId       String
-  tipoBoletin      String                       // "EL_TERMOMETRO", "SALDO_DEL_DIA", etc.
-  contenido        String    @default("")         // texto/HTML del boletín enviado
-  fechaProgramada  DateTime?                     // fecha/hora programada
-  fechaEnvio       DateTime?                     // fecha/hora real de envío
-  estado           String    @default("pendiente") // "pendiente", "enviado", "fallido"
-  canal            String    @default("whatsapp") // "whatsapp", "email", "web"
-  destinatarios    String    @default("[]")       // JSON array de strings
-  error            String?                       // null o "número inválido", etc.
-  fechaCreacion    DateTime  @default(now())
-
-  contrato Contrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
-
-  @@index([contratoId])
-  @@index([tipoBoletin])
-  @@index([estado])
-  @@index([fechaEnvio])
-}
-
-// ─── OPERACIONAL: Cola de trabajos ─────────────────────────
-
-model Job {
-  id                String    @id @default(cuid())
-  tipo              String                        // "scrape_fuente", "capture_indicador", "generar_boletin", "enviar_entrega", "check_fuente", "check_indicador", "verificar_enlaces", "mantenimiento"
-  prioridad         Int       @default(5)          // 0=crítico, 1=alta, 3=media, 5=normal, 7=baja, 9=mantenimiento
-  estado            String    @default("pendiente") // "pendiente", "en_progreso", "completado", "fallido", "cancelado"
-  payload           String    @default("{}")        // JSON con datos específicos del job
-  resultado         String    @default("")          // JSON con resultado de la ejecución
-  error             String    @default("")          // Mensaje de error si falló
-  intentos          Int       @default(0)           // Veces que se intentó ejecutar
-  maxIntentos       Int       @default(3)           // Máximo de reintentos
-  fechaCreacion     DateTime  @default(now())
-  fechaInicio       DateTime?                     // Cuándo empezó a ejecutarse
-  fechaFin          DateTime?                     // Cuándo terminó
-  proximaEjecucion  DateTime?                     // Para jobs recurrentes o reintentos
-  programa          String    @default("")          // Expresión cron para recurrencia
-
-  @@index([estado, prioridad])
-  @@index([tipo])
-  @@index([fechaCreacion])
-}
-
-// ─── CONFIG: Estado de fuentes (check-first + adaptativo) ──
-
-model FuenteEstado {
-  id               String   @id @default(cuid())
-  medioId          String   @unique
-  url              String                        // URL principal de consulta
-  tipoCheck        String   @default("head")     // "rss", "head", "fingerprint", "api"
-
-  // Cache (Check-First)
-  etag             String   @default("")          // HTTP ETag
-  lastModified     String   @default("")          // HTTP Last-Modified
-  fingerprint      String   @default("")          // SHA-256 del contenido
-  ultimoValor      String   @default("")          // Último valor capturado (para APIs)
-  ultimosIds       String   @default("[]")        // JSON: IDs de las últimas entries RSS
-  homepageHtml     String   @default("")          // Cache: HTML homepage (Z.ai) para reuse por scrape
-
-  // Métricas
-  ultimoCheck      DateTime?
-  ultimoCambio     DateTime?
-  totalChecks      Int      @default(0)
-  totalCambios     Int      @default(0)
-  checksSinCambio  Int      @default(0)
-
-  // Horarios (Histograma)
-  horasPublicacion String   @default("[]")        // JSON: {"7":22,"8":18,...}
-  horariosOptimos  String   @default("[]")        // JSON: [7,8,10,11]
-
-  // Frecuencia (Adaptativa)
-  frecuenciaBase   String   @default("6h")
-  frecuenciaActual String   @default("6h")
-
-  // Estado operativo
-  activo           Boolean  @default(false)     // Computed by lifecycle: estado === 'activa'
-  fallosConsecutivos Int    @default(0)          // Conteo de checks fallidos seguidos (resets on success)
-  error            String   @default("")
-  responseTime     Int      @default(0)           // Último tiempo de respuesta en ms
-
-  // ── Source Lifecycle ──
-  estado           String   @default("creada")      // "creada"|"validando"|"activa"|"inactiva"|"deprecada"
-  capaActual       Int      @default(0)           // Capa de capacidad demostrada (0-4)
-  ultimoCheckOk    DateTime?                       // Timestamp of last successful Check-First
-  ultimoHeadline   DateTime?                       // Timestamp of last headline/link extraction
-  ultimoTexto      DateTime?                       // Timestamp of last full text extraction
-  ultimoMencion    DateTime?                       // Timestamp of last mention created from this source
-  totalHeadlines   Int      @default(0)            // Lifetime headlines extracted
-  totalTexto       Int      @default(0)            // Lifetime full-text articles extracted
-  totalMenciones   Int      @default(0)            // Lifetime mentions generated from this source
-  strategyValid    String   @default("")           // Check-first strategy that works ("rss","head","fingerprint")
-  strategyScrape   String   @default("")           // Scrape strategy that works
-
-  medio            Medio    @relation(fields: [medioId], references: [id])
-
-  @@index([medioId])
-  @@index([ultimoCheck])
-  @@index([activo])
-  @@index([estado])
-}
-
-// ─── CONFIG: Definición de indicadores ─────────────────────
-
-model Indicador {
-  id              String   @id @default(cuid())
-  nombre          String                       // "Tipo de Cambio Oficial"
-  slug            String   @unique             // "tc-oficial-bcb"
-  categoria       String                       // "monetario", "minero", "climatico", "economico", "hidrocarburos", "social"
-  tipo            String   @default("cuantitativo") // "cuantitativo" (extraible) o "cualitativo" (construido)
-  fuente          String                       // "Banco Central de Bolivia"
-  url             String   @default("")         // URL de la fuente
-  periodicidad    String   @default("diaria")   // "diaria", "semanal", "mensual"
-  unidad          String   @default("")         // "Bs/USD", "USD/ton"
-  formatoNumero   Int      @default(2)          // decimales a mostrar
-  activo          Boolean  @default(true)
-  orden           Int      @default(0)
-  ejesTematicos   String   @default("")         // slugs de ejes donde aplica, separados por coma
-  tier            Int      @default(1)           // 1=inmediato, 2=corto plazo, 3=mediano plazo
-  notas           String   @default("")         // notas del capturador
-  // Campos para indicadores cualitativos
-  metodologia     String   @default("")         // descripcion de como se construye/construye el indicador
-  variables       String   @default("[]")        // JSON: sub-variables que componen el indicador cualitativo
-  escalaMin       Float    @default(0)          // valor minimo de la escala (para cualitativos)
-  escalaMax       Float    @default(10)         // valor maximo de la escala (para cualitativos)
-  fechaCreacion   DateTime @default(now())
-  fechaActualizacion DateTime @updatedAt
-
-  valores     IndicadorValor[]
-  evaluaciones IndicadorEvaluacion[]
-}
-
-// ─── OPERACIONAL: Valores de indicadores (serie temporal) ──
-
-model IndicadorValor {
-  id            String   @id @default(cuid())
-  indicadorId   String
-  fecha         DateTime                      // fecha del dato (no de captura)
-  valor         Float                         // valor numerico
-  valorTexto    String   @default("")          // representacion textual si aplica
-  confiable     Boolean  @default(true)        // false si la captura tuvo problemas
-  fechaCaptura  DateTime @default(now())       // momento en que ONION200 capturo el dato
-  metadata      String   @default("")          // JSON con info adicional
-
-  indicador Indicador @relation(fields: [indicadorId], references: [id], onDelete: Cascade)
-
-  @@index([indicadorId, fecha])
-}
-
-// ─── OPERACIONAL: Evaluaciones cualitativas ──────────────────
-
-model IndicadorEvaluacion {
-  id              String   @id @default(cuid())
-  indicadorId     String                       // FK al Indicador cualitativo
-  fechaEvaluacion DateTime @default(now())     // fecha de la evaluacion
-  valorCompuesto  Float                        // valor final compuesto (promedio/ponderado de sub-variables)
-  valorTexto      String   @default("")        // etiqueta descriptiva: "Alto", "Medio", "Bajo"
-  escalaNivel     String   @default("")        // nivel en la escala: "alto", "medio", "bajo", "critico"
-  puntuaciones    String   @default("{}")      // JSON: { "variable1": 7, "variable2": 5, ... }
-  observaciones   String   @default("")        // notas del analista
-  fuentes         String   @default("[]")      // JSON: ["encuesta X", "medios Y", "redes Z"]
-  evaluador       String   @default("sistema") // quien realizo la evaluacion
-  confiable       Boolean  @default(true)
-  fechaCreacion   DateTime @default(now())
-
-  indicador Indicador @relation(fields: [indicadorId], references: [id], onDelete: Cascade)
-
-  @@index([indicadorId, fechaEvaluacion])
-  @@index([escalaNivel])
-}
-
-// ─── AUTH: Usuarios (NextAuth v5) ──────────────────────────
-
-model User {
-  id            String    @id @default(cuid())
-  name          String
-  email         String    @unique
-  password      String?
-  role          String    @default("admin") // "admin", "agente", "viewer"
-  emailVerified DateTime?
-  image         String?
-  activo        Boolean   @default(true)
-  fechaCreacion DateTime  @default(now())
-
-  accounts Account[]
-  sessions Session[]
-}
-
 model Account {
-  id                String  @id @default(cuid())
+  id                String  @id
   userId            String
   type              String
   provider          String
@@ -535,19 +20,483 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  User              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
 
+model CapturaLog {
+  id                   String   @id
+  fecha                DateTime @default(now())
+  medioId              String
+  nivel                String   @default("1")
+  totalArticulos       Int      @default(0)
+  mencionesEncontradas Int      @default(0)
+  exitosa              Boolean  @default(false)
+  errores              String   @default("")
+  Medio                Medio    @relation(fields: [medioId], references: [id])
+}
+
+model Cliente {
+  id                   String                 @id
+  nombre               String
+  nombreContacto       String                 @default("")
+  email                String
+  telefono             String                 @default("")
+  whatsapp             String                 @default("")
+  organizacion         String                 @default("")
+  segmento             String                 @default("otro")
+  plan                 String                 @default("basico")
+  estado               String                 @default("activo")
+  parlamentarios       String                 @default("")
+  ejesContratados      String                 @default("")
+  notas                String                 @default("")
+  ci                   String                 @default("")
+  razonSocial          String                 @default("")
+  nit                  String                 @default("")
+  fechaCreacion        DateTime               @default(now())
+  fechaActualizacion   DateTime
+  Contrato             Contrato[]
+  eje_tematico_cliente eje_tematico_cliente[]
+}
+
+model Comentario {
+  id              String    @id
+  mencionId       String
+  autor           String    @default("")
+  texto           String
+  sentimiento     String    @default("no_clasificado")
+  fechaComentario DateTime?
+  fechaCaptura    DateTime  @default(now())
+  Mencion         Mencion   @relation(fields: [mencionId], references: [id], onDelete: Cascade)
+}
+
+model Contrato {
+  id                 String    @id
+  clienteId          String
+  tipoProducto       String
+  mediosAsignados    String    @default("")
+  ejesTematicos      String    @default("")
+  parlamentarios     String    @default("")
+  frecuencia         String    @default("diario")
+  formatoEntrega     String    @default("whatsapp")
+  fechaInicio        DateTime
+  fechaFin           DateTime?
+  montoMensual       Float     @default(0)
+  moneda             String    @default("Bs")
+  estado             String    @default("activo")
+  notas              String    @default("")
+  fechaCreacion      DateTime  @default(now())
+  fechaActualizacion DateTime
+  Cliente            Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  Entrega            Entrega[]
+}
+
+model EjeTematico {
+  id                String        @id
+  parentId          String?
+  nombre            String
+  slug              String        @unique
+  icono             String        @default("")
+  color             String        @default("")
+  descripcion       String        @default("")
+  keywords          String        @default("")
+  dimension         String        @default("")
+  activo            Boolean       @default(true)
+  orden             Int           @default(0)
+  tipo              String        @default("legacy")
+  EjeTematico       EjeTematico?  @relation("EjeTematicoToEjeTematico", fields: [parentId], references: [id])
+  other_EjeTematico EjeTematico[] @relation("EjeTematicoToEjeTematico")
+  Keyword           Keyword[]
+  Mencion           Mencion[]
+  MencionTema       MencionTema[]
+}
+
+model Entrega {
+  id              String    @id
+  contratoId      String
+  tipoBoletin     String
+  contenido       String    @default("")
+  fechaProgramada DateTime?
+  fechaEnvio      DateTime?
+  estado          String    @default("pendiente")
+  canal           String    @default("whatsapp")
+  destinatarios   String    @default("[]")
+  error           String?
+  fechaCreacion   DateTime  @default(now())
+  Contrato        Contrato  @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+
+  @@index([fechaEnvio])
+  @@index([estado])
+  @@index([tipoBoletin])
+  @@index([contratoId])
+}
+
+model EnvioReporte {
+  id               String           @id
+  reporteId        String
+  canal            String
+  destinatario     String
+  estado           String           @default("pendiente")
+  enviadoEn        DateTime?
+  error            String?
+  ReporteSectorial ReporteSectorial @relation(fields: [reporteId], references: [id], onDelete: Cascade)
+
+  @@index([reporteId])
+}
+
+model FuenteEstado {
+  id                 String    @id
+  medioId            String    @unique
+  url                String
+  tipoCheck          String    @default("head")
+  etag               String    @default("")
+  lastModified       String    @default("")
+  fingerprint        String    @default("")
+  ultimoValor        String    @default("")
+  ultimosIds         String    @default("[]")
+  homepageHtml       String    @default("")
+  ultimoCheck        DateTime?
+  ultimoCambio       DateTime?
+  totalChecks        Int       @default(0)
+  totalCambios       Int       @default(0)
+  checksSinCambio    Int       @default(0)
+  horasPublicacion   String    @default("[]")
+  horariosOptimos    String    @default("[]")
+  frecuenciaBase     String    @default("6h")
+  frecuenciaActual   String    @default("6h")
+  activo             Boolean   @default(false)
+  fallosConsecutivos Int       @default(0)
+  error              String    @default("")
+  responseTime       Int       @default(0)
+  estado             String    @default("creada")
+  capaActual         Int       @default(0)
+  ultimoCheckOk      DateTime?
+  ultimoHeadline     DateTime?
+  ultimoTexto        DateTime?
+  ultimoMencion      DateTime?
+  totalHeadlines     Int       @default(0)
+  totalTexto         Int       @default(0)
+  totalMenciones     Int       @default(0)
+  strategyValid      String    @default("")
+  strategyScrape     String    @default("")
+  Medio              Medio     @relation(fields: [medioId], references: [id])
+
+  @@index([estado])
+  @@index([activo])
+  @@index([ultimoCheck])
+  @@index([medioId])
+}
+
+model Indicador {
+  id                  String                @id
+  nombre              String
+  slug                String                @unique
+  categoria           String
+  tipo                String                @default("cuantitativo")
+  fuente              String
+  url                 String                @default("")
+  periodicidad        String                @default("diaria")
+  unidad              String                @default("")
+  formatoNumero       Int                   @default(2)
+  activo              Boolean               @default(true)
+  orden               Int                   @default(0)
+  ejesTematicos       String                @default("")
+  tier                Int                   @default(1)
+  notas               String                @default("")
+  metodologia         String                @default("")
+  variables           String                @default("[]")
+  escalaMin           Float                 @default(0)
+  escalaMax           Float                 @default(10)
+  fechaCreacion       DateTime              @default(now())
+  fechaActualizacion  DateTime
+  IndicadorEvaluacion IndicadorEvaluacion[]
+  IndicadorValor      IndicadorValor[]
+}
+
+model IndicadorEvaluacion {
+  id              String    @id
+  indicadorId     String
+  fechaEvaluacion DateTime  @default(now())
+  valorCompuesto  Float
+  valorTexto      String    @default("")
+  escalaNivel     String    @default("")
+  puntuaciones    String    @default("{}")
+  observaciones   String    @default("")
+  fuentes         String    @default("[]")
+  evaluador       String    @default("sistema")
+  confiable       Boolean   @default(true)
+  fechaCreacion   DateTime  @default(now())
+  Indicador       Indicador @relation(fields: [indicadorId], references: [id], onDelete: Cascade)
+
+  @@index([escalaNivel])
+  @@index([indicadorId, fechaEvaluacion])
+}
+
+model IndicadorValor {
+  id           String    @id
+  indicadorId  String
+  fecha        DateTime
+  valor        Float
+  valorTexto   String    @default("")
+  confiable    Boolean   @default(true)
+  fechaCaptura DateTime  @default(now())
+  metadata     String    @default("")
+  Indicador    Indicador @relation(fields: [indicadorId], references: [id], onDelete: Cascade)
+
+  @@index([indicadorId, fecha])
+}
+
+model Job {
+  id               String    @id
+  tipo             String
+  prioridad        Int       @default(5)
+  estado           String    @default("pendiente")
+  payload          String    @default("{}")
+  resultado        String    @default("")
+  error            String    @default("")
+  intentos         Int       @default(0)
+  maxIntentos      Int       @default(3)
+  fechaCreacion    DateTime  @default(now())
+  fechaInicio      DateTime?
+  fechaFin         DateTime?
+  proximaEjecucion DateTime?
+  programa         String    @default("")
+
+  @@index([fechaCreacion])
+  @@index([tipo])
+  @@index([estado, prioridad])
+}
+
+model Keyword {
+  id          String       @id
+  termino     String
+  lenteId     String?
+  ejeId       String?
+  activo      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime
+  EjeTematico EjeTematico? @relation(fields: [ejeId], references: [id])
+  Lente       Lente?       @relation(fields: [lenteId], references: [id])
+}
+
+model Lente {
+  id           String         @id
+  nombre       String
+  slug         String         @unique
+  descripcion  String         @default("")
+  activo       Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime
+  Keyword      Keyword[]
+  MencionLente MencionLente[]
+}
+
+model Medio {
+  id                 String        @id
+  nombre             String
+  url                String        @default("")
+  tipo               String
+  categoria          String        @default("corporativo")
+  nivel              String        @default("1")
+  departamento       String?
+  plataformas        String        @default("")
+  notas              String        @default("")
+  pais               String        @default("Bolivia")
+  activo             Boolean       @default(true)
+  fechaCreacion      DateTime      @default(now())
+  frecuenciaOverride String        @default("")
+  CapturaLog         CapturaLog[]
+  FuenteEstado       FuenteEstado?
+  Mencion            Mencion[]
+}
+
+model Mencion {
+  id                      String                @id
+  personaId               String?
+  medioId                 String
+  titulo                  String
+  texto                   String                @default("")
+  url                     String                @default("")
+  fechaPublicacion        DateTime?
+  fechaCaptura            DateTime              @default(now())
+  tipoMencion             String                @default("mencion_pasiva")
+  temas                   String                @default("")
+  reach                   Int                   @default(0)
+  verificado              Boolean               @default(false)
+  fechaCreacion           DateTime              @default(now())
+  enlaceActivo            Boolean               @default(true)
+  fechaVerificacion       DateTime?
+  textoCompleto           String                @default("")
+  comentariosCount        Int                   @default(0)
+  comentariosResumen      String                @default("")
+  sentimiento             String                @default("no_clasificado")
+  tratamientoPeriodistico String?
+  confianzaClasificacion  String?
+  preguntasFundamentales  Json?
+  esDuplicado             Boolean               @default(false)
+  mencionOriginalId       String?
+  mediosRelacionados      String?
+  eventoId                String?
+  coberturasAdicionales   String?
+  deduplicacionLog        String?
+  intencionMedio          String?
+  ejeEstructuralId        String?
+  Comentario              Comentario[]
+  EjeTematico             EjeTematico?          @relation(fields: [ejeEstructuralId], references: [id])
+  Medio                   Medio                 @relation(fields: [medioId], references: [id])
+  Persona                 Persona?              @relation(fields: [personaId], references: [id])
+  MencionLente            MencionLente[]
+  MencionTema             MencionTema[]
+  mencion_cliente_eje     mencion_cliente_eje[]
+
+  @@index([ejeEstructuralId])
+}
+
+model MencionLente {
+  id        String   @id
+  mencionId String
+  lenteId   String
+  createdAt DateTime @default(now())
+  Lente     Lente    @relation(fields: [lenteId], references: [id], onDelete: Cascade)
+  Mencion   Mencion  @relation(fields: [mencionId], references: [id], onDelete: Cascade)
+
+  @@unique([mencionId, lenteId])
+}
+
+model MencionTema {
+  id            String      @id
+  mencionId     String
+  ejeTematicoId String
+  EjeTematico   EjeTematico @relation(fields: [ejeTematicoId], references: [id], onDelete: Cascade)
+  Mencion       Mencion     @relation(fields: [mencionId], references: [id], onDelete: Cascade)
+
+  @@unique([mencionId, ejeTematicoId])
+}
+
+model Persona {
+  id                 String    @id
+  nombre             String
+  camara             String
+  departamento       String
+  partido            String
+  partidoSigla       String
+  tipo               String
+  cargoDirectiva     String?
+  email              String?
+  fotoUrl            String    @default("")
+  activa             Boolean   @default(true)
+  periodo            String    @default("2025-2030")
+  fechaCreacion      DateTime  @default(now())
+  fechaActualizacion DateTime
+  Mencion            Mencion[]
+  Reporte            Reporte[]
+}
+
+model Reporte {
+  id                     String    @id
+  tipo                   String
+  personaId              String?
+  fechaInicio            DateTime
+  fechaFin               DateTime
+  resumen                String    @default("")
+  pdfUrl                 String    @default("")
+  enviado                Boolean   @default(false)
+  fechaEnvio             DateTime?
+  totalMenciones         Int       @default(0)
+  sentimientoPromedio    Float     @default(0)
+  temasPrincipales       String    @default("")
+  fechaCreacion          DateTime  @default(now())
+  totalComentarios       Int       @default(0)
+  sentimientoComentarios String    @default("")
+  enlacesRotos           Int       @default(0)
+  contenido              String    @default("")
+  clasificadores         String    @default("")
+  Persona                Persona?  @relation(fields: [personaId], references: [id])
+}
+
+model ReporteEje {
+  id               String           @id
+  reporteId        String
+  ejeTematico      String
+  mencionCount     Int              @default(0)
+  tratamientoTop   String?
+  medioTop         String?
+  tendencia        String?
+  variacion        Int?
+  ReporteSectorial ReporteSectorial @relation(fields: [reporteId], references: [id], onDelete: Cascade)
+
+  @@index([reporteId])
+}
+
+model ReporteSectorial {
+  id               String         @id
+  sector           String
+  titulo           String
+  periodoInicio    DateTime
+  periodoFin       DateTime
+  includeManana    Boolean        @default(true)
+  resumenEjecutivo String?
+  contenido        String
+  contenidoHtml    String?
+  estado           String         @default("borrador")
+  mencionCount     Int            @default(0)
+  medioCount       Int            @default(0)
+  indiceExposicion Float?
+  creadoEn         DateTime       @default(now())
+  generadoEn       DateTime?
+  enviadoEn        DateTime?
+  EnvioReporte     EnvioReporte[]
+  ReporteEje       ReporteEje[]
+
+  @@index([estado])
+  @@index([sector, periodoInicio])
+}
+
 model Session {
-  id           String   @id @default(cuid())
+  id           String   @id
   sessionToken String   @unique
   userId       String
   expires      DateTime
+  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+model Suscriptor {
+  id               String   @id
+  nombre           String
+  email            String
+  whatsapp         String?
+  plan             String   @default("basico")
+  fechaSuscripcion DateTime @default(now())
+  activo           Boolean  @default(true)
+}
+
+model SuscriptorGratuito {
+  id               String   @id
+  nombre           String   @default("")
+  email            String   @unique
+  whatsapp         String?
+  origen           String   @default("landing")
+  activo           Boolean  @default(true)
+  boletines        String   @default("[]")
+  canal            String   @default("email")
+  fechaSuscripcion DateTime @default(now())
+
+  @@index([email])
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  password      String?
+  role          String    @default("admin")
+  emailVerified DateTime?
+  image         String?
+  activo        Boolean   @default(true)
+  fechaCreacion DateTime  @default(now())
+  Account       Account[]
+  Session       Session[]
 }
 
 model VerificationToken {
@@ -558,174 +507,63 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// ─── ONION200: Suscriptores Gratuitos (El Radar) ──────────────────
-
-model SuscriptorGratuito {
-  id               String   @id @default(cuid())
-  nombre           String   @default("")
-  email            String   @unique
-  whatsapp         String?
-  origen           String   @default("landing") // "landing", "redes", "referido", "evento"
-  activo           Boolean  @default(true)
-  boletines        String   @default("[]")       // JSON: boletines gratuitos asignados ["EL_RADAR","VOZ_Y_VOTO",...]
-  canal            String   @default("email")     // "email", "whatsapp", "ambos"
-  fechaSuscripcion DateTime @default(now())
-
-  @@index([email])
+model cambio_marco_conceptual {
+  id               Int              @id @default(autoincrement())
+  marcoId          Int
+  campo            String
+  valorAnterior    Json?
+  valorNuevo       Json?
+  razon            String?
+  creadoPor        String?
+  creadoEn         DateTime         @default(now())
+  marco_conceptual marco_conceptual @relation(fields: [marcoId], references: [id], onDelete: Cascade)
 }
 
-// ─── CONFIG: Marco conceptual del sistema de IA ────────────
-
-model MarcoConceptual {
-  id           Int      @id @default(autoincrement())
-  version      Int      @default(1)
-  activa       Boolean  @default(true)
-
-  /// Capa 1: INMUTABLE — Los 9 principios fundantes
-  principios   Json
-
-  /// Capa 2: EDITABLE — Directrices operativas
-  contextoInstitucional Json
-  lineasEditoriales     Json
-  ejesInstitucionales    Json
-  escalaTratamiento     Json
-  reglasDesambiguacion  Json
-  criteriosRelevancia   Json
-  exclusionesEtica      Json
-  terminologiaPermitida Json
-  terminologiaProhibida Json
-  preguntasFundamentales Json
-
-  /// Capa 3: PARÁMETROS TÉCNICOS
-  parametros   Json
-
-  creadoPor    String   @default("sistema")
-  creadoEn     DateTime @default(now())
-  editadoPor   String?
-  editadoEn    DateTime?
-
-  cambios      CambioMarcoConceptual[]
-
-  @@map("marco_conceptual")
+model eje_tematico_cliente {
+  id                  Int                   @id @default(autoincrement())
+  clienteId           String
+  nombre              String
+  descripcion         String?
+  keywords            String
+  activo              Boolean               @default(true)
+  creadoPor           String?
+  creadoEn            DateTime              @default(now())
+  editadoPor          String?
+  editadoEn           DateTime?
+  Cliente             Cliente               @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  mencion_cliente_eje mencion_cliente_eje[]
 }
 
-// ─── OPERACIONAL: Audit log de cambios al marco ────────────
-
-model CambioMarcoConceptual {
-  id             Int             @id @default(autoincrement())
-  marcoId        Int
-  marco          MarcoConceptual @relation(fields: [marcoId], references: [id], onDelete: Cascade)
-  campo          String
-  valorAnterior  Json?
-  valorNuevo     Json?
-  razon          String?
-  creadoPor      String?
-  creadoEn       DateTime        @default(now())
-
-  @@map("cambio_marco_conceptual")
+model marco_conceptual {
+  id                      Int                       @id @default(autoincrement())
+  version                 Int                       @default(1)
+  activa                  Boolean                   @default(true)
+  principios              Json
+  contextoInstitucional   Json
+  lineasEditoriales       Json
+  ejesInstitucionales     Json
+  escalaTratamiento       Json
+  reglasDesambiguacion    Json
+  criteriosRelevancia     Json
+  exclusionesEtica        Json
+  terminologiaPermitida   Json
+  terminologiaProhibida   Json
+  preguntasFundamentales  Json
+  parametros              Json
+  creadoPor               String                    @default("sistema")
+  creadoEn                DateTime                  @default(now())
+  editadoPor              String?
+  editadoEn               DateTime?
+  cambio_marco_conceptual cambio_marco_conceptual[]
 }
 
-// ─── CONFIG: Ejes temáticos personalizados por cliente ─────
-
-model EjeTematicoCliente {
-  id             Int      @id @default(autoincrement())
-  clienteId      String
-  cliente        Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
-
-  nombre         String
-  descripcion    String?
-  keywords       String   /// JSON array: ["litio", "contrato", "YLB"]
-  activo         Boolean  @default(true)
-
-  /// Metadatos
-  creadoPor      String?
-  creadoEn       DateTime @default(now())
-  editadoPor     String?
-  editadoEn      DateTime?
-
-  /// Relación con menciones
-  menciones      MencionClienteEje[]
-
-  @@map("eje_tematico_cliente")
-}
-
-// ─── OPERACIONAL: Relación Mención↔EjeCliente ──────────────
-
-model MencionClienteEje {
-  id             Int             @id @default(autoincrement())
-  mencionId      String
-  mencion        Mencion         @relation(fields: [mencionId], references: [id], onDelete: Cascade)
-  ejeClienteId   Int
-  ejeCliente     EjeTematicoCliente @relation(fields: [ejeClienteId], references: [id], onDelete: Cascade)
-  confianza      Float?
+model mencion_cliente_eje {
+  id                   Int                  @id @default(autoincrement())
+  mencionId            String
+  ejeClienteId         Int
+  confianza            Float?
+  eje_tematico_cliente eje_tematico_cliente @relation(fields: [ejeClienteId], references: [id], onDelete: Cascade)
+  Mencion              Mencion              @relation(fields: [mencionId], references: [id], onDelete: Cascade)
 
   @@unique([mencionId, ejeClienteId])
-  @@map("mencion_cliente_eje")
-}
-
-// ─── REPORTE SECTORIAL (Producto Premium) ──────────────────────
-
-enum EstadoReporte {
-  borrador
-  generado
-  enviado
-  fallido
-}
-
-// ─── OPERACIONAL: Reportes sectoriales (premium) ────────────
-
-model ReporteSectorial {
-  id               String        @id @default(cuid())
-  sector           String        // "minero", "cafetero", etc.
-  titulo           String
-  periodoInicio    DateTime      // lunes de la semana
-  periodoFin       DateTime      // domingo de la semana
-  includeManana    Boolean       @default(true)
-  resumenEjecutivo String?
-  contenido        String // JSON con todas las secciones
-  contenidoHtml    String? // HTML para email
-  estado           EstadoReporte @default(borrador)
-  mencionCount     Int           @default(0)
-  medioCount       Int           @default(0)
-  indiceExposicion Float?
-  creadoEn         DateTime      @default(now())
-  generadoEn       DateTime?
-  enviadoEn        DateTime?
-
-  ejes             ReporteEje[]
-  envios           EnvioReporte[]
-
-  @@index([sector, periodoInicio])
-  @@index([estado])
-}
-
-// ─── OPERACIONAL: Desglose por eje en reporte sectorial ────
-
-model ReporteEje {
-  id               String   @id @default(cuid())
-  reporteId        String
-  reporte          ReporteSectorial @relation(fields: [reporteId], references: [id], onDelete: Cascade)
-  ejeTematico      String
-  mencionCount     Int      @default(0)
-  tratamientoTop   String?
-  medioTop         String?
-  tendencia        String?  // "sube", "baja", "estable"
-  variacion        Int?     // +/- menciones vs semana anterior
-
-  @@index([reporteId])
-}
-
-// ─── OPERACIONAL: Envíos de reportes ─────────────────────────
-
-model EnvioReporte {
-  id               String   @id @default(cuid())
-  reporteId        String
-  reporte          ReporteSectorial @relation(fields: [reporteId], references: [id], onDelete: Cascade)
-  canal            String   // "email", "telegram"
-  destinatario     String
-  estado           String   @default("pendiente")
-  enviadoEn        DateTime?
-  error            String?
-
-  @@index([reporteId])
 }
