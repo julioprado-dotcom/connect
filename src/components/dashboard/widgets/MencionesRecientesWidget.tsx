@@ -68,8 +68,26 @@ export function MencionesRecientesWidget({ onNavigate }: MencionesRecientesWidge
       const res = await fetchWithTimeout('/api/dashboard/menciones-summary', { timeoutMs: 10_000 });
       if (res.ok) {
         const json = await res.json();
-        setData(json);
-        setLoading(false);
+        if (!json.error) {
+          setData(json);
+          setLoading(false);
+          return;
+        }
+      }
+      // Fallback: use /api/dashboard/summary endpoint
+      const res2 = await fetchWithTimeout('/api/dashboard/summary', { timeoutMs: 10_000 });
+      if (res2.ok) {
+        const sum = await res2.json();
+        const fallbackData: MencionesSummaryData = {
+          timestamp: sum.timestamp || '',
+          hoy: sum.menciones?.hoy || 0,
+          ayer: 0,
+          semana: sum.menciones?.semana || 0,
+          total: sum.menciones?.total || 0,
+          tendencia: 'stable' as const,
+          ultimas: [],
+        };
+        setData(fallbackData);
       }
     } catch {
       // silent
