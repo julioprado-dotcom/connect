@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Boletín del Grano — Semana 20</title>
+      
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap');
+
+    @page {
+      size: A4;
+      margin: 20mm 15mm;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Georgia', 'Times New Roman', serif;
+      font-size: 11px;
+      line-height: 1.6;
+      color: #1b1a17;
+      background: #faf6f1;
+    }
+
+    .page-break { page-break-before: always; }
+
+    /* ── Títulos ── */
+    h1, h2, h3, h4, h5, h6 {
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    /* ── Portada ── */
+    .portada {
+      text-align: center;
+      padding: 100px 50px 80px;
+      background: linear-gradient(160deg, #3e2723 0%, #4e342e 50%, #6d4c41 100%);
+      color: #ffffff;
+      border-radius: 10px;
+      margin-bottom: 0;
+      min-height: 650px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .portada::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background:
+        radial-gradient(circle at 20% 80%, rgba(255,255,255,0.04) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.06) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .portada-icono {
+      font-size: 48px;
+      margin-bottom: 24px;
+      opacity: 0.9;
+    }
+
+    .portada h1 {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: 3px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .portada .subtitulo {
+      font-family: 'Georgia', serif;
+      font-size: 15px;
+      font-style: italic;
+      opacity: 0.85;
+      margin-bottom: 32px;
+      letter-spacing: 0.5px;
+    }
+
+    .portada .periodo {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      opacity: 0.9;
+      margin-bottom: 6px;
+      letter-spacing: 0.3px;
+    }
+
+    .portada .semana-info {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 11px;
+      opacity: 0.7;
+      margin-bottom: 24px;
+    }
+
+    .portada .marca {
+      position: absolute;
+      bottom: 20px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 9px;
+      opacity: 0.5;
+      letter-spacing: 1px;
+    }
+
+    /* ── Badge de tensión ── */
+    .tension-badge {
+      display: inline-block;
+      padding: 6px 20px;
+      border-radius: 20px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border: 2px solid;
+    }
+
+    /* ── Secciones ── */
+    .seccion {
+      background: #f0ebe3;
+      border: 1px solid #bcaaa4;
+      border-radius: 6px;
+      padding: 20px 22px;
+      margin-bottom: 16px;
+      page-break-inside: avoid;
+    }
+
+    .seccion-titulo {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: #3e2723;
+      border-bottom: 2px solid #6d4c41;
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .seccion-titulo .num {
+      display: inline-block;
+      background: #3e2723;
+      color: #ffffff;
+      width: 22px;
+      height: 22px;
+      line-height: 22px;
+      text-align: center;
+      border-radius: 50%;
+      font-size: 11px;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    /* ── Resumen ── */
+    .resumen-texto {
+      font-size: 11.5px;
+      line-height: 1.8;
+      color: #1b1a17;
+      padding: 14px 18px;
+      background: #faf6f1;
+      border-radius: 4px;
+      border-left: 4px solid #6d4c41;
+    }
+
+    .resumen-texto p {
+      margin-bottom: 12px;
+    }
+
+    .resumen-texto p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* ── Stats Grid ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stat-card {
+      background: #faf6f1;
+      border-radius: 6px;
+      padding: 14px 10px;
+      text-align: center;
+      border: 1px solid #bcaaa4;
+    }
+
+    .stat-valor {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: #3e2723;
+    }
+
+    .stat-etiqueta {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 9px;
+      color: #8d7b74;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    /* ── Tablas ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10px;
+    }
+
+    thead th {
+      background: #3e2723;
+      color: #ffffff;
+      padding: 8px 10px;
+      text-align: left;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    tbody td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #bcaaa4;
+      vertical-align: middle;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #faf6f1;
+    }
+
+    tbody tr:nth-child(odd) {
+      background: #f0ebe3;
+    }
+
+    /* ── Barra de cobertura ── */
+    .barra-track {
+      width: 100%;
+      height: 14px;
+      background: #bcaaa4;
+      border-radius: 7px;
+      overflow: hidden;
+    }
+
+    .barra-fill {
+      height: 100%;
+      border-radius: 7px;
+      background: #6d4c41;
+    }
+
+    /* ── Noticia destacada ── */
+    .noticia-card {
+      background: #faf6f1;
+      border: 1px solid #bcaaa4;
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      border-left: 4px solid #6d4c41;
+    }
+
+    .noticia-titulo {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      color: #1b1a17;
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+
+    .noticia-meta {
+      font-size: 9px;
+      color: #8d7b74;
+      margin-bottom: 8px;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .noticia-resumen {
+      font-size: 10.5px;
+      line-height: 1.6;
+      color: #1b1a17;
+      margin-bottom: 8px;
+    }
+
+    .noticia-ejes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .eje-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #6d4c4118;
+      color: #4e342e;
+      border-radius: 10px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 8px;
+      font-weight: 600;
+      border: 1px solid #6d4c4130;
+    }
+
+    /* ── Fuentes ranking badge ── */
+    .fuente-nueva-badge {
+      display: inline-block;
+      padding: 1px 6px;
+      background: #6d4c41;
+      color: #ffffff;
+      border-radius: 8px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 7px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-left: 6px;
+    }
+
+    /* ── Nota metodológica ── */
+    .metodo-lista {
+      padding: 12px 18px;
+      background: #faf6f1;
+      border-radius: 4px;
+      border-left: 4px solid #bcaaa4;
+    }
+
+    .metodo-lista ul {
+      padding-left: 18px;
+      margin: 0;
+    }
+
+    .metodo-lista li {
+      font-size: 10px;
+      line-height: 1.7;
+      color: #1b1a17;
+      margin-bottom: 2px;
+    }
+
+    /* ── Pie de página ── */
+    .footer {
+      text-align: center;
+      padding: 16px;
+      margin-top: 24px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 8px;
+      color: #8d7b74;
+      border-top: 1px solid #bcaaa4;
+      letter-spacing: 0.5px;
+    }
+
+    .footer .footer-linea1 {
+      font-weight: 700;
+      color: #4e342e;
+      margin-bottom: 2px;
+    }
+
+    .footer .footer-linea2 {
+      font-weight: 400;
+      opacity: 0.7;
+    }
+
+    /* ── Marca de agua ── */
+    .watermark {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 7px;
+      color: #8d7b74;
+      opacity: 0.25;
+      transform: rotate(-15deg);
+      pointer-events: none;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center;
+      padding: 24px;
+      color: #8d7b74;
+      font-style: italic;
+    }
+
+    /* ── Análisis narrativo ── */
+    .analisis-texto {
+      font-size: 11px;
+      line-height: 1.8;
+      color: #1b1a17;
+      padding: 14px 18px;
+      background: #fff8e1;
+      border-radius: 4px;
+      border-left: 4px solid #6d4c41;
+    }
+
+    .analisis-texto p {
+      margin-bottom: 10px;
+    }
+
+    .analisis-texto p:last-child {
+      margin-bottom: 0;
+    }
+  </style>
+
+    </head>
+    <body>
+      <div class="portada">
+      <div class="portada-icono">&#9749;</div>
+      <h1>Boletín del Grano</h1>
+      <div class="subtitulo">Café de Especialidad Bolivia — Análisis Semanal</div>
+      <div class="periodo">Invalid Date al Invalid Date</div>
+      <div class="semana-info">Semana 20 &bull; Versión DECODEX v0.16.0</div>
+      <div style="margin-top: 20px;">
+        <span class="tension-badge" style="color: #c62828; background: #c6282818; border-color: #c62828;">
+          Tensión ALTA
+        </span>
+      </div>
+      <div class="marca">DECODEX Bolivia &mdash; decodebolivia.org</div>
+    </div>
+  
+    <div class="page-break"></div>
+
+    
+    <div class="seccion">
+      <div class="seccion-titulo"><span class="num">2</span>Resumen Ejecutivo</div>
+      <div class="resumen-texto"><p>Se analizaron 57 noticias relevantes al sector cafetero boliviano, provenientes de 10 fuentes de información. La cobertura incluye 40 noticias de fuentes internacionales (Perfect Daily Grind, OIC Café, SCA) y 7 fuentes nacionales. El nivel de tensión general es ALTA, con 18 noticias de alta relevancia.</p><p>Los ejes de mayor actividad informativa son: Mercado y Precios (43 noticias), Innovación y Técnica (41 noticias), Ferias y Oportunidades (41 noticias). Las alertas principales incluyen: &quot;International Coffee Day (ICD)&quot; (OIC Café); &quot;World Coffee Conference&quot; (OIC Café); &quot;Coffee News Recap, 8 May: EUDR set to include instant coffee, Honduras expected to produce over 6 million bags for 2026/27 harvest &amp;#038; other stories&quot; (Perfect Daily Grind).</p><p>La perspectiva internacional aporta contexto sobre tendencias globales de mercado, innovación en procesamiento y dinámicas de consumo que impactan al café de especialidad boliviano.</p></div>
+    </div>
+  
+
+    
+    <div class="seccion">
+      <div class="seccion-titulo"><span class="num">3</span>Estadísticas Clave</div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-valor">57</div>
+          <div class="stat-etiqueta">Noticias Totales</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-valor">10</div>
+          <div class="stat-etiqueta">Fuentes Monitoreadas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-valor">7</div>
+          <div class="stat-etiqueta">Ejes Activados</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-valor" style="font-size: 18px;">CRÍTICO</div>
+          <div class="stat-etiqueta">Nivel de Actividad</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-valor" style="font-size: 18px;">288,80 ctvs US/libra (IBCE, 6 mayo 2026)</div>
+          <div class="stat-etiqueta">Precio C-Market</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-valor" style="font-size: 18px;">N/D</div>
+          <div class="stat-etiqueta">Variación Semanal</div>
+        </div>
+      </div>
+    </div>
+  
+
+    <div class="page-break"></div>
+
+    
+    <div class="seccion">
+      <div class="seccion-titulo"><span class="num">4</span>Mapa de Tensiones</div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 30%;">Eje Temático</th>
+            <th style="width: 40%;">Cobertura</th>
+            <th style="width: 15%; text-align: center;">Noticias</th>
+            <th style="width: 15%; text-align: center;">Tendencia</th>
+          </tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td style="font-weight: 600;">Mercado y Precios</td>
+          <td>
+            <div class="barra-track">
+              <div class="barra-fill" style="width: 21%;"></div>
+            </div>
+            <div style="font-family: 'Montserrat', sans-serif; font-size: 9px; color: #8d7b74; margin-top: 2px;">21%</div>
+          </td>
+          <td style="text-align: center; font-weight: 600;">43</td>
+          <td style="text-align: center; font-size: 16px; color: #2e7d32; font-weight: 700;">↑</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 600;">Clima y Producción</td>
+          <td>
+            <div class="barra-track">
+              <div class="barra-fill" style="width: 9%;"></div>
+            </div>
+            <div style="font-family: 'Montserrat', sans-serif; font-size: 9px; color: #8d7b74; margin-top: 2px;">9%</div>
+          </td>
+          <td style="text-align: center; font-weight: 600;">19</td>
+          <td style="text-align: center; font-size: 16px; color: #2e7d32; font-weight: 700;">↑</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 600;">Política y Regulación</td>
+          <td>
+            <div class="barra-track">
+              <div class="barra-fill" style="width: 9%;"></div>
+            </div>
+            <div style="font-family: 'Montserrat', sans-serif; font-size: 9px; color: #8d7b74; margin-top: 2px;">9%</div>
+          </td>
+          <td style="text-align: center; font-weight: 600;">19</td>
+          <td style="text-align: center; font-size: 16px; color: #2e7d32; font-weight: 700;">↑</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 600;">Logística y Exportación</td>
+          <td>
+            <div class="barra-track">
+              <div class="barra-fill" style="width: 9%;"></div>
+            </div>
+            <div style="font-family: 'Montserrat', sans-serif; font-size: 9px; color: #8d7b74; margin-top: 2px;">9%</div>
+          </td>
+          <td style="text-align: center; font-weight: 600;">18</td>
+          <td style="text-align: center; font-size: 16px; color: #2e7d32; font-weight: 700;">↑</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 600;">Innovación y Técnica</td>
+          <td>
+            <div class="barra-track">
+              <div class="barra-fill" style="width: 20%;"></div>
+            </div>
+            <div style="font-family: 'Montserrat', sans-serif; font-size: 9px; color: #8d7b74; margin-top: 2px;">20%</div>
+          </td>
+          <td style="text-align: center; font-weight: 600;">41</td>
+          <td style="text-align: center; font-size: 16px; color: #2e7d32; font-weight: 700;">↑</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 600;">Ferias y Oportunidades</td>
+          <td>
+            <div class="barra-track">
+              <div class="barra-fill" style="width: 20%;"></div>
+            </div>
+            <div style="font-family: 'Montserrat', sans-serif; font-size: 9px; color: #8d7b74; margin-top: 2px;">20%</div>
+          </td>
+          <td style="text-align: center; font-weight: 600;">41</td>
+          <td style="text-align: center; font-size: 16px; color: #2e7d32; font-weight: 700;">↑</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 600;">Cadena y Contexto</td>
+          <td>
+            <div class="barra-track">
+              <div class="barra-fill" style="width: 11%;"></div>
+            </div>
+            <div style="font-family: 'Montserrat', sans-serif; font-size: 9px; color: #8d7b74; margin-top: 2px;">11%</div>
+          </td>
+          <td style="text-align: center; font-weight: 600;">23</td>
+          <td style="text-align: center; font-size: 16px; color: #2e7d32; font-weight: 700;">↑</td>
+        </tr>
+      </tbody>
+      </table>
+    </div>
+  
+
+    
+    <div class="seccion">
+      <div class="seccion-titulo"><span class="num">5</span>Noticias Destacadas</div>
+      
+        <div class="noticia-card" style="border-left-color: #c62828;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+            <div class="noticia-titulo">International Coffee Day (ICD)</div>
+            <span class="tension-badge" style="color: #c62828; background: #c6282818; border-color: #c62828; font-size: 8px; padding: 3px 10px; flex-shrink: 0; margin-left: 8px;">
+              ALTA
+            </span>
+          </div>
+          <div class="noticia-meta">
+            OIC Café &bull; 12 de mayo de 2026 &bull; 1 fuente
+          </div>
+          <div class="noticia-resumen">International Coffee Day (ICD) | International Coffee Organization International Coffee Day (ICD) ABOUT INTERN ATIONAL COFFEE DAY 1 October is International Coffee Day. Celebrate with the 77 Member States of the ICO and dozens of coffee associations from around the world. Interna</div>
+          <div class="noticia-ejes"><span class="eje-tag">Mercado y Precios</span><span class="eje-tag">Clima y Producción</span><span class="eje-tag">Logística y Exportación</span><span class="eje-tag">Innovación y Técnica</span><span class="eje-tag">Ferias y Oportunidades</span></div>
+        </div>
+      
+        <div class="noticia-card" style="border-left-color: #c62828;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+            <div class="noticia-titulo">World Coffee Conference</div>
+            <span class="tension-badge" style="color: #c62828; background: #c6282818; border-color: #c62828; font-size: 8px; padding: 3px 10px; flex-shrink: 0; margin-left: 8px;">
+              ALTA
+            </span>
+          </div>
+          <div class="noticia-meta">
+            OIC Café &bull; 12 de mayo de 2026 &bull; 1 fuente
+          </div>
+          <div class="noticia-resumen">World Coffee Conference (WCC) | International Coffee Organization World Coffee Conference (WCC) ABOUT THE CONFERENCE Every four to five years, the International Coffee Organization holds a high-level World Coffee Conference to enable discussion around critical topics for the glob</div>
+          <div class="noticia-ejes"><span class="eje-tag">Mercado y Precios</span><span class="eje-tag">Cadena y Contexto</span></div>
+        </div>
+      
+        <div class="noticia-card" style="border-left-color: #c62828;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+            <div class="noticia-titulo">Coffee News Recap, 8 May: EUDR set to include instant coffee, Honduras expected to produce over 6 million bags for 2026/27 harvest &amp;#038; other stories</div>
+            <span class="tension-badge" style="color: #c62828; background: #c6282818; border-color: #c62828; font-size: 8px; padding: 3px 10px; flex-shrink: 0; margin-left: 8px;">
+              ALTA
+            </span>
+          </div>
+          <div class="noticia-meta">
+            Perfect Daily Grind &bull; 8 de mayo de 2026 &bull; 1 fuente
+          </div>
+          <div class="noticia-resumen">Coffee News Recap, 8 May: EUDR set to include instant coffee, Honduras expected to produce over 6 million bags for 2026/27 harvest &amp; other stories - Perfect Daily Grind --&gt; ESPAÑOL ENGLISH PORTUGUÊS English Español Português Search for: Search Button SUBSCRIBE Skip to content Per</div>
+          <div class="noticia-ejes"><span class="eje-tag">Mercado y Precios</span><span class="eje-tag">Clima y Producción</span><span class="eje-tag">Política y Regulación</span><span class="eje-tag">Innovación y Técnica</span><span class="eje-tag">Ferias y Oportunidades</span><span class="eje-tag">Cadena y Contexto</span></div>
+        </div>
+      
+        <div class="noticia-card" style="border-left-color: #c62828;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+            <div class="noticia-titulo">Coffee News Recap, 1 May: Nestlé confirms Blue Bottle sale to Luckin backer, China cuts tariffs on Ethiopian coffee imports &amp;#038; other stories</div>
+            <span class="tension-badge" style="color: #c62828; background: #c6282818; border-color: #c62828; font-size: 8px; padding: 3px 10px; flex-shrink: 0; margin-left: 8px;">
+              ALTA
+            </span>
+          </div>
+          <div class="noticia-meta">
+            Perfect Daily Grind &bull; 1 de mayo de 2026 &bull; 1 fuente
+          </div>
+          <div class="noticia-resumen">Coffee News Recap, 1 May: Nestlé confirms Blue Bottle sale to Luckin backer, China cuts tariffs on Ethiopian coffee imports &amp; other stories - Perfect Daily Grind --&gt; ESPAÑOL ENGLISH PORTUGUÊS English Español Português Search for: Search Button SUBSCRIBE Skip to content Perfect Da</div>
+          <div class="noticia-ejes"><span class="eje-tag">Mercado y Precios</span><span class="eje-tag">Logística y Exportación</span><span class="eje-tag">Innovación y Técnica</span><span class="eje-tag">Ferias y Oportunidades</span><span class="eje-tag">Cadena y Contexto</span></div>
+        </div>
+      
+        <div class="noticia-card" style="border-left-color: #c62828;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+            <div class="noticia-titulo">Coffee Value Assessment</div>
+            <span class="tension-badge" style="color: #c62828; background: #c6282818; border-color: #c62828; font-size: 8px; padding: 3px 10px; flex-shrink: 0; margin-left: 8px;">
+              ALTA
+            </span>
+          </div>
+          <div class="noticia-meta">
+            SCA &bull; 12 de mayo de 2026 &bull; 1 fuente
+          </div>
+          <div class="noticia-resumen">Coffee Value Assessment — Specialty Coffee Association 0 The Coffee Value Assessment For decades, innovation in coffee has made giant strides, while the system for evaluating coffee has remained the same. We knew there had to be a better way. The SCA collaborated with the industr</div>
+          <div class="noticia-ejes"><span class="eje-tag">Innovación y Técnica</span><span class="eje-tag">Ferias y Oportunidades</span></div>
+        </div>
+      
+        <div class="noticia-card" style="border-left-color: #c62828;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+            <div class="noticia-titulo">How Jamaica&amp;#8217;s coffee sector is evolving</div>
+            <span class="tension-badge" style="color: #c62828; background: #c6282818; border-color: #c62828; font-size: 8px; padding: 3px 10px; flex-shrink: 0; margin-left: 8px;">
+              ALTA
+            </span>
+          </div>
+          <div class="noticia-meta">
+            Perfect Daily Grind &bull; 10 de septiembre de 2025 &bull; 1 fuente
+          </div>
+          <div class="noticia-resumen">How Jamaica&#039;s coffee sector is evolving - Perfect Daily Grind --&gt; ESPAÑOL ENGLISH PORTUGUÊS English Español Português Search for: Search Button SUBSCRIBE Skip to content Perfect Daily Grind &gt; Origin Guides &gt; How Jamaicas coffee sector is evolving Share: Between 1800 and 1840, Jam</div>
+          <div class="noticia-ejes"><span class="eje-tag">Mercado y Precios</span><span class="eje-tag">Logística y Exportación</span><span class="eje-tag">Innovación y Técnica</span><span class="eje-tag">Ferias y Oportunidades</span></div>
+        </div>
+      
+        <div class="noticia-card" style="border-left-color: #c62828;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+            <div class="noticia-titulo">A Puerto Rican coffee has broken the 90-point barrier – but is there a future for its specialty coffee sector?</div>
+            <span class="tension-badge" style="color: #c62828; background: #c6282818; border-color: #c62828; font-size: 8px; padding: 3px 10px; flex-shrink: 0; margin-left: 8px;">
+              ALTA
+            </span>
+          </div>
+          <div class="noticia-meta">
+            Perfect Daily Grind &bull; 17 de octubre de 2023 &bull; 1 fuente
+          </div>
+          <div class="noticia-resumen">A Puerto Rican coffee has broken the 90-point barrier – but is there a future for its specialty coffee sector? - Perfect Daily Grind --&gt; ESPAÑOL ENGLISH PORTUGUÊS English Español Português Search for: Search Button SUBSCRIBE Skip to content Perfect Daily Grind &gt; Origin Guides &gt; A</div>
+          <div class="noticia-ejes"><span class="eje-tag">Mercado y Precios</span><span class="eje-tag">Clima y Producción</span><span class="eje-tag">Logística y Exportación</span><span class="eje-tag">Innovación y Técnica</span><span class="eje-tag">Ferias y Oportunidades</span></div>
+        </div>
+      
+        <div class="noticia-card" style="border-left-color: #c62828;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+            <div class="noticia-titulo">Pre-batched espresso: Why it’s dividing opinion</div>
+            <span class="tension-badge" style="color: #c62828; background: #c6282818; border-color: #c62828; font-size: 8px; padding: 3px 10px; flex-shrink: 0; margin-left: 8px;">
+              ALTA
+            </span>
+          </div>
+          <div class="noticia-meta">
+            Perfect Daily Grind &bull; 10 de marzo de 2026 &bull; 1 fuente
+          </div>
+          <div class="noticia-resumen">Pre-batched espresso: Why it’s dividing opinion - Perfect Daily Grind --&gt; ESPAÑOL ENGLISH PORTUGUÊS English Español Português Search for: Search Button SUBSCRIBE Skip to content Perfect Daily Grind &gt; Espresso &gt; Pre-batched espresso: Why it’s dividing opinion Share: Key takeaways </div>
+          <div class="noticia-ejes"><span class="eje-tag">Mercado y Precios</span><span class="eje-tag">Innovación y Técnica</span></div>
+        </div>
+      
+        <div class="noticia-card" style="border-left-color: #c62828;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+            <div class="noticia-titulo">Producers are facing more challenges: Could processing innovation be a solution?</div>
+            <span class="tension-badge" style="color: #c62828; background: #c6282818; border-color: #c62828; font-size: 8px; padding: 3px 10px; flex-shrink: 0; margin-left: 8px;">
+              ALTA
+            </span>
+          </div>
+          <div class="noticia-meta">
+            Perfect Daily Grind &bull; 4 de marzo de 2025 &bull; 1 fuente
+          </div>
+          <div class="noticia-resumen">Producers are facing more challenges: Could processing innovation be a solution? - Perfect Daily Grind --&gt; ESPAÑOL ENGLISH PORTUGUÊS English Español Português Search for: Search Button SUBSCRIBE Skip to content Perfect Daily Grind &gt; Processing &gt; Producers are facing more challeng</div>
+          <div class="noticia-ejes"><span class="eje-tag">Mercado y Precios</span><span class="eje-tag">Clima y Producción</span><span class="eje-tag">Innovación y Técnica</span><span class="eje-tag">Ferias y Oportunidades</span></div>
+        </div>
+      
+        <div class="noticia-card" style="border-left-color: #c62828;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+            <div class="noticia-titulo">As coffee prices stay volatile, has sustainability become less of a priority for roasters?</div>
+            <span class="tension-badge" style="color: #c62828; background: #c6282818; border-color: #c62828; font-size: 8px; padding: 3px 10px; flex-shrink: 0; margin-left: 8px;">
+              ALTA
+            </span>
+          </div>
+          <div class="noticia-meta">
+            Perfect Daily Grind &bull; 8 de julio de 2025 &bull; 1 fuente
+          </div>
+          <div class="noticia-resumen">As coffee prices stay volatile, has sustainability become less of a priority for roasters? - Perfect Daily Grind --&gt; ESPAÑOL ENGLISH PORTUGUÊS English Español Português Search for: Search Button SUBSCRIBE Skip to content Perfect Daily Grind &gt; Sustainability &gt; As coffee prices sta</div>
+          <div class="noticia-ejes"><span class="eje-tag">Mercado y Precios</span><span class="eje-tag">Clima y Producción</span><span class="eje-tag">Innovación y Técnica</span><span class="eje-tag">Ferias y Oportunidades</span></div>
+        </div>
+      
+    </div>
+  
+
+    <div class="page-break"></div>
+
+    
+    <div class="seccion">
+      <div class="seccion-titulo"><span class="num">6</span>Índice de Fuentes</div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 10%; text-align: center;">#</th>
+            <th style="width: 70%;">Fuente</th>
+            <th style="width: 20%; text-align: center;">Noticias</th>
+          </tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td style="font-weight: 700; text-align: center; color: #4e342e;">1</td>
+          <td style="font-weight: 600;">Perfect Daily Grind</td>
+          <td style="text-align: center; font-weight: 700; color: #3e2723;">30</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 700; text-align: center; color: #4e342e;">2</td>
+          <td style="font-weight: 600;">OIC Café</td>
+          <td style="text-align: center; font-weight: 700; color: #3e2723;">8</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 700; text-align: center; color: #4e342e;">3</td>
+          <td style="font-weight: 600;">IBCE</td>
+          <td style="text-align: center; font-weight: 700; color: #3e2723;">7</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 700; text-align: center; color: #4e342e;">4</td>
+          <td style="font-weight: 600;">SCA</td>
+          <td style="text-align: center; font-weight: 700; color: #3e2723;">2</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 700; text-align: center; color: #4e342e;">5</td>
+          <td style="font-weight: 600;">Urgente Bolivia</td>
+          <td style="text-align: center; font-weight: 700; color: #3e2723;">2</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 700; text-align: center; color: #4e342e;">6</td>
+          <td style="font-weight: 600;">RTP Bolivia</td>
+          <td style="text-align: center; font-weight: 700; color: #3e2723;">2</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 700; text-align: center; color: #4e342e;">7</td>
+          <td style="font-weight: 600;">SENASAG</td>
+          <td style="text-align: center; font-weight: 700; color: #3e2723;">2</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 700; text-align: center; color: #4e342e;">8</td>
+          <td style="font-weight: 600;">Bolpress</td>
+          <td style="text-align: center; font-weight: 700; color: #3e2723;">2</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 700; text-align: center; color: #4e342e;">9</td>
+          <td style="font-weight: 600;">eju.tv</td>
+          <td style="text-align: center; font-weight: 700; color: #3e2723;">1</td>
+        </tr>
+      
+        <tr>
+          <td style="font-weight: 700; text-align: center; color: #4e342e;">10</td>
+          <td style="font-weight: 600;">ERBOL</td>
+          <td style="text-align: center; font-weight: 700; color: #3e2723;">1</td>
+        </tr>
+      </tbody>
+      </table>
+    </div>
+  
+
+    
+    <div class="seccion">
+      <div class="seccion-titulo"><span class="num">7</span>Cruce Transversal</div>
+      <div class="analisis-texto"><p>Las 57 noticias activaron 7 de los 7 ejes temáticos. Se observa interconexión entre Mercado y Precios y Innovación y Técnica, sugiriendo dinámicas integradas en la cadena cafetera. La confluencia de factores adversos requiere atención coordinada de los actores del sector.</p></div>
+    </div>
+  
+
+    
+    <div class="seccion">
+      <div class="seccion-titulo"><span class="num">8</span>Tendencia y Proyección</div>
+      <div class="analisis-texto"><p>Se recomienda monitorear: evolución del precio internacional del café (C-market), condiciones climáticas en Yungas y Caranavi, avances en implementación EUDR, y dinamismo del sector de cafeterías de especialidad en el mercado interno. Las fuentes internacionales indican tendencias favorables en consumo global de café de especialidad, representando una oportunidad para productores bolivianos.</p></div>
+    </div>
+  
+
+    
+    <div class="seccion">
+      <div class="seccion-titulo"><span class="num">9</span>Nota Metodológica</div>
+
+      <p style="font-size: 10.5px; line-height: 1.7; color: #1b1a17; margin-bottom: 14px;">
+        El <strong>Boletín del Grano</strong> es un producto de análisis semanal elaborado por
+        <strong>DECODEX Bolivia</strong> que monitorea, clasifica y analiza la información pública
+        relevante sobre café de especialidad en Bolivia. El boletín cubre siete ejes temáticos
+        internos que permiten una lectura transversal de la coyuntura cafetera nacional.
+      </p>
+
+      <p style="font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700; color: #3e2723; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
+        Periodo de cobertura
+      </p>
+      <p style="font-size: 10.5px; color: #1b1a17; margin-bottom: 14px;">
+        Invalid Date al Invalid Date
+      </p>
+
+      <p style="font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700; color: #3e2723; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
+        Fuentes monitoreadas (10)
+      </p>
+      <div class="metodo-lista">
+        <ul><li>Perfect Daily Grind</li><li>OIC Café</li><li>IBCE</li><li>SCA</li><li>Urgente Bolivia</li><li>RTP Bolivia</li><li>SENASAG</li><li>Bolpress</li><li>eju.tv</li><li>ERBOL</li></ul>
+      </div>
+
+      <p style="font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700; color: #3e2723; margin-bottom: 6px; margin-top: 14px; text-transform: uppercase; letter-spacing: 0.5px;">
+        Palabras clave de búsqueda
+      </p>
+      <p style="font-size: 10.5px; color: #1b1a17; line-height: 1.6; padding: 10px 14px; background: #faf6f1; border-radius: 4px;">
+        789 keywords DECODEX en 9 lentes + 44 ejes temáticos. Para café: 70+ keywords en 7 ejes internos (mercado, clima, política, logística, innovación, ferias, cadena).
+      </p>
+
+      <p style="font-size: 9px; color: #8d7b74; margin-top: 14px; font-style: italic; line-height: 1.6;">
+        Este documento es de carácter informativo y no representa una posición institucional.
+        Las fuentes citadas son de acceso público. Para consultas: decodebolivia.org
+      </p>
+    </div>
+  
+
+    
+  <div class="watermark">DECODEX Bolivia</div>
+  <div class="footer">
+    <div class="footer-linea1">DECODEX Bolivia &mdash; decodebolivia.org</div>
+    <div class="footer-linea2">BOLET&Iacute;N DEL GRANO &mdash; Caf&eacute; de Especialidad Bolivia</div>
+  </div>
+    </body>
+    </html>
