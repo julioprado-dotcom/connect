@@ -104,6 +104,13 @@ const RULES_BY_TYPE: Record<TipoBoletin, ValidationRule> = {
     prohibidoContenido: ['lo siento', 'no puedo', 'como ia', 'i am', 'as an ai'],
     requeridoContenido: ['##'],
   },
+  BOLETIN_DEL_GRANO: {
+    minPalabras: 600,
+    maxPalabras: 1200,
+    requiereSecciones: true,
+    prohibidoContenido: ['lo siento', 'no puedo', 'como ia', 'i am', 'as an ai'],
+    requeridoContenido: ['##', 'café', 'cafe'],
+  },
 };
 
 // ============================================

@@ -931,8 +931,14 @@ export async function generarPDFBoletinDelGrano(data: BoletinGranoData): Promise
     return Buffer.alloc(0);
   }
 
-  // Modo producción con Puppeteer
-  const puppeteer = require('puppeteer') as typeof import('puppeteer');
+  // Modo producción con Puppeteer (si está disponible)
+  let puppeteer: any;
+  try {
+    puppeteer = require('puppeteer');
+  } catch {
+    console.warn('[BoletinDelGrano] puppeteer no instalado, usando modo mock');
+    return Buffer.alloc(0);
+  }
   const browser = await puppeteer.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],

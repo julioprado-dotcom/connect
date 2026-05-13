@@ -617,6 +617,7 @@ export function generarTituloProducto(
     VOZ_Y_VOTO: `VOZ Y VOTO — Resumen Semanal — ${fechaStr}`,
     EL_HILO: `EL HILO — Recuento Semanal — ${fechaStr}`,
     FOCO_DE_LA_SEMANA: `FOCO DE LA SEMANA — ${ejeNombre ?? 'Eje Tematico'} — Semana ${semana}`,
+    BOLETIN_DEL_GRANO: `BOLETÍN DEL GRANO — Semana ${semana} — ${fechaStr}`,
   };
 
   return titulos[tipo];
