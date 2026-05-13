@@ -477,3 +477,24 @@ Stage Summary:
 - Commits: c40ef62 (batch), 77d0c26 (reclassify fix)
 - Patrones de URL documentados para cada fuente
 - Brújula Digital, Urgente, RTP ya tenían menciones previas (sessiones anteriores)
+---
+Task ID: 1
+Agent: Main Agent
+Task: Generar Primer Boletín Real BOLETÍN DEL GRANO en PDF (ONION200 v0.16.0)
+
+Work Log:
+- Verificado entorno: boletin-del-grano.ts (27KB), custom.db (9.7MB), clasificador-v2.ts, schema.prisma
+- Descubierto que la DB correcta es db/custom.db (399 menciones, 57 con Lente Cafe)
+- Consultados 57 menciones de Lente "Cafe y Economias Regionales" con full details
+- Ranking de fuentes: PDG 30, OIC 8, IBCE 7, Bolpress 2, RTP 2, SCA 2, SENASAG 2, Urgente 2, ERBOL 1, eju.tv 1
+- 8+ ejes temáticos activados, liderado por Geopolítica (89%)
+- Generado PDF profesional con ReportLab (7 páginas, 106KB)
+- 9 secciones completas: Portada, Resumen Ejecutivo, Estadísticas, Mapa de Tensiones, Noticias Destacadas, Índice de Fuentes, Cruce Transversal, Tendencia, Nota Metodológica
+- Commit: 6705801
+- Push exitoso a GitHub
+
+Stage Summary:
+- PDF generado: /home/z/my-project/download/BoletinDelGrano_Semana20_Edicion1.pdf
+- 7 páginas A4 con paleta café profesional
+- Datos reales de la base de datos DECODEX
+- Push exitoso a GitHub (branch main)
