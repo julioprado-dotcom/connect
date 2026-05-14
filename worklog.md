@@ -43,3 +43,32 @@ Stage Summary:
 - Worker ahora tiene 3 capas de protección: event loop lag, heap memory, heavy job pressure
 - Endpoints de captura y jobs tienen rate limiting con HTTP 429
 - No más saturación del event loop posible por jobs masivos
+
+---
+Task ID: 1-recover-menciones
+Agent: Main
+Task: Investigar documentación, recuperar menciones borradas, regenerar productos
+
+Work Log:
+- Leído CONTEXTO.md, ESTANDAR_PRODUCTOS.md, 04_Indicadores_ONION200.md
+- Leídos protocolos de producto: Saldo del Día, El Radar, El Foco
+- Verificado estado DB: 247 menciones restantes, todas con fechaPublicacion = null
+- Confirmado que 152 menciones fueron borradas incorrectamente (medios bolivianos + café)
+- El código ya tenía fallback para fechaPublicacion IS NULL → usa fechaCaptura
+- Recuperadas 152 menciones del backup snapshot-2026-05-13_23-noche
+- Recuperadas 657 relaciones MencionTema + 466 MencionLente
+- Total final: 399 menciones, 1355 MencionTema, 852 MencionLente
+- Reconstruido servidor con npx next build + next start
+- Generados 6 productos ONION200 todos con menciones reales:
+  - EL_TERMOMETRO: 356 menciones
+  - SALDO_DEL_DIA: 356 menciones
+  - EL_FOCO: 356 menciones
+  - EL_ESPECIALIZADO: 356 menciones
+  - EL_RADAR: 18 menciones (ventana semanal)
+  - BOLETIN_DEL_GRANO: 18 menciones (ventana semanal, café)
+
+Stage Summary:
+- Datos recuperados completamente desde backup
+- Todos los productos ONION200 generados exitosamente con menciones reales
+- Criterio verificado: el sistema monitorea medios bolivianos E internacionales (incluido café)
+- Documentación revisada: CONTEXTO.md, ESTANDAR_PRODUCTOS.md, protocolos de producto
