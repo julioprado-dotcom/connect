@@ -302,8 +302,8 @@ export async function POST(request: NextRequest) {
 
     // Push DB to GitHub as part of generation flow
     try {
-      const { pushDbToGithub } = await import('@/lib/git-utils');
-      await pushDbToGithub(`prod: Boletín del Grano generado — semana ${data.semanaNumero}`);
+      const { pushProductosToGithub } = await import('@/lib/git-utils');
+      await pushProductosToGithub(`prod: Boletín del Grano generado — semana ${data.semanaNumero}`);
     } catch (gitErr) {
       console.warn('[generate-boletin-grano] Git push falló:', gitErr);
     }

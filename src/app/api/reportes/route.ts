@@ -60,8 +60,8 @@ export async function POST(request: NextRequest) {
 
     // Push DB to GitHub as part of generation flow
     try {
-      const { pushDbToGithub } = await import('@/lib/git-utils');
-      await pushDbToGithub(`prod: ${(body.tipo || 'reporte').replace(/_/g, ' ')} creado — ${body.totalMenciones || 0} menciones`);
+      const { pushProductosToGithub } = await import('@/lib/git-utils');
+      await pushProductosToGithub(`prod: ${(body.tipo || 'reporte').replace(/_/g, ' ')} creado — ${body.totalMenciones || 0} menciones`);
     } catch (gitErr) {
       console.warn('[reportes POST] Git push falló:', gitErr);
     }

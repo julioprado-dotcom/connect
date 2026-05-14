@@ -569,9 +569,9 @@ export async function registrarReporte(params: {
 
     // Push DB to GitHub as part of the generation flow
     try {
-      const { pushDbToGithub } = await import('@/lib/git-utils');
+      const { pushProductosToGithub } = await import('@/lib/git-utils');
       const nombreProducto = params.tipoProducto.replace(/_/g, ' ');
-      await pushDbToGithub(`prod: ${nombreProducto} generado — ${new Date().toISOString().slice(0, 10)}`);
+      await pushProductosToGithub(`prod: ${nombreProducto} generado — ${new Date().toISOString().slice(0, 10)}`);
     } catch (gitErr) {
       console.warn('[reportes-utils] Git push falló (producto registrado localmente):', gitErr);
     }

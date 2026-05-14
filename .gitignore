@@ -2,6 +2,7 @@
 .zscripts/
 worklog.md
 download/
+!productos/
 node_modules/
 
 # Database backups — tracked in git for disaster recovery
@@ -25,9 +26,8 @@ out/
 # Prisma
 prisma/migrations/
 
-# Database — custom.db is TRACKED (products pushed to GitHub as part of generation)
+# Database
 db/*.db
-!prisma/db/custom.db
 prisma/db/*.bak
 *.db-journal
 *.db-wal
