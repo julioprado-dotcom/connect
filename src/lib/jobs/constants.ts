@@ -187,7 +187,7 @@ export const FLOW_CONTROL = {
   eventLoopCheckIntervalMs: 2000,  // cada cuánto medir el lag
   // Límites de concurrencia
   maxCheckFuenteBatch: 3,          // máx checks por batch (endpoint /api/jobs)
-  maxScrapePending: 3,             // máx scrape_fuente en cola al mismo tiempo
+  maxScrapePending: 1,             // máx scrape_fuente en cola al mismo tiempo — UNO A LA VEZ
   captureEndpointCooldownMs: 30000, // cooldown entre llamadas a /api/capture
   // Protección de memoria
   heapWarnMb: 350,                 // warn si heapUsed supera esto
@@ -207,7 +207,7 @@ export const RETRY_CONFIG = {
 
 export const QUEUE_LIMITS = {
   maxPendingJobs: 100,      // pausar scheduler si se alcanza
-  maxHeavyPending: 3,       // max scrape_fuente pendientes (jobs pesados)
+  maxHeavyPending: 1,       // max scrape_fuente pendientes (jobs pesados) — UNO A LA VEZ
   maxBatchEnqueue: 5,       // max jobs por batch desde el endpoint de captura
   jobRetentionDays: 30,     // purgar jobs completados > 30 dias
   capturaLogRetentionDays: 90,
