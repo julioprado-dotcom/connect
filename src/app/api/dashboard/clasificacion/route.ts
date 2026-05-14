@@ -1,9 +1,8 @@
-// GET /api/dashboard/clasificacion — Lentes, ejes y pendientes
-//
-// Retorna datos de clasificación: lentes con menciones clasificadas,
-// ejes temáticos, y menciones pendientes de clasificación.
-// Usa try/catch para el modelo Lente (puede no existir).
-
+/**
+ * /api/dashboard/clasificacion — Clasificación REAL
+ * Datos derivados de Mencion, MencionTema, MencionLente, EjeTematico.
+ * Muestra cobertura real de clasificación.
+ */
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { safeError } from '@/lib/rate-guard';
@@ -13,55 +12,27 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    // ── Lentes ────────────────────────────────────────────
-    let lentes: Array<{
-      id: string;
-      nombre: string;
-      slug: string;
-      menciones: number;
-      clasificadas: number;
-      porcentaje: number;
-    }> = [];
+    const totalMenciones = await db.mencion.count({ where: { esDuplicado: false } });
 
-    try {
-      // Check if Lente model exists by querying it
-      const lentesData = await db.lente.findMany({
-        where: { activo: true },
-        include: {
-          _count: {
-            select: { MencionLente: true, Keyword: true },
-          },
-        },
-        orderBy: { nombre: 'asc' },
-      });
+    // ── Menciones con tratamiento periodístico asignado ─────
+    const clasificadas = await db.mencion.count({
+      where: { esDuplicado: false, tratamientoPeriodistico: { not: null } },
+    });
+    const sinClasificar = totalMenciones - clasificadas;
 
-      // Total menciones in DB (for porcentaje calculation)
-      const totalMenciones = await db.mencion.count({
-        where: {
-          esDuplicado: false,
-        },
-      });
+    // ── Distribución por tratamiento periodístico ──────────
+    const porTratamiento = await db.mencion.groupBy({
+      by: ['tratamientoPeriodistico'],
+      where: { esDuplicado: false },
+      _count: { id: true },
+    });
 
-      lentes = lentesData.map(l => {
-        const clasificadas = l._count.MencionLente;
-        const porcentaje = totalMenciones > 0
-          ? Math.round((clasificadas / totalMenciones) * 100)
-          : 0;
-        return {
-          id: l.id,
-          nombre: l.nombre,
-          slug: l.slug,
-          menciones: totalMenciones,
-          clasificadas,
-          porcentaje,
-        };
-      });
-    } catch {
-      // Lente model might not exist or table is missing
-      console.log('[API /dashboard/clasificacion] Lente model not available');
-    }
+    const distribucionTratamiento: Array<{ tratamiento: string; count: number }> = porTratamiento.map(g => ({
+      tratamiento: g.tratamientoPeriodistico || 'sin clasificar',
+      count: g._count.id,
+    }));
 
-    // ── Ejes Temáticos ────────────────────────────────────
+    // ── Ejes temáticos con menciones reales ─────────────────
     let ejes: Array<{
       id: string;
       nombre: string;
@@ -71,39 +42,87 @@ export async function GET() {
     }> = [];
 
     try {
-      const ejesData = await db.ejeTematico.findMany({
-        where: { activo: true, parentId: null },
-        include: {
-          _count: {
-            select: { Mencion: true, MencionTema: true },
-          },
-        },
-        orderBy: { orden: 'asc' },
+      // Usar MencionTema para contar menciones por eje (más preciso que la relación directa Mencion→EjeTematico)
+      const mencionesPorEje = await db.mencionTema.groupBy({
+        by: ['ejeTematicoId'],
+        _count: { id: true },
       });
 
-      const totalMenciones = await db.mencion.count({
-        where: { esDuplicado: false },
-      });
+      const ejeIds = mencionesPorEje.map(g => g.ejeTematicoId);
+      const ejesMap = new Map<string, { id: string; nombre: string; slug: string }>();
 
-      ejes = ejesData.map(e => {
-        const menciones = e._count.Mencion;
-        const porcentaje = totalMenciones > 0
-          ? Math.round((menciones / totalMenciones) * 100)
-          : 0;
+      if (ejeIds.length > 0) {
+        const ejesData = await db.ejeTematico.findMany({
+          where: { id: { in: ejeIds }, activo: true },
+          select: { id: true, nombre: true, slug: true },
+        });
+        for (const e of ejesData) ejesMap.set(e.id, e);
+      }
+
+      // Ordenar por cantidad descendente
+      const sorted = [...mencionesPorEje].sort((a, b) => b._count.id - a._count.id);
+
+      ejes = sorted.map(g => {
+        const info = ejesMap.get(g.ejeTematicoId);
+        if (!info) return null;
+        const porcentaje = totalMenciones > 0 ? Math.round((g._count.id / totalMenciones)) * 100) : 0;
         return {
-          id: e.id,
-          nombre: e.nombre,
-          slug: e.slug,
-          menciones,
+          id: g.ejeTematicoId,
+          nombre: info.nombre,
+          slug: info.slug,
+          menciones: g._count.id,
           porcentaje,
         };
-      });
+      }).filter(Boolean).slice(0, 15);
     } catch {
-      console.log('[API /dashboard/clasificacion] EjeTematico query failed');
+      console.log('[API /dashboard/clasificacion] Ejes query failed');
     }
 
-    // ── Pendientes (sin tratamientoPeriodistico) ──────────
-    let pendientes = 0;
+    // ── Lentes con menciones clasificadas ──────────────────
+    let lentes: Array<{
+      id: string;
+      nombre: string;
+      slug: string;
+      clasificadas: number;
+      porcentaje: number;
+    }> = [];
+
+    try {
+      const mencionesPorLente = await db.mencionLente.groupBy({
+        by: ['lenteId'],
+        _count: { id: true },
+      });
+
+      const lenteIds = mencionesPorLente.map(g => g.lenteId);
+      const lentesMap = new Map<string, { id: string; nombre: string; slug: string }>();
+
+      if (lenteIds.length > 0) {
+        const lentesData = await db.lente.findMany({
+          where: { id: { in: lenteIds }, activo: true },
+          select: { id: true, nombre: true, slug: true },
+        });
+        for (const l of lentesData) lentesMap.set(l.id, l);
+      }
+
+      const sortedLentes = [...mencionesPorLente].sort((a, b) => b._count.id - a._count.id);
+
+      lentes = sortedLentes.map(g => {
+        const info = lentesMap.get(g.lenteId);
+        if (!info) return null;
+        const porcentaje = totalMenciones > 0 ? Math.round((g._count.id / totalMenciones) * 100) : 0;
+        return {
+          id: g.lenteId,
+          nombre: info.nombre,
+          slug: info.slug,
+          clasificadas: g._count.id,
+          porcentaje,
+        };
+      }).filter(Boolean).slice(0, 10);
+    } catch {
+      console.log('[API /dashboard/clasificacion] Lentes query failed');
+    }
+
+    // ── Menciones sin clasificar (lista para UI) ─────────
     let pendientesList: Array<{
       id: string;
       titulo: string;
@@ -112,22 +131,13 @@ export async function GET() {
     }> = [];
 
     try {
-      pendientes = await db.mencion.count({
-        where: {
-          tratamientoPeriodistico: null,
-          esDuplicado: false,
-        },
-      });
-
       const pendientesData = await db.mencion.findMany({
         where: {
           tratamientoPeriodistico: null,
           esDuplicado: false,
         },
         include: {
-          Medio: {
-            select: { nombre: true },
-          },
+          Medio: { select: { nombre: true } },
         },
         orderBy: { fechaCaptura: 'desc' },
         take: 20,
@@ -135,30 +145,55 @@ export async function GET() {
           id: true,
           titulo: true,
           fechaCaptura: true,
-          Medio: { select: { nombre: true } },
         },
       });
 
       pendientesList = pendientesData.map(m => ({
         id: m.id,
-        titulo: m.titulo,
-        medioNombre: m.Medio.nombre,
+        titulo: m.titulo || 'Sin título',
+        medioNombre: m.Medio?.nombre || 'Desconocido',
         fechaCaptura: m.fechaCaptura.toISOString(),
       }));
     } catch {
       console.log('[API /dashboard/clasificacion] Pendientes query failed');
     }
 
+    // ── Menciones con sentimiento asignado ─────────────────
+    const conSentimiento = await db.mencion.count({
+      where: { esDuplicado: false, sentimiento: { not: null } },
+    });
+
+    const conIntencionMedio = await db.mencion.count({
+      where: { esDuplicado: false, intencionMedio: { not: null } },
+    });
+
     return NextResponse.json({
-      lentes,
+      // ── KPIs principales ───────────────────────────────
+      totalMenciones,
+      clasificadas,
+      sinClasificar,
+      porcentajeCobertura: totalMenciones > 0
+        ? Math.round((clasificadas / totalMenciones) * 100)
+        : 0,
+
+      // ── Distribución por tratamiento ─────────────────────
+      distribucionTratamiento,
+
+      // ── Ejes temáticos ───────────────────────────────────
       ejes,
-      pendientes,
+      totalEjesActivos: ejes.length,
+
+      // ── Lentes ───────────────────────────────────────────
+      lentes,
+      totalLentesActivos: lentes.length,
+
+      // ── Pendientes ───────────────────────────────────────
+      pendientes: sinClasificar,
       pendientesList,
-      resumen: {
-        totalLentes: lentes.length,
-        totalEjes: ejes.length,
-        totalPendientes: pendientes,
-      },
+
+      // ── Datos adicionales ────────────────────────────────
+      conSentimiento,
+      conIntencionMedio,
     });
   } catch (error: unknown) {
     console.error('[API /dashboard/clasificacion GET]', error);
