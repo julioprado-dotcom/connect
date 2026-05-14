@@ -36,7 +36,7 @@ interface PipelineSource {
       esDegradado: boolean; estaMuerto: boolean;
       ultimoCheck: string | null; ultimoCheckHace: string;
       totalChecks: number; totalCambios: number; checksSinCambio: number;
-      totalMenciones: number; error: string | null;
+      totalMenciones?: number; error: string | null;
     }>;
     worker: { running: boolean; lastJobHace: string; jobsCompleted: number; jobsFailed: number };
   };
@@ -75,7 +75,7 @@ function deriveNodes(data: PipelineSource): PipelineNode[] {
   const activeFuentes = fuentes.filter(f => f.activo);
   const deadFuentes = fuentes.filter(f => f.estaMuerto);
   const degradedFuentes = fuentes.filter(f => f.esDegradado);
-  const totalMenciones = fuentes.reduce((s, f) => s + f.totalMenciones, 0);
+  const totalMenciones = fuentes.reduce((s, f) => s + (f.totalMenciones || 0), 0);
   const capturaStatus: NodeStatus = deadFuentes.length > 0 ? 'error' : degradedFuentes.length > 2 ? 'warning' : 'ok';
   const capturaLast = activeFuentes.length > 0
     ? activeFuentes.sort((a, b) => (a.ultimoCheck || '').localeCompare(b.ultimoCheck || '')).at(-1)?.ultimoCheckHace || 'sin datos'

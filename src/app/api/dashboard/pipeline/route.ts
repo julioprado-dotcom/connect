@@ -268,6 +268,7 @@ export async function GET() {
         totalChecks: f.totalChecks,
         totalCambios: f.totalCambios,
         checksSinCambio: f.checksSinCambio,
+        totalMenciones: f.totalMenciones,
         responseTime: f.responseTime,
         error: f.error || null,
         horariosOptimos: horasOptimos,
