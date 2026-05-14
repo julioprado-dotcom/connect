@@ -25,8 +25,9 @@ out/
 # Prisma
 prisma/migrations/
 
-# Database
+# Database — custom.db is TRACKED (products pushed to GitHub as part of generation)
 db/*.db
+!prisma/db/custom.db
 prisma/db/*.bak
 *.db-journal
 *.db-wal

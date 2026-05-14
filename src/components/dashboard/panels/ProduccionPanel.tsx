@@ -18,7 +18,7 @@ interface ProductoItem {
   nombre: string;
   tipoProducto: 'premium' | 'gratuito';
   frecuencia: 'diario' | 'semanal' | 'bajo_demanda';
-  estado: 'generado' | 'pendiente' | 'error' | 'sin_datos';
+  estado: 'generado' | 'en_elaboracion' | 'pendiente' | 'error' | 'sin_datos';
   ultimaEdicion: string | null;
   mencionesUsadas: number;
   totalEdiciones: number;
@@ -33,6 +33,7 @@ interface ProductosData {
   resumen: {
     total: number;
     generados: number;
+    enElaboracion: number;
     pendientes: number;
     errores: number;
     sinDatos: number;
@@ -47,6 +48,8 @@ function EstadoIcon({ estado }: { estado: string }) {
   switch (estado) {
     case 'generado':
       return <CheckCircle className="w-4 h-4" style={{ color: '#00ff88' }} />;
+    case 'en_elaboracion':
+      return <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#3b82f6' }} />;
     case 'pendiente':
       return <Clock className="w-4 h-4" style={{ color: '#ffaa00' }} />;
     case 'error':
@@ -181,7 +184,7 @@ function ProductRow({ product }: { product: ProductoItem }) {
                           {ed.fecha}
                         </span>
                         <EstadoIcon estado={ed.estado} />
-                        <span style={{ color: ed.estado === 'generado' ? '#00ff88' : ed.estado === 'error' ? '#ff3355' : '#ffaa00' }}>
+                        <span style={{ color: ed.estado === 'generado' ? '#00ff88' : ed.estado === 'en_elaboracion' ? '#3b82f6' : ed.estado === 'error' ? '#ff3355' : '#ffaa00' }}>
                           {ed.estado}
                         </span>
                         <span style={{ color: '#4b5563' }}>
@@ -317,6 +320,9 @@ export function ProduccionPanel({ onClose }: { onClose?: () => void }) {
           >
             <span className="text-[10px] flex items-center gap-1" style={{ color: '#00ff88' }}>
               <CheckCircle className="w-3 h-3" /> {data.resumen.generados}
+            </span>
+            <span className="text-[10px] flex items-center gap-1" style={{ color: '#3b82f6' }}>
+              <Loader2 className="w-3 h-3" /> {data.resumen.enElaboracion}
             </span>
             <span className="text-[10px] flex items-center gap-1" style={{ color: '#ffaa00' }}>
               <Clock className="w-3 h-3" /> {data.resumen.pendientes}

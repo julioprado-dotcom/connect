@@ -175,6 +175,14 @@ export async function POST(request: NextRequest) {
       include: { persona: { select: { nombre: true, partidoSigla: true } } },
     });
 
+    // Push DB to GitHub as part of generation flow
+    try {
+      const { pushDbToGithub } = await import('@/lib/git-utils');
+      await pushDbToGithub(`prod: ${tipoReporte.replace(/_/g, ' ')} generado — ${totalMenciones} menciones`);
+    } catch (gitErr) {
+      console.warn('[reportes/generate] Git push falló:', gitErr);
+    }
+
     // ─── Respuesta con cache headers ───
     return NextResponse.json(
       {

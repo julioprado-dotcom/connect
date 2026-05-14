@@ -300,6 +300,14 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Push DB to GitHub as part of generation flow
+    try {
+      const { pushDbToGithub } = await import('@/lib/git-utils');
+      await pushDbToGithub(`prod: Boletín del Grano generado — semana ${data.semanaNumero}`);
+    } catch (gitErr) {
+      console.warn('[generate-boletin-grano] Git push falló:', gitErr);
+    }
+
     // Si hay PDF real, guardarlo en download/
     if (pdfBuffer.length > 0) {
       const fs = require('fs');

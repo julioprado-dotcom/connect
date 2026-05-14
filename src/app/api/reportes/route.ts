@@ -57,6 +57,15 @@ export async function POST(request: NextRequest) {
         temasPrincipales: Array.isArray(body.temasPrincipales) ? JSON.stringify(body.temasPrincipales) : (body.temasPrincipales || '[]'),
       },
     });
+
+    // Push DB to GitHub as part of generation flow
+    try {
+      const { pushDbToGithub } = await import('@/lib/git-utils');
+      await pushDbToGithub(`prod: ${(body.tipo || 'reporte').replace(/_/g, ' ')} creado — ${body.totalMenciones || 0} menciones`);
+    } catch (gitErr) {
+      console.warn('[reportes POST] Git push falló:', gitErr);
+    }
+
     return NextResponse.json(reporte, { status: 201 });
   } catch (error: unknown) {
     return NextResponse.json({ error: safeError(error, 'reportes') }, { status: 500 });

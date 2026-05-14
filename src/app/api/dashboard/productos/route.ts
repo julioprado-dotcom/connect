@@ -146,7 +146,8 @@ export async function GET() {
       resumen: {
         total: productos.length,
         generados: productos.filter(p => p.estado === 'generado').length,
-        pendientes: 0, // No hay sistema de pendientes sin clientes
+        enElaboracion: productos.filter(p => p.estado === 'en_elaboracion').length,
+        pendientes: 0,
         errores: productos.filter(p => p.estado === 'error').length,
         sinDatos: productos.filter(p => p.estado === 'sin_datos').length,
         premium: productos.filter(p => p.tipoProducto === 'premium').length,
