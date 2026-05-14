@@ -24,8 +24,10 @@ export async function getMencionesForBulletin(
   const { fechaInicio, fechaFin } = getDateRange(tipo)
 
   // Construir filtros base
+  // Usar fechaPublicacion (fecha del articulo original) no fechaCaptura
+  // porque las capturas retroactivas tienen fechas distintas
   const where: Record<string, unknown> = {
-    fechaCaptura: { gte: fechaInicio, lt: fechaFin },
+    fechaPublicacion: { gte: fechaInicio, lt: fechaFin },
     esDuplicado: false,
   }
 
@@ -57,7 +59,7 @@ export async function getMencionesForBulletin(
         },
       },
     },
-    orderBy: { fechaCaptura: 'desc' },
+    orderBy: { fechaPublicacion: 'desc' },
   })
 
   // Formatear para consumo del generador
