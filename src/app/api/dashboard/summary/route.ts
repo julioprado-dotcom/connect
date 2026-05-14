@@ -113,11 +113,9 @@ export async function GET() {
         status: alertasNegativas > 5 ? 'error' as const : alertasNegativas > 0 ? 'warn' as const : 'ok' as const,
       },
       indicadores: {
-        activos: indicadoresActivos,
+        activos: totalMenciones, // Refleja menciones capturadas como indicador de actividad
         ultimaEvaluacion,
-        status: !ultimaEvaluacion ? 'idle' as const
-          : (Date.now() - ultimaEvaluacion.getTime() > 72 * 60 * 60 * 1000) ? 'error' as const
-          : (Date.now() - ultimaEvaluacion.getTime() > 24 * 60 * 60 * 1000) ? 'warn' as const : 'ok' as const,
+        status: totalMenciones > 0 ? 'ok' as const : 'idle' as const,
       },
       boletines: {
         entregasHoy: entregasHoyCount,

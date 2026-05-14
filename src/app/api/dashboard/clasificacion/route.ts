@@ -65,7 +65,7 @@ export async function GET() {
       ejes = sorted.map(g => {
         const info = ejesMap.get(g.ejeTematicoId);
         if (!info) return null;
-        const porcentaje = totalMenciones > 0 ? Math.round((g._count.id / totalMenciones)) * 100) : 0;
+        const porcentaje = totalMenciones > 0 ? Math.round((g._count.id / totalMenciones) * 100) : 0;
         return {
           id: g.ejeTematicoId,
           nombre: info.nombre,

@@ -72,3 +72,29 @@ Stage Summary:
 - Todos los productos ONION200 generados exitosamente con menciones reales
 - Criterio verificado: el sistema monitorea medios bolivianos E internacionales (incluido café)
 - Documentación revisada: CONTEXTO.md, ESTANDAR_PRODUCTOS.md, protocolos de producto
+---
+Task ID: 1
+Agent: Main Agent (Ingeniero Backend DECODEX)
+Task: Eliminar indicadores macroequivocados y construir indicadores reales del pipeline (Captura, Clasificación, Producción, Distribución)
+
+Work Log:
+- Explorado sistema completo: API routes, componentes dashboard, Prisma schema
+- Identificado que 12 Indicadores/IndicadorValor macroeconómicos tenían 0 valores → datos equivocados
+- Descubierto que modelo `Producto` no existe en Prisma — productos son `Reporte`
+- Descubierto que Prisma v6 no soporta `distinct` en `count()` ni `esDegradado` en `FuenteEstado`
+- Descubierto que `$queryRaw` devuelve BigInt para COUNT() — requiere conversión a Number
+- Corregido bug preexistente en clasificacion/route.ts (paréntesis extra)
+- Reescrito `/api/dashboard/indicadores-summary` — ahora consulta tablas reales del pipeline
+- Reescrito `IndicadoresWidget.tsx` — 4 tarjetas: Captura, Clasificación, Producción, Distribución
+- Reescrito `IndicadoresView.tsx` — vista completa con tabs por etapa y KPIs detallados
+- Actualizado `/api/dashboard/summary` — indicadores ahora reflejan menciones reales
+
+Stage Summary:
+- API `/api/dashboard/indicadores-summary` devuelve datos reales: 399 menciones, 58 medios, 33 fuentes, 38 productos, 9 lentes, 44 ejes
+- Widget muestra 4 etapas con status badges, KPIs, barras de progreso
+- Vista completa permite explorar cada etapa con detalle
+- Captura: 399 menciones, 58 medios, 33 fuentes activas, 29 con fallos
+- Clasificación: 99% con eje, 89% con lente, 100% con sentimiento
+- Producción: 38 reportes (6 tipos), 0 enviados, 38 pendientes
+- Distribución: 0 envíos, 0 suscriptores — requiere configuración
+- Servidor corriendo en puerto 3000, ambas APIs responden correctamente
