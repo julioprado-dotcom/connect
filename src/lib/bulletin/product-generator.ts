@@ -23,30 +23,39 @@ export async function getMencionesForBulletin(
 }> {
   const { fechaInicio, fechaFin } = getDateRange(tipo)
 
-  // Construir filtros base
-  // Usar fechaPublicacion cuando existe, pero incluir menciones con NULL
-  // usando fechaCaptura como fallback (muchas menciones reales no tienen
-  // fechaPublicacion asignada todavía)
-  const where: Record<string, unknown> = {
-    OR: [
-      { fechaPublicacion: { gte: fechaInicio, lt: fechaFin } },
-      { fechaPublicacion: null, fechaCaptura: { gte: fechaInicio, lt: fechaFin } },
-    ],
-    esDuplicado: false,
-  }
+  // Obtener menciones por rango de fechas.
+  // Prisma 6.x tiene bug con filtros OR + fecha en SQLite que devuelve 0.
+  // Workaround: obtener IDs con raw SQL y luego findMany con id IN.
+  const inicioStr = fechaInicio.toISOString();
+  const finStr = fechaFin.toISOString();
+  const personaFilter = options.personaId ? `AND m.personaId = '${options.personaId}'` : '';
+  const sql = [
+    'SELECT DISTINCT m.id FROM Mencion m',
+    'WHERE m.esDuplicado = 0',
+    '  AND (',
+    `    (m.fechaPublicacion IS NOT NULL AND m.fechaPublicacion >= '${inicioStr}' AND m.fechaPublicacion < '${finStr}')`,
+    '    OR',
+    `    (m.fechaPublicacion IS NULL AND m.fechaCaptura >= '${inicioStr}' AND m.fechaCaptura < '${finStr}')`,
+    '  )',
+    personaFilter,
+  ].join('\n');
+  const idsRaw = await db.$queryRawUnsafe<Array<{ id: string }>>(sql)
+  const mencionesIds = idsRaw.map(r => r.id);
 
-  if (options.personaId) {
-    where.personaId = options.personaId
-  }
-
-  // Si se piden ejes tematicos, filtrar menciones que tengan esos ejes
+  // Filtrar por ejes tematicos si se piden (post-filter sobre los IDs)
+  let finalIds = mencionesIds;
   if (options.ejesTematicos && options.ejesTematicos.length > 0) {
-    where.ejesTematicos = {
-      some: {
-        ejeTematicoId: { in: options.ejesTematicos },
-      },
-    }
+    const withEjes = await db.mencionTema.findMany({
+      where: { ejeTematicoId: { in: options.ejesTematicos }, mencionId: { in: mencionesIds } },
+      select: { mencionId: true },
+    });
+    const ejesSet = new Set(withEjes.map(e => e.mencionId));
+    finalIds = mencionesIds.filter(id => ejesSet.has(id));
   }
+
+  const where: Record<string, unknown> = finalIds.length > 0
+    ? { id: { in: finalIds } }
+    : { id: { in: ['__none__'] } } // Forzar vacío si no hay IDs
 
   const menciones = await db.mencion.findMany({
     where,
