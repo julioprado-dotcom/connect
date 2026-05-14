@@ -3,7 +3,7 @@
 
 import db from '@/lib/db'
 import type { JobCreate, JobEstado } from './types'
-import { RETRY_CONFIG, QUEUE_LIMITS } from './constants'
+import { RETRY_CONFIG, QUEUE_LIMITS, FLOW_CONTROL } from './constants'
 import { randomBytes } from 'crypto'
 
 // Generar ID único para jobs (schema usa @id String sin @default)
@@ -11,8 +11,44 @@ function generateJobId(): string {
   return 'job_' + randomBytes(12).toString('hex')
 }
 
+// ─── Flow Control: Límite de heavy jobs ───────────────────────
+// Antes de encolar un scrape_fuente, verificar que no haya demasiados pendientes.
+
+async function checkHeavyPressure(): Promise<boolean> {
+  try {
+    const heavyCount = await db.job.count({
+      where: { estado: 'pendiente', tipo: 'scrape_fuente' },
+    })
+    return heavyCount >= QUEUE_LIMITS.maxHeavyPending
+  } catch {
+    return false
+  }
+}
+
+// Cooldown global para el endpoint de captura (previene spam)
+let lastCaptureEnqueue = 0
+const CAPTURE_COOLDOWN = FLOW_CONTROL.captureEndpointCooldownMs
+
+export function isCaptureOnCooldown(): boolean {
+  return (Date.now() - lastCaptureEnqueue) < CAPTURE_COOLDOWN
+}
+
+export function markCaptureEnqueue(): void {
+  lastCaptureEnqueue = Date.now()
+}
+
 // Encolar un nuevo job
 export async function enqueue(params: JobCreate): Promise<string> {
+  // Flow control: limitar jobs pesados
+  if (params.tipo === 'scrape_fuente') {
+    const pressure = await checkHeavyPressure()
+    if (pressure) {
+      throw new Error(
+        `Flow control: ${QUEUE_LIMITS.maxHeavyPending} scrape_fuente pendientes. Espera a que terminen.`
+      )
+    }
+  }
+
   const jobId = generateJobId()
   const job = await db.job.create({
     data: {

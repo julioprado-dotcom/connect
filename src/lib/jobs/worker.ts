@@ -3,8 +3,8 @@
 // Estado compartido via globalThis para persistir entre contextos de Next.js
 
 import { dequeue, complete, fail } from './queue'
-import { WORKER_CONFIG } from './constants'
-import { domainRateLimiter } from './anti-ban'
+import { WORKER_CONFIG, FLOW_CONTROL, QUEUE_LIMITS } from './constants'
+import db from '@/lib/db'
 import type { JobPayload, JobTipo, RunnerResult, RunnerFn } from './types'
 import { run as runCheckFuente } from './runners/check-fuente'
 import { run as runCheckIndicador } from './runners/check-indicador'
@@ -133,12 +133,74 @@ export function stopWorker(): void {
   console.log('[Worker] Detenido')
 }
 
+// ─── Event Loop Lag Monitor ────────────────────────────────
+// Mide cuánto tarda el event loop en procesar un setTimeout(0).
+// Si el lag supera el umbral, el worker se pausa automáticamente.
+
+function measureEventLoopLag(): Promise<number> {
+  return new Promise<number>((resolve) => {
+    const start = Date.now()
+    setTimeout(() => {
+      resolve(Date.now() - start)
+    }, 0)
+  })
+}
+
+// Verificar si hay demasiados scrape_fuente pendientes
+async function heavyJobPressure(): Promise<number> {
+  try {
+    return await db.job.count({
+      where: { estado: 'pendiente', tipo: 'scrape_fuente' },
+    })
+  } catch {
+    return 0
+  }
+}
+
 // Loop principal
 async function workerLoop(): Promise<void> {
   const ws = getWorkerState()
 
   while (ws.running) {
     try {
+      // Si el worker está en idle, no ejecutar jobs — solo esperar
+      if (ws.idle) {
+        await sleep(WORKER_CONFIG.pollIntervalMs)
+        continue
+      }
+
+      // ─── FLOW CONTROL: Verificar salud del event loop ───
+      const lag = await measureEventLoopLag()
+      if (lag > FLOW_CONTROL.eventLoopLagThresholdMs) {
+        console.warn(
+          `[Worker] Event loop lag ${lag}ms > ${FLOW_CONTROL.eventLoopLagThresholdMs}ms — pausando 10s`
+        )
+        await sleep(10_000)
+        continue
+      }
+
+      // ─── FLOW CONTROL: Verificar presión de memoria ───
+      if (typeof process.memoryUsage === 'function') {
+        const heapMb = Math.round(process.memoryUsage().heapUsed / 1024 / 1024)
+        if (heapMb > FLOW_CONTROL.heapCriticalMb) {
+          console.warn(
+            `[Worker] Heap critico ${heapMb}MB > ${FLOW_CONTROL.heapCriticalMb}MB — pausando 30s`
+          )
+          await sleep(30_000)
+          continue
+        }
+      }
+
+      // ─── FLOW CONTROL: Verificar presión de jobs pesados ───
+      const heavyCount = await heavyJobPressure()
+      if (heavyCount >= QUEUE_LIMITS.maxHeavyPending) {
+        console.log(
+          `[Worker] ${heavyCount} scrape_fuente pendientes (max ${QUEUE_LIMITS.maxHeavyPending}) — esperando`
+        )
+        await sleep(WORKER_CONFIG.pollIntervalMs)
+        continue
+      }
+
       const job = await dequeue()
 
       if (!job) {
@@ -150,12 +212,6 @@ async function workerLoop(): Promise<void> {
       const jobId = job.id as string
       const tipo = job.tipo as JobTipo
       const payload = job.payload as JobPayload
-
-      // Si el worker está en idle, no ejecutar jobs — solo esperar
-      if (ws.idle) {
-        await sleep(WORKER_CONFIG.pollIntervalMs)
-        continue
-      }
 
       console.log(`[Worker] Ejecutando job ${jobId} (${tipo}) prioridad=${job.prioridad}`)
 

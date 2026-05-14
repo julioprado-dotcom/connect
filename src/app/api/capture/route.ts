@@ -5,6 +5,10 @@ import ZAI from 'z-ai-web-dev-sdk';
 import { analyzeMencion, applyAnalysisToMencion } from '@/lib/analyze';
 import { deduplicarMencion, actualizarCoberturaDuplicado } from '@/lib/deduplicacion';
 import { withAuth } from '@/lib/auth-helpers';
+import { FLOW_CONTROL } from '@/lib/jobs/constants';
+
+// ─── Flow Control: Cooldown global ─────────────────────────────
+let lastCaptureTime = 0;
 
 const SITES_QUERY = 'site:la-razon.com OR site:eldeber.com.bo OR site:lostiempos.com OR site:opinion.com.bo OR site:correodelsur.com OR site:elpotosi.net OR site:lapatria.bo OR site:eldiario.net OR site:jornadanet.com OR site:unitel.bo OR site:reduno.bo OR site:atb.com.bo OR site:boliviaverifica.bo OR site:abi.bo OR site:eju.tv OR site:elmundo.com.bo OR site:vision360.bo';
 
@@ -43,6 +47,18 @@ function detectMedioByDomain(url: string): string {
 export async function POST(request: NextRequest) {
   const { error: authError } = await withAuth();
   if (authError) return authError;
+
+  // ─── Flow Control: Rate limiting en endpoint de captura ───
+  const now = Date.now();
+  const elapsed = now - lastCaptureTime;
+  if (elapsed < FLOW_CONTROL.captureEndpointCooldownMs && lastCaptureTime > 0) {
+    const waitSec = Math.ceil((FLOW_CONTROL.captureEndpointCooldownMs - elapsed) / 1000);
+    return NextResponse.json({
+      error: `Flow control: Cooldown activo. Espera ${waitSec}s entre capturas.`,
+      cooldownRemaining: waitSec,
+    }, { status: 429 });
+  }
+  lastCaptureTime = now;
 
   try {
     const { searchParams } = new URL(request.url);

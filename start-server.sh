@@ -1,5 +1,4 @@
 #!/bin/bash
-# DECODEX Bolivia — Server startup script
-# Usage: bash start-server.sh
+# DECODEX Bolivia - Server startup daemon
 cd /home/z/my-project
-exec ./node_modules/.bin/next start -p 3000
+exec npx next start -p 3000 >> /tmp/next-server.log 2>&1

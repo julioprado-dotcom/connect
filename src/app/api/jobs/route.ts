@@ -5,6 +5,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { enqueue, getJobs, countByEstado } from '@/lib/jobs/queue'
 import type { JobTipo, JobPrioridad, JobEstado } from '@/lib/jobs/types'
 import { safeError } from '@/lib/rate-guard'
+import db from '@/lib/db'
+import { QUEUE_LIMITS, FLOW_CONTROL } from '@/lib/jobs/constants'
 
 const VALID_TIPOS: JobTipo[] = [
   'check_fuente',
@@ -70,13 +72,49 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const jobId = await enqueue({
-      tipo: tipo as JobTipo,
-      prioridad,
-      payload,
-    })
+    // ─── Flow Control: Limitar batch de checks ───
+    if (tipo === 'check_fuente') {
+      const pendingChecks = await db.job.count({
+        where: { estado: 'pendiente', tipo: 'check_fuente' },
+      })
+      if (pendingChecks >= FLOW_CONTROL.maxCheckFuenteBatch) {
+        return NextResponse.json({
+          error: `Flow control: ${pendingChecks} check_fuente pendientes. Maximo ${FLOW_CONTROL.maxCheckFuenteBatch} simultaneos. Espera a que procesen.`,
+          pendingChecks,
+          maxAllowed: FLOW_CONTROL.maxCheckFuenteBatch,
+        }, { status: 429 })
+      }
+    }
 
-    return NextResponse.json({ exito: true, jobId }, { status: 201 })
+    // ─── Flow Control: Limitar scrape pesados ───
+    if (tipo === 'scrape_fuente') {
+      const pendingScrapes = await db.job.count({
+        where: { estado: 'pendiente', tipo: 'scrape_fuente' },
+      })
+      if (pendingScrapes >= QUEUE_LIMITS.maxHeavyPending) {
+        return NextResponse.json({
+          error: `Flow control: ${pendingScrapes} scrape_fuente pendientes. Maximo ${QUEUE_LIMITS.maxHeavyPending}. Espera.`,
+          pendingScrapes,
+        }, { status: 429 })
+      }
+    }
+
+    try {
+      const jobId = await enqueue({
+        tipo: tipo as JobTipo,
+        prioridad,
+        payload,
+      })
+
+      return NextResponse.json({ exito: true, jobId }, { status: 201 })
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error)
+      // Flow control errors get 429
+      if (msg.includes('Flow control')) {
+        return NextResponse.json({ error: msg }, { status: 429 })
+      }
+      throw error
+    }
   } catch (error: unknown) {
     console.error('[API /jobs POST]', error)
     return NextResponse.json({ error: safeError(error, 'jobs') }, { status: 500 })

@@ -127,6 +127,7 @@ export const WORKER_CONFIG = {
   errorBackoffMs: 30000,    // espera si hay error del sistema (aumentado de 10s)
   delayScrapeMs: 15000,     // espera extra después de jobs pesados (scrape_fuente)
   delayGenerateMs: 8000,    // espera extra después de generar_boletin
+  maxEventLoopLagMs: 500,   // si el event loop está más lento que esto, pausar el worker
 }
 
 // ── Configuracion de Arranque Diferido ──────────────────────────────────
@@ -174,6 +175,23 @@ export const CHECK_FIRST_CONFIG = {
   rssMaxEntries: 50,        // max entries a parsear de RSS
   minTimeBetweenChecks: 30, // minutos entre checks de la misma fuente
   userAgent: 'DECODEX-Bot/1.0 (ONION200 Bolivia)',
+  maxConcurrentChecks: 3,   // max check_fuente desde un solo batch request
+}
+
+// ── Configuracion de Flow Control ──────────────────────────────────
+// Protecciones contra saturación del event loop
+
+export const FLOW_CONTROL = {
+  // Monitoreo del event loop
+  eventLoopLagThresholdMs: 500,   // si el lag supera esto, pausar
+  eventLoopCheckIntervalMs: 2000,  // cada cuánto medir el lag
+  // Límites de concurrencia
+  maxCheckFuenteBatch: 3,          // máx checks por batch (endpoint /api/jobs)
+  maxScrapePending: 3,             // máx scrape_fuente en cola al mismo tiempo
+  captureEndpointCooldownMs: 30000, // cooldown entre llamadas a /api/capture
+  // Protección de memoria
+  heapWarnMb: 350,                 // warn si heapUsed supera esto
+  heapCriticalMb: 450,             // pausar worker si heapUsed supera esto
 }
 
 // ── Configuracion de Retries ───────────────────────────────────────────
@@ -189,6 +207,8 @@ export const RETRY_CONFIG = {
 
 export const QUEUE_LIMITS = {
   maxPendingJobs: 100,      // pausar scheduler si se alcanza
+  maxHeavyPending: 3,       // max scrape_fuente pendientes (jobs pesados)
+  maxBatchEnqueue: 5,       // max jobs por batch desde el endpoint de captura
   jobRetentionDays: 30,     // purgar jobs completados > 30 dias
   capturaLogRetentionDays: 90,
   mencionTextRetentionMonths: 6,

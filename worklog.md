@@ -18,3 +18,28 @@ Stage Summary:
 - Temperaturas maximo 0.2 (antes hasta 0.6)
 - DB verificada: 399 menciones con todos los eventos clave
 - Regeneracion de El Termometro pendiente (API LLM 429)
+---
+Task ID: 2
+Agent: Main Agent
+Task: Implementar control de flujo en el worker (rate limiting, max concurrent, backpressure)
+
+Work Log:
+- Analizado el sistema completo: worker.ts, queue.ts, constants.ts, check-fuente.ts, anti-ban/rate-domain.ts
+- Identificados los puntos críticos de saturación:
+  1. /api/capture no usa la cola de jobs, hace HTTP+LLM sincrónicos
+  2. check_fuente auto-encola scrape_fuente sin límite
+  3. Scheduler puede encolar 33+ check_fuente al iniciar
+  4. Sin monitoreo de event loop lag
+
+Cambios implementados:
+- constants.ts: Agregadas constantes WORKER_CONFIG.maxEventLoopLagMs, QUEUE_LIMITS.maxHeavyPending/maxBatchEnqueue, CHECK_FIRST_CONFIG.maxConcurrentChecks, FLOW_CONTROL (event loop, concurrencia, cooldown, memoria)
+- worker.ts: Agregado measureEventLoopLag(), heavyJobPressure(), checks de event loop lag (>500ms → pausa 10s), heap crítico (>450MB → pausa 30s), presión de heavy jobs (>3 scrape pendientes → espera)
+- queue.ts: Agregado checkHeavyPressure() en enqueue() para rechazar scrape_fuente cuando hay 3+ pendientes, isCaptureOnCooldown/markCaptureEnqueue para cooldown global
+- /api/capture/route.ts: Agregado rate limiting con cooldown de 30s entre capturas (HTTP 429)
+- /api/jobs/route.ts: Agregados checks de flow control en POST: max 3 check_fuente pendientes, max 3 scrape_fuente pendientes (HTTP 429)
+
+Stage Summary:
+- Build exitoso sin errores
+- Worker ahora tiene 3 capas de protección: event loop lag, heap memory, heavy job pressure
+- Endpoints de captura y jobs tienen rate limiting con HTTP 429
+- No más saturación del event loop posible por jobs masivos
