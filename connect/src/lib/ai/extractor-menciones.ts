@@ -6,6 +6,7 @@
 import db from '@/lib/db';
 import ZAI from 'z-ai-web-dev-sdk';
 import { deduplicarMencion, actualizarCoberturaDuplicado } from '@/lib/deduplicacion';
+import { captureForensicEvidence, registerEvidenceInDb } from '@/lib/forensic-capture';
 
 // ─── Interfaces ──────────────────────────────────────────────────
 
@@ -914,6 +915,18 @@ export async function crearMencionesExtraidas(
         }
       }
 
+      // ─── Evidencia Forense Digital (D.8: Blindaje Histórico) ───
+      // Captura async fire-and-forget: no bloquea el pipeline de scraping.
+      // Guarda HTML estático + hash SHA-256 para preservar la verdad histórica.
+      captureForensicEvidence(mencion.id, url, titulo, leg.cita || resultado.resumen)
+        .then(result => {
+          if (result.success && result.evidence) {
+            registerEvidenceInDb(mencion.id, result.evidence)
+              .catch(() => {}); // No bloquear si el registro falla
+          }
+        })
+        .catch(() => {}); // La captura forense nunca debe romper el pipeline
+
       creadas++;
     } catch {
       // Tolerancia a fallos: continuar con la siguiente
@@ -967,6 +980,16 @@ export async function crearMencionesExtraidas(
             // Duplicado o error, ignorar
           }
         }
+
+        // ─── Evidencia Forense Digital (D.8: Blindaje Histórico) ───
+        captureForensicEvidence(mencion.id, url, titulo, resultado.resumen || '')
+          .then(result => {
+            if (result.success && result.evidence) {
+              registerEvidenceInDb(mencion.id, result.evidence)
+                .catch(() => {});
+            }
+          })
+          .catch(() => {}); // La captura forense nunca debe romper el pipeline
 
         creadas++;
       }

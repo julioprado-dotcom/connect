@@ -1,22 +1,78 @@
-// ─── Evidencia Forense Digital — Endpoint Seguro ───────────────────────
-// GET /api/menciones/[id]/evidence
+// ─── Evidencia Forense Bajo Demanda — DECODEX Bolivia ───────────────────────
+// GET /api/menciones/:id/evidence
+//
+// Flujo:
+// 1. Autenticación vía NextAuth session o ADMIN_API_KEY header
+// 2. Verificación de nivel de usuario (Premium = acceso completo)
+// 3. Si se recibe token+expires: validar URL firmada y servir evidencia
+// 4. Si no hay token: generar URL firmada temporal (5 min) para Premium
+//    o devolver metadatos limitados para Básico/Profesional
 //
 // Principio D.8 del Manifiesto Epistemológico: "Verdad Histórica Blindada"
-// - Solo usuarios Nivel Premium pueden acceder a la evidencia cruda.
-// - Se requiere URL firmada temporal (5 minutos) para autenticación.
-// - Devuelve el archivo HTML original + hash SHA-256 + metadata.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { readFile, access, stat } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
-import {
-  verifySignedUrl,
-  generateSignedUrl,
-} from '@/lib/forensic-capture';
+import db from '@/lib/db';
 import { safeError } from '@/lib/rate-guard';
+import { generateSignedUrl, verifySignedUrl } from '@/lib/forensic-capture';
+import { readFile, stat } from 'fs/promises';
+import { join } from 'path';
 
-const EVIDENCE_DIR = process.env.FORENSIC_EVIDENCE_DIR || './evidence';
+// ─── Niveles de acceso ────────────────────────────────────────────────────
+
+type UserTier = 'premium' | 'basico' | 'profesional';
+
+const PREMIUM_ROLES = new Set(['admin', 'premium']);
+
+// ─── Helpers de autenticación ─────────────────────────────────────────────
+
+/**
+ * Verifica autenticación mediante ADMIN_API_KEY o NextAuth session.
+ * Dado que auth está deshabilitada en entorno Z.ai (D14), ADMIN_API_KEY
+ * es el mecanismo primario en el estado actual.
+ */
+async function authenticate(request: NextRequest): Promise<{
+  authenticated: boolean;
+  tier: UserTier;
+  userId?: string;
+  error?: NextResponse;
+}> {
+  // 1. Verificar ADMIN_API_KEY header
+  const apiKey = request.headers.get('x-admin-api-key');
+  if (apiKey && apiKey === process.env.ADMIN_API_KEY) {
+    return { authenticated: true, tier: 'premium', userId: 'admin-via-api-key' };
+  }
+
+  // 2. Verificar NextAuth session (para cuando auth esté habilitada en producción)
+  try {
+    const { auth } = await import('@/lib/auth');
+    const session = await auth();
+    if (session?.user) {
+      const userRole = (session.user as unknown as Record<string, unknown>)?.role as string;
+      const tier: UserTier = PREMIUM_ROLES.has(userRole) ? 'premium' : 'basico';
+      return {
+        authenticated: true,
+        tier,
+        userId: session.user.id as string,
+      };
+    }
+  } catch {
+    // auth() puede fallar si NextAuth no está configurado — no es error fatal
+  }
+
+  return {
+    authenticated: false,
+    tier: 'basico',
+    error: NextResponse.json(
+      {
+        error: 'Autenticación requerida',
+        message: 'Incluye header X-Admin-Api-Key o inicia sesión con una cuenta Premium.',
+      },
+      { status: 401 }
+    ),
+  };
+}
+
+// ─── GET Handler ──────────────────────────────────────────────────────────
 
 export async function GET(
   request: NextRequest,
@@ -25,188 +81,190 @@ export async function GET(
   try {
     const { id } = await params;
 
-    // ─── 1. Verificar parámetros de URL firmada ───────────────────────
+    // ─── Modo 1: Acceso con URL firmada (token + expires) ───
+    // Si la request incluye token y expires, validar la firma
+    // y servir directamente el archivo de evidencia.
     const token = request.nextUrl.searchParams.get('token');
     const expires = request.nextUrl.searchParams.get('expires');
 
-    if (!token || !expires) {
-      return NextResponse.json(
-        {
-          error: 'Acceso restringido',
-          detail: 'Se requiere URL firmada temporal para acceder a la evidencia forense.',
-          instruct: 'Use POST /api/menciones/[id]/evidence/request para generar una URL firmada.',
-        },
-        { status: 401 }
-      );
+    if (token && expires) {
+      return handleSignedAccess(id, token, expires, request);
     }
 
-    // ─── 2. Verificar firma y expiración ─────────────────────────────
-    const signingSecret = process.env.AUTH_SECRET || process.env.ADMIN_API_KEY || 'decodex-forensic';
-    const verification = verifySignedUrl(id, token, expires, signingSecret);
+    // ─── Modo 2: Solicitud normal (autenticación + generación de URL) ───
+    const auth = await authenticate(request);
+    if (!auth.authenticated && auth.error) return auth.error;
 
-    if (!verification.valid) {
-      return NextResponse.json(
-        {
-          error: 'URL inválida o expirada',
-          detail: verification.reason,
-          instruct: 'Genere una nueva URL firmada con POST /api/menciones/[id]/evidence/request.',
-        },
-        { status: 403 }
-      );
-    }
-
-    // ─── 3. Buscar mención y verificar que tiene evidencia ────────────
-    const { default: db } = await import('@/lib/db');
+    // Buscar mención
     const mencion = await db.mencion.findUnique({
       where: { id },
-      select: {
-        id: true,
-        titulo: true,
-        url: true,
-        fechaCaptura: true,
-        evidenciaHtmlRuta: true,
-        evidenciaPngRuta: true,
-        evidenciaHashSha256: true,
-        evidenciaTimestamp: true,
-        evidenciaUrlOriginal: true,
-        evidenciaTamanoBytes: true,
-        Medio: { select: { nombre: true, tipo: true } },
-        Persona: { select: { nombre: true, partidoSigla: true } },
+      include: {
+        Persona: { select: { id: true, nombre: true, partidoSigla: true, camara: true, departamento: true } },
+        Medio: { select: { id: true, nombre: true, tipo: true, nivel: true } },
       },
     });
 
     if (!mencion) {
-      return NextResponse.json(
-        { error: 'Mención no encontrada' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Mención no encontrada' }, { status: 404 });
     }
 
-    if (!mencion.evidenciaHashSha256 || !mencion.evidenciaHtmlRuta) {
-      return NextResponse.json(
-        {
-          error: 'Evidencia no disponible',
-          detail: 'Esta mención no tiene evidencia forense asociada. Puede que haya sido procesada antes de la activación del sistema de Blindaje Histórico.',
-          mencionId: id,
-        },
-        { status: 404 }
-      );
+    // ─── Respuesta según nivel de acceso ───
+
+    // Metadatos disponibles para TODOS los niveles
+    const metadata = {
+      id: mencion.id,
+      titulo: mencion.titulo,
+      url: mencion.url,
+      urlOriginal: mencion.evidenciaUrlOriginal || mencion.url,
+      fuente: mencion.Medio?.nombre || 'Desconocido',
+      fechaPublicacion: mencion.fechaPublicacion,
+      fechaCaptura: mencion.fechaCaptura,
+      tratamientoPeriodistico: mencion.tratamientoPeriodistico,
+      intencionMedio: mencion.intencionMedio,
+      persona: mencion.Persona ? {
+        id: mencion.Persona.id,
+        nombre: mencion.Persona.nombre,
+        partido: mencion.Persona.partidoSigla,
+        camara: mencion.Persona.camara,
+      } : null,
+      // Metadatos forenses disponibles para todos (no la evidencia cruda)
+      tieneEvidencia: Boolean(mencion.evidenciaHashSha256),
+      evidenciaTimestamp: mencion.evidenciaTimestamp,
+      hashSha256: mencion.evidenciaHashSha256 || undefined,
+      tamanoBytes: mencion.evidenciaTamanoBytes || undefined,
+    };
+
+    if (auth.tier !== 'premium') {
+      // ─── Básico/Profesional: Solo metadatos ───
+      return NextResponse.json({
+        acceso: 'metadatos',
+        nivel: auth.tier,
+        mensaje: 'La evidencia forense completa está disponible solo para usuarios Premium.',
+        metadatos: metadata,
+      });
     }
 
-    // ─── 4. Leer archivo HTML de evidencia ────────────────────────────
-    const htmlPath = mencion.evidenciaHtmlRuta;
-    if (!existsSync(htmlPath)) {
-      return NextResponse.json(
-        {
-          error: 'Archivo de evidencia no encontrado',
-          detail: 'El archivo HTML fue eliminado o la ruta es incorrecta.',
-          rutaEsperada: htmlPath,
-        },
-        { status: 410 }
-      );
+    // ─── Premium: Generar URL firmada temporal ───
+    if (!mencion.evidenciaHashSha256) {
+      // No hay evidencia capturada para esta mención
+      return NextResponse.json({
+        acceso: 'premium_sin_evidencia',
+        nivel: 'premium',
+        mensaje: 'Esta mención no tiene evidencia forense capturada. Puede que haya sido procesada antes de la implementación del sistema de blindaje histórico.',
+        metadatos: metadata,
+      });
     }
 
-    const htmlContent = await readFile(htmlPath, 'utf-8');
-    const fileSize = (await stat(htmlPath)).size;
+    const signingSecret = process.env.AUTH_SECRET || 'decodex-forensic-default';
+    const signed = generateSignedUrl(id, signingSecret, 5); // 5 minutos
 
-    // ─── 5. Verificar integridad (hash SHA-256) ───────────────────────
-    const { createHash } = await import('crypto');
-    const currentHash = createHash('sha256').update(htmlContent).digest('hex');
-
-    const hashMatch = currentHash === mencion.evidenciaHashSha256;
-
-    // ─── 6. Devolver evidencia con metadata ──────────────────────────
-    return new NextResponse(htmlContent, {
-      status: 200,
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Content-Disposition': `attachment; filename="decodex-evidencia-${id}.html"`,
-        'Content-Length': String(fileSize),
-        'X-DECODEX-Evidence-Id': id,
-        'X-DECODEX-Hash-SHA256': mencion.evidenciaHashSha256,
-        'X-DECODEX-Hash-Verified': String(hashMatch),
-        'X-DECODEX-Timestamp': mencion.evidenciaTimestamp?.toISOString() || '',
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
+    return NextResponse.json({
+      acceso: 'premium',
+      nivel: 'premium',
+      mensaje: 'Evidencia forense disponible. La URL firmada expira en 5 minutos.',
+      metadatos: metadata,
+      evidencia: {
+        htmlRuta: mencion.evidenciaHtmlRuta,
+        pngRuta: mencion.evidenciaPngRuta,
+        hashSha256: mencion.evidenciaHashSha256,
+        tamanoBytes: mencion.evidenciaTamanoBytes,
+        timestamp: mencion.evidenciaTimestamp,
+        urlFirmada: signed.url,
+        expiraEn: signed.expiresAt.toISOString(),
       },
     });
   } catch (error: unknown) {
-    return NextResponse.json(
-      { error: safeError(error, 'menciones/[id]/evidence') },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: safeError(error, 'evidence') }, { status: 500 });
   }
 }
 
-// ─── POST: Solicitar URL firmada para evidencia ────────────────────────
-// Cualquier usuario puede solicitar una URL firmada, pero la descarga
-// real requiere el token temporal.
+// ─── Manejo de URL firmada ────────────────────────────────────────────────
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
+/**
+ * Valida la URL firmada y sirve el archivo de evidencia HTML.
+ * Solo se ejecuta cuando la request incluye token y expires válidos.
+ */
+async function handleSignedAccess(
+  mencionId: string,
+  token: string,
+  expires: string,
+  request: NextRequest
+): Promise<NextResponse> {
+  // 1. Verificar firma
+  const signingSecret = process.env.AUTH_SECRET || 'decodex-forensic-default';
+  const verification = verifySignedUrl(mencionId, token, expires, signingSecret);
 
-    // ─── 1. Verificar que la mención existe y tiene evidencia ────────
-    const { default: db } = await import('@/lib/db');
-    const mencion = await db.mencion.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        titulo: true,
-        evidenciaHashSha256: true,
-        evidenciaTimestamp: true,
-        Medio: { select: { nombre: true } },
-        Persona: { select: { nombre: true, partidoSigla: true } },
-      },
-    });
-
-    if (!mencion) {
-      return NextResponse.json(
-        { error: 'Mención no encontrada' },
-        { status: 404 }
-      );
-    }
-
-    if (!mencion.evidenciaHashSha256) {
-      return NextResponse.json(
-        {
-          error: 'Evidencia no disponible',
-          detail: 'Esta mención no tiene evidencia forense asociada.',
-        },
-        { status: 404 }
-      );
-    }
-
-    // ─── 2. Generar URL firmada temporal (5 minutos) ────────────────
-    const signingSecret = process.env.AUTH_SECRET || process.env.ADMIN_API_KEY || 'decodex-forensic';
-    const signed = generateSignedUrl(id, signingSecret, 5);
-
-    // Construir URL completa
-    const baseUrl = request.nextUrl.origin;
-    const fullUrl = `${baseUrl}${signed.url}`;
-
-    return NextResponse.json({
-      ok: true,
-      mensaje: 'URL firmada generada. Tiene 5 minutos para usarla.',
-      evidencia: {
-        mencionId: id,
-        titulo: mencion.titulo,
-        medio: mencion.Medio?.nombre || 'Desconocido',
-        persona: mencion.Persona?.nombre || null,
-        hashSha256: mencion.evidenciaHashSha256,
-        timestampCaptura: mencion.evidenciaTimestamp,
-      },
-      acceso: {
-        urlFirmada: fullUrl,
-        expiraEn: signed.expiresAt.toISOString(),
-        metodo: 'GET',
-      },
-    });
-  } catch (error: unknown) {
+  if (!verification.valid) {
     return NextResponse.json(
-      { error: safeError(error, 'menciones/[id]/evidence') },
+      { error: 'URL firmada inválida', razon: verification.reason },
+      { status: 403 }
+    );
+  }
+
+  // 2. Buscar mención y obtener ruta del archivo
+  const mencion = await db.mencion.findUnique({
+    where: { id: mencionId },
+    select: {
+      evidenciaHtmlRuta: true,
+      evidenciaPngRuta: true,
+      evidenciaHashSha256: true,
+      evidenciaTimestamp: true,
+      evidenciaUrlOriginal: true,
+      evidenciaTamanoBytes: true,
+      titulo: true,
+      url: true,
+    },
+  });
+
+  if (!mencion || !mencion.evidenciaHtmlRuta) {
+    return NextResponse.json(
+      { error: 'Evidencia no encontrada para esta mención' },
+      { status: 404 }
+    );
+  }
+
+  // 3. Determinar qué archivo servir (query param "format")
+  const format = request.nextUrl.searchParams.get('format') || 'html';
+  const filePath = format === 'png' && mencion.evidenciaPngRuta
+    ? mencion.evidenciaPngRuta
+    : mencion.evidenciaHtmlRuta;
+
+  try {
+    const fileStats = await stat(filePath);
+    if (!fileStats.isFile()) {
+      return NextResponse.json(
+        { error: 'Archivo de evidencia no encontrado en disco' },
+        { status: 404 }
+      );
+    }
+
+    const fileBuffer = await readFile(filePath);
+    const contentType = format === 'png'
+      ? 'image/png'
+      : 'text/html; charset=utf-8';
+
+    // Headers de seguridad para evidencia forense
+    return new NextResponse(fileBuffer, {
+      status: 200,
+      headers: {
+        'Content-Type': contentType,
+        'Content-Length': String(fileBuffer.length),
+        'Content-Disposition': format === 'png'
+          ? `inline; filename="evidencia-${mencionId}.png"`
+          : `inline; filename="evidencia-${mencionId}.html"`,
+        // Prevenir almacenamiento en cache (evidencia debe ser fresca)
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        // Headers de integridad para verificación del receptor
+        'X-Forensic-Hash': mencion.evidenciaHashSha256 || '',
+        'X-Forensic-Timestamp': mencion.evidenciaTimestamp?.toISOString() || '',
+        'X-Forensic-Url-Original': mencion.evidenciaUrlOriginal || mencion.url,
+        'X-Forensic-Mencion-Id': mencionId,
+      },
+    });
+  } catch {
+    return NextResponse.json(
+      { error: 'Error al leer el archivo de evidencia' },
       { status: 500 }
     );
   }
