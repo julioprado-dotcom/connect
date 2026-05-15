@@ -11,6 +11,21 @@ import { PanelShell } from './PanelShell';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 import { usePolling } from '../hooks/usePolling';
 
+// ─── Tactical Theme ──────────────────────────────────────────
+const THEME = {
+  bg: '#0a0e17',
+  panelBg: '#0d1321',
+  border: '#1a2744',
+  accentCyan: '#06b6d4',
+  accentGreen: '#00ff88',
+  accentAmber: '#ffaa00',
+  accentRed: '#ff3355',
+  textPrimary: '#e2e8f0',
+  textSecondary: '#64748b',
+  textMuted: '#334155',
+  scanLine: 'rgba(6, 182, 212, 0.03)',
+};
+
 // ─── Types ────────────────────────────────────────────────────
 
 interface CanalItem {
@@ -153,7 +168,15 @@ export function DistribucionPanel({ onClose }: { onClose?: () => void }) {
 
   return (
     <PanelShell title="Gestión de Distribución" icon={<Send className="w-4 h-4" />} onClose={onClose}>
-      <div className="p-4 space-y-5">
+      <div className="p-4 space-y-5 relative" style={{ background: THEME.bg }}>
+      {/* Scan line overlay */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `repeating-linear-gradient(0deg, transparent, transparent 3px, ${THEME.scanLine} 3px, ${THEME.scanLine} 4px)`,
+        }}
+      />
+      <div className="relative z-10 space-y-5">
         {loading ? (
           <div className="flex items-center justify-center py-10">
             <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#00ff88' }} />
@@ -162,15 +185,21 @@ export function DistribucionPanel({ onClose }: { onClose?: () => void }) {
           <>
             {/* ── Section A: Canales ─────────────────────── */}
             <section>
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
-                Canales
-              </h3>
+              <div className="flex items-center gap-2 mb-2.5">
+                <Send size={12} style={{ color: THEME.accentCyan }} />
+                <h3
+                  className="text-[10px] font-bold uppercase tracking-widest"
+                  style={{ color: THEME.accentCyan, fontFamily: "'JetBrains Mono', monospace" }}
+                >
+                  Canales
+                </h3>
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 {canales.map((canal) => (
                   <div
                     key={canal.canal}
                     className="rounded-lg p-3 text-center"
-                    style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${canal.conectado ? 'rgba(0,255,136,0.2)' : 'rgba(255,51,85,0.2)'}` }}
+                    style={{ background: `linear-gradient(135deg, ${canal.conectado ? 'rgba(0,255,136,0.04)' : 'rgba(255,51,85,0.04)'} 0%, rgba(13,19,33,0.8) 60%)`, border: `1px solid ${canal.conectado ? 'rgba(0,255,136,0.2)' : 'rgba(255,51,85,0.2)'}`, boxShadow: `0 0 10px ${canal.conectado ? 'rgba(0,255,136,0.06)' : 'rgba(255,51,85,0.06)'}` }}
                   >
                     <div className="flex justify-center mb-1.5" style={{ color: canal.conectado ? '#00ff88' : '#ff3355' }}>
                       {CANAL_ICONS[canal.canal]}
@@ -184,11 +213,11 @@ export function DistribucionPanel({ onClose }: { onClose?: () => void }) {
                     </span>
                     <button
                       className="mt-2 w-full px-2 py-1 rounded text-[10px] font-medium transition-colors"
-                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', color: '#64748b' }}
+                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid #1a2744', color: '#6b7280' }}
                       onClick={() => handleTestConnection(canal.canal)}
                       disabled={testingCanal === canal.canal}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#00ff88'; (e.currentTarget as HTMLButtonElement).style.color = '#00ff88'; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.1)'; (e.currentTarget as HTMLButtonElement).style.color = '#64748b'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#1a2744'; (e.currentTarget as HTMLButtonElement).style.color = '#6b7280'; }}
                     >
                       {testingCanal === canal.canal ? (
                         <span className="flex items-center justify-center gap-1">
@@ -203,18 +232,26 @@ export function DistribucionPanel({ onClose }: { onClose?: () => void }) {
               </div>
             </section>
 
+            {/* Glow separator */}
+            <div className="h-[1px]" style={{ background: 'linear-gradient(90deg, transparent, rgba(6,182,212,0.2), transparent)' }} />
             {/* ── Section B: Suscriptores ────────────────── */}
-            <section style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }} className="pt-4">
+            <section style={{ borderTop: '1px solid #1a2744' }} className="pt-4">
               <div className="flex items-center justify-between mb-2.5">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Suscriptores
-                </h3>
+                <div className="flex items-center gap-2">
+                  <Send size={12} style={{ color: THEME.accentCyan }} />
+                  <h3
+                    className="text-[10px] font-bold uppercase tracking-widest"
+                    style={{ color: THEME.accentCyan, fontFamily: "'JetBrains Mono', monospace" }}
+                  >
+                    Suscriptores
+                  </h3>
+                </div>
                 <button
                   onClick={() => setShowAddSuscriptor(!showAddSuscriptor)}
                   className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium"
-                  style={{ border: '1px solid rgba(255,255,255,0.1)', color: '#64748b' }}
+                  style={{ border: '1px solid #1a2744', color: '#6b7280' }}
                   onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#00ff88'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#00ff88'; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#64748b'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#6b7280'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#1a2744'; }}
                 >
                   <Plus className="w-3 h-3" />
                   Añadir
@@ -228,17 +265,17 @@ export function DistribucionPanel({ onClose }: { onClose?: () => void }) {
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   className="rounded-lg p-3 mb-2.5 space-y-2"
-                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid #1a2744' }}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-medium" style={{ color: '#ffffff' }}>Nuevo suscriptor</span>
-                    <button onClick={() => setShowAddSuscriptor(false)} style={{ color: '#64748b' }}>
+                    <button onClick={() => setShowAddSuscriptor(false)} style={{ color: '#6b7280' }}>
                       <X className="w-3 h-3" />
                     </button>
                   </div>
                   <select
                     className="w-full px-2 py-1.5 rounded-md text-[11px] outline-none"
-                    style={{ border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff' }}
+                    style={{ background: '#080c14', border: '1px solid #1a2744', color: '#ffffff' }}
                     value={newSuscriptor.producto}
                     onChange={(e) => setNewSuscriptor({ ...newSuscriptor, producto: e.target.value })}
                   >
@@ -250,7 +287,7 @@ export function DistribucionPanel({ onClose }: { onClose?: () => void }) {
                   <div className="flex gap-2">
                     <select
                       className="flex-1 px-2 py-1.5 rounded-md text-[11px] outline-none"
-                      style={{ border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff' }}
+                      style={{ background: '#080c14', border: '1px solid #1a2744', color: '#ffffff' }}
                       value={newSuscriptor.canal}
                       onChange={(e) => setNewSuscriptor({ ...newSuscriptor, canal: e.target.value })}
                     >
@@ -261,7 +298,7 @@ export function DistribucionPanel({ onClose }: { onClose?: () => void }) {
                     <input
                       placeholder="destinatario@email.com"
                       className="flex-[2] px-2 py-1.5 rounded-md text-[11px] outline-none"
-                      style={{ border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff' }}
+                      style={{ background: '#080c14', border: '1px solid #1a2744', color: '#ffffff' }}
                       value={newSuscriptor.destinatario}
                       onChange={(e) => setNewSuscriptor({ ...newSuscriptor, destinatario: e.target.value })}
                     />
@@ -281,12 +318,12 @@ export function DistribucionPanel({ onClose }: { onClose?: () => void }) {
 
               {/* Suscriptores table */}
               {suscriptores.length === 0 ? (
-                <p className="text-[11px] py-3 text-center" style={{ color: '#64748b' }}>Sin suscriptores</p>
+                <p className="text-[11px] py-3 text-center" style={{ color: '#6b7280' }}>Sin suscriptores</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-[11px]">
                     <thead>
-                      <tr style={{ color: '#64748b' }}>
+                      <tr style={{ color: '#6b7280' }}>
                         <th className="text-left py-1 font-medium">Producto</th>
                         <th className="text-left py-1 font-medium">Canal</th>
                         <th className="text-left py-1 font-medium">Destinatario</th>
@@ -296,14 +333,14 @@ export function DistribucionPanel({ onClose }: { onClose?: () => void }) {
                     </thead>
                     <tbody>
                       {suscriptores.slice(0, 8).map((s) => (
-                        <tr key={s.id} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                        <tr key={s.id} style={{ borderTop: '1px solid rgba(26,26,46,0.5)' }}>
                           <td className="py-1.5 pr-2" style={{ color: '#ffffff', maxWidth: 100 }}>
                             <span className="truncate block">{readableProducto(s.producto) || s.producto}</span>
                           </td>
-                          <td className="py-1.5 pr-2" style={{ color: '#64748b' }}>
+                          <td className="py-1.5 pr-2" style={{ color: '#6b7280' }}>
                             {CANAL_LABELS[s.canal] || s.canal}
                           </td>
-                          <td className="py-1.5 pr-2" style={{ color: '#64748b', fontFamily: 'JetBrains Mono, monospace', maxWidth: 140 }}>
+                          <td className="py-1.5 pr-2" style={{ color: '#6b7280', fontFamily: 'JetBrains Mono, monospace', maxWidth: 140 }}>
                             <span className="truncate block">{s.destinatario}</span>
                           </td>
                           <td className="py-1.5 text-center">
@@ -316,9 +353,9 @@ export function DistribucionPanel({ onClose }: { onClose?: () => void }) {
                           <td className="py-1.5 text-right">
                             <button
                               className="transition-colors"
-                              style={{ color: '#64748b' }}
+                              style={{ color: '#6b7280' }}
                               onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#ff3355'; }}
-                              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#64748b'; }}
+                              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#6b7280'; }}
                               title="Eliminar"
                             >
                               <Trash2 className="w-3 h-3" />
@@ -332,13 +369,21 @@ export function DistribucionPanel({ onClose }: { onClose?: () => void }) {
               )}
             </section>
 
+            {/* Glow separator */}
+            <div className="h-[1px]" style={{ background: 'linear-gradient(90deg, transparent, rgba(6,182,212,0.2), transparent)' }} />
             {/* ── Section C: Últimos envíos ───────────────── */}
-            <section style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }} className="pt-4">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
-                Últimos envíos
-              </h3>
+            <section style={{ borderTop: '1px solid #1a2744' }} className="pt-4">
+              <div className="flex items-center gap-2 mb-2.5">
+                <Send size={12} style={{ color: THEME.accentCyan }} />
+                <h3
+                  className="text-[10px] font-bold uppercase tracking-widest"
+                  style={{ color: THEME.accentCyan, fontFamily: "'JetBrains Mono', monospace" }}
+                >
+                  Últimos envíos
+                </h3>
+              </div>
               {envios.length === 0 ? (
-                <p className="text-[11px] py-3 text-center" style={{ color: '#64748b' }}>Sin envíos registrados</p>
+                <p className="text-[11px] py-3 text-center" style={{ color: '#6b7280' }}>Sin envíos registrados</p>
               ) : (
                 <div className="space-y-1 max-h-[280px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
                   {envios.slice(0, 15).map((envio) => {
@@ -350,9 +395,9 @@ export function DistribucionPanel({ onClose }: { onClose?: () => void }) {
                       <div key={envio.id}>
                         <div
                           className="flex items-center gap-2 px-2.5 py-2 rounded-lg transition-colors"
-                          style={{ background: 'rgba(255,255,255,0.03)' }}
-                          onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.04)'; }}
-                          onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.03)'; }}
+                          style={{ background: 'rgba(255,255,255,0.02)' }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(6,182,212,0.04)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 8px rgba(6,182,212,0.06)'; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.02)'; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none'; }}
                         >
                           {/* Status badge */}
                           {isError ? (
@@ -366,14 +411,14 @@ export function DistribucionPanel({ onClose }: { onClose?: () => void }) {
                             <p className="text-[11px] font-medium truncate" style={{ color: '#ffffff' }}>
                               {readableProducto(envio.producto) || envio.producto}
                             </p>
-                            <p className="text-[10px] flex gap-2" style={{ color: '#64748b' }}>
+                            <p className="text-[10px] flex gap-2" style={{ color: '#6b7280' }}>
                               <span>{envio.destinatario}</span>
                               <span>· {CANAL_LABELS[envio.canal] || envio.canal}</span>
                             </p>
                           </div>
 
                           {/* Timestamp */}
-                          <span className="text-[10px] shrink-0" style={{ color: '#64748b', fontFamily: 'JetBrains Mono, monospace' }}>
+                          <span className="text-[10px] shrink-0" style={{ color: '#6b7280', fontFamily: 'JetBrains Mono, monospace' }}>
                             {timeAgoHuman(envio.timestamp)}
                           </span>
 
@@ -401,7 +446,7 @@ export function DistribucionPanel({ onClose }: { onClose?: () => void }) {
                               </button>
                               <button
                                 className="flex items-center justify-center rounded p-1 transition-colors"
-                                style={{ color: '#64748b' }}
+                                style={{ color: '#6b7280' }}
                                 title="Diagnosticar"
                                 onClick={() => setDiagnosticOpen(isOpen ? null : envio.id)}
                               >
@@ -458,7 +503,7 @@ export function DistribucionPanel({ onClose }: { onClose?: () => void }) {
               {data && (
                 <div
                   className="flex items-center gap-3 px-3 py-2 rounded-lg mt-2.5"
-                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  style={{ background: `linear-gradient(135deg, rgba(6,182,212,0.04) 0%, rgba(13,19,33,0.8) 60%)`, border: '1px solid rgba(6,182,212,0.15)', boxShadow: '0 0 10px rgba(6,182,212,0.05)' }}
                 >
                   <span className="text-[10px]" style={{ color: '#00ff88' }}>
                     ✓ {data.resumen.enviosExitosos} exitosos
@@ -466,7 +511,7 @@ export function DistribucionPanel({ onClose }: { onClose?: () => void }) {
                   <span className="text-[10px]" style={{ color: '#ff3355' }}>
                     ✗ {data.resumen.enviosFallidos} fallidos
                   </span>
-                  <span className="text-[10px] ml-auto" style={{ color: '#64748b' }}>
+                  <span className="text-[10px] ml-auto" style={{ color: '#6b7280' }}>
                     {data.resumen.totalSuscriptores} suscriptores · {data.resumen.canalesConectados} canales
                   </span>
                 </div>
@@ -474,6 +519,7 @@ export function DistribucionPanel({ onClose }: { onClose?: () => void }) {
             </section>
           </>
         )}
+      </div>
       </div>
     </PanelShell>
   );

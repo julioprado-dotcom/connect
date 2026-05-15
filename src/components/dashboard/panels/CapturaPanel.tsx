@@ -1,10 +1,25 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Radio, Pause, Play, RefreshCw, Pencil, Plus, Loader2, Inbox, X } from 'lucide-react';
+import { Radio, Pause, Play, RefreshCw, Pencil, Plus, Loader2, Inbox, X, Terminal } from 'lucide-react';
 import { PanelShell } from './PanelShell';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 import { usePolling } from '../hooks/usePolling';
+
+// ─── Tactical Theme ──────────────────────────────────────────
+const THEME = {
+  bg: '#0a0e17',
+  panelBg: '#0d1321',
+  border: '#1a2744',
+  accentCyan: '#06b6d4',
+  accentGreen: '#00ff88',
+  accentAmber: '#ffaa00',
+  accentRed: '#ff3355',
+  textPrimary: '#e2e8f0',
+  textSecondary: '#64748b',
+  textMuted: '#334155',
+  scanLine: 'rgba(6, 182, 212, 0.03)',
+};
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -126,7 +141,15 @@ export function CapturaPanel({ onClose }: { onClose?: () => void }) {
 
   return (
     <PanelShell title="Gestión de Captura" icon={<Radio className="w-4 h-4" />} onClose={onClose}>
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 relative" style={{ background: THEME.bg }}>
+      {/* Scan line overlay */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `repeating-linear-gradient(0deg, transparent, transparent 3px, ${THEME.scanLine} 3px, ${THEME.scanLine} 4px)`,
+        }}
+      />
+      <div className="relative z-10 space-y-4">
         {/* ── Filter bar ──────────────────────────────────── */}
         <div className="flex gap-1.5">
           {FILTERS.map((f) => (
@@ -136,8 +159,9 @@ export function CapturaPanel({ onClose }: { onClose?: () => void }) {
               className="px-2.5 py-1 text-[11px] font-medium rounded-md transition-all"
               style={{
                 background: filter === f.key ? 'rgba(0,255,136,0.1)' : 'transparent',
-                border: `1px solid ${filter === f.key ? '#00ff88' : 'rgba(255,255,255,0.1)'}`,
+                border: `1px solid ${filter === f.key ? '#00ff88' : '#1a2744'}`,
                 color: filter === f.key ? '#00ff88' : '#64748b',
+                fontFamily: "'JetBrains Mono', monospace",
               }}
             >
               {f.label}
@@ -166,9 +190,9 @@ export function CapturaPanel({ onClose }: { onClose?: () => void }) {
               <div
                 key={fuente.id}
                 className="flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors"
-                style={{ background: 'rgba(255,255,255,0.03)' }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.06)'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.03)'; }}
+                style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid transparent', transition: 'all 0.2s ease' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(6,182,212,0.05)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 10px rgba(6,182,212,0.08)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.02)'; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none'; }}
               >
                 {/* Status dot */}
                 <span
@@ -231,15 +255,15 @@ export function CapturaPanel({ onClose }: { onClose?: () => void }) {
           <button
             onClick={() => setShowAddForm(true)}
             className="flex items-center gap-1.5 w-full justify-center px-3 py-2 rounded-lg text-xs font-medium transition-colors"
-            style={{ border: '1px dashed rgba(255,255,255,0.1)', color: '#64748b' }}
+            style={{ border: '1px dashed #1a2744', color: '#64748b' }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#00ff88'; (e.currentTarget as HTMLButtonElement).style.color = '#00ff88'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.1)'; (e.currentTarget as HTMLButtonElement).style.color = '#64748b'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#1a2744'; (e.currentTarget as HTMLButtonElement).style.color = '#64748b'; }}
           >
             <Plus className="w-3.5 h-3.5" />
             Añadir fuente
           </button>
         ) : (
-          <div className="rounded-lg p-3 space-y-2.5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <div className="rounded-lg p-3 space-y-2.5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid #1a2744' }}>
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium" style={{ color: '#ffffff' }}>Nueva fuente</span>
               <button onClick={() => setShowAddForm(false)} style={{ color: '#64748b' }}>
@@ -249,21 +273,21 @@ export function CapturaPanel({ onClose }: { onClose?: () => void }) {
             <input
               placeholder="Nombre del medio"
               className="w-full px-2.5 py-1.5 rounded-md text-xs outline-none"
-              style={{ border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff' }}
+              style={{ background: '#080c14', border: '1px solid #1a2744', color: '#ffffff' }}
               value={newSource.nombre}
               onChange={(e) => setNewSource({ ...newSource, nombre: e.target.value })}
             />
             <input
               placeholder="URL"
               className="w-full px-2.5 py-1.5 rounded-md text-xs outline-none"
-              style={{ border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff' }}
+              style={{ background: '#080c14', border: '1px solid #1a2744', color: '#ffffff' }}
               value={newSource.url}
               onChange={(e) => setNewSource({ ...newSource, url: e.target.value })}
             />
             <div className="flex gap-2">
               <select
                 className="flex-1 px-2.5 py-1.5 rounded-md text-xs outline-none"
-                style={{ border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff' }}
+                style={{ background: '#080c14', border: '1px solid #1a2744', color: '#ffffff' }}
                 value={newSource.tipo}
                 onChange={(e) => setNewSource({ ...newSource, tipo: e.target.value })}
               >
@@ -273,7 +297,7 @@ export function CapturaPanel({ onClose }: { onClose?: () => void }) {
               <input
                 placeholder="Categoría"
                 className="flex-1 px-2.5 py-1.5 rounded-md text-xs outline-none"
-                style={{ border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff' }}
+                style={{ background: '#080c14', border: '1px solid #1a2744', color: '#ffffff' }}
                 value={newSource.categoria}
                 onChange={(e) => setNewSource({ ...newSource, categoria: e.target.value })}
               />
@@ -291,7 +315,7 @@ export function CapturaPanel({ onClose }: { onClose?: () => void }) {
               </button>
               <button
                 className="flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
-                style={{ background: 'transparent', color: '#64748b', border: '1px solid rgba(255,255,255,0.1)' }}
+                style={{ background: 'transparent', color: '#64748b', border: '1px solid #1a2744' }}
                 onClick={() => {
                   setShowAddForm(false);
                   setNewSource({ nombre: '', url: '', tipo: 'RSS', categoria: '' });
@@ -303,11 +327,20 @@ export function CapturaPanel({ onClose }: { onClose?: () => void }) {
           </div>
         )}
 
+        {/* Glow separator */}
+        <div className="h-[1px]" style={{ background: 'linear-gradient(90deg, transparent, rgba(6,182,212,0.2), transparent)' }} />
+
         {/* ── Últimos jobs de captura ─────────────────────── */}
-        <div className="pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-            Últimos jobs de captura
-          </p>
+        <div className="pt-2" style={{ borderTop: '1px solid #1a2744' }}>
+          <div className="flex items-center gap-2 mb-2">
+            <Terminal size={12} style={{ color: THEME.accentCyan }} />
+            <h3
+              className="text-[10px] font-bold uppercase tracking-widest"
+              style={{ color: THEME.accentCyan, fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              ULTIMOS JOBS DE CAPTURA
+            </h3>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-[11px]" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
               <thead>
@@ -321,7 +354,7 @@ export function CapturaPanel({ onClose }: { onClose?: () => void }) {
               </thead>
               <tbody>
                 {jobs.slice(0, 5).map((job) => (
-                  <tr key={job.id} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                  <tr key={job.id} style={{ borderTop: '1px solid rgba(26,26,46,0.5)' }}>
                     <td className="py-1.5 pr-3" style={{ color: '#ffffff', maxWidth: 140 }}>
                       <span className="truncate block">{job.medioNombre}</span>
                     </td>
@@ -359,6 +392,7 @@ export function CapturaPanel({ onClose }: { onClose?: () => void }) {
             </table>
           </div>
         </div>
+      </div>
       </div>
     </PanelShell>
   );

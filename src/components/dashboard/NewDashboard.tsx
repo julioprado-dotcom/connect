@@ -12,6 +12,7 @@ import {
   FileText,
   Send,
   Bell,
+  Crosshair,
 } from 'lucide-react';
 
 import { StatusBar } from './StatusBar';
@@ -25,7 +26,7 @@ import { ClasificacionPanel } from './panels/ClasificacionPanel';
 import { ProduccionPanel } from './panels/ProduccionPanel';
 import { DistribucionPanel } from './panels/DistribucionPanel';
 import { BoletinExpressPanel } from './panels/BoletinExpressPanel';
-import AlertasView from '@/components/views/AlertasView';
+import { AlertasPanel } from './panels/AlertasPanel';
 
 // ═══════════════════════════════════════════════════════════
 // Types
@@ -74,34 +75,50 @@ function MiniStatCard({
 }) {
   return (
     <div
-      className="rounded-xl p-4 transition-colors duration-150"
+      className="rounded-xl p-4 transition-all duration-200 relative overflow-hidden"
       style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        background: `linear-gradient(135deg, ${color}08 0%, rgba(13,19,33,0.8) 60%)`,
+        border: `1px solid ${color}20`,
+        boxShadow: `0 0 15px ${color}08`,
       }}
     >
-      <div className="flex items-center gap-2 mb-2">
+      {/* Scan lines */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(6,182,212,0.015) 3px, rgba(6,182,212,0.015) 4px)`,
+        }}
+      />
+      <div className="relative z-10 flex items-center gap-2 mb-2">
         <div
           className="flex items-center justify-center rounded-lg"
-          style={{ width: 32, height: 32, backgroundColor: `${color}15` }}
+          style={{ width: 32, height: 32, backgroundColor: `${color}15`, border: `1px solid ${color}25` }}
         >
           <span style={{ color }}>{icon}</span>
         </div>
-        <span className="text-[11px] font-medium font-mono" style={{ color: '#64748b' }}>
+        <span
+          className="text-[10px] font-bold uppercase tracking-widest"
+          style={{ color: '#64748b', fontFamily: "'JetBrains Mono', monospace" }}
+        >
           {label}
         </span>
       </div>
       <p
-        className="text-xl font-bold leading-none"
-        style={{ color: '#ffffff', fontFamily: 'JetBrains Mono, monospace' }}
+        className="text-2xl font-bold leading-none"
+        style={{ color: '#e2e8f0', fontFamily: "'JetBrains Mono', monospace" }}
       >
         {value}
       </p>
       {subValue && (
-        <p className="text-[10px] mt-1" style={{ color: '#64748b' }}>
+        <p className="text-[10px] mt-1" style={{ color: '#64748b', fontFamily: "'JetBrains Mono', monospace" }}>
           {subValue}
         </p>
       )}
+      {/* Bottom glow */}
+      <div
+        className="absolute bottom-0 left-0 right-0 h-[1px]"
+        style={{ background: `linear-gradient(90deg, transparent, ${color}30, transparent)` }}
+      />
     </div>
   );
 }
@@ -121,22 +138,24 @@ function QuickActions({ onBoletinExpress }: { onBoletinExpress: () => void }) {
   return (
     <div className="space-y-2">
       <h3
-        className="text-[11px] font-medium uppercase tracking-wider font-mono"
-        style={{ color: '#64748b' }}
+        className="text-[10px] font-bold uppercase tracking-widest"
+        style={{ color: '#64748b', fontFamily: "'JetBrains Mono', monospace" }}
       >
-        Acciones rápidas
+        Acciones rapidas
       </h3>
       <div className="flex flex-wrap gap-2">
         <button
           onClick={handleGenerateAll}
           disabled={generando}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium transition-all duration-200"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200"
           style={{
             background: generando
               ? 'rgba(0,255,136,0.05)'
               : 'rgba(0,255,136,0.08)',
             border: '1px solid rgba(0,255,136,0.25)',
             color: '#00ff88',
+            fontFamily: "'JetBrains Mono', monospace",
+            boxShadow: generando ? '0 0 15px rgba(0,255,136,0.15)' : '0 0 8px rgba(0,255,136,0.08)',
           }}
         >
           {generando ? (
@@ -154,15 +173,17 @@ function QuickActions({ onBoletinExpress }: { onBoletinExpress: () => void }) {
         </button>
         <button
           onClick={onBoletinExpress}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium transition-all duration-200"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200"
           style={{
             background: 'rgba(255,170,0,0.06)',
             border: '1px solid rgba(255,170,0,0.2)',
             color: '#ffaa00',
+            fontFamily: "'JetBrains Mono', monospace",
+            boxShadow: '0 0 8px rgba(255,170,0,0.06)',
           }}
         >
           <Activity className="w-3.5 h-3.5" />
-          Crear Boletín Express
+          Crear Boletin Express
         </button>
       </div>
     </div>
@@ -214,15 +235,58 @@ function OverviewContent({
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
+      {/* ── Tactical Header ── */}
+      <div
+        className="relative overflow-hidden rounded-xl p-4"
+        style={{
+          background: 'linear-gradient(135deg, rgba(6,182,212,0.08) 0%, rgba(13,19,33,0.9) 50%, rgba(0,255,136,0.04) 100%)',
+          border: '1px solid rgba(6,182,212,0.2)',
+          boxShadow: '0 0 25px rgba(6,182,212,0.08)',
+        }}
+      >
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(6,182,212,0.015) 3px, rgba(6,182,212,0.015) 4px)',
+          }}
+        />
+        <div className="relative z-10 flex items-center gap-3">
+          <div
+            className="flex items-center justify-center w-10 h-10 rounded-lg"
+            style={{ backgroundColor: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.25)' }}
+          >
+            <Crosshair size={20} style={{ color: '#06b6d4' }} />
+          </div>
+          <div>
+            <h2
+              className="text-sm font-bold uppercase tracking-widest"
+              style={{ color: '#e2e8f0', fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              Centro de Comando ONION200
+            </h2>
+            <p
+              className="text-[10px] uppercase tracking-wider"
+              style={{ color: '#64748b', fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              DECODEX Bolivia — Inteligencia de Senales
+            </p>
+          </div>
+        </div>
+        <div
+          className="absolute bottom-0 left-0 right-0 h-[1px]"
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(6,182,212,0.3), transparent)' }}
+        />
+      </div>
+
       {/* ── Stats + Search Grid ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Left: Mini stats */}
         <div className="space-y-3">
           <h3
-            className="text-[11px] font-medium uppercase tracking-wider font-mono"
-            style={{ color: '#64748b' }}
+            className="text-[10px] font-bold uppercase tracking-widest"
+            style={{ color: '#64748b', fontFamily: "'JetBrains Mono', monospace" }}
           >
-            Resumen rápido
+            Resumen rapido
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <MiniStatCard
@@ -252,16 +316,16 @@ function OverviewContent({
         {/* Right: GlobalSearch */}
         <div className="space-y-3">
           <h3
-            className="text-[11px] font-medium uppercase tracking-wider font-mono"
-            style={{ color: '#64748b' }}
+            className="text-[10px] font-bold uppercase tracking-widest"
+            style={{ color: '#64748b', fontFamily: "'JetBrains Mono', monospace" }}
           >
-            Búsqueda global
+            Busqueda global
           </h3>
           <div
             className="rounded-xl p-4"
             style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'linear-gradient(135deg, rgba(6,182,212,0.05) 0%, rgba(13,19,33,0.8) 60%)',
+              border: '1px solid rgba(6,182,212,0.15)',
             }}
           >
             <GlobalSearch />
@@ -292,7 +356,7 @@ function ActivePanel({
     produccion: <ProduccionPanel onClose={onClose} />,
     distribucion: <DistribucionPanel onClose={onClose} />,
     'boletin-express': <BoletinExpressPanel onClose={onClose} />,
-    alertas: <AlertasView />,
+    alertas: <AlertasPanel onClose={onClose} />,
   };
 
   return (
@@ -325,19 +389,19 @@ function MobileBottomNav({
 }) {
   const items = [
     { id: 'resumen', icon: BarChart3, label: 'Inicio' },
+    { id: 'alertas', icon: Crosshair, label: 'Alertas' },
     { id: 'captura', icon: Radio, label: 'Captura' },
     { id: 'clasificacion', icon: Tags, label: 'Clasif.' },
     { id: 'produccion', icon: FileText, label: 'Prod.' },
     { id: 'distribucion', icon: Send, label: 'Dist.' },
-    { id: 'alertas', icon: Bell, label: 'Alertas' },
   ];
 
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-around md:hidden"
       style={{
-        backgroundColor: '#0f172a',
-        borderTop: '1px solid rgba(255,255,255,0.1)',
+        backgroundColor: '#0a0a0f',
+        borderTop: '1px solid #1a1a2e',
         height: 56,
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
@@ -353,11 +417,11 @@ function MobileBottomNav({
           >
             <Icon
               size={18}
-              style={{ color: isActive ? '#00ff88' : '#64748b' }}
+              style={{ color: isActive ? '#00ff88' : '#6b7280' }}
             />
             <span
               className="text-[9px] font-medium"
-              style={{ color: isActive ? '#00ff88' : '#64748b' }}
+              style={{ color: isActive ? '#00ff88' : '#6b7280' }}
             >
               {item.label}
             </span>
@@ -392,18 +456,16 @@ export function NewDashboard() {
       'distribucion',
     ];
 
-    if (pipelineNodes.includes(viewId as NodeKey)) {
+    // Non-pipeline panels that should open their own view
+    const specialNodes: NodeKey[] = ['alertas', 'boletin-express'];
+
+    if (pipelineNodes.includes(viewId as NodeKey) || specialNodes.includes(viewId as NodeKey)) {
       setActiveNode((prev) => {
         if (prev === viewId) return null; // Toggle off
         return viewId as NodeKey;
       });
     } else if (viewId === 'resumen') {
       setActiveNode(null);
-    } else if (viewId === 'alertas') {
-      setActiveNode((prev) => {
-        if (prev === 'alertas') return null;
-        return 'alertas';
-      });
     } else if (viewId === 'configuracion') {
       // Keep active node as-is (config could open a modal in future)
     }
@@ -432,7 +494,8 @@ export function NewDashboard() {
 
   return (
     <div
-      className="flex h-screen overflow-hidden bg-slate-950 font-mono text-slate-200"
+      className="flex h-screen overflow-hidden"
+      style={{ backgroundColor: '#080c14' }}
     >
       {/* ── SideNav (desktop only, 60px) ── */}
       <div className="hidden md:flex">
@@ -448,7 +511,7 @@ export function NewDashboard() {
         <StatusBar />
 
         {/* ── PipelineFlow (PASO 2A) ── */}
-        <div className="border-b border-white/10">
+        <div style={{ borderBottom: '1px solid #1a2744' }}>
           <PipelineFlow
             activeNode={
               activeNode && activeNode !== 'boletin-express' && activeNode !== 'alertas'
