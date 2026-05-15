@@ -44,16 +44,16 @@ export function PanelShell({ title, icon, onClose, children, className }: PanelS
         initial="hidden"
         animate="visible"
         exit="exit"
-        className={`rounded-lg overflow-hidden ${className || ''}`}
+        className={`rounded-lg overflow-hidden font-mono ${className || ''}`}
         style={{
-          background: '#12121a',
-          border: '1px solid #1a1a2e',
+          background: 'rgba(15,23,42,0.4)',
+          border: '1px solid rgba(255,255,255,0.1)',
         }}
       >
         {/* ── Header ──────────────────────────────────────── */}
         <div
           className="flex items-center gap-2.5 px-4 py-3"
-          style={{ borderBottom: '1px solid #1a1a2e' }}
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}
         >
           <span style={{ color: '#00ff88' }}>{icon}</span>
           <h2
@@ -70,7 +70,7 @@ export function PanelShell({ title, icon, onClose, children, className }: PanelS
               type="button"
               onClick={onClose}
               className="flex items-center justify-center rounded-md transition-colors hover:bg-white/5"
-              style={{ color: '#6b7280', width: 24, height: 24 }}
+              style={{ color: '#64748b', width: 24, height: 24 }}
               aria-label="Cerrar panel"
             >
               <X className="w-4 h-4" />

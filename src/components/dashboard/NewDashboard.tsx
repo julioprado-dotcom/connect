@@ -76,8 +76,8 @@ function MiniStatCard({
     <div
       className="rounded-xl p-4 transition-colors duration-150"
       style={{
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid #1a1a2e',
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.1)',
       }}
     >
       <div className="flex items-center gap-2 mb-2">
@@ -87,7 +87,7 @@ function MiniStatCard({
         >
           <span style={{ color }}>{icon}</span>
         </div>
-        <span className="text-[11px] font-medium" style={{ color: '#6b7280' }}>
+        <span className="text-[11px] font-medium font-mono" style={{ color: '#64748b' }}>
           {label}
         </span>
       </div>
@@ -98,7 +98,7 @@ function MiniStatCard({
         {value}
       </p>
       {subValue && (
-        <p className="text-[10px] mt-1" style={{ color: '#6b7280' }}>
+        <p className="text-[10px] mt-1" style={{ color: '#64748b' }}>
           {subValue}
         </p>
       )}
@@ -121,8 +121,8 @@ function QuickActions({ onBoletinExpress }: { onBoletinExpress: () => void }) {
   return (
     <div className="space-y-2">
       <h3
-        className="text-[11px] font-medium uppercase tracking-wider"
-        style={{ color: '#6b7280' }}
+        className="text-[11px] font-medium uppercase tracking-wider font-mono"
+        style={{ color: '#64748b' }}
       >
         Acciones rápidas
       </h3>
@@ -219,8 +219,8 @@ function OverviewContent({
         {/* Left: Mini stats */}
         <div className="space-y-3">
           <h3
-            className="text-[11px] font-medium uppercase tracking-wider"
-            style={{ color: '#6b7280' }}
+            className="text-[11px] font-medium uppercase tracking-wider font-mono"
+            style={{ color: '#64748b' }}
           >
             Resumen rápido
           </h3>
@@ -252,16 +252,16 @@ function OverviewContent({
         {/* Right: GlobalSearch */}
         <div className="space-y-3">
           <h3
-            className="text-[11px] font-medium uppercase tracking-wider"
-            style={{ color: '#6b7280' }}
+            className="text-[11px] font-medium uppercase tracking-wider font-mono"
+            style={{ color: '#64748b' }}
           >
             Búsqueda global
           </h3>
           <div
             className="rounded-xl p-4"
             style={{
-              background: 'rgba(255,255,255,0.02)',
-              border: '1px solid #1a1a2e',
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.1)',
             }}
           >
             <GlobalSearch />
@@ -336,8 +336,8 @@ function MobileBottomNav({
     <nav
       className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-around md:hidden"
       style={{
-        backgroundColor: '#0a0a0f',
-        borderTop: '1px solid #1a1a2e',
+        backgroundColor: '#0f172a',
+        borderTop: '1px solid rgba(255,255,255,0.1)',
         height: 56,
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
@@ -353,11 +353,11 @@ function MobileBottomNav({
           >
             <Icon
               size={18}
-              style={{ color: isActive ? '#00ff88' : '#6b7280' }}
+              style={{ color: isActive ? '#00ff88' : '#64748b' }}
             />
             <span
               className="text-[9px] font-medium"
-              style={{ color: isActive ? '#00ff88' : '#6b7280' }}
+              style={{ color: isActive ? '#00ff88' : '#64748b' }}
             >
               {item.label}
             </span>
@@ -432,8 +432,7 @@ export function NewDashboard() {
 
   return (
     <div
-      className="flex h-screen overflow-hidden"
-      style={{ backgroundColor: '#0a0a0f' }}
+      className="flex h-screen overflow-hidden bg-slate-950 font-mono text-slate-200"
     >
       {/* ── SideNav (desktop only, 60px) ── */}
       <div className="hidden md:flex">
@@ -449,7 +448,7 @@ export function NewDashboard() {
         <StatusBar />
 
         {/* ── PipelineFlow (PASO 2A) ── */}
-        <div style={{ borderBottom: '1px solid #1a1a2e' }}>
+        <div className="border-b border-white/10">
           <PipelineFlow
             activeNode={
               activeNode && activeNode !== 'boletin-express' && activeNode !== 'alertas'

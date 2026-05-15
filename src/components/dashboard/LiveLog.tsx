@@ -40,7 +40,7 @@ function tipoColor(tipo: LogEvent['tipo']): string {
       return '#ff3355';
     case 'sistema':
     default:
-      return '#6b7280';
+      return '#64748b';
   }
 }
 
@@ -137,11 +137,7 @@ export function LiveLog() {
       initial="collapsed"
       animate={expanded ? 'expanded' : 'collapsed'}
       variants={logVariants}
-      className="relative overflow-hidden shrink-0"
-      style={{
-        backgroundColor: '#0a0a0f',
-        borderTop: '1px solid #1a1a2e',
-      }}
+      className="relative overflow-hidden shrink-0 bg-slate-950 border-t border-white/10 font-mono"
     >
       {/* ── Collapsed bar (always visible) ── */}
       <button
@@ -156,14 +152,13 @@ export function LiveLog() {
           <Terminal
             size={14}
             className="shrink-0"
-            style={{ color: '#6b7280' }}
+            style={{ color: '#64748b' }}
           />
           {loading ? (
             <span
               className="text-[11px] animate-pulse"
               style={{
-                color: '#6b7280',
-                fontFamily: "'Geist Mono', monospace",
+                color: '#64748b',
               }}
             >
               Cargando eventos...
@@ -172,12 +167,11 @@ export function LiveLog() {
             <span
               className="text-[11px] truncate"
               style={{
-                color: '#9ca3af',
-                fontFamily: "'Geist Mono', monospace",
+                color: '#94a3b8',
                 letterSpacing: '0.01em',
               }}
             >
-              <span style={{ color: '#6b7280' }}>
+              <span style={{ color: '#64748b' }}>
                 {formatTimeBolivia(latestEvent.timestamp)}
               </span>
               {' — '}
@@ -189,8 +183,7 @@ export function LiveLog() {
             <span
               className="text-[11px]"
               style={{
-                color: '#6b7280',
-                fontFamily: "'Geist Mono', monospace",
+                color: '#64748b',
               }}
             >
               Sin eventos recientes
@@ -201,9 +194,9 @@ export function LiveLog() {
         {/* Right: toggle icon */}
         <div className="shrink-0 ml-2">
           {expanded ? (
-            <ChevronDown size={14} style={{ color: '#6b7280' }} />
+            <ChevronDown size={14} style={{ color: '#64748b' }} />
           ) : (
-            <ChevronUp size={14} style={{ color: '#6b7280' }} />
+            <ChevronUp size={14} style={{ color: '#64748b' }} />
           )}
         </div>
       </button>
@@ -225,12 +218,12 @@ export function LiveLog() {
               className="h-full overflow-y-auto px-3 py-2 custom-scrollbar"
               style={{
                 scrollbarWidth: 'thin',
-                scrollbarColor: '#1a1a2e #0a0a0f',
+                scrollbarColor: 'rgba(255,255,255,0.1) #0f172a',
               }}
             >
               {events.length === 0 && !loading && (
                 <div className="flex items-center justify-center h-full">
-                  <span className="text-[11px]" style={{ color: '#6b7280' }}>
+                  <span className="text-[11px]" style={{ color: '#64748b' }}>
                     Sin eventos del sistema
                   </span>
                 </div>
@@ -249,8 +242,7 @@ export function LiveLog() {
                     <span
                       className="text-[11px] shrink-0 tabular-nums"
                       style={{
-                        color: '#6b7280',
-                        fontFamily: "'Geist Mono', monospace",
+                        color: '#64748b',
                         minWidth: '42px',
                       }}
                     >
@@ -263,7 +255,6 @@ export function LiveLog() {
                       style={{
                         color: tipoColor(event.tipo),
                         backgroundColor: `${tipoColor(event.tipo)}10`,
-                        fontFamily: "'Geist Mono', monospace",
                         minWidth: '52px',
                         textAlign: 'center',
                       }}
@@ -275,8 +266,7 @@ export function LiveLog() {
                     <span
                       className="text-[11px] leading-snug"
                       style={{
-                        color: '#d1d5db',
-                        fontFamily: "'Geist Sans', sans-serif",
+                        color: '#e2e8f0',
                       }}
                     >
                       {truncateText(event.mensaje, 120)}
@@ -284,8 +274,7 @@ export function LiveLog() {
                         <span
                           className="ml-1.5"
                           style={{
-                            color: '#4b5563',
-                            fontFamily: "'Geist Mono', monospace",
+                            color: '#475569',
                             fontSize: '10px',
                           }}
                         >

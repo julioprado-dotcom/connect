@@ -98,7 +98,7 @@ function CoverageCard({ name, count, percentage }: { name: string; count: number
   return (
     <div
       className="rounded-lg p-3"
-      style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid #1a1a2e' }}
+      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)' }}
     >
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-semibold truncate" style={{ color: '#ffffff' }}>
@@ -108,13 +108,13 @@ function CoverageCard({ name, count, percentage }: { name: string; count: number
           {percentage}%
         </span>
       </div>
-      <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: '#1a1a2e' }}>
+      <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${percentage}%`, background: color }}
         />
       </div>
-      <p className="text-[10px] mt-1" style={{ color: '#6b7280' }}>
+      <p className="text-[10px] mt-1" style={{ color: '#64748b' }}>
         {count.toLocaleString()} menciones
       </p>
     </div>
@@ -174,11 +174,11 @@ export function ClasificacionPanel({ onClose }: { onClose?: () => void }) {
           <>
             {/* ── Section A: Cobertura por Lentes ────────── */}
             <section>
-              <h3 className="text-[11px] font-medium mb-2.5 uppercase tracking-wider" style={{ color: '#6b7280' }}>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
                 Cobertura por Lentes
               </h3>
               {lentes.length === 0 ? (
-                <p className="text-[11px] py-3 text-center" style={{ color: '#6b7280' }}>Sin lentes configurados</p>
+                <p className="text-[11px] py-3 text-center" style={{ color: '#64748b' }}>Sin lentes configurados</p>
               ) : (
                 <div className="grid grid-cols-3 gap-2">
                   {lentes.slice(0, 9).map((l) => (
@@ -195,11 +195,11 @@ export function ClasificacionPanel({ onClose }: { onClose?: () => void }) {
 
             {/* ── Section B: Ejes Temáticos ───────────────── */}
             <section>
-              <h3 className="text-[11px] font-medium mb-2.5 uppercase tracking-wider" style={{ color: '#6b7280' }}>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
                 Ejes Temáticos
               </h3>
               {ejes.length === 0 ? (
-                <p className="text-[11px] py-3 text-center" style={{ color: '#6b7280' }}>Sin ejes temáticos</p>
+                <p className="text-[11px] py-3 text-center" style={{ color: '#64748b' }}>Sin ejes temáticos</p>
               ) : (
                 <div className="grid grid-cols-3 gap-2">
                   {ejes.slice(0, 9).map((e) => (
@@ -215,9 +215,9 @@ export function ClasificacionPanel({ onClose }: { onClose?: () => void }) {
             </section>
 
             {/* ── Section C: Menciones sin clasificar ─────── */}
-            <section style={{ borderTop: '1px solid #1a1a2e' }} className="pt-4">
+            <section style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }} className="pt-4">
               <div className="flex items-center justify-between mb-2.5">
-                <h3 className="text-[11px] font-medium uppercase tracking-wider" style={{ color: '#6b7280' }}>
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                   Menciones sin clasificar
                 </h3>
                 <span className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,170,0,0.1)', color: '#ffaa00' }}>
@@ -225,7 +225,7 @@ export function ClasificacionPanel({ onClose }: { onClose?: () => void }) {
                 </span>
               </div>
               {pendientesList.length === 0 ? (
-                <p className="text-[11px] py-3 text-center" style={{ color: '#6b7280' }}>Sin menciones pendientes</p>
+                <p className="text-[11px] py-3 text-center" style={{ color: '#64748b' }}>Sin menciones pendientes</p>
               ) : (
                 <>
                   <div className="space-y-0.5 max-h-[200px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
@@ -234,7 +234,7 @@ export function ClasificacionPanel({ onClose }: { onClose?: () => void }) {
                         key={p.id}
                         className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors"
                         style={{ background: selectedPendientes.has(p.id) ? 'rgba(0,255,136,0.05)' : 'transparent' }}
-                        onMouseEnter={(e) => { if (!selectedPendientes.has(p.id)) (e.currentTarget as HTMLLabelElement).style.background = 'rgba(255,255,255,0.02)'; }}
+                        onMouseEnter={(e) => { if (!selectedPendientes.has(p.id)) (e.currentTarget as HTMLLabelElement).style.background = 'rgba(255,255,255,0.03)'; }}
                         onMouseLeave={(e) => { if (!selectedPendientes.has(p.id)) (e.currentTarget as HTMLLabelElement).style.background = 'transparent'; }}
                       >
                         <input
@@ -246,7 +246,7 @@ export function ClasificacionPanel({ onClose }: { onClose?: () => void }) {
                         />
                         <div className="min-w-0 flex-1">
                           <p className="text-[11px] truncate" style={{ color: '#ffffff' }}>{p.titulo}</p>
-                          <p className="text-[10px] flex gap-2" style={{ color: '#6b7280' }}>
+                          <p className="text-[10px] flex gap-2" style={{ color: '#64748b' }}>
                             <span>{p.medioNombre}</span>
                             <span>{timeAgoHuman(p.fechaCaptura)}</span>
                           </p>
@@ -255,7 +255,7 @@ export function ClasificacionPanel({ onClose }: { onClose?: () => void }) {
                     ))}
                   </div>
                   <div className="flex items-center justify-between mt-2.5">
-                    <span className="text-[10px]" style={{ color: '#6b7280' }}>
+                    <span className="text-[10px]" style={{ color: '#64748b' }}>
                       {selectedPendientes.size} seleccionadas
                     </span>
                     <div className="relative">
@@ -264,8 +264,8 @@ export function ClasificacionPanel({ onClose }: { onClose?: () => void }) {
                         className="px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors disabled:opacity-30"
                         style={{
                           background: selectedPendientes.size > 0 ? 'rgba(0,255,136,0.1)' : 'transparent',
-                          border: `1px solid ${selectedPendientes.size > 0 ? 'rgba(0,255,136,0.3)' : '#1a1a2e'}`,
-                          color: selectedPendientes.size > 0 ? '#00ff88' : '#6b7280',
+                          border: `1px solid ${selectedPendientes.size > 0 ? 'rgba(0,255,136,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                          color: selectedPendientes.size > 0 ? '#00ff88' : '#64748b',
                         }}
                         onClick={() => setShowAssignDropdown(!showAssignDropdown)}
                       >
@@ -274,11 +274,11 @@ export function ClasificacionPanel({ onClose }: { onClose?: () => void }) {
                       {showAssignDropdown && (
                         <div
                           className="absolute right-0 top-full mt-1 rounded-lg p-2 z-10 min-w-[180px]"
-                          style={{ background: '#1a1a2e', border: '1px solid #252540' }}
+                          style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid rgba(255,255,255,0.1)' }}
                         >
                           <select
                             className="w-full px-2 py-1 rounded text-[11px] mb-1.5 outline-none"
-                            style={{ background: '#0a0a0f', border: '1px solid #252540', color: '#ffffff' }}
+                            style={{ border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff' }}
                             defaultValue=""
                           >
                             <option value="" disabled>Seleccionar lente…</option>
@@ -286,7 +286,7 @@ export function ClasificacionPanel({ onClose }: { onClose?: () => void }) {
                           </select>
                           <select
                             className="w-full px-2 py-1 rounded text-[11px] mb-2 outline-none"
-                            style={{ background: '#0a0a0f', border: '1px solid #252540', color: '#ffffff' }}
+                            style={{ border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff' }}
                             defaultValue=""
                           >
                             <option value="" disabled>Seleccionar eje…</option>
@@ -311,13 +311,13 @@ export function ClasificacionPanel({ onClose }: { onClose?: () => void }) {
             </section>
 
             {/* ── Section D: Keywords ─────────────────────── */}
-            <section style={{ borderTop: '1px solid #1a1a2e' }} className="pt-4">
-              <h3 className="text-[11px] font-medium mb-2.5 uppercase tracking-wider" style={{ color: '#6b7280' }}>
+            <section style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }} className="pt-4">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
                 Keywords
               </h3>
               <div className="flex gap-2 mb-2.5">
-                <div className="flex-1 flex items-center gap-1.5 rounded-md px-2.5 py-1.5" style={{ background: '#0a0a0f', border: '1px solid #1a1a2e' }}>
-                  <Search className="w-3 h-3 shrink-0" style={{ color: '#6b7280' }} />
+                <div className="flex-1 flex items-center gap-1.5 rounded-md px-2.5 py-1.5" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <Search className="w-3 h-3 shrink-0" style={{ color: '#64748b' }} />
                   <input
                     placeholder="Buscar keyword…"
                     className="flex-1 bg-transparent text-[11px] outline-none"
@@ -330,9 +330,9 @@ export function ClasificacionPanel({ onClose }: { onClose?: () => void }) {
                   <button
                     onClick={() => setShowNewKeyword(true)}
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-medium shrink-0"
-                    style={{ border: '1px solid #1a1a2e', color: '#6b7280' }}
+                    style={{ border: '1px solid rgba(255,255,255,0.1)', color: '#64748b' }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#00ff88'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#00ff88'; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#6b7280'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#1a1a2e'; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#64748b'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.1)'; }}
                   >
                     <Plus className="w-3 h-3" />
                     Crear
@@ -342,7 +342,7 @@ export function ClasificacionPanel({ onClose }: { onClose?: () => void }) {
                     <input
                       placeholder="nuevo term"
                       className="px-2 py-1.5 rounded-md text-[11px] outline-none w-28"
-                      style={{ background: '#0a0a0f', border: '1px solid #00ff88', color: '#ffffff' }}
+                      style={{ border: '1px solid #00ff88', color: '#ffffff' }}
                       autoFocus
                     />
                     <button
@@ -354,7 +354,7 @@ export function ClasificacionPanel({ onClose }: { onClose?: () => void }) {
                     </button>
                     <button
                       className="px-1.5 py-1.5 rounded-md"
-                      style={{ color: '#6b7280' }}
+                      style={{ color: '#64748b' }}
                       onClick={() => setShowNewKeyword(false)}
                     >
                       <X className="w-3 h-3" />
@@ -368,15 +368,15 @@ export function ClasificacionPanel({ onClose }: { onClose?: () => void }) {
                   <div
                     key={kw.id}
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
-                    style={{ background: 'rgba(255,255,255,0.02)', opacity: kw.activo ? 1 : 0.4 }}
+                    style={{ background: 'rgba(255,255,255,0.03)', opacity: kw.activo ? 1 : 0.4 }}
                   >
                     <span className="text-[11px] font-medium min-w-[90px] truncate" style={{ color: '#ffffff', fontFamily: 'JetBrains Mono, monospace' }}>
                       {kw.term}
                     </span>
-                    <span className="text-[10px] truncate" style={{ color: '#6b7280' }}>
+                    <span className="text-[10px] truncate" style={{ color: '#64748b' }}>
                       {kw.lente} → {kw.eje}
                     </span>
-                    <span className="text-[10px] font-mono ml-auto tabular-nums" style={{ color: '#6b7280' }}>
+                    <span className="text-[10px] font-mono ml-auto tabular-nums" style={{ color: '#64748b' }}>
                       {kw.matchCount}
                     </span>
                     <input
@@ -386,7 +386,7 @@ export function ClasificacionPanel({ onClose }: { onClose?: () => void }) {
                       step={0.1}
                       value={kw.weight.toFixed(1)}
                       className="w-10 text-center rounded px-1 py-0.5 text-[10px] outline-none"
-                      style={{ background: '#0a0a0f', border: '1px solid #1a1a2e', color: '#ffffff', fontFamily: 'JetBrains Mono, monospace' }}
+                      style={{ border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff', fontFamily: 'JetBrains Mono, monospace' }}
                     />
                     <button
                       className="flex items-center justify-center rounded transition-colors"
@@ -397,10 +397,10 @@ export function ClasificacionPanel({ onClose }: { onClose?: () => void }) {
                     </button>
                     <button
                       className="flex items-center justify-center rounded transition-colors"
-                      style={{ width: 22, height: 22, color: '#6b7280' }}
+                      style={{ width: 22, height: 22, color: '#64748b' }}
                       title="Eliminar"
                       onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#ff3355'; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#6b7280'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#64748b'; }}
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>

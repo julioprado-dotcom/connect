@@ -84,22 +84,23 @@ interface IndicadoresData {
 // ─── Color Constants ─────────────────────────────────────
 
 const COLORS = {
-  bg: '#0a0a0f',
-  panel: '#12121a',
-  border: '#1a1a2e',
+  bg: '#0f172a',
+  panel: 'rgba(15,23,42,0.4)',
+  border: 'rgba(255,255,255,0.1)',
+  borderSubtle: 'rgba(255,255,255,0.05)',
   accent: '#00ff88',
   warning: '#ffaa00',
   error: '#ff3355',
-  idle: '#6b7280',
+  idle: '#64748b',
   textWhite: '#ffffff',
-  textGray: '#6b7280',
+  textGray: '#64748b',
 };
 
 const STATUS_COLORS: Record<NodeStatus, { dot: string; glow: string; border: string }> = {
   ok: { dot: COLORS.accent, glow: 'none', border: COLORS.border },
   warning: { dot: COLORS.warning, glow: 'none', border: `${COLORS.warning}66` },
   error: { dot: COLORS.error, glow: COLORS.error, border: `${COLORS.error}88` },
-  idle: { dot: COLORS.idle, glow: 'none', border: COLORS.border },
+  idle: { dot: COLORS.idle, glow: 'none', border: COLORS.borderSubtle },
 };
 
 const STATUS_LABELS: Record<NodeStatus, string> = {
@@ -227,10 +228,10 @@ function FlowArrow({ active, broken }: { active: boolean; broken: boolean }) {
           className="absolute inset-0 rounded-full"
           style={{
             background: broken
-              ? 'repeating-linear-gradient(90deg, #1a1a2e 0px, #1a1a2e 4px, transparent 4px, transparent 8px)'
+              ? 'repeating-linear-gradient(90deg, rgba(255,255,255,0.1) 0px, rgba(255,255,255,0.1) 4px, transparent 4px, transparent 8px)'
               : active
-                ? 'linear-gradient(90deg, #1a1a2e, #00ff88, #1a1a2e)'
-                : '#1a1a2e',
+                ? 'linear-gradient(90deg, rgba(255,255,255,0.1), #00ff88, rgba(255,255,255,0.1))'
+                : 'rgba(255,255,255,0.1)',
             opacity: broken ? 0.5 : active ? 1 : 0.3,
             animation: active && !broken ? 'arrowFlow 2s linear infinite' : 'none',
             backgroundSize: '200% 100%',
@@ -316,8 +317,7 @@ function PipelineNodeCard({
         <div className="flex items-center gap-1.5">
           <span className="text-base leading-none">{node.icon}</span>
           <span
-            className="font-semibold text-[12px] leading-tight tracking-wide"
-            style={{ color: COLORS.textWhite, fontFamily: 'Inter, system-ui, sans-serif' }}
+            className="font-semibold text-[12px] leading-tight tracking-wide text-white"
           >
             {node.label}
           </span>
@@ -345,7 +345,6 @@ function PipelineNodeCard({
             className="text-[10px] font-semibold uppercase tracking-wider"
             style={{
               color: colors.dot,
-              fontFamily: 'Inter, system-ui, sans-serif',
             }}
           >
             {STATUS_LABELS[node.status]}
@@ -354,11 +353,7 @@ function PipelineNodeCard({
 
         {/* Count — dato real principal */}
         <p
-          className="text-[12px] font-bold truncate"
-          style={{
-            color: COLORS.textWhite,
-            fontFamily: 'JetBrains Mono, ui-monospace, monospace',
-          }}
+          className="text-[12px] font-bold truncate text-white"
         >
           {node.count}
         </p>
@@ -368,7 +363,6 @@ function PipelineNodeCard({
           className="text-[10px] truncate"
           style={{
             color: COLORS.textGray,
-            fontFamily: 'JetBrains Mono, ui-monospace, monospace',
           }}
         >
           {node.detail}
@@ -379,7 +373,6 @@ function PipelineNodeCard({
           className="text-[9px] truncate"
           style={{
             color: `${COLORS.textGray}99`,
-            fontFamily: 'JetBrains Mono, ui-monospace, monospace',
           }}
         >
           {node.lastActivity}
@@ -494,8 +487,7 @@ export function PipelineFlow({
     <>
       <PipelineStyles />
       <div
-        className="w-full overflow-x-auto"
-        style={{ background: COLORS.bg }}
+        className="w-full overflow-x-auto bg-slate-950 font-mono"
       >
         <div className="flex items-center justify-center gap-0 min-w-[600px] py-3 px-4">
           {loading || !nodes ? (
@@ -504,11 +496,10 @@ export function PipelineFlow({
               {[0, 1, 2, 3].map(i => (
                 <React.Fragment key={i}>
                   {i > 0 && (
-                    <div className="w-8 sm:w-12 md:w-16 h-[2px] bg-[#1a1a2e] rounded-full" />
+                    <div className="w-8 sm:w-12 md:w-16 h-[2px] bg-white/10 rounded-full" />
                   )}
                   <div
-                    className="w-[130px] sm:w-[145px] md:w-[160px] h-[90px] rounded-xl animate-pulse"
-                    style={{ background: COLORS.panel, border: `1px solid ${COLORS.border}` }}
+                    className="w-[130px] sm:w-[145px] md:w-[160px] h-[90px] rounded-xl animate-pulse bg-slate-900/40 border border-white/10"
                   />
                 </React.Fragment>
               ))}

@@ -238,11 +238,10 @@ export function StatusBar() {
   return (
     <div
       ref={panelRef}
-      className="relative w-full"
-      style={{ backgroundColor: '#0a0a0f' }}
+      className="relative w-full bg-slate-950 font-mono"
     >
       {/* ── Main bar ── */}
-      <div className="flex items-center justify-between px-4 sm:px-6 py-2 max-h-[80px] border-b" style={{ borderColor: '#1a1a2e' }}>
+      <div className="flex items-center justify-between px-4 sm:px-6 py-2 max-h-[80px] border-b border-white/10">
         {/* Orbs */}
         <div className="flex items-center gap-4 sm:gap-8 overflow-x-auto no-scrollbar">
           {/* CAPTURA */}
@@ -282,19 +281,19 @@ export function StatusBar() {
         {/* Right: timestamp */}
         <div className="hidden sm:flex flex-col items-end shrink-0 ml-4">
           <span
-            className="text-xs text-gray-500 font-mono tabular-nums tracking-wide"
+            className="text-xs text-slate-500 font-mono tabular-nums tracking-wide"
             style={{ fontFamily: "'JetBrains Mono', monospace" }}
           >
             {timestamp}
           </span>
-          <span className="text-[9px] text-gray-600">
+          <span className="text-[9px] text-slate-600">
             America/La_Paz
           </span>
         </div>
       </div>
 
       {/* ── Actions bar (problem text + buttons) ── */}
-      <div className="flex items-center justify-between px-4 sm:px-6 py-1 min-h-[28px] border-b" style={{ borderColor: '#1a1a2e' }}>
+      <div className="flex items-center justify-between px-4 sm:px-6 py-1 min-h-[28px] border-b border-white/10">
         <div className="flex items-center gap-3 overflow-x-auto no-scrollbar">
           {captura.problem && (
             <span className="text-[11px] whitespace-nowrap" style={{ color: estadoColor(captura.status) }}>
@@ -345,13 +344,13 @@ export function StatusBar() {
             </span>
           )}
           {!captura.problem && !clasif.problem && !prod.problem && !dist.problem && data && (
-            <span className="text-[11px] text-gray-500 flex items-center gap-1.5">
+            <span className="text-[11px] text-slate-500 flex items-center gap-1.5">
               <CheckCircle className="w-3 h-3" style={{ color: '#00ff88' }} />
               Todos los sistemas operativos
             </span>
           )}
           {loading && !data && (
-            <span className="text-[11px] text-gray-500 animate-pulse">Cargando indicadores...</span>
+            <span className="text-[11px] text-slate-500 animate-pulse">Cargando indicadores...</span>
           )}
         </div>
       </div>
@@ -364,24 +363,23 @@ export function StatusBar() {
             animate="expanded"
             exit="collapsed"
             variants={panelVariants}
-            className="overflow-hidden border-b"
-            style={{ borderColor: '#1a1a2e', backgroundColor: '#0a0a0f' }}
+            className="overflow-hidden border-b border-white/10 bg-slate-950"
           >
             {/* CAPTURA expanded */}
             {expanded === 'captura' && (
               <div className="h-[200px] overflow-hidden flex flex-col">
                 <div className="flex items-center justify-between px-4 sm:px-6 py-1.5 shrink-0">
-                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                     Fuentes ({data.captura.fuentes.length})
                   </span>
-                  <button className="text-[10px] text-gray-500 hover:text-gray-300 transition-colors">
+                  <button className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors">
                     Ver todas
                   </button>
                 </div>
                 <div className="flex-1 overflow-y-auto px-4 sm:px-6 custom-scrollbar">
                   <table className="w-full text-[11px]">
                     <thead>
-                      <tr className="text-gray-500 border-b" style={{ borderColor: '#1a1a2e' }}>
+                      <tr className="text-slate-500 border-b border-white/10">
                         <th className="text-left py-1 font-medium">Fuente</th>
                         <th className="text-left py-1 font-medium w-24">Estado</th>
                         <th className="text-right py-1 font-medium w-20">Semana</th>
@@ -389,8 +387,8 @@ export function StatusBar() {
                     </thead>
                     <tbody>
                       {data.captura.fuentes.slice(0, 20).map(f => (
-                        <tr key={f.id} className="border-b" style={{ borderColor: '#1a1a2e22' }}>
-                          <td className="py-1.5 text-gray-300 truncate max-w-[200px]" title={f.nombre}>
+                        <tr key={f.id} className="border-b border-white/5">
+                          <td className="py-1.5 text-slate-300 truncate max-w-[200px]" title={f.nombre}>
                             {f.nombre}
                           </td>
                           <td className="py-1.5">
@@ -399,7 +397,7 @@ export function StatusBar() {
                               <span style={{ color: estadoColor(f.estado) }}>{f.ultimaCaptura}</span>
                             </span>
                           </td>
-                          <td className="py-1.5 text-right text-gray-400" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                          <td className="py-1.5 text-right text-slate-400" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
                             {f.mencionesSemana}
                           </td>
                         </tr>
@@ -414,10 +412,10 @@ export function StatusBar() {
             {expanded === 'clasificacion' && (
               <div className="h-[200px] overflow-hidden flex flex-col">
                 <div className="flex items-center justify-between px-4 sm:px-6 py-1.5 shrink-0">
-                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                     Lentes ({data.clasificacion.lentes.length})
                   </span>
-                  <span className="text-[10px] text-gray-500">
+                  <span className="text-[10px] text-slate-500">
                     {data.clasificacion.pendientes} pendientes
                   </span>
                 </div>
@@ -428,8 +426,8 @@ export function StatusBar() {
                       const barColor = l.porcentaje > 90 ? '#00ff88' : l.porcentaje >= 70 ? '#ffaa00' : '#ff3355';
                       return (
                         <div key={l.nombre} className="flex items-center gap-2">
-                          <span className="text-[11px] text-gray-400 w-28 truncate shrink-0">{l.nombre}</span>
-                          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#1a1a2e' }}>
+                          <span className="text-[11px] text-slate-400 w-28 truncate shrink-0">{l.nombre}</span>
+                          <div className="flex-1 h-2 rounded-full overflow-hidden bg-black/60">
                             <motion.div
                               className="h-full rounded-full"
                               style={{ backgroundColor: barColor, opacity: 0.8 }}
@@ -450,11 +448,11 @@ export function StatusBar() {
                   </div>
                   {/* Pending mentions info */}
                   {data.clasificacion.pendientes > 0 && (
-                    <div className="mt-2 pt-2 border-t flex items-center justify-between" style={{ borderColor: '#1a1a2e' }}>
-                      <span className="text-[11px] text-gray-500">
+                    <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between">
+                      <span className="text-[11px] text-slate-500">
                         {data.clasificacion.pendientes} menciones sin tratamiento periodistico
                       </span>
-                      <button className="text-[10px] px-2 py-1 rounded text-gray-300 hover:bg-white/5 transition-colors" style={{ border: '1px solid #1a1a2e' }}>
+                      <button className="text-[10px] px-2 py-1 rounded text-slate-300 hover:bg-white/5 transition-colors border border-white/10">
                         Asignar
                       </button>
                     </div>
@@ -467,29 +465,29 @@ export function StatusBar() {
             {expanded === 'produccion' && (
               <div className="h-[200px] overflow-hidden flex flex-col">
                 <div className="flex items-center justify-between px-4 sm:px-6 py-1.5 shrink-0">
-                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                     Productos Semana
                   </span>
                 </div>
                 <div className="flex-1 overflow-y-auto px-4 sm:px-6 custom-scrollbar">
                   <div className="space-y-1">
                     {data.produccion.semana.map(p => (
-                      <div key={p.tipo} className="flex items-center justify-between py-1 border-b" style={{ borderColor: '#1a1a2e22' }}>
+                      <div key={p.tipo} className="flex items-center justify-between py-1 border-b border-white/5">
                         <div className="flex items-center gap-2 min-w-0">
                           {estadoIcon(p.estado)}
-                          <span className="text-[11px] text-gray-300 truncate">{p.nombre}</span>
+                          <span className="text-[11px] text-slate-300 truncate">{p.nombre}</span>
                           {p.total > 0 && (
-                            <span className="text-[9px] text-gray-500">({p.total})</span>
+                            <span className="text-[9px] text-slate-500">({p.total})</span>
                           )}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           {p.ultimaEdicion && (
-                            <span className="text-[10px] text-gray-500">
+                            <span className="text-[10px] text-slate-500">
                               {formatDateTimeBolivia(p.ultimaEdicion)}
                             </span>
                           )}
                           {(p.estado === 'pending' || p.estado === 'error') && (
-                            <button className="text-[9px] px-1.5 py-0.5 rounded text-gray-300 hover:bg-white/5 transition-colors flex items-center gap-1" style={{ border: '1px solid #1a1a2e' }}>
+                            <button className="text-[9px] px-1.5 py-0.5 rounded text-slate-300 hover:bg-white/5 transition-colors flex items-center gap-1 border border-white/10">
                               <RefreshCw className="w-2.5 h-2.5" />
                               Generar
                             </button>
@@ -506,7 +504,7 @@ export function StatusBar() {
             {expanded === 'distribucion' && (
               <div className="h-[200px] overflow-hidden flex flex-col">
                 <div className="flex items-center justify-between px-4 sm:px-6 py-1.5 shrink-0">
-                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                     Ultimas Entregas
                   </span>
                   {data.distribucion.errores > 0 && (
@@ -519,25 +517,25 @@ export function StatusBar() {
                 <div className="flex-1 overflow-y-auto px-4 sm:px-6 custom-scrollbar">
                   <div className="space-y-1">
                     {data.distribucion.ultimos.map(e => (
-                      <div key={e.id} className="flex items-center justify-between py-1.5 border-b" style={{ borderColor: '#1a1a2e22' }}>
+                      <div key={e.id} className="flex items-center justify-between py-1.5 border-b border-white/5">
                         <div className="flex items-center gap-2 min-w-0">
                           {estadoIcon(e.estado)}
                           <div className="min-w-0">
-                            <span className="text-[11px] text-gray-300 block truncate">{e.producto}</span>
-                            <span className="text-[9px] text-gray-500">
+                            <span className="text-[11px] text-slate-300 block truncate">{e.producto}</span>
+                            <span className="text-[9px] text-slate-500">
                               {e.destinatario} &middot; {e.canal}
                             </span>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-[10px] text-gray-500">{formatRelativeTime(e.timestamp)}</span>
+                          <span className="text-[10px] text-slate-500">{formatRelativeTime(e.timestamp)}</span>
                           {e.estado === 'fallido' && (
                             <div className="flex items-center gap-1">
-                              <button className="text-[9px] px-1.5 py-0.5 rounded text-gray-300 hover:bg-white/5 transition-colors flex items-center gap-1" style={{ border: '1px solid #1a1a2e' }} title={e.error}>
+                              <button className="text-[9px] px-1.5 py-0.5 rounded text-slate-300 hover:bg-white/5 transition-colors flex items-center gap-1 border border-white/10" title={e.error}>
                                 <Wrench className="w-2.5 h-2.5" />
                                 Diagnosticar
                               </button>
-                              <button className="text-[9px] px-1.5 py-0.5 rounded text-gray-300 hover:bg-white/5 transition-colors flex items-center gap-1" style={{ border: '1px solid #1a1a2e' }}>
+                              <button className="text-[9px] px-1.5 py-0.5 rounded text-slate-300 hover:bg-white/5 transition-colors flex items-center gap-1 border border-white/10">
                                 <RefreshCw className="w-2.5 h-2.5" />
                                 Reintentar
                               </button>
@@ -547,7 +545,7 @@ export function StatusBar() {
                       </div>
                     ))}
                     {data.distribucion.ultimos.length === 0 && (
-                      <div className="text-[11px] text-gray-500 py-4 text-center">
+                      <div className="text-[11px] text-slate-500 py-4 text-center">
                         Sin entregas registradas
                       </div>
                     )}

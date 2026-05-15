@@ -58,9 +58,9 @@ function SideTooltip({ text, visible }: { text: string; visible: boolean }) {
                      px-2.5 py-1 rounded-md whitespace-nowrap
                      pointer-events-none select-none"
           style={{
-            backgroundColor: '#12121a',
-            border: '1px solid #1a1a2e',
-            color: '#e5e7eb',
+            backgroundColor: 'rgba(15,23,42,0.95)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            color: '#cbd5e1',
             fontSize: '11px',
             fontFamily: "'Geist Sans', sans-serif",
             fontWeight: 500,
@@ -76,7 +76,7 @@ function SideTooltip({ text, visible }: { text: string; visible: boolean }) {
               height: 0,
               borderTop: '5px solid transparent',
               borderBottom: '5px solid transparent',
-              borderRight: '5px solid #1a1a2e',
+              borderRight: '5px solid rgba(255,255,255,0.1)',
             }}
           />
         </motion.div>
@@ -101,7 +101,7 @@ export function SideNav({ activeView = 'resumen', onNavigate }: SideNavProps) {
 
   return (
     <nav
-      className="flex flex-col items-center justify-between py-4 shrink-0"
+      className="flex flex-col items-center justify-between py-4 shrink-0 font-mono"
       style={{ width: 60, backgroundColor: 'transparent' }}
     >
       {/* ── Top: Navigation icons ── */}
@@ -129,8 +129,8 @@ export function SideNav({ activeView = 'resumen', onNavigate }: SideNavProps) {
                 style={{
                   width: 40,
                   height: 40,
-                  backgroundColor: isActive ? '#12121a' : 'transparent',
-                  color: isActive ? '#00ff88' : isHovered ? '#9ca3af' : '#6b7280',
+                  backgroundColor: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
+                  color: isActive ? '#00ff88' : isHovered ? '#94a3b8' : '#64748b',
                   boxShadow: isActive
                     ? '0 0 12px rgba(0, 255, 136, 0.15), inset 0 0 8px rgba(0, 255, 136, 0.05)'
                     : 'none',
