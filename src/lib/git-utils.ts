@@ -9,17 +9,19 @@
  */
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import path from 'path';
 
 const execAsync = promisify(exec);
 const PRODUCTOS_DIR = 'download/productos/';
+const PROJECT_ROOT = process.cwd();
 
 export async function pushProductosToGithub(message: string): Promise<{ ok: boolean; commit?: string; error?: string }> {
   try {
     // 1. Stage all files in the productos directory
-    await execAsync(`git add ${PRODUCTOS_DIR}`, { cwd: '/home/z/my-project' });
+    await execAsync(`git add ${PRODUCTOS_DIR}`, { cwd: PROJECT_ROOT });
 
     // 2. Check if there are changes to commit
-    const { stdout: status } = await execAsync('git diff --cached --stat', { cwd: '/home/z/my-project' });
+    const { stdout: status } = await execAsync('git diff --cached --stat', { cwd: PROJECT_ROOT });
     if (!status.trim()) {
       // No changes (PDFs unchanged or already committed)
       return { ok: true, commit: 'no-changes' };
@@ -28,12 +30,12 @@ export async function pushProductosToGithub(message: string): Promise<{ ok: bool
     // 3. Commit
     const { stdout: commitOut } = await execAsync(
       `git commit -m "${message.replace(/"/g, '\\"')}"`,
-      { cwd: '/home/z/my-project' },
+      { cwd: PROJECT_ROOT },
     );
     const commitHash = commitOut.trim().slice(0, 7);
 
     // 4. Push
-    await execAsync('git push origin main', { cwd: '/home/z/my-project', timeout: 60_000 });
+    await execAsync('git push origin main', { cwd: PROJECT_ROOT, timeout: 60_000 });
 
     return { ok: true, commit: commitHash };
   } catch (error: unknown) {
