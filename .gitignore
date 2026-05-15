@@ -22,6 +22,7 @@ agent-ctx/
 # Environment
 .env
 .env.local
+upload/.env*
 
 # Next.js
 .next/
