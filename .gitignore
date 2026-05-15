@@ -1,11 +1,12 @@
 # Z.ai Sandbox / Runtime
 .zscripts/
 worklog.md
-# download/ — ignore everything except productos/ (generated PDFs go to GitHub)
+# download/ — ignore everything except productos/ and docs (generated PDFs go to GitHub)
 download/*
 !download/productos/
 download/productos/*
 !download/productos/semana-*/
+!download/MANIFIESTO-INSTALACION-VPS.md
 node_modules/
 
 # Database backups — tracked in git for disaster recovery
