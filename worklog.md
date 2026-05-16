@@ -210,3 +210,26 @@ Stage Summary:
 - Nuevo módulo web-search-native.ts como reemplazo funcional
 - chat.completions.create() no se tocó (funciona correctamente para clasificación)
 - Listo para despliegue en servidor 47.84.59.154
+---
+Task ID: 1
+Agent: Main Agent
+Task: Audit and fix dashboard desync — dashboard shows stale "hace 3d" data
+
+Work Log:
+- Ran diagnostic script against production DB (prisma/db/custom.db)
+- Found 399 mentions total, last fechaCaptura = May 13 2026 01:27:22 UTC (92h ago)
+- No mentions created in the last 3 days
+- All FuenteEstado.ultimoCheck timestamps are ~100h old
+- 0 jobs in en_progreso (no zombies)
+- Root cause: Job system (scheduler + worker) was COMPLETELY DISABLED in connect/src/instrumentation.ts
+- Secondary cause: Death spiral in source-lifecycle.ts — CHECK_OK_FRESHNESS_MS = 24h means all sources drop to Capa 0 after 24h downtime, scheduler skips them forever
+- Fixed instrumentation.ts: reactivated scheduler + worker without health monitor, added cold-start bypass and kick
+- Fixed source-lifecycle.ts: increased CHECK_OK_FRESHNESS_MS from 24h to 72h
+- Created /api/admin/kick-capture emergency endpoint
+- Build passed, committed as 09132a4, pushed to main
+
+Stage Summary:
+- Root cause identified: instrumentation.ts had job system disabled
+- 4 code fixes applied across 3 files
+- New emergency endpoint created
+- Committed and pushed: 09132a4
