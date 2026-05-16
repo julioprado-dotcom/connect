@@ -233,3 +233,23 @@ Stage Summary:
 - 4 code fixes applied across 3 files
 - New emergency endpoint created
 - Committed and pushed: 09132a4
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Eliminar dependencia de Bing y restaurar scraper directo de homepages
+
+Work Log:
+- Analicé la arquitectura completa del pipeline de captura
+- Descubrí que Pipeline A (/api/capture) usaba zai.functions.invoke('web_search') → Bing → bloqueado por CAPTCHA
+- Pipeline B (scrape-fuente.ts en job queue) ya tenía la lógica correcta: fetch directo + regex + keyword triaje + LLM
+- Creé src/lib/scrape-homepage.ts: módulo reutilizable con fetchHomepage() y scrapeMedio()
+- Reescribí src/app/api/capture/route.ts: eliminé todo el código de web_search y reemplacé con scraper directo
+- Build pasado, commit f72061d pusheado a main
+
+Stage Summary:
+- Creado: connect/src/lib/scrape-homepage.ts (364 líneas)
+- Modificado: connect/src/app/api/capture/route.ts (-265 líneas de Bing, +67 líneas de scraper directo)
+- Flujo: fetch(medio.url) → regex link extraction → keyword triaje (asambleistas + ejes) → LLM classification
+- Cero dependencia de Bing/Google. Cero silencios de error (siempre loggea HTTP status real)
+- Build OK. Commit f72061d en main.
