@@ -7,7 +7,7 @@
  * y calcular tendencias.
  */
 
-import { db } from '@/lib/db';
+import db from '@/lib/db';
 import { type IndicadorFormateado } from '@/types/bulletin';
 
 // ============================================

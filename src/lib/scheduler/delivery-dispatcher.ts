@@ -7,7 +7,7 @@
  * de estado y reintentos para entregas fallidas.
  */
 
-import { db } from '@/lib/db';
+import db from '@/lib/db';
 import { type TipoBoletin } from '@/types/bulletin';
 import { formatFechaBolivia, formatearMencionesPorEje } from '@/lib/reportes-utils';
 export { formatFechaBolivia } from '@/lib/reportes-utils';

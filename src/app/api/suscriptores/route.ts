@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import db from '@/lib/db';
 import { suscriptorCreateSchema, suscriptorUpdateSchema } from '@/lib/validations';
 import { guardedParse, rateGuard, RATE } from '@/lib/rate-guard';
 import { safeError as safeErrorGuard } from '@/lib/rate-guard';

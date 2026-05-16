@@ -9,7 +9,7 @@
  * usadas por los endpoints de reportes.
  */
 
-import { db } from '@/lib/db';
+import db from '@/lib/db';
 import { type TipoBoletin, type VentanaTipo } from '@/types/bulletin';
 import { formatFechaBolivia } from '@/lib/bulletin/product-generator';
 

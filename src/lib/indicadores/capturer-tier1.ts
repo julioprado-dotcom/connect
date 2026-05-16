@@ -7,7 +7,7 @@
  * v0.13.0 — LME datos reales via Yahoo Finance + Stooq
  */
 
-import { db as prisma } from '@/lib/db'
+import db from '@/lib/db'
 import { fetchIndicadores } from '@/lib/services/indicadores'
 import type { SlugIndicador } from '@/lib/services/indicadores.types'
 
@@ -533,12 +533,12 @@ const INDICADORES_TIER1 = [
 
 export async function seedIndicadores() {
   for (const ind of INDICADORES_TIER1) {
-    const existing = await prisma.indicador.findUnique({
+    const existing = await db.indicador.findUnique({
       where: { slug: ind.slug },
     })
 
     if (!existing) {
-      await prisma.indicador.create({
+      await db.indicador.create({
         data: {
           ...ind,
           activo: true,
@@ -741,7 +741,7 @@ export async function capturarUno(slug: string): Promise<CapturaResult> {
   // 1) Buscar definición del indicador en la DB
   let indicadorDef
   try {
-    indicadorDef = await prisma.indicador.findUnique({ where: { slug } })
+    indicadorDef = await db.indicador.findUnique({ where: { slug } })
   } catch {
     return {
       slug,
@@ -827,7 +827,7 @@ export async function capturarUno(slug: string): Promise<CapturaResult> {
 
   // 3) Persistir resultado en DB (independientemente del éxito o fracaso)
   try {
-    await prisma.indicadorValor.create({
+    await db.indicadorValor.create({
       data: {
         indicadorId: indicadorDef.id,
         fecha: resultado.fecha,
@@ -905,13 +905,13 @@ export async function getUltimoValor(slug: string): Promise<{
   fecha: Date
   confiable: boolean
 } | null> {
-  const indicador = await prisma.indicador.findUnique({
+  const indicador = await db.indicador.findUnique({
     where: { slug },
   })
 
   if (!indicador) return null
 
-  const ultimo = await prisma.indicadorValor.findFirst({
+  const ultimo = await db.indicadorValor.findFirst({
     where: { indicadorId: indicador.id },
     orderBy: { fecha: 'desc' },
   })
@@ -934,13 +934,13 @@ export async function getVariacion(slug: string, periodos: number = 2): Promise<
   variacion: number
   variacionPct: number
 } | null> {
-  const indicador = await prisma.indicador.findUnique({
+  const indicador = await db.indicador.findUnique({
     where: { slug },
   })
 
   if (!indicador) return null
 
-  const valores = await prisma.indicadorValor.findMany({
+  const valores = await db.indicadorValor.findMany({
     where: { indicadorId: indicador.id },
     orderBy: { fecha: 'desc' },
     take: periodos + 1,

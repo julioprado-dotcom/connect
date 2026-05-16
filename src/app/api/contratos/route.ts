@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import db from '@/lib/db';
 import { contratoCreateSchema } from '@/lib/validations';
 import { guardedParse, RATE } from '@/lib/rate-guard';
 

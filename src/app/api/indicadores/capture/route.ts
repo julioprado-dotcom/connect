@@ -6,7 +6,7 @@
 
 import { NextResponse } from 'next/server'
 import { capturarTier1, seedIndicadores, getUltimoValor } from '@/lib/indicadores/capturer-tier1'
-import { db as prisma } from '@/lib/db'
+import db from '@/lib/db'
 import { safeError } from '@/lib/rate-guard'
 
 export async function POST() {
@@ -46,7 +46,7 @@ export async function POST() {
 export async function GET() {
   try {
     // Obtener estado actual de todos los indicadores
-    const indicadores = await prisma.indicador.findMany({
+    const indicadores = await db.indicador.findMany({
       where: { activo: true },
       orderBy: { orden: 'asc' },
       include: {
