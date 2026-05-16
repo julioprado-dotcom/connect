@@ -1,3 +1,24 @@
+/**
+ * ═══════════════════════════════════════════════════════════════════════
+ * CAPTURE API — Motor de Colas Inteligente (Smart Queue Engine)
+ * ═══════════════════════════════════════════════════════════════════════
+ *
+ * Arquitectura "Fire-and-Forget" con procesamiento secuencial anti-saturación.
+ *
+ * Problema que resuelve:
+ *   Si 50 medios están activos, procesarlos en paralelo colapsa la CPU
+ *   (1 vCPU), satura la red y causa bans por parte de las fuentes.
+ *
+ * Solución:
+ *   - Lote unitario: procesa 1 medio a la vez (batchSize = 1).
+ *   - Throttling: pausa obligatoria de 60s entre medios.
+ *   - Fire-and-forget: la API responde inmediatamente, el trabajo corre
+ *     en segundo plano dentro del mismo proceso Node.js.
+ *   - Observabilidad: logs estructurados en tiempo real.
+ *   - Integridad: usa exclusivamente el singleton Prisma (import db).
+ * ═══════════════════════════════════════════════════════════════════════
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { safeError } from '@/lib/safe-error';
@@ -5,13 +26,20 @@ import ZAI from 'z-ai-web-dev-sdk';
 import { analyzeMencion, applyAnalysisToMencion } from '@/lib/analyze';
 import { deduplicarMencion, actualizarCoberturaDuplicado } from '@/lib/deduplicacion';
 import { withAuth } from '@/lib/auth-helpers';
-import { FLOW_CONTROL } from '@/lib/jobs/constants';
 
-// ─── Flow Control: Cooldown global ─────────────────────────────
-let lastCaptureTime = 0;
+// ─── Configuración de la Cola ──────────────────────────────────
+const QUEUE_CONFIG = {
+  /** Milisegundos de pausa obligatoria entre cada medio */
+  delayBetweenMediaMs: 60_000, // 60 segundos
+  /** Lote de personas a procesar por medio (limitado para no saturar) */
+  personasBatchSize: 10,
+  /** Resultados máximos por búsqueda web */
+  searchResultsPerQuery: 8,
+  /** Milisegundos de cooldown entre invocaciones al endpoint */
+  endpointCooldownMs: 120_000, // 2 minutos entre solicitudes al endpoint
+} as const;
 
-const SITES_QUERY = 'site:la-razon.com OR site:eldeber.com.bo OR site:lostiempos.com OR site:opinion.com.bo OR site:correodelsur.com OR site:elpotosi.net OR site:lapatria.bo OR site:eldiario.net OR site:jornadanet.com OR site:unitel.bo OR site:reduno.bo OR site:atb.com.bo OR site:boliviaverifica.bo OR site:abi.bo OR site:eju.tv OR site:elmundo.com.bo OR site:vision360.bo';
-
+// ─── Mapeo Dominio → Medio (para detectar medio por URL) ───────
 const DOMAIN_MEDIO_MAP: Record<string, string> = {
   'la-razon.com': 'La Razón',
   'eldeber.com.bo': 'El Deber',
@@ -32,6 +60,12 @@ const DOMAIN_MEDIO_MAP: Record<string, string> = {
   'vision360.bo': 'Visión 360',
 };
 
+// Inverso: Medio → Dominio (para construir queries scoped por medio)
+const MEDIO_DOMAIN_MAP: Record<string, string> = {};
+for (const [domain, nombre] of Object.entries(DOMAIN_MEDIO_MAP)) {
+  MEDIO_DOMAIN_MAP[nombre] = domain;
+}
+
 function detectMedioByDomain(url: string): string {
   try {
     const hostname = new URL(url).hostname.replace('www.', '');
@@ -44,296 +78,479 @@ function detectMedioByDomain(url: string): string {
   return '';
 }
 
-export async function POST(request: NextRequest) {
-  const { error: authError } = await withAuth();
-  if (authError) return authError;
+// ─── Estado de la Cola (in-memory, persiste dentro del proceso) ──
+interface QueueState {
+  running: boolean;
+  startedAt: string | null;
+  completedAt: string | null;
+  currentMedio: string | null;
+  progress: { current: number; total: number };
+  stats: { menciones: number; clasificadas: number; errores: number; tematicas: number };
+  log: string[];
+}
 
-  // ─── Flow Control: Rate limiting en endpoint de captura ───
-  const now = Date.now();
-  const elapsed = now - lastCaptureTime;
-  if (elapsed < FLOW_CONTROL.captureEndpointCooldownMs && lastCaptureTime > 0) {
-    const waitSec = Math.ceil((FLOW_CONTROL.captureEndpointCooldownMs - elapsed) / 1000);
-    return NextResponse.json({
-      error: `Flow control: Cooldown activo. Espera ${waitSec}s entre capturas.`,
-      cooldownRemaining: waitSec,
-    }, { status: 429 });
+const queueState: QueueState = {
+  running: false,
+  startedAt: null,
+  completedAt: null,
+  currentMedio: null,
+  progress: { current: 0, total: 0 },
+  stats: { menciones: 0, clasificadas: 0, errores: 0, tematicas: 0 },
+  log: [],
+};
+
+let lastEndpointInvocation = 0;
+
+// ─── Helper: añadir log estructurado ───────────────────────────
+function queueLog(msg: string) {
+  const ts = new Date().toISOString().slice(11, 19);
+  const line = `[${ts}] ${msg}`;
+  queueState.log.push(line);
+  console.log(`[CAPTURE-JOB] ${line}`);
+  // Mantener solo los últimos 200 logs en memoria
+  if (queueState.log.length > 200) queueState.log.shift();
+}
+
+// ─── Helper: esperar N milisegundos ────────────────────────────
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ─── Núcleo: Procesar un medio completo ────────────────────────
+/**
+ * Ejecuta la lógica de captura para UN solo medio:
+ * 1. Busca menciones de cada persona activa en el dominio del medio.
+ * 2. Busca menciones temáticas por ejes temáticos.
+ * 3. Deduplica, clasifica con IA, registra logs.
+ *
+ * Todo ocurre secuencialmente dentro de este medio — sin paralelismo.
+ */
+async function processMedio(
+  medio: { id: string; nombre: string; url: string | null },
+  personas: Array<{ id: string; nombre: string }>,
+  ejes: Array<{ id: string; nombre: string; keywords: string | null }>,
+  zai: Awaited<ReturnType<typeof ZAI.create>>,
+  processedUrls: Set<string>,
+): Promise<{ menciones: number; clasificadas: number; errores: number; tematicas: number }> {
+  let menciones = 0;
+  let clasificadas = 0;
+  let errores = 0;
+  let tematicas = 0;
+
+  const medioDomain = MEDIO_DOMAIN_MAP[medio.nombre];
+  if (!medioDomain) {
+    queueLog(`  ⚠️  Medio "${medio.nombre}" sin dominio conocido — saltando`);
+    return { menciones, clasificadas, errores, tematicas };
   }
-  lastCaptureTime = now;
 
-  try {
-    const { searchParams } = new URL(request.url);
-    const count = Math.min(20, Math.max(1, parseInt(searchParams.get('count') || '5')));
-    const clientId = searchParams.get('clientId') || undefined; // FASE 4D: optional client context
-
-    const personas = await db.persona.findMany({
-      where: { activa: true },
-      take: count,
-      orderBy: { fechaActualizacion: 'asc' },
-    });
-
-    const medios = await db.medio.findMany();
-    const medioMap = new Map(medios.map((m) => [m.nombre, m.id]));
-
-    const zai = await ZAI.create();
-    let totalBusquedas = 0;
-    let totalMencionesNuevas = 0;
-    let totalClasificadas = 0;
-    let totalErrores = 0;
-    let totalTematicas = 0;
-    const detalles: string[] = [];
-
-    // ─── PASO 1: Búsqueda por persona (Pipeline B original) ───
-    const allProcessedUrls = new Set<string>();
-
-    for (const persona of personas) {
-      totalBusquedas++;
-      try {
-        const query = `"${persona.nombre}" Bolivia ${SITES_QUERY}`;
-        const results = await zai.functions.invoke('web_search', { query, num: 10 });
-
-        const searchItems = (Array.isArray(results) ? results : []) as Array<{
-          title?: string;
-          snippet?: string;
-          url?: string;
-          link?: string;
-        }>;
-
-        let nuevasParaPersona = 0;
-
-        // Batch URL check — single query for all URLs instead of N+1
-        const allUrls = searchItems
-          .map((item) => item.url || item.link || '')
-          .filter(Boolean);
-        const existingUrls = new Set<string>();
-        if (allUrls.length > 0) {
-          const existingMenciones = await db.mencion.findMany({
-            where: { url: { in: allUrls } },
-            select: { url: true },
-          });
-          for (const m of existingMenciones) existingUrls.add(m.url);
-        }
-
-        for (const item of searchItems) {
-          const itemUrl = item.url || item.link || '';
-          if (!itemUrl) continue;
-          if (existingUrls.has(itemUrl)) continue;
-
-          const medioNombre = detectMedioByDomain(itemUrl);
-          const medioId = medioNombre ? (medioMap.get(medioNombre) || null) : null;
-          if (!medioId) continue;
-
-          // DEDUPLICACION CROSS-MEDIO (FASE 4C)
-          const snippetText = item.snippet || '';
-          const dedupResult = await deduplicarMencion({
-            personaId: persona.id,
-            ejesTematicos: [],
-            resumen: snippetText,
-            fecha: new Date(),
-            medioId,
-            textoOriginal: snippetText,
-          });
-
-          if (dedupResult.decision === 'es_duplicado' && dedupResult.mencionOriginalId) {
-            await actualizarCoberturaDuplicado(dedupResult.mencionOriginalId, {
-              medioId,
-              medioNombre: medioNombre || 'Desconocido',
-              resumen: snippetText,
-              fecha: new Date(),
-            });
-            console.log(`[DEDUP capture] Deduplicada: ${medioNombre} → #${dedupResult.mencionOriginalId}`);
-            nuevasParaPersona++;
-            totalMencionesNuevas++;
-            allProcessedUrls.add(itemUrl);
-            continue;
-          }
-
-          const dedupLog = JSON.stringify({
-            decision: dedupResult.decision,
-            razon: dedupResult.razon,
-            timestamp: new Date().toISOString(),
-            ...(dedupResult.mencionOriginalId ? { candidatoId: dedupResult.mencionOriginalId } : {}),
-          });
-
-          const mencion = await db.mencion.create({
-            data: {
-              personaId: persona.id,
-              medioId,
-              titulo: item.title || '',
-              texto: item.snippet || '',
-              url: itemUrl,
-              tipoMencion: 'no_clasificado',
-              sentimiento: 'no_clasificado',
-              verificado: false,
-              ...(dedupResult.eventoId ? { eventoId: dedupResult.eventoId } : {}),
-              deduplicacionLog: dedupLog,
-            },
-          });
-          nuevasParaPersona++;
-          totalMencionesNuevas++;
-          allProcessedUrls.add(itemUrl);
-
-          // Clasificar automáticamente con IA
-          try {
-            const analysis = await analyzeMencion(mencion.titulo, mencion.texto);
-            await applyAnalysisToMencion(mencion.id, analysis);
-            totalClasificadas++;
-          } catch {
-            // Si falla la clasificación, la mención queda como no_clasificado — no se pierde
-          }
-        }
-
-        detalles.push(`${persona.nombre}: ${nuevasParaPersona} menciones nuevas`);
-      } catch (err) {
-        totalErrores++;
-        const errMsg = err instanceof Error ? err.message : 'Error desconocido';
-        detalles.push(`${persona.nombre}: ERROR - ${errMsg}`);
-      }
-    }
-
-    // ─── PASO 2: Búsqueda temática por ejes temáticos ────────
+  // ── FASE 1: Búsqueda por persona en ESTE medio ──────────────
+  for (const persona of personas) {
     try {
-      const ejes = await db.ejeTematico.findMany({
-        where: { activo: true },
-        select: { id: true, nombre: true, keywords: true },
+      const query = `"${persona.nombre}" Bolivia site:${medioDomain}`;
+      const results = await zai.functions.invoke('web_search', {
+        query,
+        num: QUEUE_CONFIG.searchResultsPerQuery,
       });
 
-      if (ejes.length > 0) {
-        detalles.push(`--- Busqueda tematica: ${ejes.length} ejes ---`);
+      const searchItems = (Array.isArray(results) ? results : []) as Array<{
+        title?: string;
+        snippet?: string;
+        url?: string;
+        link?: string;
+      }>;
 
-        for (const eje of ejes) {
-          if (!eje.keywords) continue;
-          const keywordsList = eje.keywords.split(',').map(k => k.trim()).filter(Boolean);
-          if (keywordsList.length === 0) continue;
+      // Batch URL check — evitar N+1 queries a la DB
+      const urlsToCheck = searchItems
+        .map((item) => item.url || item.link || '')
+        .filter((u) => u && !processedUrls.has(u));
+      const existingUrls = new Set<string>();
+      if (urlsToCheck.length > 0) {
+        const existing = await db.mencion.findMany({
+          where: { url: { in: urlsToCheck } },
+          select: { url: true },
+        });
+        for (const m of existing) existingUrls.add(m.url);
+      }
 
-          totalBusquedas++;
-          try {
-            // Construir query con las top 3 keywords del eje
-            const keywordsQuery = keywordsList.slice(0, 3).map(k => `"${k}"`).join(' OR ');
-            const query = `(${keywordsQuery}) Bolivia ${SITES_QUERY}`;
-            const results = await zai.functions.invoke('web_search', { query, num: 5 });
+      for (const item of searchItems) {
+        const itemUrl = item.url || item.link || '';
+        if (!itemUrl || processedUrls.has(itemUrl) || existingUrls.has(itemUrl)) continue;
 
-            const searchItems = (Array.isArray(results) ? results : []) as Array<{
-              title?: string;
-              snippet?: string;
-              url?: string;
-              link?: string;
-            }>;
+        // Verificar que el resultado realmente pertenece a este medio
+        const detectedMedio = detectMedioByDomain(itemUrl);
+        if (detectedMedio !== medio.nombre) continue;
 
-            let nuevasParaEje = 0;
+        const snippetText = item.snippet || '';
 
-            for (const item of searchItems) {
-              const itemUrl = item.url || item.link || '';
-              if (!itemUrl) continue;
+        // Deduplicación cross-media
+        const dedupResult = await deduplicarMencion({
+          personaId: persona.id,
+          ejesTematicos: [],
+          resumen: snippetText,
+          fecha: new Date(),
+          medioId: medio.id,
+          textoOriginal: snippetText,
+        });
 
-              // Skip URLs already processed in Paso 1 or already in DB
-              if (allProcessedUrls.has(itemUrl)) continue;
+        if (dedupResult.decision === 'es_duplicado' && dedupResult.mencionOriginalId) {
+          await actualizarCoberturaDuplicado(dedupResult.mencionOriginalId, {
+            medioId: medio.id,
+            medioNombre: medio.nombre,
+            resumen: snippetText,
+            fecha: new Date(),
+          });
+          menciones++;
+          processedUrls.add(itemUrl);
+          continue;
+        }
 
-              // Check DB for existing
-              const existente = await db.mencion.findFirst({
-                where: { url: itemUrl },
-                select: { id: true },
-              });
-              if (existente) {
-                allProcessedUrls.add(itemUrl);
-                continue;
-              }
+        const dedupLog = JSON.stringify({
+          decision: dedupResult.decision,
+          razon: dedupResult.razon,
+          timestamp: new Date().toISOString(),
+          ...(dedupResult.mencionOriginalId ? { candidatoId: dedupResult.mencionOriginalId } : {}),
+        });
 
-              const medioNombre = detectMedioByDomain(itemUrl);
-              const medioId = medioNombre ? (medioMap.get(medioNombre) || null) : null;
-              if (!medioId) continue;
+        const mencion = await db.mencion.create({
+          data: {
+            personaId: persona.id,
+            medioId: medio.id,
+            titulo: item.title || '',
+            texto: snippetText,
+            url: itemUrl,
+            tipoMencion: 'no_clasificado',
+            sentimiento: 'no_clasificado',
+            verificado: false,
+            ...(dedupResult.eventoId ? { eventoId: dedupResult.eventoId } : {}),
+            deduplicacionLog: dedupLog,
+          },
+        });
+        menciones++;
+        processedUrls.add(itemUrl);
 
-              // Crear mencion tematica sin personaId
-              const mencion = await db.mencion.create({
-                data: {
-                  personaId: null,
-                  medioId,
-                  titulo: item.title || '',
-                  texto: item.snippet || '',
-                  url: itemUrl,
-                  tipoMencion: 'referencia_tematica',
-                  sentimiento: 'no_clasificado',
-                  verificado: false,
-                },
-              });
-
-              // Vincular al eje tematico via MencionTema
-              try {
-                await db.mencionTema.create({
-                  data: { mencionId: mencion.id, ejeTematicoId: eje.id },
-                });
-              } catch {
-                // Duplicado, ignorar
-              }
-
-              // Clasificar con IA
-              try {
-                const analysis = await analyzeMencion(mencion.titulo, mencion.texto);
-                await applyAnalysisToMencion(mencion.id, analysis);
-                totalClasificadas++;
-              } catch {
-                // Si falla, queda como referencia_tematica
-              }
-
-              nuevasParaEje++;
-              totalMencionesNuevas++;
-              totalTematicas++;
-              allProcessedUrls.add(itemUrl);
-            }
-
-            if (nuevasParaEje > 0) {
-              detalles.push(`  ${eje.nombre}: ${nuevasParaEje} menciones tematicas`);
-            }
-          } catch (err) {
-            const errMsg = err instanceof Error ? err.message : 'Error desconocido';
-            detalles.push(`  ${eje.nombre}: ERROR - ${errMsg}`);
-          }
+        // Clasificar con IA (best-effort, no bloquea si falla)
+        try {
+          const analysis = await analyzeMencion(mencion.titulo, mencion.texto);
+          await applyAnalysisToMencion(mencion.id, analysis);
+          clasificadas++;
+        } catch {
+          // La mención queda como no_clasificado — no se pierde
         }
       }
     } catch (err) {
+      errores++;
       const errMsg = err instanceof Error ? err.message : 'Error desconocido';
-      detalles.push(`Busqueda tematica ERROR: ${errMsg}`);
+      queueLog(`  ❌ Persona ${persona.nombre}: ${errMsg}`);
+    }
+  }
+
+  // ── FASE 2: Búsqueda temática por ejes en ESTE medio ────────
+  for (const eje of ejes) {
+    if (!eje.keywords) continue;
+    const keywordsList = eje.keywords.split(',').map((k) => k.trim()).filter(Boolean);
+    if (keywordsList.length === 0) continue;
+
+    try {
+      const keywordsQuery = keywordsList.slice(0, 3).map((k) => `"${k}"`).join(' OR ');
+      const query = `(${keywordsQuery}) Bolivia site:${medioDomain}`;
+      const results = await zai.functions.invoke('web_search', { query, num: 5 });
+
+      const searchItems = (Array.isArray(results) ? results : []) as Array<{
+        title?: string;
+        snippet?: string;
+        url?: string;
+        link?: string;
+      }>;
+
+      for (const item of searchItems) {
+        const itemUrl = item.url || item.link || '';
+        if (!itemUrl || processedUrls.has(itemUrl)) continue;
+
+        const detectedMedio = detectMedioByDomain(itemUrl);
+        if (detectedMedio !== medio.nombre) continue;
+
+        // Verificar si ya existe en DB
+        const existente = await db.mencion.findFirst({
+          where: { url: itemUrl },
+          select: { id: true },
+        });
+        if (existente) {
+          processedUrls.add(itemUrl);
+          continue;
+        }
+
+        const mencion = await db.mencion.create({
+          data: {
+            personaId: null,
+            medioId: medio.id,
+            titulo: item.title || '',
+            texto: item.snippet || '',
+            url: itemUrl,
+            tipoMencion: 'referencia_tematica',
+            sentimiento: 'no_clasificado',
+            verificado: false,
+          },
+        });
+
+        // Vincular al eje temático
+        try {
+          await db.mencionTema.create({
+            data: { mencionId: mencion.id, ejeTematicoId: eje.id },
+          });
+        } catch {
+          // Duplicado, ignorar
+        }
+
+        // Clasificar con IA
+        try {
+          const analysis = await analyzeMencion(mencion.titulo, mencion.texto);
+          await applyAnalysisToMencion(mencion.id, analysis);
+          clasificadas++;
+        } catch {
+          // Queda como referencia_tematica
+        }
+
+        tematicas++;
+        menciones++;
+        processedUrls.add(itemUrl);
+      }
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : 'Error desconocido';
+      queueLog(`  ❌ Eje ${eje.nombre}: ${errMsg}`);
+    }
+  }
+
+  // ── FASE 3: Registrar captura log para este medio ────────────
+  try {
+    await db.capturaLog.create({
+      data: {
+        medioId: medio.id,
+        totalArticulos: menciones,
+        mencionesEncontradas: menciones,
+        exitosa: errores === 0,
+        errores: errores > 0 ? `${errores} errores` : '',
+      },
+    });
+  } catch {
+    // Non-critical
+  }
+
+  return { menciones, clasificadas, errores, tematicas };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// POST /api/capture — Iniciar Cola Inteligente
+// ═══════════════════════════════════════════════════════════════════
+export async function POST(request: NextRequest) {
+  // ── Autenticación ────────────────────────────────────────────
+  const { error: authError } = await withAuth();
+  if (authError) return authError;
+
+  // ── Cooldown: evitar invocaciones repetidas al endpoint ──────
+  const now = Date.now();
+  const elapsed = now - lastEndpointInvocation;
+  if (elapsed < QUEUE_CONFIG.endpointCooldownMs && lastEndpointInvocation > 0) {
+    const waitSec = Math.ceil((QUEUE_CONFIG.endpointCooldownMs - elapsed) / 1000);
+    return NextResponse.json(
+      {
+        error: `Cooldown activo. Espera ${waitSeg}s antes de lanzar otra captura.`,
+        cooldownRemaining: waitSec,
+      },
+      { status: 429 },
+    );
+  }
+  lastEndpointInvocation = now;
+
+  try {
+    const body = await request.json().catch(() => ({}));
+    const { mode = 'smart-batch' } = body as { mode?: string };
+
+    if (mode !== 'smart-batch' && mode !== 'immediate') {
+      return NextResponse.json({ error: `Modo "${mode}" no soportado. Usa "smart-batch" o "immediate".` }, { status: 400 });
     }
 
-    // Registrar logs de captura por cada medio
-    const allMedios = await db.medio.findMany();
-    for (const medio of allMedios) {
-      await db.capturaLog.create({
-        data: {
-          medioId: medio.id,
-          totalArticulos: 0,
-          mencionesEncontradas: 0,
-          exitosa: totalErrores === 0,
-          errores: totalErrores > 0 ? `${totalErrores} errores en la captura` : '',
+    // ── Protección: no permitir colas solapadas ─────────────────
+    if (queueState.running) {
+      return NextResponse.json(
+        {
+          error: 'Ya hay una captura en ejecución.',
+          currentProgress: queueState.progress,
+          currentMedio: queueState.currentMedio,
+          elapsedMin: Math.round((Date.now() - (queueState.startedAt ? new Date(queueState.startedAt).getTime() : Date.now())) / 60000),
         },
-      });
+        { status: 409 },
+      );
     }
 
+    // ── Consultar datos necesarios (antes de fire-and-forget) ───
+    const activeMedios = await db.medio.findMany({
+      where: { activo: true },
+      select: { id: true, nombre: true, url: true },
+      orderBy: { nombre: 'asc' },
+    });
+
+    if (activeMedios.length === 0) {
+      return NextResponse.json({ message: 'No hay medios activos configurados.' });
+    }
+
+    const personas = await db.persona.findMany({
+      where: { activa: true },
+      take: QUEUE_CONFIG.personasBatchSize,
+      orderBy: { fechaActualizacion: 'asc' },
+    });
+
+    const ejes = await db.ejeTematico.findMany({
+      where: { activo: true },
+      select: { id: true, nombre: true, keywords: true },
+    });
+
+    const totalMedios = activeMedios.length;
+    const estimatedTimeMin = Math.round(totalMedios * 1.5); // ~60s por medio + overhead
+
+    // ── Resetear estado de la cola ──────────────────────────────
+    queueState.running = true;
+    queueState.startedAt = new Date().toISOString();
+    queueState.completedAt = null;
+    queueState.currentMedio = null;
+    queueState.progress = { current: 0, total: totalMedios };
+    queueState.stats = { menciones: 0, clasificadas: 0, errores: 0, tematicas: 0 };
+    queueState.log = [];
+
+    queueLog(`🚀 COLA INICIADA — ${totalMedios} medios, ${personas.length} personas, ${ejes.length} ejes`);
+    queueLog(`Estimado: ~${estimatedTimeMin} minutos (1 medio cada ${QUEUE_CONFIG.delayBetweenMediaMs / 1000}s)`);
+
+    // ══════════════════════════════════════════════════════════════
+    // FIRE-AND-FORGET: Procesamiento en segundo plano
+    // Esta promesa NO se espera — la respuesta HTTP se devuelve
+    // inmediatamente mientras el bucle corre en background.
+    // ══════════════════════════════════════════════════════════════
+    (async () => {
+      const processedUrls = new Set<string>();
+      // Precargar URLs existentes para deduplicación rápida
+      try {
+        const existing = await db.mencion.findMany({ select: { url: true } });
+        for (const m of existing) processedUrls.add(m.url);
+        queueLog(`Deduplicación: ${processedUrls.size} URLs existentes precargadas`);
+      } catch {
+        queueLog('⚠️  No se pudieron precargar URLs existentes');
+      }
+
+      let zai: Awaited<ReturnType<typeof ZAI.create>> | null = null;
+
+      for (let i = 0; i < totalMedios; i++) {
+        const medio = activeMedios[i];
+        queueState.progress.current = i + 1;
+        queueState.currentMedio = medio.nombre;
+
+        const progressPct = Math.round(((i + 1) / totalMedios) * 100);
+        queueLog(`[${progressPct}%] ━━ (${i + 1}/${totalMedios}) PROCESANDO: ${medio.nombre} ━━`);
+
+        try {
+          // Inicializar cliente ZAI si es necesario (lazy, para no consumir recursos al inicio)
+          if (!zai) {
+            try {
+              zai = await ZAI.create();
+              queueLog('Cliente ZAI inicializado');
+            } catch (err) {
+              const errMsg = err instanceof Error ? err.message : String(err);
+              queueLog(`❌ Error crítico: No se pudo inicializar ZAI — ${errMsg}`);
+              queueLog('Cancelando cola — no se puede continuar sin ZAI.');
+              break;
+            }
+          }
+
+          const result = await processMedio(medio, personas, ejes, zai, processedUrls);
+
+          // Acumular estadísticas
+          queueState.stats.menciones += result.menciones;
+          queueState.stats.clasificadas += result.clasificadas;
+          queueState.stats.errores += result.errores;
+          queueState.stats.tematicas += result.tematicas;
+
+          queueLog(
+            `  ✅ ${medio.nombre}: ${result.menciones} menciones (${result.clasificadas} clasificadas, ${result.tematicas} temáticas)` +
+              (result.errores > 0 ? ` — ${result.errores} errores` : ''),
+          );
+        } catch (err) {
+          queueState.stats.errores++;
+          const errMsg = err instanceof Error ? err.message : String(err);
+          queueLog(`  ❌ ${medio.nombre}: ERROR FATAL — ${errMsg}`);
+          // Continuar con el siguiente medio — no detener la cola
+        }
+
+        // ── PAUSA ANTI-SATURACIÓN (60s entre medios) ────────────
+        if (i < totalMedios - 1) {
+          queueLog(`  ⏳ Pausa de ${QUEUE_CONFIG.delayBetweenMediaMs / 1000}s antes del siguiente medio...`);
+          await sleep(QUEUE_CONFIG.delayBetweenMediaMs);
+        }
+      }
+
+      // ── Finalización ──────────────────────────────────────────
+      queueState.running = false;
+      queueState.completedAt = new Date().toISOString();
+      queueState.currentMedio = null;
+
+      const s = queueState.stats;
+      queueLog(
+        `🎉 COLA FINALIZADA — ${s.menciones} menciones nuevas, ${s.clasificadas} clasificadas, ${s.tematicas} temáticas, ${s.errores} errores`,
+      );
+
+      // Limpiar cliente ZAI
+      try { zai && await zai.close(); } catch { /* ignore */ }
+    })();
+
+    // ── Respuesta INMEDIATA al frontend (< 1 segundo) ───────────
     return NextResponse.json({
-      busquedas: totalBusquedas,
-      mencionesNuevas: totalMencionesNuevas,
-      clasificadas: totalClasificadas,
-      mencionesTematicas: totalTematicas,
-      errores: totalErrores,
-      ...(clientId ? { clientId } : {}),
-      detalles,
+      success: true,
+      message: `Cola de captura iniciada para ${totalMedios} medios activos.`,
+      totalMedia: totalMedios,
+      totalPersonas: personas.length,
+      totalEjes: ejes.length,
+      estimatedTimeMin,
+      config: {
+        batchSize: 1,
+        delaySeconds: QUEUE_CONFIG.delayBetweenMediaMs / 1000,
+        searchResultsPerQuery: QUEUE_CONFIG.searchResultsPerQuery,
+      },
     });
   } catch (error: unknown) {
+    queueState.running = false;
+    queueState.currentMedio = null;
     return NextResponse.json({ error: safeError(error) }, { status: 500 });
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// GET /api/capture — Estado de la Cola + Último Log
+// ═══════════════════════════════════════════════════════════════════
 export async function GET() {
   try {
+    // ── Estado en tiempo real de la cola ─────────────────────────
+    const status = {
+      queue: {
+        running: queueState.running,
+        startedAt: queueState.startedAt,
+        completedAt: queueState.completedAt,
+        currentMedio: queueState.currentMedio,
+        progress: queueState.progress,
+        stats: queueState.stats,
+        elapsedMin: queueState.startedAt
+          ? Math.round((Date.now() - new Date(queueState.startedAt).getTime()) / 60000)
+          : 0,
+      },
+      recentLogs: queueState.log.slice(-30), // Últimos 30 logs
+    };
+
+    // ── Último captura log de la DB ─────────────────────────────
     const lastLog = await db.capturaLog.findFirst({
       orderBy: { fecha: 'desc' },
       include: { Medio: { select: { nombre: true } } },
     });
 
-    if (!lastLog) {
-      return NextResponse.json({ message: 'No hay capturas registradas' });
-    }
-
-    return NextResponse.json(lastLog);
+    return NextResponse.json({
+      ...status,
+      lastCaptureLog: lastLog || null,
+    });
   } catch (error: unknown) {
     return NextResponse.json({ error: safeError(error) }, { status: 500 });
   }
