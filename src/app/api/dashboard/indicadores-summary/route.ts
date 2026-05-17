@@ -229,7 +229,17 @@ export async function GET() {
       },
     });
   } catch (error: unknown) {
-    console.error('[indicadores-summary]', error);
-    return NextResponse.json({ error: safeError(error, 'indicadores-summary') }, { status: 500 });
+    // BLINDAJE: NUNCA 500. Devolver datos degradados.
+    console.error('[indicadores-summary] Error (returning degraded):', error);
+    return NextResponse.json({
+      status: 'degraded',
+      timestamp: new Date().toISOString(),
+      captura: { menciones: { total: 0, hoy: 0, semana: 0 }, medios: 0, fuentes: { activas: 0, degradadas: 0 }, ultimaCaptura: null, ultimaCapturaHace: 'nunca', porNivel: [], status: 'idle' },
+      clasificacion: { lentes: 0, ejes: 0, mencionesClasificadas: { conLente: 0, conEje: 0, conSentimiento: 0, total: 0 }, tasas: { lente: 0, eje: 0, sentimiento: 0 }, status: 'idle' },
+      produccion: { productos: { total: 0, hoy: 0, semana: 0 }, reportes: 0, porTipo: [], porEstado: [], ultimoProducto: null, ultimoProductoHace: 'nunca', ultimoTipo: null, status: 'idle' },
+      distribucion: { envios: { total: 0, exitosos: 0, fallidos: 0, tasaExito: 0 }, entregas: { total: 0, hoy: 0 }, suscriptores: 0, ultimoEnvio: null, ultimoEnvioHace: 'nunca', status: 'idle' },
+      sistema: { jobs24h: { completados: 0, fallidos: 0 }, status: 'idle' },
+      message: 'Metricas no disponibles temporalmente',
+    });
   }
 }

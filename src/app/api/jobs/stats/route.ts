@@ -1,29 +1,56 @@
-// GET /api/jobs/stats - Full statistics dashboard data
+/**
+ * /api/jobs/stats — Full statistics dashboard data
+ *
+ * BLINDAJE: NUNCA devuelve HTTP 500. Si falla alguna consulta,
+ * devuelve datos degradados con status 200.
+ */
 
 import { NextResponse } from 'next/server'
-import { getFullStats } from '@/lib/jobs/health'
-import { getSchedulerStatus } from '@/lib/jobs/scheduler'
-import { ensureWorkerRunning } from '@/lib/jobs'
-import { safeError } from '@/lib/rate-guard'
 
 export async function GET() {
   try {
-    // Asegurar que el worker esté corriendo (Next.js Turbopack aislación de módulos)
-    ensureWorkerRunning()
-    const [fullStats, scheduler] = await Promise.all([
-      getFullStats(),
-      Promise.resolve(getSchedulerStatus()),
-    ])
+    // Intentar importar y ejecutar todo. Si algo falla, devolver degradado.
+    let fullStats = { cola: { pendientes: 0, enProgreso: 0, fallidos24h: 0, completados24h: 0, tiempoPromedioMs: 0 }, worker: { running: false, uptime: '0s', jobsCompleted: 0, jobsFailed: 0, jobsPerHour: 0, lastJobTime: null }, checkFirst: { sinCambios24h: 0, conCambios24h: 0, tasaAhorro: 0 }, fuentes: { activas: 0, conCambiosHoy: 0, degradadas: 0, conError: 0, topProductoras: [] } }
+    let scheduler = { running: false, totalTasks: 0 }
+
+    try {
+      const { ensureWorkerRunning } = await import('@/lib/jobs')
+      ensureWorkerRunning()
+    } catch { /* Worker no disponible */ }
+
+    try {
+      const { getFullStats } = await import('@/lib/jobs/health')
+      fullStats = await getFullStats()
+    } catch (error) {
+      console.error('[API /jobs/stats] getFullStats failed (returning degraded):', error)
+    }
+
+    try {
+      const { getSchedulerStatus } = await import('@/lib/jobs/scheduler')
+      scheduler = getSchedulerStatus()
+    } catch {
+      console.error('[API /jobs/stats] getSchedulerStatus failed (returning degraded)')
+    }
 
     return NextResponse.json({
+      status: 'ok',
       cola: fullStats.cola,
       worker: fullStats.worker,
       checkFirst: fullStats.checkFirst,
       fuentes: fullStats.fuentes,
       scheduler,
     })
-  } catch (error: unknown) {
-    console.error('[API /jobs/stats GET]', error)
-    return NextResponse.json({ error: safeError(error, 'jobs/stats') }, { status: 500 })
+  } catch (error) {
+    // ULTIMO RECURSO: 200 con vacios. NUNCA 500.
+    console.error('[API /jobs/stats] Unexpected error (returning degraded):', error)
+    return NextResponse.json({
+      status: 'degraded',
+      cola: { pendientes: 0, enProgreso: 0, fallidos24h: 0, completados24h: 0, tiempoPromedioMs: 0 },
+      worker: { running: false, uptime: '0s', jobsCompleted: 0, jobsFailed: 0, jobsPerHour: 0, lastJobTime: null },
+      checkFirst: { sinCambios24h: 0, conCambios24h: 0, tasaAhorro: 0 },
+      fuentes: { activas: 0, conCambiosHoy: 0, degradadas: 0, conError: 0, topProductoras: [] },
+      scheduler: { running: false, totalTasks: 0 },
+      message: 'Metricas no disponibles temporalmente',
+    })
   }
 }

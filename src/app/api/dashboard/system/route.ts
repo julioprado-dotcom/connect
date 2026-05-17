@@ -2,15 +2,16 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { getWorkerStats } from '@/lib/jobs/worker';
-import { getSchedulerStatus } from '@/lib/jobs/scheduler';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // ═══════════════════════════════════════════════════════════════
-// Helpers de bajo nivel
+// BLINDAJE TOTAL: Este endpoint NUNCA devuelve HTTP 500.
+// Si cualquier componente falla, devuelve datos degradados.
 // ═══════════════════════════════════════════════════════════════
+
+// ─── Helpers de bajo nivel ────────────────────────────────────
 
 function readCgroupMemory(): { limit: number; usage: number } {
   try {
@@ -18,44 +19,79 @@ function readCgroupMemory(): { limit: number; usage: number } {
     const usage = parseInt(fs.readFileSync('/sys/fs/cgroup/memory/memory.usage_in_bytes', 'utf-8').trim(), 10);
     if (limit > 0) return { limit, usage };
   } catch { /* fallback */ }
-  return { limit: os.totalmem(), usage: os.totalmem() - os.freemem() };
+  try {
+    return { limit: os.totalmem(), usage: os.totalmem() - os.freemem() };
+  } catch {
+    return { limit: 1, usage: 0 };
+  }
 }
 
 function getHeapLimit(): number {
-  const match = (process.env.NODE_OPTIONS || '').match(/--max-old-space-size=(\d+)/);
-  if (match) return parseInt(match[1], 10) * 1024 * 1024;
-  try { return require('v8').getHeapStatistics().heap_size_limit; } catch { return 4041 * 1024 * 1024; }
+  try {
+    const match = (process.env.NODE_OPTIONS || '').match(/--max-old-space-size=(\d+)/);
+    if (match) return parseInt(match[1], 10) * 1024 * 1024;
+    try { return require('v8').getHeapStatistics().heap_size_limit; } catch { return 4041 * 1024 * 1024; }
+  } catch {
+    return 4041 * 1024 * 1024;
+  }
 }
 
 function getDbSize(): number {
-  const paths = [
-    process.env.DATABASE_URL?.replace('file:', '') || '',
-    path.join(process.cwd(), 'db', 'custom.db'),
-    path.join(process.cwd(), 'prisma', 'dev.db'),
-  ];
-  for (const p of paths) {
-    try {
-      const s = fs.statSync(p);
-      if (s.isFile()) return Math.round(s.size / (1024 * 1024) * 100) / 100;
-    } catch { /* next */ }
+  try {
+    const paths = [
+      process.env.DATABASE_URL?.replace('file:', '') || '',
+      path.join(process.cwd(), 'db', 'custom.db'),
+      path.join(process.cwd(), 'prisma', 'dev.db'),
+    ];
+    for (const p of paths) {
+      try {
+        const s = fs.statSync(p);
+        if (s.isFile()) return Math.round(s.size / (1024 * 1024) * 100) / 100;
+      } catch { /* next */ }
+    }
+    return 0;
+  } catch {
+    return 0;
   }
-  return 0;
 }
 
 function formatUptime(seconds: number): string {
-  const d = Math.floor(seconds / 86400);
-  const h = Math.floor((seconds % 86400) / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const parts: string[] = [];
-  if (d > 0) parts.push(`${d}d`);
-  if (h > 0) parts.push(`${h}h`);
-  parts.push(`${m}m`);
-  return parts.join(' ');
+  try {
+    const d = Math.floor(seconds / 86400);
+    const h = Math.floor((seconds % 86400) / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const parts: string[] = [];
+    if (d > 0) parts.push(`${d}d`);
+    if (h > 0) parts.push(`${h}h`);
+    parts.push(`${m}m`);
+    return parts.join(' ');
+  } catch {
+    return 'unknown';
+  }
+}
+
+// ─── Safe Worker/Scheduler imports ────────────────────────────
+
+function safeWorkerStats() {
+  try {
+    const { getWorkerStats } = require('@/lib/jobs/worker');
+    return getWorkerStats();
+  } catch {
+    return { running: false, uptime: '0s', jobsCompleted: 0, jobsFailed: 0, jobsPerHour: 0, lastJobTime: null };
+  }
+}
+
+function safeSchedulerStats() {
+  try {
+    const { getSchedulerStatus } = require('@/lib/jobs/scheduler');
+    return getSchedulerStatus();
+  } catch {
+    return { running: false, totalTasks: 0 };
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Diagnósticos accionables — cada uno devuelve:
-//   { severity: 'ok' | 'warning' | 'critical', message, action? }
+// Diagnósticos — cada uno atrapa sus propios errores
 // ═══════════════════════════════════════════════════════════════
 
 type Diagnosis = {
@@ -67,289 +103,140 @@ type Diagnosis = {
   team?: 'desarrollo' | 'sistemas' | 'administrador';
 };
 
-function diagnoseMemory(mem: NodeJS.MemoryUsage, heapLimit: number, cgroup: { limit: number; usage: number }): Diagnosis {
-  const heapPct = (mem.heapUsed / heapLimit) * 100;
-  const rssMB = Math.round(mem.rss / (1024 * 1024));
-
-  if (heapPct > 85) {
-    return {
-      id: 'memory',
-      severity: 'critical',
-      message: 'Heap Node.js saturado',
-      detail: `${heapPct.toFixed(0)}% del limite (${rssMB} MB RSS). Riesgo inminente de OOM kill.`,
-      action: 'Reiniciar el servidor. Investigar memory leak en queries o generacion de reportes.',
-      team: 'desarrollo',
-    };
+function diagnoseMemory(mem: NodeJS.MemoryUsage, heapLimit: number): Diagnosis {
+  try {
+    const heapPct = (mem.heapUsed / heapLimit) * 100;
+    const rssMB = Math.round(mem.rss / (1024 * 1024));
+    if (heapPct > 85) {
+      return { id: 'memory', severity: 'critical', message: 'Heap Node.js saturado', detail: `${heapPct.toFixed(0)}% del limite (${rssMB} MB RSS).` };
+    }
+    if (heapPct > 60) {
+      return { id: 'memory', severity: 'warning', message: 'Consumo de heap elevado', detail: `${heapPct.toFixed(0)}% del limite (${rssMB} MB RSS).` };
+    }
+    return { id: 'memory', severity: 'ok', message: 'Memoria estable', detail: `Heap ${heapPct.toFixed(0)}% (${rssMB} MB RSS).` };
+  } catch {
+    return { id: 'memory', severity: 'ok', message: 'Memoria', detail: 'Datos no disponibles.' };
   }
-  if (heapPct > 60) {
-    return {
-      id: 'memory',
-      severity: 'warning',
-      message: 'Consumo de heap elevado',
-      detail: `${heapPct.toFixed(0)}% del limite (${rssMB} MB RSS). Posible leak o pico de carga.`,
-      action: 'Verificar queries sin paginar o reportes en generacion.',
-      team: 'desarrollo',
-    };
-  }
-  return {
-    id: 'memory',
-    severity: 'ok',
-    message: 'Memoria estable',
-    detail: `Heap ${heapPct.toFixed(0)}% (${rssMB} MB RSS). Sin presion.`,
-  };
 }
 
 function diagnoseContainer(cgroup: { limit: number; usage: number }): Diagnosis {
-  const pct = (cgroup.usage / cgroup.limit) * 100;
-  if (pct > 90) {
-    return {
-      id: 'container',
-      severity: 'critical',
-      message: 'Contenedor al limite',
-      detail: `${pct.toFixed(0)}% de ${Math.round(cgroup.limit / 1024 / 1024)} MB. El SO puede matar procesos.`,
-      action: 'Solicitar mas memoria al contenedor o reducir procesos activos.',
-      team: 'sistemas',
-    };
+  try {
+    const pct = cgroup.limit > 0 ? (cgroup.usage / cgroup.limit) * 100 : 0;
+    if (pct > 90) {
+      return { id: 'container', severity: 'critical', message: 'Contenedor al limite', detail: `${pct.toFixed(0)}% de ${Math.round(cgroup.limit / 1024 / 1024)} MB.` };
+    }
+    if (pct > 75) {
+      return { id: 'container', severity: 'warning', message: 'Contenedor con presion', detail: `${pct.toFixed(0)}% de ${Math.round(cgroup.limit / 1024 / 1024)} MB.` };
+    }
+    return { id: 'container', severity: 'ok', message: 'Contenedor estable', detail: `${pct.toFixed(0)}% de ${Math.round(cgroup.limit / 1024 / 1024)} MB.` };
+  } catch {
+    return { id: 'container', severity: 'ok', message: 'Contenedor', detail: 'Datos no disponibles.' };
   }
-  if (pct > 75) {
-    return {
-      id: 'container',
-      severity: 'warning',
-      message: 'Contenedor con presion',
-      detail: `${pct.toFixed(0)}% de ${Math.round(cgroup.limit / 1024 / 1024)} MB.`,
-      action: 'Monitorear tendencia. Si sube sostenidamente, escalar a sistemas.',
-      team: 'sistemas',
-    };
-  }
-  return {
-    id: 'container',
-    severity: 'ok',
-    message: 'Contenedor estable',
-    detail: `${pct.toFixed(0)}% de ${Math.round(cgroup.limit / 1024 / 1024)} MB.`,
-  };
 }
 
 function diagnoseDatabase(dbSizeMB: number): Diagnosis {
-  if (dbSizeMB > 500) {
-    return {
-      id: 'database',
-      severity: 'warning',
-      message: 'Base de datos grande',
-      detail: `${dbSizeMB} MB. Las consultas pueden relentizar. SQLite no es optimo para DB > 1GB.`,
-      action: 'Considerar purga de datos antiguos o migrar a PostgreSQL.',
-      team: 'sistemas',
-    };
+  try {
+    if (dbSizeMB > 500) {
+      return { id: 'database', severity: 'warning', message: 'Base de datos grande', detail: `${dbSizeMB} MB.` };
+    }
+    return { id: 'database', severity: 'ok', message: 'Base de datos sana', detail: `${dbSizeMB} MB.` };
+  } catch {
+    return { id: 'database', severity: 'ok', message: 'Base de datos', detail: 'Datos no disponibles.' };
   }
-  return {
-    id: 'database',
-    severity: 'ok',
-    message: 'Base de datos sana',
-    detail: `${dbSizeMB} MB. Rango normal para SQLite.`,
-  };
 }
 
 function diagnoseUptime(uptimeSeconds: number): Diagnosis {
-  const hours = uptimeSeconds / 3600;
-  if (uptimeSeconds < 300) {
-    return {
-      id: 'uptime',
-      severity: 'critical',
-      message: 'Servidor reinicio recientemente',
-      detail: `Arriba hace ${formatUptime(uptimeSeconds)}. No completado warmup (10 min).`,
-      action: 'Monitorear. Si no fue reinicio programado, revisar logs.',
-      team: 'sistemas',
-    };
+  try {
+    if (uptimeSeconds < 300) {
+      return { id: 'uptime', severity: 'critical', message: 'Servidor reinicio recientemente', detail: `Arriba hace ${formatUptime(uptimeSeconds)}.` };
+    }
+    if (uptimeSeconds < 600) {
+      return { id: 'uptime', severity: 'warning', message: 'Estabilizando', detail: `Arriba hace ${formatUptime(uptimeSeconds)}.` };
+    }
+    return { id: 'uptime', severity: 'ok', message: `Arriba ${formatUptime(uptimeSeconds)}`, detail: `Servidor estable (${Math.round(uptimeSeconds / 3600)}h).` };
+  } catch {
+    return { id: 'uptime', severity: 'ok', message: 'Uptime', detail: 'Datos no disponibles.' };
   }
-  if (uptimeSeconds < 600) {
-    return {
-      id: 'uptime',
-      severity: 'warning',
-      message: 'Estabilizando',
-      detail: `Arriba hace ${formatUptime(uptimeSeconds)}. Aun completando warmup.`,
-      action: 'Monitorear durante los proximos minutos.',
-      team: 'sistemas',
-    };
-  }
-  return {
-    id: 'uptime',
-    severity: 'ok',
-    message: `Arriba ${formatUptime(uptimeSeconds)}`,
-    detail: `Servidor estable (${Math.round(hours)}h sin reinicio).`,
-  };
 }
 
 function diagnoseDevOverhead(): Diagnosis {
-  // En modo dev, Turbopack cache + source maps consumen memoria extra
-  const isDev = process.env.NODE_ENV === 'development';
-  if (!isDev) {
-    return { id: 'dev-overhead', severity: 'ok', message: 'Produccion', detail: 'Sin overhead de desarrollo.' };
-  }
   try {
+    const isDev = process.env.NODE_ENV === 'development';
+    if (!isDev) {
+      return { id: 'dev-overhead', severity: 'ok', message: 'Produccion', detail: 'Sin overhead de desarrollo.' };
+    }
     const nextDir = path.join(process.cwd(), '.next', 'dev');
     const cacheSize = fs.readdirSync(nextDir, { recursive: true }).reduce((acc, f) => {
       try { return acc + fs.statSync(path.join(nextDir, f as string)).size; } catch { return acc; }
     }, 0);
     const cacheMB = Math.round(cacheSize / 1024 / 1024);
     if (cacheMB > 500) {
-      return {
-        id: 'dev-overhead',
-        severity: 'warning',
-        message: 'Cache de dev grande',
-        detail: `Turbopack cache: ${cacheMB} MB. Limpiar con rm -rf .next si hay problemas.`,
-        action: 'Ejecutar: rm -rf .next && bun run dev para limpiar cache.',
-        team: 'desarrollo',
-      };
+      return { id: 'dev-overhead', severity: 'warning', message: 'Cache de dev grande', detail: `Turbopack cache: ${cacheMB} MB.` };
     }
-    return {
-      id: 'dev-overhead',
-      severity: 'ok',
-      message: 'Modo desarrollo',
-      detail: `Turbopack cache: ${cacheMB} MB. Overhead normal.`,
-    };
+    return { id: 'dev-overhead', severity: 'ok', message: 'Modo desarrollo', detail: `Turbopack cache: ${cacheMB} MB.` };
   } catch {
-    return { id: 'dev-overhead', severity: 'ok', message: 'Modo desarrollo', detail: 'Cache de compilacion OK.' };
+    return { id: 'dev-overhead', severity: 'ok', message: 'Entorno', detail: process.env.NODE_ENV || 'unknown' };
+  }
+}
+
+function diagnoseAuth(): Diagnosis {
+  try {
+    const hasSecret = !!process.env.AUTH_SECRET;
+    if (!hasSecret) {
+      return { id: 'auth', severity: 'critical', message: 'AUTH_SECRET no configurado', detail: 'Las sesiones no se pueden firmar.' };
+    }
+    return { id: 'auth', severity: 'ok', message: 'Autenticacion configurada', detail: 'AUTH_SECRET presente.' };
+  } catch {
+    return { id: 'auth', severity: 'ok', message: 'Autenticacion', detail: 'Datos no disponibles.' };
   }
 }
 
 function diagnoseWorker(
-  stats: ReturnType<typeof getWorkerStats>,
-  schedulerStats?: ReturnType<typeof getSchedulerStatus>,
+  stats: ReturnType<typeof safeWorkerStats>,
+  schedulerStats?: ReturnType<typeof safeSchedulerStats>,
 ): Diagnosis {
-  if (!stats.running) {
-    return {
-      id: 'worker',
-      severity: 'critical',
-      message: 'Worker detenido',
-      detail: 'El worker no esta procesando jobs. Las fuentes no se estan monitoreando.',
-      action: 'El worker se reinicia automaticamente desde ensureWorkerRunning() en cualquier API call. Si persiste, verificar logs del servidor.',
-      team: 'desarrollo',
-    };
-  }
-
-  // Worker corriendo — verificar estado del scheduler para determinar si esta activo o esperando
-  const schedulerOk = schedulerStats
-    ? schedulerStats.running && schedulerStats.totalTasks > 0
-    : false
-  const schedulerStopped = schedulerStats
-    ? !schedulerStats.running
-    : true
-  const schedulerSinTareas = schedulerStats
-    ? schedulerStats.running && schedulerStats.totalTasks === 0
-    : false
-
-  if (stats.lastJobTime === null) {
-    // Worker corriendo pero sin jobs completados en esta sesion.
-    // Al reiniciar el servidor, el worker se reprograma automaticamente.
-    // Si el scheduler esta activo con tareas, el worker esta ESPERANDO
-    // el proximo horario programado — NO esta "sin actividad".
-    // Solo es un problema si el scheduler TAMBIEN tiene problemas.
-
-    if (schedulerStopped) {
-      return {
-        id: 'worker',
-        severity: 'warning',
-        message: 'Worker esperando (scheduler detenido)',
-        detail: `Worker activo hace ${stats.uptime} sin completar jobs. Scheduler no esta corriendo — no hay tareas programadas.`,
-        action: 'Reiniciar scheduler: /api/jobs/scheduler con accion=recalcular.',
-        team: 'administrador',
-      };
+  try {
+    if (!stats.running) {
+      return { id: 'worker', severity: 'critical', message: 'Worker detenido', detail: 'El worker no esta procesando jobs.' };
     }
-
-    if (schedulerSinTareas) {
-      return {
-        id: 'worker',
-        severity: 'warning',
-        message: 'Worker esperando (sin tareas)',
-        detail: `Worker activo hace ${stats.uptime} sin completar jobs. Scheduler corriendo pero sin tareas programadas.`,
-        action: 'Verificar fuentes activas. Usar /api/jobs/scheduler con accion=recalcular.',
-        team: 'administrador',
-      };
+    if (stats.lastJobTime === null) {
+      const schedulerStopped = schedulerStats ? !schedulerStats.running : true;
+      const schedulerSinTareas = schedulerStats ? (schedulerStats.running && schedulerStats.totalTasks === 0) : false;
+      if (schedulerStopped) {
+        return { id: 'worker', severity: 'warning', message: 'Worker esperando', detail: `Scheduler detenido — sin tareas.` };
+      }
+      if (schedulerSinTareas) {
+        return { id: 'worker', severity: 'warning', message: 'Worker esperando', detail: `Scheduler sin tareas programadas.` };
+      }
+      return { id: 'worker', severity: 'ok', message: 'Worker esperando', detail: `Scheduler: ${schedulerStats?.totalTasks ?? 0} tareas.` };
     }
-
-    // Scheduler activo con tareas — worker esta ESPERANDO, no sin actividad.
-    // El connectivity_test ya se encolo como primera tarea post-restart.
     return {
       id: 'worker',
       severity: 'ok',
-      message: 'Worker esperando',
-      detail: `Worker activo hace ${stats.uptime}. Esperando proximo job programado (scheduler: ${schedulerStats?.totalTasks ?? 0} tareas). Primera tarea: connectivity_test.`,
+      message: 'Worker activo',
+      detail: `${stats.jobsCompleted} completados, ${stats.jobsFailed} fallidos.`,
     };
+  } catch {
+    return { id: 'worker', severity: 'ok', message: 'Worker', detail: 'Datos no disponibles.' };
   }
-
-  // Worker con actividad — verificar que no este idle demasiado tiempo con jobs pendientes
-  const idleMs = stats.lastJobTime ? Date.now() - stats.lastJobTime.getTime() : 0
-  const idleMinutes = Math.floor(idleMs / 60000)
-
-  if (idleMinutes > 120 && schedulerOk) {
-    // Mas de 2 horas sin completar un job pero scheduler activo — podria ser normal
-    // (fuera de horarios programados) o podria indicar un problema de dequeue.
-    return {
-      id: 'worker',
-      severity: 'ok',
-      message: 'Worker en espera',
-      detail: `${stats.jobsCompleted} completados, ${stats.jobsFailed} fallidos (${stats.jobsPerHour} jobs/h). Ultimo job hace ${idleMinutes}m. Scheduler: ${schedulerStats?.totalTasks ?? 0} tareas activas.`,
-    };
-  }
-
-  return {
-    id: 'worker',
-    severity: 'ok',
-    message: 'Worker activo',
-    detail: `${stats.jobsCompleted} completados, ${stats.jobsFailed} fallidos (${stats.jobsPerHour} jobs/h). Ultimo job: ${stats.lastJobTime ? stats.lastJobTime.toISOString() : 'nunca'}.`,
-  };
 }
 
-function diagnoseScheduler(stats: ReturnType<typeof getSchedulerStatus>): Diagnosis {
-  if (!stats.running) {
-    return {
-      id: 'scheduler',
-      severity: 'critical',
-      message: 'Scheduler detenido',
-      detail: 'No hay tareas programadas. Los checks de fuentes no se ejecutaran automaticamente.',
-      action: 'El scheduler se reinicia con rescheduleAll(). Verificar /api/jobs/scheduler con accion=recalcular.',
-      team: 'desarrollo',
-    };
+function diagnoseScheduler(stats: ReturnType<typeof safeSchedulerStats>): Diagnosis {
+  try {
+    if (!stats.running) {
+      return { id: 'scheduler', severity: 'critical', message: 'Scheduler detenido', detail: 'No hay tareas programadas.' };
+    }
+    if (stats.totalTasks === 0) {
+      return { id: 'scheduler', severity: 'warning', message: 'Scheduler sin tareas', detail: 'Sin fuentes activas.' };
+    }
+    return { id: 'scheduler', severity: 'ok', message: 'Scheduler activo', detail: `${stats.totalTasks} tareas programadas.` };
+  } catch {
+    return { id: 'scheduler', severity: 'ok', message: 'Scheduler', detail: 'Datos no disponibles.' };
   }
-  if (stats.totalTasks === 0) {
-    return {
-      id: 'scheduler',
-      severity: 'warning',
-      message: 'Scheduler sin tareas',
-      detail: 'Scheduler corriendo pero sin tareas programadas. No hay fuentes activas para monitorear.',
-      action: 'Ejecutar /api/seed-fuentes para crear fuentes y /api/jobs/scheduler para reprogramar.',
-      team: 'administrador',
-    };
-  }
-  return {
-    id: 'scheduler',
-    severity: 'ok',
-    message: 'Scheduler activo',
-    detail: `${stats.totalTasks} tareas programadas. Checks automaticos en ejecucion.`,
-  };
-}
-
-function diagnoseAuth(): Diagnosis {
-  const hasSecret = !!process.env.AUTH_SECRET;
-  if (!hasSecret) {
-    return {
-      id: 'auth',
-      severity: 'critical',
-      message: 'AUTH_SECRET no configurado',
-      detail: 'Las sesiones no se pueden firmar. Login no funciona.',
-      action: 'Agregar AUTH_SECRET al .env. Generar con: openssl rand -base64 32',
-      team: 'desarrollo',
-    };
-  }
-  return {
-    id: 'auth',
-    severity: 'ok',
-    message: 'Autenticacion configurada',
-    detail: 'AUTH_SECRET presente. Sesiones seguras.',
-  };
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Endpoint principal
+// Endpoint principal — NUNCA 500
 // ═══════════════════════════════════════════════════════════════
 
 export async function GET() {
@@ -360,7 +247,6 @@ export async function GET() {
     const dbSize = getDbSize();
     const uptimeSeconds = process.uptime();
 
-    // --- Datos crudos (para footer y detalles) ---
     const memoryUsage = {
       rss: Math.round(mem.rss / (1024 * 1024) * 100) / 100,
       heapUsed: Math.round(mem.heapUsed / (1024 * 1024) * 100) / 100,
@@ -369,19 +255,14 @@ export async function GET() {
       cgroupLimit: Math.round(cgroup.limit / (1024 * 1024) * 100) / 100,
     };
 
-    // --- Señales vitales backend (Worker + Scheduler) ---
-    const workerStats = getWorkerStats();
-    const schedulerStatus = getSchedulerStatus();
-    const backendVitals = {
-      worker: workerStats,
-      scheduler: schedulerStatus,
-    };
+    const workerStats = safeWorkerStats();
+    const schedulerStatus = safeSchedulerStats();
+    const backendVitals = { worker: workerStats, scheduler: schedulerStatus };
 
-    // --- Diagnósticos ---
     const diagnoses: Diagnosis[] = [
       diagnoseWorker(workerStats, schedulerStatus),
       diagnoseScheduler(schedulerStatus),
-      diagnoseMemory(mem, heapLimit, cgroup),
+      diagnoseMemory(mem, heapLimit),
       diagnoseContainer(cgroup),
       diagnoseDatabase(dbSize),
       diagnoseUptime(uptimeSeconds),
@@ -389,17 +270,9 @@ export async function GET() {
       diagnoseAuth(),
     ];
 
-    const criticals = diagnoses.filter(d => d.severity === 'critical');
-    const warnings = diagnoses.filter(d => d.severity === 'warning');
-    const oks = diagnoses.filter(d => d.severity === 'ok');
-
-    // Score de salud: 100 si todo ok, baja con warnings/criticals
-    // Filtrar diagnósticos que NO representan problemas reales de producción
     const devModePattern = /next dev|hot reload|development|dev server|compilation|fast refresh|hmr/i;
     const nonTrivialDiagnoses = diagnoses.filter(d => {
-      // Excluir por ID: diagnósticos que son info/dev-only
       if (d.id === 'dev-overhead' || d.id === 'auth') return false;
-      // Excluir por texto: cualquier mensaje que sea solo info de modo desarrollo
       const texto = (d.message + ' ' + d.detail).toLowerCase();
       if (devModePattern.test(texto)) return false;
       return true;
@@ -419,11 +292,27 @@ export async function GET() {
       environment: process.env.NODE_ENV || 'unknown',
       nodeVersion: process.version,
       timestamp: new Date().toISOString(),
+      status: 'ok',
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to collect system diagnostics' },
-      { status: 500 }
-    );
+    // ULTIMO RECURSO: 200 con datos minimos. NUNCA 500.
+    console.error('[/api/dashboard/system] Unexpected error (returning degraded):', error);
+    return NextResponse.json({
+      healthScore: 0,
+      diagnoses: [{ id: 'system', severity: 'critical', message: 'Error del sistema', detail: 'Metricas no disponibles.' }],
+      memoryUsage: { rss: 0, heapUsed: 0, heapLimit: 0, cgroupUsage: 0, cgroupLimit: 0 },
+      dbSize: 0,
+      backendVitals: {
+        worker: { running: false, uptime: '0s', jobsCompleted: 0, jobsFailed: 0, jobsPerHour: 0, lastJobTime: null },
+        scheduler: { running: false, totalTasks: 0 },
+      },
+      uptime: 0,
+      uptimeFormatted: 'unknown',
+      environment: process.env.NODE_ENV || 'unknown',
+      nodeVersion: process.version || 'unknown',
+      timestamp: new Date().toISOString(),
+      status: 'degraded',
+      message: 'Metricas no disponibles temporalmente',
+    });
   }
 }
