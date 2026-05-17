@@ -1,13 +1,7 @@
 'use client';
 
-import { Suspense } from 'react';
-import { NewDashboard } from '@/components/dashboard/NewDashboard';
-import { LoadingScreen } from '@/components/dashboard/LoadingScreen';
+import ONION200Dashboard from '@/app/page';
 
 export default function DashboardPage() {
-  return (
-    <Suspense fallback={<LoadingScreen />}>
-      <NewDashboard />
-    </Suspense>
-  );
+  return <ONION200Dashboard />;
 }
