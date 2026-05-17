@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
-import { Radio, Newspaper } from 'lucide-react';
+import { Radio, Newspaper, RefreshCw } from 'lucide-react';
 import { PanelShell } from './VitalMonitor';
 
 // ═══════════════════════════════════════════════════════════════
@@ -59,6 +59,7 @@ function tiempoRelativo(fechaStr: string): string {
 export function LiveFeed() {
   const [menciones, setMenciones] = useState<MencionReciente[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalToday, setTotalToday] = useState<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval>>(null);
@@ -89,6 +90,12 @@ export function LiveFeed() {
     }
   }, []);
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setTimeout(() => setRefreshing(false), 500);
+  };
+
   useEffect(() => {
     fetchData();
     intervalRef.current = setInterval(fetchData, 30000); // Poll every 30s
@@ -98,7 +105,18 @@ export function LiveFeed() {
   }, [fetchData]);
 
   return (
-    <PanelShell title="Live Feed" icon={<Radio className="w-4 h-4" />}>
+    <PanelShell title="Live Feed" icon={<Radio className="w-4 h-4" />} className="relative">
+      {/* Refresh button */}
+      <button
+        onClick={handleRefresh}
+        disabled={refreshing}
+        className="absolute top-3 right-3 z-10 flex items-center gap-1 px-2 py-1 rounded text-[9px] font-mono uppercase tracking-wider transition-all hover:bg-slate-800/40 disabled:opacity-40"
+        style={{ color: '#06b6d4', border: '1px solid rgba(6,182,212,0.15)' }}
+        title="Refrescar menciones"
+      >
+        <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
+      </button>
+
       {loading && menciones.length === 0 ? (
         <div className="flex items-center gap-2 py-6 text-slate-600 text-xs font-mono justify-center">
           <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />

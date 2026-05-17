@@ -57,6 +57,7 @@ interface DataPoint {
 }
 
 const MAX_POINTS = 60; // 5 minutes of data at 5s intervals
+const HEAP_BASELINE_MB = 512; // Fixed baseline for heap % calculation (avoids false 95% alerts)
 
 // ═══════════════════════════════════════════════════════════════
 // SVG Sparkline
@@ -211,10 +212,11 @@ export function VitalMonitor() {
           return next.length > MAX_POINTS ? next.slice(-MAX_POINTS) : next;
         });
         setHeapHistory((prev) => {
-          const heapPct =
-            data.process.memory.heapTotalMB > 0
-              ? (data.process.memory.heapUsedMB / data.process.memory.heapTotalMB) * 100
-              : 0;
+          // Use fixed baseline (512MB) instead of heapTotalMB which is unreliable
+          // heapTotalMB is what Node has currently allocated (grows dynamically),
+          // not the actual memory limit. Using it causes false 95%+ alerts when
+          // heapUsed is only ~45MB but heapTotal is ~47MB.
+          const heapPct = (data.process.memory.heapUsedMB / HEAP_BASELINE_MB) * 100;
           const next = [...prev, { t: now, v: Math.min(100, heapPct) }];
           return next.length > MAX_POINTS ? next.slice(-MAX_POINTS) : next;
         });
@@ -298,24 +300,13 @@ export function VitalMonitor() {
         data={heapHistory}
         color={
           vitals
-            ? getColor(
-                vitals.process.memory.heapTotalMB > 0
-                  ? (vitals.process.memory.heapUsedMB /
-                      vitals.process.memory.heapTotalMB) *
-                      100
-                  : 0
-              )
+            ? getColor((vitals.process.memory.heapUsedMB / HEAP_BASELINE_MB) * 100)
             : '#a78bfa'
         }
         label="Node Heap"
         current={
-          vitals && vitals.process.memory.heapTotalMB > 0
-            ? Math.min(
-                100,
-                (vitals.process.memory.heapUsedMB /
-                  vitals.process.memory.heapTotalMB) *
-                  100
-              )
+          vitals
+            ? (vitals.process.memory.heapUsedMB / HEAP_BASELINE_MB) * 100
             : 0
         }
         unit="%"
@@ -324,30 +315,35 @@ export function VitalMonitor() {
 
       {/* Process memory detail */}
       {vitals && (
-        <div className="mt-2 pt-2 border-t border-slate-800/60 grid grid-cols-3 gap-2 text-center">
-          <div>
-            <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">
-              RSS
-            </p>
-            <p className="text-xs font-mono text-cyan-400 tabular-nums">
-              {vitals.process.memory.rssMB} MB
-            </p>
-          </div>
-          <div>
-            <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">
-              Heap Used
-            </p>
-            <p className="text-xs font-mono text-cyan-400 tabular-nums">
-              {vitals.process.memory.heapUsedMB} MB
-            </p>
-          </div>
-          <div>
-            <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">
-              DB Size
-            </p>
-            <p className="text-xs font-mono text-cyan-400 tabular-nums">
-              {vitals.database.sizeMB} MB
-            </p>
+        <div className="mt-2 pt-2 border-t border-slate-800/60">
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">
+                RSS
+              </p>
+              <p className="text-xs font-mono text-cyan-400 tabular-nums">
+                {vitals.process.memory.rssMB} MB
+              </p>
+            </div>
+            <div>
+              <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">
+                Heap Used
+              </p>
+              <p className="text-xs font-mono tabular-nums" style={{ color: getColor((vitals.process.memory.heapUsedMB / HEAP_BASELINE_MB) * 100) }}>
+                {vitals.process.memory.heapUsedMB} MB
+              </p>
+              <p className="text-[8px] font-mono text-slate-700">
+                / {HEAP_BASELINE_MB} MB
+              </p>
+            </div>
+            <div>
+              <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">
+                DB Size
+              </p>
+              <p className="text-xs font-mono text-cyan-400 tabular-nums">
+                {vitals.database.sizeMB} MB
+              </p>
+            </div>
           </div>
         </div>
       )}

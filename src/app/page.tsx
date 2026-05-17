@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
-import { VitalMonitor } from '@/components/onion200/VitalMonitor';
-import { LiveFeed } from '@/components/onion200/LiveFeed';
-import { SystemStatus } from '@/components/onion200/SystemStatus';
+import { ResumenView } from '@/components/onion200/ResumenView';
+import { CapturaView } from '@/components/onion200/CapturaView';
+import { ClasificacionView } from '@/components/onion200/ClasificacionView';
+import { ProduccionView } from '@/components/onion200/ProduccionView';
+import { DistribucionView } from '@/components/onion200/DistribucionView';
 import {
   Crosshair,
   Radio,
@@ -13,6 +15,7 @@ import {
   Send,
   ArrowUpRight,
   RefreshCw,
+  Monitor,
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════
@@ -39,6 +42,23 @@ interface PipelineKPIs {
   };
 }
 
+type TabKey = 'resumen' | 'captura' | 'clasificacion' | 'produccion' | 'distribucion';
+
+interface TabConfig {
+  key: TabKey;
+  label: string;
+  icon: React.ReactNode;
+  statusKey?: 'captura' | 'clasificacion' | 'produccion' | 'distribucion';
+}
+
+const TABS: TabConfig[] = [
+  { key: 'resumen', label: 'RESUMEN', icon: <Monitor className="w-3.5 h-3.5" /> },
+  { key: 'captura', label: 'CAPTURA', icon: <Radio className="w-3.5 h-3.5" />, statusKey: 'captura' },
+  { key: 'clasificacion', label: 'CLASIFICACION', icon: <Crosshair className="w-3.5 h-3.5" />, statusKey: 'clasificacion' },
+  { key: 'produccion', label: 'PRODUCCION', icon: <FileText className="w-3.5 h-3.5" />, statusKey: 'produccion' },
+  { key: 'distribucion', label: 'DISTRIBUCION', icon: <Send className="w-3.5 h-3.5" />, statusKey: 'distribucion' },
+];
+
 // ═══════════════════════════════════════════════════════════════
 // KPI Card — Real data, zero hardcode
 // ═══════════════════════════════════════════════════════════════
@@ -50,6 +70,8 @@ function KPICard({
   sub,
   color,
   status,
+  onClick,
+  active,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -57,6 +79,8 @@ function KPICard({
   sub?: string;
   color: string;
   status?: string;
+  onClick?: () => void;
+  active?: boolean;
 }) {
   const statusColor =
     status === 'error'
@@ -68,12 +92,15 @@ function KPICard({
           : '#64748b';
 
   return (
-    <div
-      className="rounded-lg p-3 relative overflow-hidden transition-all duration-300"
+    <button
+      onClick={onClick}
+      className="rounded-lg p-3 relative overflow-hidden transition-all duration-300 text-left cursor-pointer hover:scale-[1.02]"
       style={{
-        background: `linear-gradient(135deg, ${color}06 0%, rgba(5,5,5,0.9) 60%)`,
-        border: `1px solid ${color}15`,
-        boxShadow: `0 0 12px ${color}06`,
+        background: active
+          ? `linear-gradient(135deg, ${color}10 0%, rgba(5,5,5,0.9) 60%)`
+          : `linear-gradient(135deg, ${color}06 0%, rgba(5,5,5,0.9) 60%)`,
+        border: `1px solid ${active ? `${color}30` : `${color}15`}`,
+        boxShadow: active ? `0 0 16px ${color}10` : `0 0 12px ${color}06`,
       }}
     >
       {/* Scan line */}
@@ -121,42 +148,23 @@ function KPICard({
           }}
         />
       </div>
-    </div>
+    </button>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Pipeline Status Bar — real status from API
+// Pipeline Status Bar — clickable tabs with real status
 // ═══════════════════════════════════════════════════════════════
 
-function PipelineStatusBar({ pipeline }: { pipeline: PipelineKPIs }) {
-  const stages = [
-    {
-      key: 'captura',
-      label: 'CAPTURA',
-      icon: <Radio className="w-3.5 h-3.5" />,
-      status: pipeline.captura?.status,
-    },
-    {
-      key: 'clasificacion',
-      label: 'CLASIFICACION',
-      icon: <Crosshair className="w-3.5 h-3.5" />,
-      status: pipeline.clasificacion?.status,
-    },
-    {
-      key: 'produccion',
-      label: 'PRODUCCION',
-      icon: <FileText className="w-3.5 h-3.5" />,
-      status: pipeline.produccion?.status,
-    },
-    {
-      key: 'distribucion',
-      label: 'DISTRIBUCION',
-      icon: <Send className="w-3.5 h-3.5" />,
-      status: pipeline.distribucion?.status,
-    },
-  ];
-
+function PipelineStatusBar({
+  pipeline,
+  activeTab,
+  onTabChange,
+}: {
+  pipeline: PipelineKPIs;
+  activeTab: TabKey;
+  onTabChange: (tab: TabKey) => void;
+}) {
   const colorForStatus = (s?: string) =>
     s === 'error'
       ? '#f43f5e'
@@ -171,27 +179,38 @@ function PipelineStatusBar({ pipeline }: { pipeline: PipelineKPIs }) {
       className="flex items-center gap-1 sm:gap-2 overflow-x-auto py-2 px-3"
       style={{ borderBottom: '1px solid rgba(6,182,212,0.06)' }}
     >
-      {stages.map((stage, i) => {
-        const color = colorForStatus(stage.status);
+      {TABS.map((tab, i) => {
+        const isActive = activeTab === tab.key;
+        const status = tab.statusKey ? pipeline[tab.statusKey]?.status : undefined;
+        const color = isActive ? '#06b6d4' : colorForStatus(status);
+
         return (
-          <React.Fragment key={stage.key}>
-            <div className="flex items-center gap-1.5 flex-shrink-0 px-2 py-1 rounded-md transition-all">
-              <span style={{ color: `${color}90` }}>{stage.icon}</span>
+          <React.Fragment key={tab.key}>
+            <button
+              onClick={() => onTabChange(tab.key)}
+              className="flex items-center gap-1.5 flex-shrink-0 px-2 py-1 rounded-md transition-all duration-200 hover:bg-white/[0.02] cursor-pointer"
+              style={{
+                backgroundColor: isActive ? 'rgba(6,182,212,0.06)' : 'transparent',
+              }}
+            >
+              <span style={{ color: `${color}90` }}>{tab.icon}</span>
               <span
-                className="text-[9px] font-bold tracking-wider font-mono"
+                className="text-[9px] font-bold tracking-wider font-mono whitespace-nowrap"
                 style={{ color }}
               >
-                {stage.label}
+                {tab.label}
               </span>
-              <span
-                className="w-1.5 h-1.5 rounded-full"
-                style={{
-                  backgroundColor: color,
-                  boxShadow: `0 0 4px ${color}50`,
-                }}
-              />
-            </div>
-            {i < stages.length - 1 && (
+              {status && (
+                <span
+                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                  style={{
+                    backgroundColor: color,
+                    boxShadow: `0 0 4px ${color}50`,
+                  }}
+                />
+              )}
+            </button>
+            {i < TABS.length - 1 && (
               <ArrowUpRight
                 className="w-3 h-3 text-slate-800 flex-shrink-0 rotate-90"
               />
@@ -208,10 +227,11 @@ function PipelineStatusBar({ pipeline }: { pipeline: PipelineKPIs }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ONION200 Dashboard — Main orchestrator
+// ONION200 Dashboard — Main orchestrator with navigation
 // ═══════════════════════════════════════════════════════════════
 
 export default function ONION200Dashboard() {
+  const [activeTab, setActiveTab] = useState<TabKey>('resumen');
   const [kpis, setKpis] = useState<PipelineKPIs | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string>('');
 
@@ -242,6 +262,10 @@ export default function ONION200Dashboard() {
   const clasif = kpis?.clasificacion;
   const prod = kpis?.produccion;
   const dist = kpis?.distribucion;
+
+  const handleTabChange = (tab: TabKey) => {
+    setActiveTab(tab);
+  };
 
   return (
     <div
@@ -302,10 +326,14 @@ export default function ONION200Dashboard() {
         </div>
       </header>
 
-      {/* ═══ PIPELINE STATUS BAR ═══ */}
-      <PipelineStatusBar pipeline={kpis || {}} />
+      {/* ═══ PIPELINE STATUS BAR — Clickable navigation ═══ */}
+      <PipelineStatusBar
+        pipeline={kpis || {}}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+      />
 
-      {/* ═══ KPI CARDS — Real data row ═══ */}
+      {/* ═══ KPI CARDS — Real data row (hidden when not on resumen/captura/clasificacion/produccion/distribucion) ═══ */}
       <div
         className="flex-shrink-0 px-4 sm:px-6 py-3 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3"
         style={{ borderBottom: '1px solid rgba(6,182,212,0.04)' }}
@@ -321,6 +349,8 @@ export default function ONION200Dashboard() {
           }
           color="#10b981"
           status={captura?.status}
+          onClick={() => handleTabChange('captura')}
+          active={activeTab === 'captura'}
         />
         <KPICard
           icon={<Crosshair className="w-4 h-4" />}
@@ -333,6 +363,8 @@ export default function ONION200Dashboard() {
           sub={clasif ? 'con eje tematico' : undefined}
           color="#06b6d4"
           status={clasif?.status}
+          onClick={() => handleTabChange('clasificacion')}
+          active={activeTab === 'clasificacion'}
         />
         <KPICard
           icon={<BarChart3 className="w-4 h-4" />}
@@ -343,6 +375,8 @@ export default function ONION200Dashboard() {
           }
           color="#f59e0b"
           status={prod?.status}
+          onClick={() => handleTabChange('produccion')}
+          active={activeTab === 'produccion'}
         />
         <KPICard
           icon={<Send className="w-4 h-4" />}
@@ -359,26 +393,19 @@ export default function ONION200Dashboard() {
           }
           color="#a78bfa"
           status={dist?.status}
+          onClick={() => handleTabChange('distribucion')}
+          active={activeTab === 'distribucion'}
         />
       </div>
 
-      {/* ═══ MAIN GRID — 3 panels ═══ */}
+      {/* ═══ MAIN CONTENT AREA — Conditional rendering per tab ═══ */}
       <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 max-w-[1400px] mx-auto">
-          {/* ── Left: Vital Monitor (5 cols) ── */}
-          <div className="lg:col-span-5">
-            <VitalMonitor />
-          </div>
-
-          {/* ── Right top: System Status (4 cols) ── */}
-          <div className="lg:col-span-4">
-            <SystemStatus />
-          </div>
-
-          {/* ── Right bottom: Live Feed (3 cols) ── */}
-          <div className="lg:col-span-3">
-            <LiveFeed />
-          </div>
+        <div className="max-w-[1400px] mx-auto">
+          {activeTab === 'resumen' && <ResumenView />}
+          {activeTab === 'captura' && <CapturaView />}
+          {activeTab === 'clasificacion' && <ClasificacionView />}
+          {activeTab === 'produccion' && <ProduccionView />}
+          {activeTab === 'distribucion' && <DistribucionView />}
         </div>
       </div>
 
@@ -391,7 +418,7 @@ export default function ONION200Dashboard() {
         }}
       >
         <span className="text-[9px] font-mono text-slate-700">
-          ONION200 v1.0 · Fase 1 — El Latido de la Nave
+          ONION200 v2.0 · Consola de Control Activa
         </span>
         <span className="text-[9px] font-mono text-slate-700">
           DECODEX Bolivia · Inteligencia de Senales · 2025-2030
