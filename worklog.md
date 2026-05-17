@@ -253,3 +253,26 @@ Stage Summary:
 - Flujo: fetch(medio.url) → regex link extraction → keyword triaje (asambleistas + ejes) → LLM classification
 - Cero dependencia de Bing/Google. Cero silencios de error (siempre loggea HTTP status real)
 - Build OK. Commit f72061d en main.
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Agregar campo fechaClasificacion al modelo Mencion para trazabilidad del pipeline de IA
+
+Work Log:
+- Auditoría previa confirmó que NO existía createdAt en Mencion (falso positivo del usuario)
+- Agregado campo fechaClasificacion DateTime? al schema Prisma (nullable para migración segura)
+- Actualizado extractor-menciones.ts: sharedData ahora incluye clasificacionTimestamp
+- Actualizado analyze.ts: applyAnalysisToMencion establece fechaClasificacion: new Date()
+- Actualizado indicadores-summary route: expone ultimaClasificacion y ultimaClasificacionHace
+- Ejecutado prisma generate + prisma db push (sync con SQLite sin errores)
+- Build Next.js pasado sin errores
+- Commit d543045 pusheado a main
+
+Stage Summary:
+- Schema: campo fechaClasificacion DateTime? agregado a Mencion (nullable, seguro)
+- 3 archivos modificados + 1 schema
+- Pipeline B (extractor-menciones): establece fecha al crear menciones via LLM
+- Pipeline A (analyze.ts): establece fecha al actualizar menciones existentes
+- Dashboard: nueva métrica "Última clasificación: hace X" en indicadores-summary
+- Build OK. Commit d543045 en main.
