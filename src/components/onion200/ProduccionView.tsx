@@ -129,7 +129,7 @@ export function ProduccionView() {
                 <p className="text-[10px] font-mono text-slate-500 leading-relaxed">
                   La produccion incluye: boletines de prensa, fichas de analisis,
                   focos de atencion, radar de medios, saldos y reportes sectoriales.
-                  Se generan automaticamente via el Scheduler o manualmente.
+                  Se generan automaticamente via el Planificador o manualmente.
                 </p>
               </div>
             </div>

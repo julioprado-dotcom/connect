@@ -243,7 +243,7 @@ export function VitalMonitor() {
 
   if (error && !vitals) {
     return (
-      <PanelShell title="Vital Monitor" icon={<Cpu className="w-4 h-4" />}>
+      <PanelShell title="Monitor Vital" icon={<Cpu className="w-4 h-4" />}>
         <div className="flex items-center gap-2 text-red-400/80 text-xs font-mono py-4">
           <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
           Conexion perdida — {error}
@@ -259,7 +259,7 @@ export function VitalMonitor() {
         <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3 px-1">
           <InfoChip
             icon={<Server className="w-3 h-3" />}
-            label="Node"
+            label="Nodo"
             value={vitals.process.nodeVersion}
           />
           <InfoChip
@@ -269,7 +269,7 @@ export function VitalMonitor() {
           />
           <InfoChip
             icon={<Clock className="w-3 h-3" />}
-            label="Uptime"
+            label="Tiempo Activo"
             value={vitals.process.uptimeFormatted}
           />
           <InfoChip
@@ -284,14 +284,14 @@ export function VitalMonitor() {
       <Sparkline
         data={cpuHistory}
         color={vitals ? getColor(vitals.cpu.usagePct) : '#06b6d4'}
-        label="CPU Usage"
+        label="Uso de CPU"
         current={vitals?.cpu.usagePct ?? 0}
         icon={<Cpu className="w-4 h-4" />}
       />
       <Sparkline
         data={ramHistory}
         color={vitals ? getColor(vitals.memory.usagePct) : '#10b981'}
-        label="System RAM"
+        label="RAM del Sistema"
         current={vitals?.memory.usagePct ?? 0}
         unit="%"
         icon={<MemoryStick className="w-4 h-4" />}
@@ -303,7 +303,7 @@ export function VitalMonitor() {
             ? getColor((vitals.process.memory.heapUsedMB / HEAP_BASELINE_MB) * 100)
             : '#a78bfa'
         }
-        label="Node Heap"
+        label="Heap de Node"
         current={
           vitals
             ? (vitals.process.memory.heapUsedMB / HEAP_BASELINE_MB) * 100
@@ -327,7 +327,7 @@ export function VitalMonitor() {
             </div>
             <div>
               <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">
-                Heap Used
+                Heap Usado
               </p>
               <p className="text-xs font-mono tabular-nums" style={{ color: getColor((vitals.process.memory.heapUsedMB / HEAP_BASELINE_MB) * 100) }}>
                 {vitals.process.memory.heapUsedMB} MB
@@ -338,7 +338,7 @@ export function VitalMonitor() {
             </div>
             <div>
               <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">
-                DB Size
+                Tamaño BD
               </p>
               <p className="text-xs font-mono text-cyan-400 tabular-nums">
                 {vitals.database.sizeMB} MB
@@ -396,7 +396,7 @@ export function PanelShell({
         <span className="ml-auto flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-[9px] uppercase text-emerald-500/60 font-mono">
-            live
+            en vivo
           </span>
         </span>
       </div>

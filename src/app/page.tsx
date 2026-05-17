@@ -320,7 +320,7 @@ export default function ONION200Dashboard() {
               }}
             />
             <span className="text-[9px] font-bold uppercase text-emerald-500/60 font-mono">
-              Online
+              En línea
             </span>
           </div>
         </div>

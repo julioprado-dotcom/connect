@@ -44,12 +44,12 @@ function tiempoRelativo(fechaStr: string): string {
   const fecha = new Date(fechaStr);
   const ms = Date.now() - fecha.getTime();
   const mins = Math.floor(ms / 60000);
-  if (mins < 1) return 'ahora';
-  if (mins < 60) return `${mins}m`;
+  if (mins < 1) return 'ahora mismo';
+  if (mins < 60) return `hace ${mins}m`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
+  if (hrs < 24) return `hace ${hrs}h`;
   const dias = Math.floor(hrs / 24);
-  return `${dias}d`;
+  return `hace ${dias}d`;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -105,7 +105,7 @@ export function LiveFeed() {
   }, [fetchData]);
 
   return (
-    <PanelShell title="Live Feed" icon={<Radio className="w-4 h-4" />} className="relative">
+    <PanelShell title="Flujo en Vivo" icon={<Radio className="w-4 h-4" />} className="relative">
       {/* Refresh button */}
       <button
         onClick={handleRefresh}
@@ -138,7 +138,7 @@ export function LiveFeed() {
           {totalToday !== null && (
             <div className="flex items-center gap-2 mb-2 px-1">
               <span className="text-[9px] font-bold uppercase text-slate-600 font-mono">
-                Total en DB:
+                Total en BD:
               </span>
               <span className="text-xs font-mono text-cyan-400 tabular-nums">
                 {totalToday}

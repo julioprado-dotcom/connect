@@ -86,7 +86,7 @@ function ProcessOrb({
 }) {
   const status = online ? 'ok' : 'error';
   const color = online ? '#10b981' : '#f43f5e';
-  const statusLabel = online ? 'Online' : 'Offline';
+  const statusLabel = online ? 'En línea' : 'Desconectado';
   const glowSize = online ? 6 : 12;
 
   return (
@@ -184,7 +184,7 @@ function HealthGauge({ score }: { score: number }) {
         </div>
       </div>
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 font-mono">Health Score</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 font-mono">Índice de Salud</p>
         <p className="text-[9px] font-mono text-slate-600 mt-0.5">
           {score >= 80 ? 'Todos los sistemas operativos' : score >= 50 ? 'Alertas activas' : 'Problemas criticos'}
         </p>
@@ -206,7 +206,7 @@ function PipelineOrb({
 }) {
   const statusKey = status === 'warn' ? 'warning' : (status as 'ok' | 'warning' | 'error' | 'idle') || 'idle';
   const colorMap = { ok: '#10b981', warning: '#f59e0b', error: '#f43f5e', idle: '#64748b', pending: '#06b6d4' };
-  const labelMap = { ok: 'Online', warning: 'Degradado', error: 'Offline', idle: 'Inactivo', pending: 'Pendiente' };
+  const labelMap = { ok: 'En línea', warning: 'Degradado', error: 'Desconectado', idle: 'Inactivo', pending: 'Pendiente' };
   const color = colorMap[statusKey] || colorMap.idle;
   const glowSize = statusKey === 'error' ? 12 : statusKey === 'warning' ? 8 : 6;
 
@@ -319,7 +319,7 @@ export function SystemStatus() {
   };
 
   return (
-    <PanelShell title="System Status" icon={<Shield className="w-4 h-4" />}>
+    <PanelShell title="Estado del Sistema" icon={<Shield className="w-4 h-4" />}>
       {error && !health && !processes ? (
         <div className="flex items-center gap-2 py-4 text-red-400/70 text-xs font-mono">
           <span className="w-2 h-2 rounded-full bg-red-500" />
@@ -359,7 +359,7 @@ export function SystemStatus() {
           {/* Worker (togglable) */}
           <ProcessOrb
             online={workerOnline}
-            label="Worker"
+            label="Trabajador"
             detail={workerInfo
               ? `${workerInfo.jobsCompleted ?? 0} completados · ${workerInfo.jobsFailed ?? 0} fallidos${workerInfo.heartbeatAge != null ? ` · HB ${workerInfo.heartbeatAge}s` : ''}`
               : workerHealth
@@ -374,7 +374,7 @@ export function SystemStatus() {
           {/* Scheduler (togglable) */}
           <ProcessOrb
             online={schedulerOnline}
-            label="Scheduler"
+            label="Planificador"
             detail={schedulerInfo
               ? `${schedulerInfo.totalTasks ?? 0} tareas · ${schedulerInfo.totalScheduled ?? 0} encolados${schedulerInfo.heartbeatAge != null ? ` · HB ${schedulerInfo.heartbeatAge}s` : ''}`
               : schedulerHealth
@@ -391,7 +391,7 @@ export function SystemStatus() {
 
           {/* ── PIPELINE ── */}
           <p className="text-[9px] font-bold uppercase tracking-widest text-slate-700 font-mono px-1">
-            Pipeline
+            Flujo de Proceso
           </p>
           <PipelineOrb status={pipeline?.captura?.status ?? 'idle'} label="Captura" />
           <PipelineOrb status={pipeline?.clasificacion?.status ?? 'idle'} label="Clasificacion" />
@@ -407,7 +407,7 @@ export function SystemStatus() {
           </p>
           <PipelineOrb status={getDiagStatus('memory')} label="Memoria" />
           <PipelineOrb status={getDiagStatus('database')} label="Base de Datos" />
-          <PipelineOrb status={getDiagStatus('uptime')} label="Uptime" />
+          <PipelineOrb status={getDiagStatus('uptime')} label="Tiempo Activo" />
 
           {/* Environment badge */}
           {health && (
