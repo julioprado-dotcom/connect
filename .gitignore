@@ -39,6 +39,11 @@ prisma/db/*.bak
 nohup.out
 start-*.sh
 
+# ZAI SDK config (contains API key — never commit this)
+.z-ai-config
+.z-ai-config.*
+!/.z-ai-config.example
+
 # Z.ai skills (managed externally)
 skills/
 

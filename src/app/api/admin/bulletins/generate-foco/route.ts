@@ -90,6 +90,7 @@ export async function POST(request: NextRequest) {
     const temperatura = temperaturaOverride ?? PRODUCTOS.EL_FOCO.temperatura;
 
     const completion = await zai.chat.completions.create({
+      model: 'glm-4-air',
       messages: [
         { role: 'system', content: PRODUCTOS.EL_FOCO.systemPrompt },
         { role: 'user', content: userPrompt },

@@ -133,6 +133,7 @@ export async function POST(request: NextRequest) {
     const temperatura = temperaturaOverride ?? PRODUCTOS.EL_RADAR.temperatura;
 
     const completion = await zai.chat.completions.create({
+      model: 'glm-4-air',
       messages: [
         { role: 'system', content: PRODUCTOS.EL_RADAR.systemPrompt },
         { role: 'user', content: userPrompt },

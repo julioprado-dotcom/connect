@@ -77,6 +77,7 @@ export async function regenerateWithRetry(params: {
 
       const zai = await ZAI.create();
       const completion = await zai.chat.completions.create({
+        model: 'glm-4-air',
         messages: [
           { role: 'system', content: params.systemPrompt },
           { role: 'user', content: enhancedPrompt },

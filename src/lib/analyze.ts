@@ -262,6 +262,7 @@ export async function analyzeMencion(titulo: string, texto: string): Promise<Ana
 
     const zai = await ZAI.create();
     const completion = await zai.chat.completions.create({
+      model: 'glm-4-air',
       messages: [
         { role: 'system', content: systemPrompt },
         {
