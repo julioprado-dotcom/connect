@@ -595,6 +595,21 @@ model AdminFeedback {
   updatedAt           DateTime @updatedAt
 }
 
+model SugerenciaInteligencia {
+  id           String   @id @default(cuid())
+  tipo         String   // 'nueva_persona', 'nuevo_tema', 'nuevo_medio'
+  datoPropuesto Json    // { nombre, cargo, fuentes, contexto, ... }
+  confianza    Int      @default(0) // 0-100 basado en redundancia de medios
+  estado       String   @default("pendiente") // 'pendiente', 'aprobada', 'rechazada'
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  procesadaEn  DateTime?
+
+  @@index([estado])
+  @@index([tipo])
+  @@index([createdAt])
+}
+
 model AprendizajeSistema {
   id        String   @id @default(cuid())
   categoria String

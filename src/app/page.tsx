@@ -8,6 +8,7 @@ import { ClasificacionView } from '@/components/onion200/ClasificacionView';
 import { ProduccionView } from '@/components/onion200/ProduccionView';
 import { DistribucionView } from '@/components/onion200/DistribucionView';
 import { FuentesView } from '@/components/onion200/FuentesView';
+import { InteligenciaView } from '@/components/onion200/InteligenciaView';
 import {
   Crosshair,
   Radio,
@@ -18,6 +19,7 @@ import {
   RefreshCw,
   Monitor,
   Database,
+  Sparkles,
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════
@@ -44,7 +46,7 @@ interface PipelineKPIs {
   };
 }
 
-type TabKey = 'resumen' | 'fuentes' | 'captura' | 'clasificacion' | 'produccion' | 'distribucion';
+type TabKey = 'resumen' | 'fuentes' | 'captura' | 'clasificacion' | 'inteligencia' | 'produccion' | 'distribucion';
 
 interface TabConfig {
   key: TabKey;
@@ -58,6 +60,7 @@ const TABS: TabConfig[] = [
   { key: 'fuentes', label: 'FUENTES', icon: <Database className="w-3.5 h-3.5" /> },
   { key: 'captura', label: 'CAPTURA', icon: <Radio className="w-3.5 h-3.5" />, statusKey: 'captura' },
   { key: 'clasificacion', label: 'CLASIFICACION', icon: <Crosshair className="w-3.5 h-3.5" />, statusKey: 'clasificacion' },
+  { key: 'inteligencia', label: 'INTELIGENCIA', icon: <Sparkles className="w-3.5 h-3.5" /> },
   { key: 'produccion', label: 'PRODUCCION', icon: <FileText className="w-3.5 h-3.5" />, statusKey: 'produccion' },
   { key: 'distribucion', label: 'DISTRIBUCION', icon: <Send className="w-3.5 h-3.5" />, statusKey: 'distribucion' },
 ];
@@ -408,6 +411,7 @@ export default function ONION200Dashboard() {
           {activeTab === 'fuentes' && <FuentesView />}
           {activeTab === 'captura' && <CapturaView />}
           {activeTab === 'clasificacion' && <ClasificacionView />}
+          {activeTab === 'inteligencia' && <InteligenciaView />}
           {activeTab === 'produccion' && <ProduccionView />}
           {activeTab === 'distribucion' && <DistribucionView />}
         </div>

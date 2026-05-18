@@ -251,6 +251,19 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
 
     console.log(`[scrape-fuente] Completado ${fuente.Medio.nombre}: ${notas.length} notas → ${seleccionadas.length} seleccionadas → ${totalMencionesCreadas} menciones [${responseTime}ms]`)
 
+    // Ejecutar descubrimiento inteligente si hay menciones huérfanas (best-effort, no bloquea)
+    if (totalMencionesCreadas > 0) {
+      try {
+        const { ejecutarDescubrimiento } = await import('@/lib/ai/discovery');
+        const discovery = await ejecutarDescubrimiento();
+        if (discovery.sugerenciasCreadas > 0) {
+          console.log(`[scrape-fuente] Descubrimiento: ${discovery.sugerenciasCreadas} sugerencias nuevas`);
+        }
+      } catch (err) {
+        console.warn('[scrape-fuente] Descubrimiento falló (no bloqueante):', err instanceof Error ? err.message : err);
+      }
+    }
+
     // Backup periódico de DB (cada 100 ciclos o 6h)
     const backup = checkAndBackupDB()
     if (backup.backed) {
