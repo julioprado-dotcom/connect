@@ -78,6 +78,7 @@ export async function POST(request: NextRequest) {
         await db.fuenteEstado.upsert({
           where: { medioId: medio.id },
           create: {
+            id: `fe-${medio.id}`,
             medioId: medio.id,
             url: medio.url,
             tipoCheck,

@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
-import { getStats, ensureWorkerRunning, getWorkerStats } from '@/lib/jobs';
+import { getStats, ensureWorkerRunning } from '@/lib/jobs';
 import { getSchedulerStatus } from '@/lib/jobs/scheduler';
 import { startScheduler, stopScheduler } from '@/lib/jobs/scheduler';
 import { startWorker, stopWorker } from '@/lib/jobs/worker';
@@ -43,11 +43,11 @@ export async function POST(request: Request) {
 
       case 'start-worker':
         startWorker();
-        return NextResponse.json({ message: 'Worker iniciado', worker: getWorkerStats() });
+        return NextResponse.json({ message: 'Worker iniciado', worker: getStats().worker });
 
       case 'stop-worker':
         stopWorker();
-        return NextResponse.json({ message: 'Worker detenido', worker: getWorkerStats() });
+        return NextResponse.json({ message: 'Worker detenido', worker: getStats().worker });
 
       default:
         return NextResponse.json({ error: `Acción no válida: ${action}` }, { status: 400 });

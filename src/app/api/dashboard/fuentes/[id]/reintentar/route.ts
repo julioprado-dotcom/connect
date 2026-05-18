@@ -52,10 +52,12 @@ export async function POST(
     });
 
     // Create a new Job to retry capture
+    const fuenteId = fuenteEstado?.id || `fe-${id}`;
     const jobId = await enqueue({
       tipo: 'check_fuente',
       prioridad: fuerza ? 1 : 3, // P1 si forzado, P3 normal
       payload: {
+        fuenteId,
         medioId: id,
         medioNombre: medio.nombre,
         url: medio.url || (fuenteEstado?.url ?? ''),
