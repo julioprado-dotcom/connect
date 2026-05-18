@@ -25,7 +25,9 @@ function tratamientoToSentimiento(tratamiento: string): string {
   }
 }
 
-// ─── Ejes temáticos disponibles ────────────────────────────────
+// ─── Ejes temáticos — cargados dinámicamente desde la DB ──────
+// Ya NO usamos slugs hardcodeados. Los ejes se cargan desde EjeTematico.
+// Se mantiene EJES_TEMATICOS como fallback para el prompt del LLM.
 
 export const EJES_TEMATICOS = [
   { slug: 'hidrocarburos-energia', nombre: 'Hidrocarburos, Energía y Combustible' },
@@ -42,6 +44,22 @@ export const EJES_TEMATICOS = [
 ];
 
 export const VALID_SLUGS = new Set(EJES_TEMATICOS.map(e => e.slug));
+
+// ─── Cache dinámico de ejes desde la DB (TTL 120s) ─────────────
+let _ejesCache: { data: Map<string, string>; expiry: number } | null = null;
+
+async function getEjesSlugMap(): Promise<Map<string, string>> {
+  if (_ejesCache && _ejesCache.expiry > Date.now()) {
+    return _ejesCache.data;
+  }
+  const ejes = await db.ejeTematico.findMany({
+    where: { activo: true },
+    select: { id: true, slug: true },
+  });
+  const map = new Map(ejes.map(e => [e.slug.toLowerCase().trim(), e.id]));
+  _ejesCache = { data: map, expiry: Date.now() + 120_000 };
+  return map;
+}
 
 // ─── Default escala when Marco Conceptual is not loaded ──────
 
@@ -321,9 +339,13 @@ export async function analyzeMencion(titulo: string, texto: string): Promise<Ana
           ? parsed.temas
           : [];
 
+    // Validar ejes contra la DB (slug → id) con fallback a slugs hardcodeados
+    const slugMap = await getEjesSlugMap();
+    const dbSlugs = new Set(slugMap.keys());
+
     const ejesValidados = ejesRaw
       .map((s: string) => String(s).toLowerCase().trim())
-      .filter((s: string) => VALID_SLUGS.has(s))
+      .filter((s: string) => dbSlugs.has(s) || VALID_SLUGS.has(s))
       .slice(0, 3);
 
     // ── Extract preguntas_fundamentales ────────────────────────
@@ -364,30 +386,45 @@ export async function analyzeMencion(titulo: string, texto: string): Promise<Ana
 // ─── Actualizar mención en DB con resultado del análisis ──────
 
 export async function applyAnalysisToMencion(mencionId: string, result: AnalyzeResult): Promise<void> {
+  // Obtener mapa dinámico slug → id desde la DB
+  const slugMap = await getEjesSlugMap();
+
+  // Resolver slugs a IDs de ejes
+  const ejeIdsRelacionar: string[] = [];
+  for (const slug of result.ejesTematicos) {
+    const ejeId = slugMap.get(slug.toLowerCase().trim());
+    if (ejeId) {
+      ejeIdsRelacionar.push(ejeId);
+    }
+  }
+
   await db.mencion.update({
     where: { id: mencionId },
     data: {
       tipoMencion: result.tipoMencion,
       sentimiento: result.sentimiento,
       tratamientoPeriodistico: result.tratamientoPeriodistico,
-      intencionMedio: result.intencionMedio,              // FASE 4D
+      intencionMedio: result.intencionMedio,
       confianzaClasificacion: result.confianzaClasificacion,
       preguntasFundamentales: result.preguntasFundamentales
         ? (result.preguntasFundamentales as Prisma.InputJsonValue)
         : Prisma.JsonNull,
       temas: result.ejesTematicos.join(', '),
+      // FIX: Asignar el primer eje como ejeEstructuralId para la relación directa
+      ejeEstructuralId: ejeIdsRelacionar.length > 0 ? ejeIdsRelacionar[0] : null,
     },
   });
 
-  // Crear relaciones con ejes temáticos
-  if (result.ejesTematicos.length > 0) {
+  // Crear relaciones con ejes temáticos via tabla intermedia MencionTema
+  if (ejeIdsRelacionar.length > 0) {
     await db.mencionTema.deleteMany({ where: { mencionId } });
-    for (const slug of result.ejesTematicos) {
-      const eje = await db.ejeTematico.findUnique({ where: { slug } });
-      if (eje) {
+    for (const ejeId of ejeIdsRelacionar) {
+      try {
         await db.mencionTema.create({
-          data: { mencionId, ejeTematicoId: eje.id },
+          data: { mencionId, ejeTematicoId: ejeId },
         });
+      } catch {
+        // Duplicado, ignorar
       }
     }
   }

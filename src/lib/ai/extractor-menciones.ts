@@ -802,6 +802,10 @@ export async function extraerMencionesDeTexto(
     // Backward-compatible sentimiento
     const sentimiento = tratamientoToSentimiento(tratamiento);
 
+    debugWrite(`RESULTADO FINAL: relevante=${(parsed.es_relevante === true || legisladores.length > 0 || ejesMencionados.length > 0)}, legislators=${legisladores.length}, ejes=${ejesMencionados.length}`);
+
+    await persistDebugLog(debugLog);
+
     return {
       es_relevante: parsed.es_relevante === true || legisladores.length > 0 || ejesMencionados.length > 0,
       tratamientoPeriodistico: tratamiento,
@@ -815,11 +819,6 @@ export async function extraerMencionesDeTexto(
       preguntas_fundamentales,
       sentimiento_general: sentimiento,
     };
-    debugWrite(`RESULTADO FINAL: relevante=${resultado.es_relevante}, legislators=${resultado.legisladores_mencionados.length}, ejes=${resultado.ejes_mencionados.length}`);
-
-    await persistDebugLog(debugLog);
-
-    return resultado;
   } catch (err) {
     debugWrite(`ERROR FATAL en extracción LLM: ${err instanceof Error ? err.message : String(err)}`);
     console.warn('[extractor-menciones] Error en extracción LLM:', err);
@@ -991,6 +990,7 @@ export async function crearMencionesExtraidas(
           url,
           tipoMencion: tratamientoToTipoMencion(resultado.tratamientoPeriodistico, Boolean(leg.cita)),
           verificado: false,
+          ejeEstructuralId: ejeIds.length > 0 ? ejeIds[0] : null,
           ...(dedupResult?.eventoId ? { eventoId: dedupResult.eventoId } : {}),
           deduplicacionLog: dedupLog,
           ...sharedData,
@@ -1047,6 +1047,7 @@ export async function crearMencionesExtraidas(
             url,
             tipoMencion: 'referencia_tematica',
             verificado: false,
+            ejeEstructuralId: ejeIds.length > 0 ? ejeIds[0] : null,
             ...sharedData,
           },
         });

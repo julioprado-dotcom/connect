@@ -1,5 +1,6 @@
 // API Route: Generar BOLETÍN DEL GRANO
 // POST /api/admin/bulletins/generate-boletin-grano
+export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import type { BoletinGranoData, BoletinGranoNoticia, BoletinGranoEje } from '@/lib/services/boletin-del-grano';
