@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     const tipo = searchParams.get('tipo');
     const departamento = searchParams.get('departamento');
     const activo = searchParams.get('activo');
+    const ambito = searchParams.get('ambito');
 
     const where: Record<string, unknown> = {};
     if (categoria && CATEGORIAS_VALIDAS.includes(categoria)) where.categoria = categoria;
@@ -25,28 +26,46 @@ export async function GET(request: NextRequest) {
     if (tipo) where.tipo = tipo;
     if (departamento) where.departamento = departamento;
     if (activo !== null && activo !== undefined) where.activo = activo === 'true';
+    if (ambito) where.ambito = ambito;
 
-    // Fetch medios and mention counts in a single groupBy — no N+1
-    const [medios, conteosRaw] = await Promise.all([
-      db.medio.findMany({
-        where,
-        orderBy: [{ categoria: 'asc' }, { nombre: 'asc' }],
-      }),
-      db.mencion.groupBy({
-        by: ['medioId'],
-        _count: { id: true },
-      }),
-    ]);
+    // Sorting
+    const sortBy = searchParams.get('sortBy');
+    let orderBy: any = [{ categoria: 'asc' }, { nombre: 'asc' }];
+    if (sortBy === 'peso') {
+      orderBy = [{ pesoInformativo: 'desc' as const }, { nombre: 'asc' as const }];
+    }
 
-    // Build O(1) lookup map for mention counts
-    const conteoMap = new Map(conteosRaw.map((c) => [c.medioId, c._count.id]));
+    // Lightweight query — no groupBy
+    const medios = await db.medio.findMany({
+      where,
+      orderBy,
+    });
+
+    // Count menciones per medio using simple count queries (not groupBy)
+    // Batch: count total menciones grouped by medioId using a single raw query
+    const mediosIds = medios.map(m => m.id);
+    let conteoMap = new Map<string, number>();
+
+    if (mediosIds.length > 0) {
+      try {
+        // Use raw SQL for efficient counting — groupBy in raw SQL is fine on SQLite
+        const conteosRaw = await db.$queryRaw<Array<{ medioId: string; _count: number }>>(
+          `SELECT medioId, COUNT(*) as _count FROM Mencion WHERE medioId IN (${mediosIds.map(() => '?').join(',')}) GROUP BY medioId`,
+          ...mediosIds
+        );
+        conteoMap = new Map(conteosRaw.map(c => [c.medioId, c._count]));
+      } catch {
+        // Fallback: skip mention counts if query fails
+        console.warn('[medios] Could not count menciones, skipping');
+      }
+    }
 
     const mediosConConteo = medios.map((medio) => ({
       ...medio,
       mencionesCount: conteoMap.get(medio.id) || 0,
     }));
 
-    // Resumen por categoría
+    // Simple category summary using the already-fetched medios
     const categoriaLabels: Record<string, string> = {
       oficial: 'Medios Oficiales',
       corporativo: 'Corporativos',
@@ -55,45 +74,17 @@ export async function GET(request: NextRequest) {
       red_social: 'Redes Sociales',
     };
 
-    const [mediosPorCategoria, mencionesPorMedio] = await Promise.all([
-      db.medio.groupBy({
-        by: ['categoria'],
-        where: { activo: true },
-        _count: { id: true },
-      }),
-      db.medio.findMany({
-        where: { activo: true },
-        select: { id: true, categoria: true },
-      }),
-    ]);
-
-    const categoriaMap = new Map(mediosPorCategoria.map((m) => [m.categoria, m._count.id]));
-    const activosIds = new Set(mencionesPorMedio.map((m) => m.id));
-
-    // Count menciones for all active medios in a single groupBy
-    const mencionesActivasRaw = activosIds.size > 0
-      ? await db.mencion.groupBy({
-          by: ['medioId'],
-          where: { medioId: { in: [...activosIds] } },
-          _count: { id: true },
-        })
-      : [];
-
-    const mencionesCategoriaMap = new Map(mencionesPorMedio.map((m) => [m.id, m.categoria]));
-    const conteoActivasMap = new Map(mencionesActivasRaw.map((c) => [c.medioId, c._count.id]));
-
-    // Aggregate by category
     const conteosPorCategoria = new Map<string, number>();
-    for (const [medioId, cat] of mencionesCategoriaMap) {
-      const count = conteoActivasMap.get(medioId) || 0;
-      conteosPorCategoria.set(cat, (conteosPorCategoria.get(cat) || 0) + count);
+    for (const medio of medios) {
+      const cat = medio.categoria || 'otro';
+      conteosPorCategoria.set(cat, (conteosPorCategoria.get(cat) || 0) + 1);
     }
 
     const resumenPorCategoria = CATEGORIAS_VALIDAS.map((c) => ({
       categoria: c,
       etiqueta: categoriaLabels[c] || c,
-      totalMedios: categoriaMap.get(c) || 0,
-      mencionesCount: conteosPorCategoria.get(c) || 0,
+      totalMedios: conteosPorCategoria.get(c) || 0,
+      mencionesCount: 0, // Omit heavy mention counting for categories
     }));
 
     return NextResponse.json({

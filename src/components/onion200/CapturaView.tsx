@@ -13,6 +13,7 @@ import {
   BarChart3,
   Newspaper,
   Pause,
+  Square,
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════
@@ -53,6 +54,7 @@ export function CapturaView() {
     message: string;
     error?: string;
   } | null>(null);
+  const [stopping, setStopping] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval>>(null);
 
@@ -100,6 +102,27 @@ export function CapturaView() {
       setLaunchResult({ success: false, message: e instanceof Error ? e.message : 'Error de conexion' });
     } finally {
       setLaunching(false);
+    }
+  };
+
+  const handleStopCapture = async () => {
+    setStopping(true);
+    try {
+      const res = await fetchWithTimeout('/api/capture', {
+        method: 'DELETE',
+        timeoutMs: 10000,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setLaunchResult({ success: true, message: data.message || 'Detención solicitada' });
+      } else {
+        setLaunchResult({ success: false, message: data.error || 'Error al detener' });
+      }
+      setTimeout(fetchStatus, 2000);
+    } catch (e) {
+      setLaunchResult({ success: false, message: e instanceof Error ? e.message : 'Error de conexion' });
+    } finally {
+      setStopping(false);
     }
   };
 
@@ -190,31 +213,41 @@ export function CapturaView() {
             </div>
           )}
 
-          {/* Launch button */}
-          <button
-            onClick={handleLaunchCapture}
-            disabled={isRunning || launching}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-sm font-bold font-mono uppercase tracking-wider transition-all duration-200 hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-            style={{
-              color: isRunning ? '#64748b' : '#06b6d4',
-              backgroundColor: isRunning ? 'rgba(100,116,139,0.05)' : 'rgba(6,182,212,0.08)',
-              border: `1px solid ${isRunning ? 'rgba(100,116,139,0.15)' : 'rgba(6,182,212,0.2)'}`,
-              boxShadow: isRunning ? 'none' : '0 0 20px rgba(6,182,212,0.08)',
-            }}
-          >
-            {launching ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : isRunning ? (
-              <Pause className="w-4 h-4" />
-            ) : (
-              <Rocket className="w-4 h-4" />
+          {/* Action buttons */}
+          <div className="flex gap-2">
+            {!isRunning && (
+              <button
+                onClick={handleLaunchCapture}
+                disabled={launching}
+                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-sm font-bold font-mono uppercase tracking-wider transition-all duration-200 hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                style={{
+                  color: '#06b6d4',
+                  backgroundColor: 'rgba(6,182,212,0.08)',
+                  border: '1px solid rgba(6,182,212,0.2)',
+                  boxShadow: '0 0 20px rgba(6,182,212,0.08)',
+                }}
+              >
+                {launching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />}
+                {launching ? 'Lanzando...' : 'Iniciar Captura'}
+              </button>
             )}
-            {launching
-              ? 'Lanzando...'
-              : isRunning
-                ? 'Captura en progreso...'
-                : 'Iniciar Captura Ahora'}
-          </button>
+            {isRunning && (
+              <button
+                onClick={handleStopCapture}
+                disabled={stopping}
+                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-sm font-bold font-mono uppercase tracking-wider transition-all duration-200 hover:scale-[1.02] disabled:opacity-40"
+                style={{
+                  color: '#f43f5e',
+                  backgroundColor: 'rgba(244,63,94,0.08)',
+                  border: '1px solid rgba(244,63,94,0.25)',
+                  boxShadow: stopping ? 'none' : '0 0 20px rgba(244,63,94,0.1)',
+                }}
+              >
+                {stopping ? <Loader2 className="w-4 h-4 animate-spin" /> : <Square className="w-4 h-4" />}
+                {stopping ? 'Deteniendo...' : 'Detener Captura'}
+              </button>
+            )}
+          </div>
 
           {/* Launch result message */}
           {launchResult && (

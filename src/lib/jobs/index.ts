@@ -82,14 +82,13 @@ export async function activateProductiveMode(): Promise<void> {
   // 1. Activar worker (sale de idle, comienza a ejecutar jobs)
   startWorker()
 
-  // 2. NO iniciar scheduler automáticamente — consume memoria con 52+ cron tasks
-  //    El scheduler se inicia manualmente o por el primer API request que lo necesite
-  // await startScheduler()
+  // 2. Iniciar scheduler automáticamente — arranca con todas las fuentes programadas
+  await startScheduler()
 
   // 3. Iniciar backup scheduler (4x/día a GitHub — NUNCA se borran)
   // startBackupScheduler()
 
-  console.log('[Jobs] Modo productivo activo — worker ejecutando (scheduler manual)')
+  console.log('[Jobs] Modo productivo activo — worker + scheduler ejecutando')
 }
 
 // Garantizar que el worker esté corriendo — llamado desde API routes

@@ -312,6 +312,7 @@ model Medio {
   credibilidad       Int           @default(50)
   ultimaRevisionHumana DateTime?
   ultimoError        String        @default("")
+  pesoInformativo    Float         @default(0)    // Score compuesto: 0=auto, >0=manual override
   CapturaLog         CapturaLog[]
   FuenteEstado       FuenteEstado?
   Mencion            Mencion[]

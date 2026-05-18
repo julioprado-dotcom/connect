@@ -101,6 +101,13 @@ const queueState: QueueState = {
 
 let lastEndpointInvocation = 0;
 
+// ─── Abort flag for emergency stop ───────────────────────────
+let abortRequested = false;
+
+export function isAbortRequested(): boolean {
+  return abortRequested;
+}
+
 // ─── Helper: añadir log estructurado ───────────────────────────
 function queueLog(msg: string) {
   const ts = new Date().toISOString().slice(11, 19);
@@ -452,6 +459,12 @@ export async function POST(request: NextRequest) {
         queueState.progress.current = i + 1;
         queueState.currentMedio = medio.nombre;
 
+        // ── ABORT CHECK — Emergency stop between medios ───────
+        if (abortRequested) {
+          queueLog('⛔ CAPTURA DETENIDA POR EL USUARIO');
+          break;
+        }
+
         const progressPct = Math.round(((i + 1) / totalMedios) * 100);
         queueLog(`[${progressPct}%] ━━ (${i + 1}/${totalMedios}) PROCESANDO: ${medio.nombre} ━━`);
 
@@ -486,6 +499,7 @@ export async function POST(request: NextRequest) {
       queueState.running = false;
       queueState.completedAt = new Date().toISOString();
       queueState.currentMedio = null;
+      abortRequested = false; // Reset abort flag
 
       const s = queueState.stats;
       queueLog(
@@ -550,4 +564,23 @@ export async function GET() {
   } catch (error: unknown) {
     return NextResponse.json({ error: safeError(error) }, { status: 500 });
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// DELETE /api/capture — Emergency Stop
+// ═══════════════════════════════════════════════════════════════════
+export async function DELETE() {
+  if (!queueState.running) {
+    return NextResponse.json({ message: 'No hay captura en ejecución.' });
+  }
+
+  abortRequested = true;
+  queueLog('⛔ Solicitando detención de emergencia...');
+
+  return NextResponse.json({
+    success: true,
+    message: 'Detención solicitada. La captura se detendrá después del medio actual.',
+    progress: queueState.progress,
+    currentMedio: queueState.currentMedio,
+  });
 }
