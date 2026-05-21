@@ -74,3 +74,32 @@ Stage Summary:
 - Lógica de scores, agrupación, filtrado anti-duplicados DB: SIN CAMBIOS
 - El motor ahora filtra estrictamente periodistas, figuras históricas, actores internacionales sin impacto directo, delincuentes comunes, deportes/farándula
 - Prioriza política, conflictividad social, economía estatal, corrupción
+
+---
+Task ID: 1
+Agent: main
+Task: Implementar Seed de Usuario Admin y Fix de Autenticación
+
+Work Log:
+- Audit completo de schema.prisma (User model), auth.ts, middleware.ts
+- IDENTIFICADO BUG CRÍTICO: middleware.ts línea 25 hacía return early para rutas no-API, dejando TODAS las páginas del dashboard accesibles sin autenticación
+- IDENTIFICADO: AUTH_SECRET faltante en .env — JWT no se podía firmar/verificar
+- IDENTIFICADO: NextRequest import faltante en middleware.ts
+- IDENTIFICADO: getWorkerStats importado de módulo incorrecto (pre-existing)
+- FIX middleware.ts: eliminado return-early, ahora protege páginas + API con lógica unificada
+- FIX middleware.ts: agregado import type NextRequest
+- GENERADO AUTH_SECRET con openssl rand -base64 32 y agregado a .env
+- CREADO scripts/seed-admin.ts: script idempotente que crea usuario admin con bcrypt hash
+- EJECUTADO seed: admin@decodex.bo / Decodex2026!Secure creado exitosamente
+- VERIFICADO idempotencia: segunda ejecución no duplica
+- FIX pre-existing build error: getWorkerStats import from correct module
+- BUILD verificado: next build 0 errores
+- COMMIT: 1b8c185 pushed to origin/main
+
+Stage Summary:
+- Sistema ahora protegido: middleware exige JWT para dashboard + API
+- Usuario admin creado: admin@decodex.bo
+- AUTH_SECRET configurada
+- Script seed-admin.ts listo para VPS deployment
+- Build limpia, push exitoso
+
