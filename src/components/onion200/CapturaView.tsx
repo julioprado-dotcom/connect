@@ -26,8 +26,18 @@ interface CaptureQueueState {
   completedAt: string | null;
   currentMedio: string | null;
   progress: { current: number; total: number };
-  stats: { menciones: number; clasificadas: number; errores: number; tematicas: number };
+  stats: {
+    mediosProcesados: number;
+    mediosConError: number;
+    totalLinksExtraidos: number;
+    notasTriajeadas: number;
+    notasClasificadas: number;
+    mencionesCreadas: number;
+    mencionesDuplicadas: number;
+    errores: number;
+  };
   elapsedMin: number;
+  version?: string;
 }
 
 interface CaptureStatus {
@@ -191,24 +201,42 @@ export function CapturaView() {
             </div>
           )}
 
-          {/* Stats row */}
-          {queue && (queue.stats.menciones > 0 || isRunning) && (
+          {/* Stats row — v2 scraping directo */}
+          {queue && (queue.stats.mencionesCreadas > 0 || isRunning) && (
             <div className="grid grid-cols-4 gap-2 mb-4 py-3 border-y border-slate-800/60">
               <div className="text-center">
                 <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Menciones</p>
-                <p className="text-sm font-mono text-emerald-400 tabular-nums">{queue.stats.menciones}</p>
+                <p className="text-sm font-mono text-emerald-400 tabular-nums">{queue.stats.mencionesCreadas}</p>
               </div>
               <div className="text-center">
-                <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Clasificadas</p>
-                <p className="text-sm font-mono text-cyan-400 tabular-nums">{queue.stats.clasificadas}</p>
+                <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Triaje</p>
+                <p className="text-sm font-mono text-cyan-400 tabular-nums">{queue.stats.notasTriajeadas}</p>
               </div>
               <div className="text-center">
-                <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Tematicas</p>
-                <p className="text-sm font-mono text-amber-400 tabular-nums">{queue.stats.tematicas}</p>
+                <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Links</p>
+                <p className="text-sm font-mono text-amber-400 tabular-nums">{queue.stats.totalLinksExtraidos}</p>
               </div>
               <div className="text-center">
                 <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Errores</p>
                 <p className="text-sm font-mono text-red-400 tabular-nums">{queue.stats.errores}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Stats row — medias procesados (siempre visible cuando corre) */}
+          {queue && isRunning && queue.stats.mediosProcesados > 0 && (
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              <div className="text-center">
+                <p className="text-[9px] font-bold uppercase text-slate-700 font-mono">Medios</p>
+                <p className="text-xs font-mono text-slate-400 tabular-nums">{queue.stats.mediosProcesados}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[9px] font-bold uppercase text-slate-700 font-mono">Clasif.</p>
+                <p className="text-xs font-mono text-slate-400 tabular-nums">{queue.stats.notasClasificadas}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[9px] font-bold uppercase text-slate-700 font-mono">Duplicados</p>
+                <p className="text-xs font-mono text-slate-400 tabular-nums">{queue.stats.mencionesDuplicadas}</p>
               </div>
             </div>
           )}
