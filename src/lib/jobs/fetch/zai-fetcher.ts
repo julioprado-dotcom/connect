@@ -1,6 +1,6 @@
-// Z.ai Fetcher — Fetch nativo de páginas web
-// Reemplaza zai.functions.invoke('page_reader') que retornaba 404.
-// Usa fetch() directo con TLS workaround y headers de browser.
+// Z.ai Fetcher v2 — Fetch con fallback Z.ai SDK
+// FASE 1: fetch() nativo (desde el servidor)
+// FASE 2: Z.ai page_reader (rutea por servidores de Z.ai, funciona aunque el VPS tenga restricciones de red)
 // DECODEX Bolivia
 
 import type { CheckResult } from '../types'
@@ -13,28 +13,67 @@ interface ZaiPageResult {
   html: string
   publishedTime?: string
   usage?: { tokens: number }
+  source: 'native' | 'zai-sdk'
 }
 
-const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
+const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+
+// ─── Z.ai SDK singleton (lazy init) ────────────────────────────
+let zaiInstance: Awaited<ReturnType<typeof import('z-ai-web-dev-sdk').ZAI.create>> | null = null
+
+async function getZaiInstance() {
+  if (zaiInstance) return zaiInstance
+  try {
+    const ZAI = (await import('z-ai-web-dev-sdk')).ZAI
+    zaiInstance = await ZAI.create()
+    return zaiInstance
+  } catch (err) {
+    console.warn('[ZaiFetch] No se pudo inicializar Z.ai SDK:', err instanceof Error ? err.message : err)
+    return null
+  }
+}
 
 // ─── Función principal ─────────────────────────────────────────
 
 /**
- * Obtiene el contenido de una URL usando fetch() nativo.
- * Esto bypassa las limitaciones de red del container y NO depende
- * del endpoint /functions/invoke del Z.ai SDK (que retorna 404).
+ * Obtiene el contenido de una URL con doble estrategia:
+ * 1. fetch() nativo desde el servidor (rápido, sin costo)
+ * 2. Z.ai page_reader SDK (rutea por Z.ai, funciona con restricciones de red)
  *
- * Retorna null si falla (no lanza excepción).
+ * Retorna null si ambos fallan (no lanza excepción).
  */
-export async function zaiFetch(url: string, timeoutMs = 30000): Promise<ZaiPageResult | null> {
+export async function zaiFetch(url: string, timeoutMs = 15000): Promise<ZaiPageResult | null> {
+  // ═══════════════════════════════════════════════════════════
+  // INTENTO 1: fetch() nativo (rápido, sin costo de tokens)
+  // ═══════════════════════════════════════════════════════════
+  const nativeResult = await nativeFetch(url, timeoutMs)
+  if (nativeResult) {
+    console.log(`[Fetch] NATIVO OK ${url} — "${nativeResult.title.substring(0, 50)}" (${nativeResult.html.length} chars)`)
+    return nativeResult
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // INTENTO 2: Z.ai SDK page_reader (rutea por servidores Z.ai)
+  // ═══════════════════════════════════════════════════════════
+  console.log(`[Fetch] Nativo falló, intentando Z.ai SDK page_reader: ${url}`)
+  const zaiResult = await zaiPageReader(url)
+  if (zaiResult) {
+    console.log(`[Fetch] Z.AI OK ${url} — "${zaiResult.title.substring(0, 50)}" (${zaiResult.html.length} chars)`)
+    return zaiResult
+  }
+
+  console.warn(`[Fetch] AMBOS FALLARON para ${url}`)
+  return null
+}
+
+// ─── Fetch nativo ─────────────────────────────────────────────
+
+async function nativeFetch(url: string, timeoutMs: number): Promise<ZaiPageResult | null> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined
 
   try {
     const controller = new AbortController()
-    timeoutId = setTimeout(() => {
-      controller.abort()
-      console.warn(`[Fetch] Timeout ${timeoutMs}ms reached for ${url}`)
-    }, timeoutMs)
+    timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
     const response = await fetch(url, {
       headers: {
@@ -48,70 +87,86 @@ export async function zaiFetch(url: string, timeoutMs = 30000): Promise<ZaiPageR
       redirect: 'follow',
     })
 
-    // Si llegamos aqui, fetch respondió a tiempo — limpiar timeout
-    if (timeoutId) {
-      clearTimeout(timeoutId)
-      timeoutId = undefined
-    }
+    clearTimeout(timeoutId)
+    timeoutId = undefined
 
     if (!response.ok) {
-      console.warn(`[Fetch] HTTP ${response.status} para ${url}`)
+      console.warn(`[Fetch] Nativo: HTTP ${response.status} para ${url}`)
       return null
     }
 
     const html = await response.text()
-    const htmlLength = html.length
-
-    if (htmlLength === 0) {
-      console.warn(`[Fetch] HTML vacio para ${url}`)
+    if (html.length < 200) {
+      console.warn(`[Fetch] Nativo: HTML muy corto (${html.length} chars) para ${url}`)
       return null
     }
 
-    // Extraer título del HTML
-    const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)
-    const title = titleMatch ? titleMatch[1].trim().replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>') : ''
+    const title = extractTitle(html)
 
-    // Intentar extraer fecha de publicación
-    let publishedTime: string | undefined
-    const dateMatch = html.match(/(?:article:published_time|datePublished|publish-date)["\s]*content=["']([^"']+)/i)
-    if (dateMatch) publishedTime = dateMatch[1]
-    if (!publishedTime) {
-      const timeMatch = html.match(/<time[^>]+datetime=["']([^"']+)/i)
-      if (timeMatch) publishedTime = timeMatch[1]
-    }
-
-    console.log(
-      `[Fetch] OK ${url} — "${title.substring(0, 50)}" ` +
-      `(${htmlLength} chars)` +
-      (publishedTime ? ` pub:${publishedTime}` : '')
-    )
-
-    return {
-      title,
-      url: response.url || url,
-      html,
-      publishedTime,
-    }
+    return { title, url: response.url || url, html, source: 'native' }
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
     if (msg.includes('abort') || msg.includes('timeout')) {
-      console.warn(`[Fetch] Timeout ${timeoutMs}ms para ${url}`)
+      console.warn(`[Fetch] Nativo: Timeout ${timeoutMs}ms para ${url}`)
     } else {
-      console.warn(`[Fetch] Error ${url}: ${msg}`)
+      console.warn(`[Fetch] Nativo: Error para ${url}: ${msg}`)
     }
     return null
   } finally {
-    if (timeoutId) {
-      clearTimeout(timeoutId)
-      timeoutId = undefined
-    }
+    if (timeoutId) clearTimeout(timeoutId)
   }
 }
 
-/**
- * Obtiene texto plano de una URL usando fetch() nativo.
- * Ideal para pasar directo al LLM sin parsear HTML.
- */
+// ─── Z.ai SDK page_reader ─────────────────────────────────────
+
+async function zaiPageReader(url: string): Promise<ZaiPageResult | null> {
+  try {
+    const zai = await getZaiInstance()
+    if (!zai) {
+      console.warn('[Fetch] Z.ai SDK no disponible')
+      return null
+    }
+
+    const result = await zai.functions.invoke('page_reader', { url })
+
+    if (!result || !result.data) {
+      console.warn(`[Fetch] Z.ai: respuesta vacía para ${url}`)
+      return null
+    }
+
+    const data = result.data
+    const html = data.html || ''
+
+    if (html.length < 200) {
+      console.warn(`[Fetch] Z.ai: HTML muy corto (${html.length} chars) para ${url}`)
+      return null
+    }
+
+    return {
+      title: data.title || extractTitle(html),
+      url: data.url || url,
+      html,
+      publishedTime: data.publishedTime || data.publish_time,
+      usage: data.usage ? { tokens: data.usage.tokens || 0 } : undefined,
+      source: 'zai-sdk',
+    }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    console.warn(`[Fetch] Z.ai SDK error para ${url}: ${msg}`)
+    return null
+  }
+}
+
+// ─── Helpers ──────────────────────────────────────────────────
+
+function extractTitle(html: string): string {
+  const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)
+  if (!match) return ''
+  return match[1].trim().replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+}
+
+// ─── zaiFetchText (compatibilidad) ────────────────────────────
+
 export async function zaiFetchText(url: string, timeoutMs = 30000): Promise<{
   title: string
   text: string
@@ -121,7 +176,6 @@ export async function zaiFetchText(url: string, timeoutMs = 30000): Promise<{
   const page = await zaiFetch(url, timeoutMs)
   if (!page) return null
 
-  // Convertir HTML a texto plano (básico pero funcional)
   const text = page.html
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
@@ -146,10 +200,8 @@ export async function zaiFetchText(url: string, timeoutMs = 30000): Promise<{
   }
 }
 
-/**
- * Calcula un hash SHA-256 del contenido HTML de una URL via fetch nativo.
- * Útil para detección de cambios (fingerprint remoto).
- */
+// ─── zaiFingerprint (compatibilidad) ──────────────────────────
+
 export async function zaiFingerprint(url: string): Promise<{
   hash: string
   title: string
@@ -159,11 +211,10 @@ export async function zaiFingerprint(url: string): Promise<{
   const page = await zaiFetch(url)
   if (!page) return null
 
-  // Normalizar para fingerprint: mismo approach que fingerprint.ts
   const normalized = page.html
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-    .replace(/\d{13}/g, '') // timestamps
+    .replace(/\d{13}/g, '')
     .replace(/"csrf[^"]*"\s*:\s*"[^"]*"/gi, '')
     .replace(/"nonce[^"]*"\s*:\s*"[^"]*"/gi, '')
     .replace(/\s+/g, ' ')
@@ -175,11 +226,9 @@ export async function zaiFingerprint(url: string): Promise<{
     hash,
     title: page.title,
     length: normalized.length,
-    html: page.html, // pasar HTML para que scrape-fuente lo reutilice
+    html: page.html,
   }
 }
-
-// ─── Utilidades ────────────────────────────────────────────────
 
 async function sha256(input: string): Promise<string> {
   const encoder = new TextEncoder()

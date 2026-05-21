@@ -127,41 +127,22 @@ async function processMedio(
   // FASE 1: Descargar homepage + extraer links de artículos
   // ═══════════════════════════════════════════════════════════
 
-  let html = '';
-  try {
-    // Intento 1: fetch directo
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-    const response = await fetch(medio.url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'es-BO,es;q=0.9,en;q=0.8',
-      },
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    if (response.ok) {
-      html = await response.text();
-    }
-  } catch {
-    // fetch falló — intentar Z.ai
+  // Usar zaiFetch (intenta nativo primero, luego Z.ai SDK)
+  let fetchSource = 'ninguno';
+  const zaiResult = await zaiFetch(medio.url);
+  if (zaiResult && zaiResult.html.length >= 200) {
+    html = zaiResult.html;
+    fetchSource = zaiResult.source;
   }
 
-  // Intento 2: Z.ai page_reader
-  if (!html || html.length < 500) {
-    queueLog(`  📡 ${medio.nombre}: fetch directo falló, intentando Z.ai...`);
-    const zaiResult = await zaiFetch(medio.url);
-    if (zaiResult && zaiResult.html.length > 500) {
-      html = zaiResult.html;
-    }
-  }
-
-  if (!html || html.length < 500) {
-    queueLog(`  ❌ ${medio.nombre}: no se pudo obtener homepage`);
+  if (!html || html.length < 200) {
+    queueLog(`  ❌ ${medio.nombre}: no se pudo obtener homepage (URL: ${medio.url})`);
+    queueLog(`     → Nativo y Z.ai SDK fallaron. Verificar red del servidor.`);
     return { linksExtracted, notasTriaje, notasClasificadas, menciones, errores: 1 };
   }
+
+  queueLog(`  🌐 ${medio.nombre}: homepage obtenida via ${fetchSource} (${html.length} chars)`);
+
 
   // Extraer links de artículos
   const notas = extraerLinksDeNoticias(html, medio.url, QUEUE_CONFIG.maxLinksPerMedio);
@@ -230,30 +211,11 @@ async function processMedio(
       continue;
     }
 
-    // Descargar nota individual
+    // Descargar nota individual (usa zaiFetch con doble estrategia)
+    const notaResult = await zaiFetch(nota.url);
     let notaHtml = '';
-    try {
-      const ctrl = new AbortController();
-      const tid = setTimeout(() => ctrl.abort(), 15000);
-      const resp = await fetch(nota.url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'es-BO,es;q=0.9,en;q=0.8',
-        },
-        signal: ctrl.signal,
-      });
-      clearTimeout(tid);
-      if (resp.ok) notaHtml = await resp.text();
-    } catch {
-      // fetch falló, intentar Z.ai
-    }
-
-    if (!notaHtml || notaHtml.length < 200) {
-      const zaiResult = await zaiFetch(nota.url);
-      if (zaiResult && zaiResult.html.length > 200) {
-        notaHtml = zaiResult.html;
-      }
+    if (notaResult && notaResult.html.length >= 200) {
+      notaHtml = notaResult.html;
     }
 
     if (!notaHtml || notaHtml.length < 200) {

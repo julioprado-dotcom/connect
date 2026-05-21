@@ -14,6 +14,8 @@ import {
   Newspaper,
   Pause,
   Square,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════
@@ -66,6 +68,11 @@ export function CapturaView() {
   } | null>(null);
   const [stopping, setStopping] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [connTest, setConnTest] = useState<null | {
+    connectivity: { total: number; ok: number; failed: number; verdict: string };
+    tests: { label: string; url: string; ok: boolean; source: string; htmlLength: number; latencyMs: number; title?: string; error?: string }[];
+  }>(null);
+  const [connLoading, setConnLoading] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval>>(null);
 
   const fetchStatus = useCallback(async () => {
@@ -112,6 +119,22 @@ export function CapturaView() {
       setLaunchResult({ success: false, message: e instanceof Error ? e.message : 'Error de conexion' });
     } finally {
       setLaunching(false);
+    }
+  };
+
+  const handleConnectivityTest = async () => {
+    setConnLoading(true);
+    setConnTest(null);
+    try {
+      const res = await fetchWithTimeout('/api/capture/connectivity', { timeoutMs: 60000 });
+      if (res.ok) {
+        const data = await res.json();
+        setConnTest(data);
+      }
+    } catch {
+      setConnTest(null);
+    } finally {
+      setConnLoading(false);
     }
   };
 
@@ -295,6 +318,37 @@ export function CapturaView() {
               {launchResult.message}
             </div>
           )}
+
+          {/* Connectivity test */}
+          <div className="mt-4 pt-3 border-t border-slate-800/60">
+            <button
+              onClick={handleConnectivityTest}
+              disabled={connLoading || isRunning}
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-[10px] font-bold font-mono uppercase tracking-wider transition-all duration-200 hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{
+                color: connTest?.connectivity.verdict === 'OK' ? '#10b981' : connTest?.connectivity.verdict === 'CRITICAL' ? '#f43f5e' : '#64748b',
+                backgroundColor: connTest?.connectivity.verdict === 'OK' ? 'rgba(16,185,129,0.06)' : connTest?.connectivity.verdict === 'CRITICAL' ? 'rgba(244,63,94,0.06)' : 'rgba(100,116,139,0.06)',
+                border: `1px solid ${connTest?.connectivity.verdict === 'OK' ? 'rgba(16,185,129,0.15)' : connTest?.connectivity.verdict === 'CRITICAL' ? 'rgba(244,63,94,0.15)' : 'rgba(100,116,139,0.15)'}`,
+              }}
+            >
+              {connLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : connTest?.connectivity.verdict === 'OK' ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+              {connLoading ? 'Probando red...' : connTest ? `Red: ${connTest.connectivity.ok}/${connTest.connectivity.total} OK` : 'Probar Conectividad'}
+            </button>
+
+            {connTest && (
+              <div className="mt-2 space-y-1">
+                {connTest.tests.map((t) => (
+                  <div key={t.label} className="flex items-center justify-between text-[9px] font-mono px-2 py-1 rounded" style={{
+                    color: t.ok ? '#10b981' : '#f43f5e',
+                    backgroundColor: t.ok ? 'rgba(16,185,129,0.03)' : 'rgba(244,63,94,0.03)',
+                  }}>
+                    <span>{t.ok ? '✓' : '✗'} {t.label}</span>
+                    <span className="text-slate-600">{t.ok ? `${t.source} ${t.latencyMs}ms` : (t.error || 'falló')}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Last capture info */}
           {status?.lastCaptureLog && !isRunning && (
