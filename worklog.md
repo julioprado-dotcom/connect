@@ -103,3 +103,23 @@ Stage Summary:
 - Script seed-admin.ts listo para VPS deployment
 - Build limpia, push exitoso
 
+
+---
+Task ID: 2
+Agent: main
+Task: Reescribir capture pipeline v2 — scraping directo reemplaza web search
+
+Work Log:
+- Analizado el motor de scraping existente en src/lib/jobs/ (3 fases, 7+ módulos)
+- Identificado el problema: /api/capture usaba web_search nativo que no indexa medios bolivianos
+- Reescrito completo src/app/api/capture/route.ts (280 insertions, 316 deletions)
+- Pipeline v2 usa: FASE 1 (link extraction regex) → FASE 2 (keyword triaje) → FASE 3 (LLM classify)
+- Usa los mismos módulos que scrape-fuente runner (link-extractor, keyword-triaje, zai-fetcher, extractor-menciones)
+- Pausa reducida de 60s a 15s entre medios
+- Estadísticas enriquecidas: links extraídos, notas triajeadas, clasificadas, menciones creadas
+- Build exitoso (0 errores), commit c7b7f9c pushed to main
+
+Stage Summary:
+- Capture pipeline v2 listo para deploy
+- Depende de módulos ya probados que produjeron 33 menciones reales en tests anteriores
+- El usuario necesita hacer git pull + pm2 restart en VPS para activar
