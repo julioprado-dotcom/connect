@@ -180,8 +180,18 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       }
 
       // Extraer texto limpio del artículo
-      const texto = extraerTextoDeHtml(notaHtml)
-      if (texto.length < 100) {
+      let texto = extraerTextoDeHtml(notaHtml)
+
+      // FIX: Prepend título + lead al texto para dar contexto al LLM
+      // Muchos sitios bolivianos cargan contenido vía JS; el texto extraído
+      // puede ser solo navegación/ads. Título + lead del homepage son confiables.
+      const textoCompleto = [
+        nota.titulo ? `TÍTULO: ${nota.titulo}` : '',
+        nota.lead ? `RESUMEN: ${nota.lead}` : '',
+        texto,
+      ].filter(Boolean).join('\n\n')
+
+      if (textoCompleto.length < 100) {
         resultados.push({
           url: nota.url,
           titulo: nota.titulo,
@@ -193,9 +203,11 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
         continue
       }
 
+      console.log(`[scrape-fuente] Texto al LLM: ${textoCompleto.length} chars (título: ${nota.titulo ? 'sí' : 'no'}, lead: ${nota.lead ? 'sí' : 'no'})`)
+
       // Clasificar con LLM (1 llamada por nota)
       try {
-        const resultado = await extraerMencionesDeTexto(texto, medioId)
+        const resultado = await extraerMencionesDeTexto(textoCompleto, medioId)
         const menciones = await crearMencionesExtraidas(resultado, medioId, nota.url, nota.titulo)
 
         totalMencionesCreadas += menciones
@@ -250,6 +262,19 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
     })
 
     console.log(`[scrape-fuente] Completado ${fuente.Medio.nombre}: ${notas.length} notas → ${seleccionadas.length} seleccionadas → ${totalMencionesCreadas} menciones [${responseTime}ms]`)
+
+    // Ejecutar descubrimiento inteligente si hay menciones huérfanas (best-effort, no bloquea)
+    if (totalMencionesCreadas > 0) {
+      try {
+        const { ejecutarDescubrimiento } = await import('@/lib/ai/discovery');
+        const discovery = await ejecutarDescubrimiento();
+        if (discovery.sugerenciasCreadas > 0) {
+          console.log(`[scrape-fuente] Descubrimiento: ${discovery.sugerenciasCreadas} sugerencias nuevas`);
+        }
+      } catch (err) {
+        console.warn('[scrape-fuente] Descubrimiento falló (no bloqueante):', err instanceof Error ? err.message : err);
+      }
+    }
 
     // Backup periódico de DB (cada 100 ciclos o 6h)
     const backup = checkAndBackupDB()

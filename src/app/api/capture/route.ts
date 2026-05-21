@@ -128,6 +128,7 @@ async function processMedio(
   // ═══════════════════════════════════════════════════════════
 
   // Usar zaiFetch (intenta nativo primero, luego Z.ai SDK)
+  let html = '';
   let fetchSource = 'ninguno';
   const zaiResult = await zaiFetch(medio.url);
   if (zaiResult && zaiResult.html.length >= 200) {
@@ -225,15 +226,47 @@ async function processMedio(
     }
 
     // Extraer texto limpio del artículo
-    const texto = extraerTextoDeHtml(notaHtml);
-    if (texto.length < 100) {
-      queueLog(`    ⚠️  Texto muy corto (${texto.length} chars) — saltando`);
+    let texto = extraerTextoDeHtml(notaHtml);
+
+    // FIX: Si el texto extraído es pobre (< 500 chars), reintentar con Z.ai SDK
+    // (page_reader puede ejecutar JS y obtener contenido renderizado)
+    if (texto.length < 500 && notaResult?.source === 'native') {
+      queueLog(`    ⚠️  Texto nativo corto (${texto.length} chars), reintentando con Z.ai page_reader...`);
+      try {
+        const { zaiFetch: zaiFetchDirect } = await import('@/lib/jobs/fetch/zai-fetcher');
+        const zaiRetry = await zaiFetchDirect(nota.url);
+        if (zaiRetry && zaiRetry.html.length >= 200) {
+          const textoZai = extraerTextoDeHtml(zaiRetry.html);
+          if (textoZai.length > texto.length) {
+            const anterior = texto.length;
+            texto = textoZai;
+            queueLog(`    ✅ Z.ai mejoró texto: ${texto.length} chars (era ${anterior} chars)`);
+          }
+        }
+      } catch {
+        // Non-critical
+      }
+    }
+
+    // FIX: Prepend título + lead al texto para dar contexto al LLM
+    // Muchos sitios bolivianos cargan contenido vía JS; el texto extraído
+    // puede ser solo navegación/ads. Título + lead del homepage son confiables.
+    const textoCompleto = [
+      nota.titulo ? `TÍTULO: ${nota.titulo}` : '',
+      nota.lead ? `RESUMEN: ${nota.lead}` : '',
+      texto,
+    ].filter(Boolean).join('\n\n');
+
+    if (textoCompleto.length < 100) {
+      queueLog(`    ⚠️  Texto muy corto (${textoCompleto.length} chars) — saltando`);
       continue;
     }
 
+    queueLog(`    📊 Texto enviado al LLM: ${textoCompleto.length} chars (título: ${nota.titulo ? 'sí' : 'no'}, lead: ${nota.lead ? 'sí' : 'no'})`);
+
     // Clasificar con LLM
     try {
-      const resultado = await extraerMencionesDeTexto(texto, medio.id);
+      const resultado = await extraerMencionesDeTexto(textoCompleto, medio.id);
       const creadas = await crearMencionesExtraidas(resultado, medio.id, nota.url, nota.titulo);
       menciones += creadas;
       notasClasificadas++;
