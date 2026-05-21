@@ -4,6 +4,10 @@
  * https://nextjs.org/docs/app/api-reference/config/instrumentation
  */
 
+// CRÍTICO: instrumentation DEBE correr en Node.js runtime, no Edge Runtime.
+// Sin esto, fs/path/child_process fallan y el scheduler/jobs nunca inician.
+export const runtime = 'nodejs';
+
 export async function register() {
   // Solo ejecutar en el servidor
   if (typeof window !== 'undefined') return;
