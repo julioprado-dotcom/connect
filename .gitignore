@@ -10,8 +10,17 @@ download/productos/*
 node_modules/
 
 # Database backups — tracked in git for disaster recovery
-# Only *.db files in backups/ are tracked; backup scripts are in scripts/
-# To exclude from git locally (without affecting team): git update-index --assume-unchanged backups/*.db
+# Only *.db files in prisma/db/backups/ are tracked (source of truth)
+# To exclude from git locally (without affecting team): git update-index --assume-unchanged prisma/db/backups/*.db
+
+# Legacy/conflicting databases — DO NOT track
+backups/*.db
+connect/backups/*.db
+connect/prisma/db/*.db
+connect/prisma/prisma/db/*.db
+prisma/prisma/db/*.db
+prisma/dev.db
+prisma/db/custom-empty-backup.db
 
 # Sensitive / session files
 HANDOFF.md
