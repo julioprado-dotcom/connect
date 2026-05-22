@@ -22,7 +22,7 @@ import { withAuth } from '@/lib/auth-helpers';
 import { extraerTextoDeHtml, extraerMencionesDeTexto, crearMencionesExtraidas } from '@/lib/ai/extractor-menciones';
 import { extraerLinksDeNoticias, extraerLeadDeBloque, type NotaLink } from '@/lib/jobs/link-extractor';
 import { trijarNotas } from '@/lib/jobs/keyword-triaje';
-import { zaiFetch } from '@/lib/jobs/fetch/zai-fetcher';
+import { zaiFetch, zaiFetchArticle } from '@/lib/jobs/fetch/zai-fetcher';
 
 // ─── Configuración de la Cola ──────────────────────────────────
 const QUEUE_CONFIG = {
@@ -212,8 +212,8 @@ async function processMedio(
       continue;
     }
 
-    // Descargar nota individual (usa zaiFetch con doble estrategia)
-    const notaResult = await zaiFetch(nota.url);
+    // Descargar nota individual — Z.ai page_reader PRIMERO (renderiza JS)
+    const notaResult = await zaiFetchArticle(nota.url);
     let notaHtml = '';
     if (notaResult && notaResult.html.length >= 200) {
       notaHtml = notaResult.html;
@@ -226,27 +226,7 @@ async function processMedio(
     }
 
     // Extraer texto limpio del artículo
-    let texto = extraerTextoDeHtml(notaHtml);
-
-    // FIX: Si el texto extraído es pobre (< 500 chars), reintentar con Z.ai SDK
-    // (page_reader puede ejecutar JS y obtener contenido renderizado)
-    if (texto.length < 500 && notaResult?.source === 'native') {
-      queueLog(`    ⚠️  Texto nativo corto (${texto.length} chars), reintentando con Z.ai page_reader...`);
-      try {
-        const { zaiFetch: zaiFetchDirect } = await import('@/lib/jobs/fetch/zai-fetcher');
-        const zaiRetry = await zaiFetchDirect(nota.url);
-        if (zaiRetry && zaiRetry.html.length >= 200) {
-          const textoZai = extraerTextoDeHtml(zaiRetry.html);
-          if (textoZai.length > texto.length) {
-            const anterior = texto.length;
-            texto = textoZai;
-            queueLog(`    ✅ Z.ai mejoró texto: ${texto.length} chars (era ${anterior} chars)`);
-          }
-        }
-      } catch {
-        // Non-critical
-      }
-    }
+    const texto = extraerTextoDeHtml(notaHtml);
 
     // FIX: Prepend título + lead al texto para dar contexto al LLM
     // Muchos sitios bolivianos cargan contenido vía JS; el texto extraído
@@ -262,7 +242,7 @@ async function processMedio(
       continue;
     }
 
-    queueLog(`    📊 Texto enviado al LLM: ${textoCompleto.length} chars (título: ${nota.titulo ? 'sí' : 'no'}, lead: ${nota.lead ? 'sí' : 'no'})`);
+    queueLog(`    📊 Texto enviado al LLM: ${textoCompleto.length} chars (${notaResult.source}, título: ${nota.titulo ? 'sí' : 'no'}, lead: ${nota.lead ? 'sí' : 'no'})`);
 
     // Clasificar con LLM
     try {

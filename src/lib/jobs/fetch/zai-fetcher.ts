@@ -135,10 +135,13 @@ async function zaiPageReader(url: string): Promise<ZaiPageResult | null> {
     }
 
     const data = result.data
-    const html = data.html || ''
+
+    // Z.ai puede retornar contenido en diferentes campos según el formato
+    const html = data.html || data.content || data.text || data.markdown || ''
 
     if (html.length < 200) {
-      console.warn(`[Fetch] Z.ai: HTML muy corto (${html.length} chars) para ${url}`)
+      console.warn(`[Fetch] Z.ai: contenido muy corto (${html.length} chars) para ${url}`)
+      console.warn(`[Fetch] Z.ai: campos disponibles: ${Object.keys(data || {}).join(', ')}`)
       return null
     }
 
@@ -146,7 +149,7 @@ async function zaiPageReader(url: string): Promise<ZaiPageResult | null> {
       title: data.title || extractTitle(html),
       url: data.url || url,
       html,
-      publishedTime: data.publishedTime || data.publish_time,
+      publishedTime: data.publishedTime || data.publish_time || data.published_time,
       usage: data.usage ? { tokens: data.usage.tokens || 0 } : undefined,
       source: 'zai-sdk',
     }
@@ -155,6 +158,42 @@ async function zaiPageReader(url: string): Promise<ZaiPageResult | null> {
     console.warn(`[Fetch] Z.ai SDK error para ${url}: ${msg}`)
     return null
   }
+}
+
+// ─── zaiFetchArticle — Z.ai PRIMERO para artículos (renderiza JS) ─
+
+/**
+ * Obtiene contenido de un ARTÍCULO con estrategia invertida:
+ * 1. Z.ai page_reader PRIMERO (renderiza JS, obtiene contenido completo)
+ * 2. fetch() nativo como fallback (rápido pero no renderiza JS)
+ *
+ * Diferencia con zaiFetch(): los artículos de medios bolivianos típicamente
+ * cargan contenido vía JavaScript. El fetch nativo obtiene solo el HTML shell,
+ * mientras que Z.ai page_reader ejecuta JS y retorna el contenido renderizado.
+ */
+export async function zaiFetchArticle(url: string, timeoutMs = 20000): Promise<ZaiPageResult | null> {
+  // ═══════════════════════════════════════════════════════════
+  // INTENTO 1: Z.ai SDK page_reader (renderiza JS → contenido completo)
+  // ═══════════════════════════════════════════════════════════
+  console.log(`[FetchArticle] Intentando Z.ai page_reader: ${url}`)
+  const zaiResult = await zaiPageReader(url)
+  if (zaiResult && zaiResult.html.length >= 500) {
+    console.log(`[FetchArticle] Z.AI OK ${url} — "${zaiResult.title.substring(0, 50)}" (${zaiResult.html.length} chars)`)
+    return zaiResult
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // INTENTO 2: fetch() nativo (fallback si Z.ai falla)
+  // ═══════════════════════════════════════════════════════════
+  console.log(`[FetchArticle] Z.ai insuficiente, intentando nativo: ${url}`)
+  const nativeResult = await nativeFetch(url, timeoutMs)
+  if (nativeResult) {
+    console.log(`[FetchArticle] NATIVO OK ${url} — "${nativeResult.title.substring(0, 50)}" (${nativeResult.html.length} chars)`)
+    return nativeResult
+  }
+
+  console.warn(`[FetchArticle] AMBOS FALLARON para ${url}`)
+  return null
 }
 
 // ─── Helpers ──────────────────────────────────────────────────
