@@ -34,7 +34,7 @@ function normalize(s: string): string {
 async function loadEjes(): Promise<EjeData[]> {
   const rows = await db.ejeTematico.findMany({
     where: { tipo: 'estructural', activo: true },
-    include: { keywordEjes: { where: { activo: true }, select: { termino: true } } },
+    include: { Keyword: { where: { activo: true }, select: { termino: true } } },
     orderBy: { orden: 'asc' },
   });
 
@@ -42,21 +42,21 @@ async function loadEjes(): Promise<EjeData[]> {
     id: r.id,
     nombre: r.nombre,
     slug: r.slug,
-    keywords: r.keywordEjes?.map((k: any) => k.termino.toLowerCase().trim()) || [],
+    keywords: r.Keyword?.map((k: any) => k.termino.toLowerCase().trim()) || [],
   }));
 }
 
 async function loadLentes(): Promise<LenteData[]> {
   const rows = await db.lente.findMany({
     where: { activo: true },
-    include: { keywordLentes: { where: { activo: true }, select: { termino: true } } },
+    include: { Keyword: { where: { activo: true }, select: { termino: true } } },
   });
 
   return rows.map((r: any) => ({
     id: r.id,
     nombre: r.nombre,
     slug: r.slug,
-    keywords: r.keywordLentes?.map((k: any) => k.termino.toLowerCase().trim()) || [],
+    keywords: r.Keyword?.map((k: any) => k.termino.toLowerCase().trim()) || [],
   }));
 }
 

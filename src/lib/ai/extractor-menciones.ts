@@ -6,6 +6,7 @@
 import db from '@/lib/db';
 import ZAI from 'z-ai-web-dev-sdk';
 import { deduplicarMencion, actualizarCoberturaDuplicado } from '@/lib/deduplicacion';
+import { reclasificarMencion } from '@/lib/clasificador-v2';
 
 // ─── Interfaces ──────────────────────────────────────────────────
 
@@ -1023,6 +1024,9 @@ export async function crearMencionesExtraidas(
         }
       }
 
+      // Clasificar con ejes v2 + lentes transversales (keyword match, no LLM)
+      try { await reclasificarMencion(mencion.id); } catch { /* no bloquear pipeline */ }
+
       creadas++;
     } catch {
       // Tolerancia a fallos: continuar con la siguiente
@@ -1077,6 +1081,9 @@ export async function crearMencionesExtraidas(
             // Duplicado o error, ignorar
           }
         }
+
+        // Clasificar con ejes v2 + lentes transversales (keyword match, no LLM)
+        try { await reclasificarMencion(mencion.id); } catch { /* no bloquear pipeline */ }
 
         creadas++;
       }
