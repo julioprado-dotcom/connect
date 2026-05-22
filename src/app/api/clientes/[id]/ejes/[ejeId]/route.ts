@@ -18,7 +18,7 @@ export async function GET(
     const eje = await db.ejeTematicoCliente.findUnique({
       where: { id: parseInt(ejeId, 10) },
       include: {
-        cliente: { select: { id: true, nombre: true } },
+        Cliente: { select: { id: true, nombre: true } },
         _count: { select: { mencion_cliente_eje: true } },
       },
     });

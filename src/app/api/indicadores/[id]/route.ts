@@ -13,7 +13,7 @@ export async function GET(
     const indicador = await db.indicador.findUnique({
       where: { id },
       include: {
-        _count: { select: { valores: true, evaluaciones: true } },
+        _count: { select: { IndicadorValor: true, IndicadorEvaluacion: true } },
       },
     });
 
