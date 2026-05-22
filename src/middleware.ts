@@ -3,8 +3,7 @@ import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 // ─── Middleware de Seguridad Global ─────────────────────────────
-// Protege TODAS las rutas /api/* y páginas del dashboard.
-// Exige autenticación JWT válida para cualquier acceso.
+// Protege TODAS las rutas — nada es accesible sin autenticación.
 //
 // Excepciones (rutas públicas):
 //   - /api/auth/*          → Login, signup, callbacks de NextAuth
@@ -12,7 +11,6 @@ import { getToken } from 'next-auth/jwt';
 //   - /api/alertas/estado  → Health check público (sin datos sensibles)
 //   - /login               → Página de inicio de sesión
 //   - /suscribir           → Landing de suscripción
-//   - /                    → Homepage pública
 //   - Assets estáticos     → _next/static, _next/image, favicon, etc.
 //
 // Cualquier ruta NO listada aquí requerirá token JWT válido.
@@ -30,9 +28,6 @@ const PUBLIC_PAGE_ROUTES = [
 
 // Rutas que siempre se permiten (sin auth)
 function isPublicRoute(pathname: string): boolean {
-  // Root path
-  if (pathname === '/') return true;
-
   // Assets estáticos de Next.js
   if (
     pathname.startsWith('/_next/static') ||
