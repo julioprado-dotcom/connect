@@ -253,12 +253,16 @@ async function processMedio(
 
       processedUrls.add(nota.url);
 
+      // Log detallado de lo que encontró el LLM
+      const legs = resultado.legisladores_mencionados?.length || 0;
+      const ejes = resultado.ejes_mencionados?.length || 0;
+
       if (creadas > 0) {
         queueLog(
-          `    ✅ ${creadas} menciones (${resultado.es_relevante ? 'RELEVANTE' : 'no relevante'}, ${resultado.tratamientoPeriodistico})`,
+          `    ✅ ${creadas} menciones (RELEVANTE, ${legs} legislators, ${ejes} ejes, ${resultado.tratamientoPeriodistico})`,
         );
       } else {
-        queueLog(`    ➖ Sin menciones nuevas (es_relevante: ${resultado.es_relevante})`);
+        queueLog(`    ➖ Sin menciones (relevante:${resultado.es_relevante}, legs:${legs}, ejes:${ejes}, ${resultado.tratamientoPeriodistico})`);
       }
     } catch (err) {
       errores++;
