@@ -65,7 +65,9 @@ export async function middleware(request: NextRequest) {
     const token = await getToken({
       req: request,
       secret: process.env.AUTH_SECRET,
-      secureCookie: process.env.NODE_ENV === 'production',
+      // secureCookie solo true si hay HTTPS (requiere __Secure- prefix en cookie)
+      // TODO: activar cuando se configure SSL/HTTPS con Let's Encrypt
+      secureCookie: false,
     });
 
     if (!token) {
