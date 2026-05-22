@@ -119,7 +119,7 @@ async function getTemasRecientesCached(): Promise<any[]> {
   const treintaDiasAtras = new Date();
   treintaDiasAtras.setDate(treintaDiasAtras.getDate() - 30);
   const data = await db.mencionTema.findMany({
-    where: { mencion: { fechaCaptura: { gte: treintaDiasAtras } } },
+    where: { Mencion: { fechaCaptura: { gte: treintaDiasAtras } } },
     include: { ejeTematico: { select: { nombre: true, keywords: true } } },
     distinct: ['ejeTematicoId'],
   });
