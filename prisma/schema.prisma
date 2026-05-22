@@ -25,6 +25,28 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
+model AdminFeedback {
+  id                  String   @id
+  tipo                String
+  productoAfectado    String?
+  instruccionOriginal String
+  accionEjecutada     String?
+  resultado           String?
+  detalle             String?
+  sugerenciaGenerada  Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime
+}
+
+model AprendizajeSistema {
+  id        String   @id
+  categoria String
+  leccion   String
+  contexto  String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+}
+
 model CapturaLog {
   id                   String   @id
   fecha                DateTime @default(now())
@@ -126,10 +148,10 @@ model Entrega {
   fechaCreacion   DateTime  @default(now())
   Contrato        Contrato  @relation(fields: [contratoId], references: [id], onDelete: Cascade)
 
-  @@index([fechaEnvio])
-  @@index([estado])
-  @@index([tipoBoletin])
   @@index([contratoId])
+  @@index([tipoBoletin])
+  @@index([estado])
+  @@index([fechaEnvio])
 }
 
 model EnvioReporte {
@@ -182,10 +204,10 @@ model FuenteEstado {
   strategyScrape     String    @default("")
   Medio              Medio     @relation(fields: [medioId], references: [id])
 
-  @@index([estado])
-  @@index([activo])
-  @@index([ultimoCheck])
   @@index([medioId])
+  @@index([ultimoCheck])
+  @@index([activo])
+  @@index([estado])
 }
 
 model Indicador {
@@ -229,8 +251,8 @@ model IndicadorEvaluacion {
   fechaCreacion   DateTime  @default(now())
   Indicador       Indicador @relation(fields: [indicadorId], references: [id], onDelete: Cascade)
 
-  @@index([escalaNivel])
   @@index([indicadorId, fechaEvaluacion])
+  @@index([escalaNivel])
 }
 
 model IndicadorValor {
@@ -263,9 +285,9 @@ model Job {
   proximaEjecucion DateTime?
   programa         String    @default("")
 
-  @@index([fechaCreacion])
-  @@index([tipo])
   @@index([estado, prioridad])
+  @@index([tipo])
+  @@index([fechaCreacion])
 }
 
 model Keyword {
@@ -276,8 +298,8 @@ model Keyword {
   activo      Boolean      @default(true)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime
-  EjeTematico EjeTematico? @relation(fields: [ejeId], references: [id])
   Lente       Lente?       @relation(fields: [lenteId], references: [id])
+  EjeTematico EjeTematico? @relation(fields: [ejeId], references: [id])
 }
 
 model Lente {
@@ -293,29 +315,29 @@ model Lente {
 }
 
 model Medio {
-  id                 String        @id
-  nombre             String
-  url                String        @default("")
-  tipo               String
-  categoria          String        @default("corporativo")
-  nivel              String        @default("1")
-  departamento       String?
-  plataformas        String        @default("")
-  notas              String        @default("")
-  pais               String        @default("Bolivia")
-  activo             Boolean       @default(true)
-  fechaCreacion      DateTime      @default(now())
-  frecuenciaOverride String        @default("")
-  naturaleza         String        @default("PRIVADO")
-  ambito             String        @default("NACIONAL")
-  enfoque            String        @default("GENERALISTA")
-  credibilidad       Int           @default(50)
+  id                   String        @id
+  nombre               String
+  url                  String        @default("")
+  tipo                 String
+  categoria            String        @default("corporativo")
+  nivel                String        @default("1")
+  departamento         String?
+  plataformas          String        @default("")
+  notas                String        @default("")
+  pais                 String        @default("Bolivia")
+  activo               Boolean       @default(true)
+  fechaCreacion        DateTime      @default(now())
+  frecuenciaOverride   String        @default("")
+  naturaleza           String        @default("PRIVADO")
+  ambito               String        @default("NACIONAL")
+  enfoque              String        @default("GENERALISTA")
+  credibilidad         Int           @default(50)
   ultimaRevisionHumana DateTime?
-  ultimoError        String        @default("")
-  pesoInformativo    Float         @default(0)    // Score compuesto: 0=auto, >0=manual override
-  CapturaLog         CapturaLog[]
-  FuenteEstado       FuenteEstado?
-  Mencion            Mencion[]
+  ultimoError          String        @default("")
+  pesoInformativo      Float         @default(0)
+  CapturaLog           CapturaLog[]
+  FuenteEstado         FuenteEstado?
+  Mencion              Mencion[]
 }
 
 model Mencion {
@@ -349,18 +371,16 @@ model Mencion {
   deduplicacionLog        String?
   intencionMedio          String?
   ejeEstructuralId        String?
-  // ─── Evidencia Forense Digital (Blindaje Histórico) ────────────────
-  evidenciaHtmlRuta       String?   @default("")   // Ruta al archivo HTML estático capturado
-  evidenciaPngRuta        String?   @default("")   // Ruta al screenshot PNG capturado
-  evidenciaHashSha256     String?   @default("")   // Hash SHA-256 del contenido original (integridad)
-  evidenciaTimestamp      DateTime?                // Momento exacto de la captura forense
-  evidenciaUrlOriginal    String?   @default("")   // URL original al momento de captura (puede cambiar)
-  evidenciaTamanoBytes    Int?      @default(0)    // Tamaño del archivo capturado en bytes
-  // ─── Fin Evidencia Forense ──────────────────────────────────────────
+  evidenciaHtmlRuta       String?               @default("")
+  evidenciaPngRuta        String?               @default("")
+  evidenciaHashSha256     String?               @default("")
+  evidenciaTimestamp      DateTime?
+  evidenciaUrlOriginal    String?               @default("")
+  evidenciaTamanoBytes    Int?                  @default(0)
   Comentario              Comentario[]
-  EjeTematico             EjeTematico?          @relation(fields: [ejeEstructuralId], references: [id])
-  Medio                   Medio                 @relation(fields: [medioId], references: [id])
   Persona                 Persona?              @relation(fields: [personaId], references: [id])
+  Medio                   Medio                 @relation(fields: [medioId], references: [id])
+  EjeTematico             EjeTematico?          @relation(fields: [ejeEstructuralId], references: [id])
   MencionLente            MencionLente[]
   MencionTema             MencionTema[]
   mencion_cliente_eje     mencion_cliente_eje[]
@@ -373,8 +393,8 @@ model MencionLente {
   mencionId String
   lenteId   String
   createdAt DateTime @default(now())
-  Lente     Lente    @relation(fields: [lenteId], references: [id], onDelete: Cascade)
   Mencion   Mencion  @relation(fields: [mencionId], references: [id], onDelete: Cascade)
+  Lente     Lente    @relation(fields: [lenteId], references: [id], onDelete: Cascade)
 
   @@unique([mencionId, lenteId])
 }
@@ -383,8 +403,8 @@ model MencionTema {
   id            String      @id
   mencionId     String
   ejeTematicoId String
-  EjeTematico   EjeTematico @relation(fields: [ejeTematicoId], references: [id], onDelete: Cascade)
   Mencion       Mencion     @relation(fields: [mencionId], references: [id], onDelete: Cascade)
+  EjeTematico   EjeTematico @relation(fields: [ejeTematicoId], references: [id], onDelete: Cascade)
 
   @@unique([mencionId, ejeTematicoId])
 }
@@ -409,7 +429,7 @@ model Persona {
 }
 
 model Reporte {
-  id                     String    @id @default(cuid())
+  id                     String    @id
   tipo                   String
   personaId              String?
   fechaInicio            DateTime
@@ -464,8 +484,8 @@ model ReporteSectorial {
   EnvioReporte     EnvioReporte[]
   ReporteEje       ReporteEje[]
 
-  @@index([estado])
   @@index([sector, periodoInicio])
+  @@index([estado])
 }
 
 model Session {
@@ -474,6 +494,21 @@ model Session {
   userId       String
   expires      DateTime
   User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SugerenciaInteligencia {
+  id            String    @id
+  tipo          String
+  datoPropuesto Json
+  confianza     Int       @default(0)
+  estado        String    @default("pendiente")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime
+  procesadaEn   DateTime?
+
+  @@index([createdAt])
+  @@index([tipo])
+  @@index([estado])
 }
 
 model Suscriptor {
@@ -577,45 +612,8 @@ model mencion_cliente_eje {
   mencionId            String
   ejeClienteId         Int
   confianza            Float?
-  eje_tematico_cliente eje_tematico_cliente @relation(fields: [ejeClienteId], references: [id], onDelete: Cascade)
   Mencion              Mencion              @relation(fields: [mencionId], references: [id], onDelete: Cascade)
+  eje_tematico_cliente eje_tematico_cliente @relation(fields: [ejeClienteId], references: [id], onDelete: Cascade)
 
   @@unique([mencionId, ejeClienteId])
-}
-
-model AdminFeedback {
-  id                  String   @id @default(cuid())
-  tipo                String
-  productoAfectado    String?
-  instruccionOriginal String
-  accionEjecutada     String?
-  resultado           String?
-  detalle             String?
-  sugerenciaGenerada  Boolean  @default(false)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-}
-
-model SugerenciaInteligencia {
-  id           String   @id @default(cuid())
-  tipo         String   // 'nueva_persona', 'nuevo_tema', 'nuevo_medio'
-  datoPropuesto Json    // { nombre, cargo, fuentes, contexto, ... }
-  confianza    Int      @default(0) // 0-100 basado en redundancia de medios
-  estado       String   @default("pendiente") // 'pendiente', 'aprobada', 'rechazada'
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  procesadaEn  DateTime?
-
-  @@index([estado])
-  @@index([tipo])
-  @@index([createdAt])
-}
-
-model AprendizajeSistema {
-  id        String   @id @default(cuid())
-  categoria String
-  leccion   String
-  contexto  String   @default("")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
