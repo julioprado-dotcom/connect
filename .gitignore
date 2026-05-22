@@ -15,12 +15,12 @@ node_modules/
 
 # Legacy/conflicting databases — DO NOT track
 backups/*.db
-connect/backups/*.db
-connect/prisma/db/*.db
-connect/prisma/prisma/db/*.db
-prisma/prisma/db/*.db
 prisma/dev.db
 prisma/db/custom-empty-backup.db
+prisma/db/*.bak
+prisma/db/custom.db.pre-*
+prisma/db/custom.db.sin-*
+prisma/db/custom.db.vacio
 
 # Sensitive / session files
 HANDOFF.md
@@ -41,12 +41,14 @@ out/
 prisma/migrations/
 
 # Database
-db/*.db
-prisma/db/*.bak
+db/
 *.db-journal
 *.db-wal
 nohup.out
 start-*.sh
+server.pid
+tmp-query.cjs
+connect/
 
 # ZAI SDK config (contains API key — never commit this)
 .z-ai-config
@@ -76,6 +78,11 @@ tmp/
 CLAUDE.md
 AGENTS.md
 *.disabled
+_scripts_disabled/
+scripts/logs/
+examples/
+decodeX-bolivia/
+mini-services/
 
 # Temporary data files from web scraping
 data/*.pdf
