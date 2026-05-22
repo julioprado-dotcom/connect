@@ -240,10 +240,21 @@ function buildSystemPrompt(marco: MarcoData | null): string {
 
   // ── Criterios de Relevancia ──
   let criteriosRelevancia: string[] = [];
+  let noCriterios: string[] = [];
   if (marco) {
-    const cr = safeJson<string[] | { criterio: string }[]>(marco.criteriosRelevancia, []);
+    const cr = safeJson<unknown>(marco.criteriosRelevancia, null);
     if (Array.isArray(cr)) {
-      criteriosRelevancia = cr.map(c => typeof c === 'string' ? c : c.criterio || '').filter(Boolean);
+      // Formato array: ['criterio1', ...] o [{criterio: '...'}, ...]
+      criteriosRelevancia = (cr as unknown[]).map((c: unknown) =>
+        typeof c === 'string' ? c : (c as Record<string, string>)?.criterio || ''
+      ).filter(Boolean);
+    } else if (cr && typeof cr === 'object') {
+      // Formato objeto: { es_relevante_si: [...], no_es_relevante_si: [...] }
+      const obj = cr as Record<string, unknown>;
+      criteriosRelevancia = Array.isArray(obj.es_relevante_si)
+        ? (obj.es_relevante_si as string[]).filter(Boolean) : [];
+      noCriterios = Array.isArray(obj.no_es_relevante_si)
+        ? (obj.no_es_relevante_si as string[]).filter(Boolean) : [];
     }
   }
   if (criteriosRelevancia.length === 0) {
@@ -254,7 +265,11 @@ function buildSystemPrompt(marco: MarcoData | null): string {
     ];
   }
 
-  const criteriosSection = criteriosRelevancia.map(c => `- ${c}`).join('\n');
+  let criteriosSection = criteriosRelevancia.map(c => `- ${c}`).join('\n');
+  if (noCriterios.length > 0) {
+    criteriosSection += '\n\nes_relevante = false SI se cumple ALGUNO de estos:\n' +
+      noCriterios.map(c => `- ${c}`).join('\n');
+  }
 
   // ── Terminología ──
   const terminosPermitidos: string[] = marco

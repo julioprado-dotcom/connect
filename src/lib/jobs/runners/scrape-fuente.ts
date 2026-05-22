@@ -14,6 +14,7 @@ import { evaluarFrecuencia } from '../frequency/adapter'
 import type { JobPayload, RunnerResult } from '../types'
 import { extraerTextoDeHtml, extraerMencionesDeTexto, crearMencionesExtraidas } from '@/lib/ai/extractor-menciones'
 import { zaiFetch } from '../fetch/zai-fetcher'
+import { safeFetch } from '../check-first/safe-fetch'
 import { extraerLinksDeNoticias, extraerLeadDeBloque, type NotaLink } from '../link-extractor'
 import { trijarNotas, type TriajeResult } from '../keyword-triaje'
 import { checkAndBackupDB } from '@/lib/auto-recovery'
@@ -74,6 +75,17 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       console.log(`[scrape-fuente] HTML descargado de nuevo (${html ? (html.length / 1024).toFixed(0) : 0} KB)`)
     }
     if (!html) {
+      // FIX: Registrar error en CapturaLog para que sea visible en el dashboard
+      await db.capturaLog.create({
+        data: {
+          medioId,
+          nivel: fuente.Medio.nivel,
+          exitosa: false,
+          totalArticulos: 0,
+          mencionesEncontradas: 0,
+          errores: `No se pudo obtener homepage de ${fuente.url}`,
+        },
+      }).catch(() => {})
       return { success: false, error: `No se pudo obtener homepage de ${fuente.url}` }
     }
 
@@ -305,33 +317,26 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
 // ─── Funciones auxiliares ────────────────────────────────────
 
 /**
- * Descargar homepage de una fuente (fetch directo → fallback Z.ai)
+ * Descargar homepage de una fuente (safeFetch → fallback Z.ai)
+ * FIX: usa safeFetch para manejar certificados TLS rotos (ej: abi.bo)
  */
 async function descargarHomepage(url: string): Promise<string> {
-  // Intento 1: fetch directo
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'es-BO,es;q=0.9,en;q=0.8',
+  }
+
+  // Intento 1: safeFetch (maneja TLS roto automáticamente)
   try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), CHECK_FIRST_CONFIG.timeoutMs)
-
     await domainRateLimiter.waitIfNecessary(url)
-
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'es-BO,es;q=0.9,en;q=0.8',
-      },
-      signal: controller.signal,
-    })
-    // recordRequest ya se llama dentro de waitIfNecessary — no duplicar
-    clearTimeout(timeoutId)
-
+    const response = await safeFetch(url, { headers, signal: AbortSignal.timeout(CHECK_FIRST_CONFIG.timeoutMs) })
     if (response.ok) {
       const html = await response.text()
       if (html.length > 500) return html
     }
   } catch (e) {
-    console.warn(`[scrape-fuente] fetch directo homepage falló: ${e instanceof Error ? e.message : e}`)
+    console.warn(`[scrape-fuente] safeFetch homepage falló: ${e instanceof Error ? e.message : e}`)
   }
 
   // Intento 2: Z.ai page_reader
@@ -345,33 +350,26 @@ async function descargarHomepage(url: string): Promise<string> {
 }
 
 /**
- * Descargar una nota individual (fetch directo → fallback Z.ai)
+ * Descargar una nota individual (safeFetch → fallback Z.ai)
+ * FIX: usa safeFetch para manejar certificados TLS rotos
  */
 async function descargarNota(url: string): Promise<string> {
-  // Intento 1: fetch directo
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'es-BO,es;q=0.9,en;q=0.8',
+  }
+
+  // Intento 1: safeFetch (maneja TLS roto automáticamente)
   try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s para notas
-
     await domainRateLimiter.waitIfNecessary(url)
-
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'es-BO,es;q=0.9,en;q=0.8',
-      },
-      signal: controller.signal,
-    })
-    // recordRequest ya se llama dentro de waitIfNecessary — no duplicar
-    clearTimeout(timeoutId)
-
+    const response = await safeFetch(url, { headers, signal: AbortSignal.timeout(15000) })
     if (response.ok) {
       const html = await response.text()
       if (html.length > 200) return html
     }
-  } catch {
-    // fetch falló, intentar Z.ai
+  } catch (e) {
+    console.warn(`[scrape-fuente] safeFetch nota falló: ${url} — ${e instanceof Error ? e.message : e}`)
   }
 
   // Intento 2: Z.ai page_reader
