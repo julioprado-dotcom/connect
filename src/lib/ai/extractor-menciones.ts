@@ -626,9 +626,11 @@ export async function extraerMencionesDeTexto(
       indicadoresSection += '\n';
     }
 
-    // 7. Truncar texto si es muy largo (max ~4000 chars para el LLM)
-    const textoTruncado = texto.length > 4000
-      ? texto.substring(0, 4000) + '...'
+    // 7. Truncar texto si es muy largo (max ~12000 chars para el LLM)
+    // FIX: Aumentado de 4000 a 12000 — artículos bolivianos típicos tienen 8000-15000 chars.
+    // Con 4000 se perdían menciones en la segunda mitad del artículo.
+    const textoTruncado = texto.length > 12000
+      ? texto.substring(0, 12000) + '...'
       : texto;
 
     // 8. Construir prompt del usuario

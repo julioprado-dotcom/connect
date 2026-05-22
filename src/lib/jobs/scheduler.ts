@@ -96,13 +96,17 @@ async function scheduleCheckJobs(): Promise<void> {
       })
 
       if (capa < 1) {
-        // Capa 0: fuente sin check OK reciente — no programar
+        // FIX: Capa 0 = fuente sin check OK reciente.
+        // ANTES: Se omitía completamente (problema huevo/gallina — nunca se chequeaba).
+        // AHORA: Se programa un check inicial a hora aleatoria para romper el ciclo.
+        // Si el check tiene éxito, la fuente sube a Capa 1 y será programada normalmente.
         omitidasPorCapa++
+        const horaInicial = Math.floor(Math.random() * 12) + 6 // 6:00 - 17:59
         console.log(
-          `[Scheduler] ${fuente.Medio.nombre}: omitida (capa ${capa} — sin check OK reciente). ` +
-          `El scheduler la intentará de nuevo en el próximo ciclo de mantenimiento.`
+          `[Scheduler] ${fuente.Medio.nombre}: capa ${capa} (sin check OK reciente) — ` +
+          `programando check inicial a las ${horaInicial}:00 para romper ciclo huevo/gallina`
         )
-        continue
+        scheduleSingleCheck(fuente, 1, horaInicial) // prioridad 1
       }
 
       const count = scheduleFuente(fuente)
