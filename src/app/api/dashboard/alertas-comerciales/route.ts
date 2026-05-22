@@ -64,13 +64,13 @@ export async function GET() {
       // 3. Menciones por eje - semana actual (via MencionTema)
       db.mencionTema.groupBy({
         by: ['ejeTematicoId'],
-        where: { mencion: { fechaCaptura: { gte: hace7, lt: ahora } } },
+        where: { Mencion: { fechaCaptura: { gte: hace7, lt: ahora } } },
         _count: { id: true },
       }),
       // 4. Menciones por eje - semana anterior
       db.mencionTema.groupBy({
         by: ['ejeTematicoId'],
-        where: { mencion: { fechaCaptura: { gte: hace14, lt: hace7 } } },
+        where: { Mencion: { fechaCaptura: { gte: hace14, lt: hace7 } } },
         _count: { id: true },
       }),
       // 5. Contratos activos que vencen en 30 dias

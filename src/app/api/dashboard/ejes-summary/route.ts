@@ -37,7 +37,7 @@ export async function GET() {
       by: ['ejeTematicoId'],
       where: {
         ejeTematicoId: { in: allEjeIds },
-        mencion: { fechaCaptura: { gte: todayStart } },
+        Mencion: { fechaCaptura: { gte: todayStart } },
       },
       _count: true,
     });

@@ -37,7 +37,7 @@ export async function GET(
       db.mencionClienteEje.findMany({
         where: { ejeClienteId: eje.id },
         include: {
-          mencion: {
+          Mencion: {
             select: {
               id: true,
               titulo: true,

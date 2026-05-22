@@ -89,10 +89,10 @@ export async function GET() {
     // 1 query: todos los ejes temáticos de estas menciones
     const ejesMenciones = personaIds.length > 0
       ? await db.mencionTema.findMany({
-          where: { mencion: { personaId: { in: personaIds }, fechaCaptura: { gte: inicioSemana } } },
+          where: { Mencion: { personaId: { in: personaIds }, fechaCaptura: { gte: inicioSemana } } },
           include: {
             ejeTematico: { select: { id: true, nombre: true, slug: true, color: true } },
-            mencion: { select: { personaId: true } },
+            Mencion: { select: { personaId: true } },
           },
         })
       : [];
