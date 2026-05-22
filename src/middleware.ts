@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { auth } from '@/lib/auth';
+import { getToken } from 'next-auth/jwt';
 
 // ─── Middleware de Seguridad Global ─────────────────────────────
 // Protege TODAS las rutas /api/* y páginas del dashboard.
@@ -57,19 +57,23 @@ function isPublicRoute(pathname: string): boolean {
 
 export { PUBLIC_API_ROUTES };
 
-export default auth(async (req) => {
+export async function middleware(request: NextRequest) {
   try {
-    const { pathname } = req.nextUrl;
+    const { pathname } = request.nextUrl;
 
     // Permitir rutas públicas sin verificación
     if (isPublicRoute(pathname)) {
       return NextResponse.next();
     }
 
-    // Verificar sesión (v5 — req.auth proviene del wrapper auth())
-    const session = req.auth;
+    // Verificar token JWT (compatible con Edge Runtime)
+    const token = await getToken({
+      req: request,
+      secret: process.env.AUTH_SECRET,
+      secureCookie: process.env.NODE_ENV === 'production',
+    });
 
-    if (!session) {
+    if (!token) {
       // Si es solicitud de API, devolver 401 JSON
       if (pathname.startsWith('/api/')) {
         return NextResponse.json(
@@ -78,33 +82,31 @@ export default auth(async (req) => {
         );
       }
       // Si es página, redirigir a login
-      const loginUrl = new URL('/login', req.url);
+      const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('callbackUrl', pathname);
       return NextResponse.redirect(loginUrl);
     }
 
-    // Sesión válida — continuar
+    // Token válido — continuar
     return NextResponse.next();
   } catch (error) {
     console.error('[middleware] Error de autenticacion:', error);
-    const { pathname } = req.nextUrl;
-    // Ante cualquier error, denegar acceso
+    const { pathname } = request.nextUrl;
+    // Ante cualquier error, denegar acceso (fail-closed)
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(
         { error: 'Error de autenticacion' },
         { status: 401 }
       );
     }
-    const loginUrl = new URL('/login', req.url);
+    const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
   }
-});
+}
 
 export const config = {
   matcher: [
-    // Todas las rutas excepto estáticos (Next.js los excluye automáticamente,
-    // pero los listamos para claridad y protección extra)
     '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };
