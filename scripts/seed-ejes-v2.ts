@@ -33,6 +33,7 @@ async function main() {
       where: { slug: eje.slug },
       update: { tipo: 'estructural', descripcion: eje.desc },
       create: {
+        id: crypto.randomUUID(),           // FIX: ID explícito (String @id sin @default)
         nombre: eje.nombre,
         slug: eje.slug,
         descripcion: eje.desc,
