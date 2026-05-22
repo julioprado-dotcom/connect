@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         take: limit,
         orderBy: { fechaCreacion: 'desc' },
         include: {
-          persona: { select: { id: true, nombre: true, partidoSigla: true } },
+          Persona: { select: { id: true, nombre: true, partidoSigla: true } },
         },
       }),
       db.reporte.count({ where }),

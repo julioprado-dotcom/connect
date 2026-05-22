@@ -80,15 +80,15 @@ export async function DELETE(
     const { id } = await params;
     const medio = await db.medio.findUnique({
       where: { id },
-      include: { _count: { select: { menciones: true } } },
+      include: { _count: { select: { Mencion: true } } },
     });
     if (!medio) {
       return NextResponse.json({ error: 'Medio no encontrado' }, { status: 404 });
     }
-    if (medio._count.menciones > 0) {
+    if (medio._count.Mencion > 0) {
       await db.medio.update({ where: { id }, data: { activo: false } });
       return NextResponse.json({
-        message: `Medio desactivado (tiene ${medio._count.menciones} menciones asociadas)`,
+        message: `Medio desactivado (tiene ${medio._count.Mencion} menciones asociadas)`,
         deactivated: true,
       });
     }

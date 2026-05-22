@@ -16,7 +16,7 @@ export async function GET() {
       db.cliente.count(),
       db.cliente.findMany({ select: { segmento: true, plan: true } }),
       db.cliente.findMany({
-        include: { _count: { select: { contratos: true } } },
+        include: { _count: { select: { Contrato: true } } },
         take: 5,
         orderBy: { fechaCreacion: 'desc' },
       }),
@@ -39,7 +39,7 @@ export async function GET() {
       organizacion: c.organizacion,
       plan: c.plan,
       segmento: c.segmento,
-      contratosCount: c._count.contratos,
+      contratosCount: c._count.Contrato,
       fechaCreacion: c.fechaCreacion?.toISOString() ?? new Date().toISOString(),
     }));
 

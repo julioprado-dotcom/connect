@@ -137,14 +137,14 @@ export async function POST(request: NextRequest) {
           const result = await analyzeMencion(titulo, texto);
           await applyAnalysisToMencion(mencion.id, result);
 
-          const personaLabel = mencion.persona?.nombre || 'Referencia tematica';
+          const personaLabel = mencion.Persona?.nombre || 'Referencia tematica';
           analizadas++;
           detalles.push(`${personaLabel}: ${result.tipoMencion} / ${result.sentimiento} / [${result.ejesTematicos.join(',')}]`);
         }
       } catch (err) {
         errores++;
         const errMsg = err instanceof Error ? err.message : 'Error desconocido';
-        const personaLabel2 = mencion.persona?.nombre || 'Referencia tematica';
+        const personaLabel2 = mencion.Persona?.nombre || 'Referencia tematica';
         detalles.push(`✗ ${personaLabel2}: ERROR — ${errMsg}`);
         console.error(`[batch-analyze] Error procesando mención #${mencion.id}:`, err);
       }

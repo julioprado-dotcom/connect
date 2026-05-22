@@ -27,14 +27,14 @@ export async function GET() {
         include: {
           _count: {
             select: {
-              menciones: {
+              Mencion: {
                 where: { fechaCaptura: { gte: hoy } },
               },
             },
           },
         },
         orderBy: {
-          menciones: { _count: 'desc' },
+          Mencion: { _count: 'desc' },
         },
       }),
     ]);
@@ -50,7 +50,7 @@ export async function GET() {
         camara: p.camara,
         partidoSigla: p.partidoSigla,
         departamento: p.departamento,
-        mencionesHoy: p._count.menciones,
+        mencionesHoy: p._count.Mencion,
       })),
     });
   } catch (error: unknown) {

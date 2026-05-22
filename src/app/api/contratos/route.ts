@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         take: limit,
         orderBy: { fechaCreacion: 'desc' },
         include: {
-          cliente: { select: { id: true, nombre: true, email: true, plan: true } },
+          Cliente: { select: { id: true, nombre: true, email: true, plan: true } },
         },
       }),
       db.contrato.count({ where }),

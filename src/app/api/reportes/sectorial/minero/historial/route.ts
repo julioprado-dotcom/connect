@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
           generadoEn: true,
           enviadoEn: true,
           creadoEn: true,
-          ejes: { select: { ejeTematico: true, mencionCount: true, tendencia: true } },
+          ReporteEje: { select: { ejeTematico: true, mencionCount: true, tendencia: true } },
         },
       }),
       db.reporteSectorial.count({ where: { sector: 'minero' } }),

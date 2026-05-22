@@ -223,8 +223,8 @@ interface MencionWithRelations {
   medioId: string;
   esDuplicado: boolean;
   Medio: { id: string; nombre: string; tipo: string; nivel: string };
-  persona: { id: string; nombre: string; partidoSigla: string; camara: string; departamento: string } | null;
-  ejesCliente: { id: number; ejeClienteId: number; mencionId: string; ejeCliente: { id: number; nombre: string; keywords: string } }[];
+  Persona: { id: string; nombre: string; partidoSigla: string; camara: string; departamento: string } | null;
+  mencion_cliente_eje: { id: number; ejeClienteId: number; mencionId: string; eje_tematico_cliente: { id: number; nombre: string; keywords: string } }[];
 }
 
 async function fetchMencionesMineras(
@@ -238,7 +238,7 @@ async function fetchMencionesMineras(
     where: {
       fechaPublicacion: { gte: periodoInicio, lte: periodoFin },
       esDuplicado: false,
-      ejesCliente: {
+      mencion_cliente_eje: {
         some: {
           ejeClienteId: { in: Array.from(ejesMinerosIds) },
         },
@@ -246,9 +246,9 @@ async function fetchMencionesMineras(
     },
     include: {
       Medio: { select: { id: true, nombre: true, tipo: true, nivel: true } },
-      persona: { select: { id: true, nombre: true, partidoSigla: true, camara: true, departamento: true } },
-      ejesCliente: {
-        include: { ejeCliente: { select: { id: true, nombre: true, keywords: true } } },
+      Persona: { select: { id: true, nombre: true, partidoSigla: true, camara: true, departamento: true } },
+      mencion_cliente_eje: {
+        include: { eje_tematico_cliente: { select: { id: true, nombre: true, keywords: true } } },
       },
     },
     orderBy: { fechaPublicacion: 'desc' },
@@ -270,14 +270,14 @@ function aggregateByEje(
   for (const m of menciones) {
     // Tomar el primer ejeCliente que sea minero
     const ejesMinerosEntries = Array.from(ejesMinerosMap.entries());
-    const primerEje = m.ejesCliente.find((e) => {
+    const primerEje = m.mencion_cliente_eje.find((e) => {
       return ejesMinerosEntries.some(([, id]) => id === e.ejeClienteId);
     });
 
     if (!primerEje) continue;
 
     const ejeId = primerEje.ejeClienteId;
-    const ejeNombre = primerEje.ejeCliente.nombre;
+    const ejeNombre = primerEje.eje_tematico_cliente.nombre;
 
     if (!mapa.has(ejeId)) {
       mapa.set(ejeId, {
@@ -324,7 +324,7 @@ function getTopMedioForEje(
 ): string {
   const counts = new Map<string, number>();
   for (const m of menciones) {
-    const isThisEje = m.ejesCliente.some((e) => e.ejeClienteId === ejeClienteId);
+    const isThisEje = m.mencion_cliente_eje.some((e) => e.ejeClienteId === ejeClienteId);
     if (isThisEje) {
       const name = m.Medio.nombre;
       counts.set(name, (counts.get(name) || 0) + 1);
@@ -352,12 +352,12 @@ function aggregateActores(
   const mapa = new Map<string, ActorAgregado>();
 
   for (const m of menciones) {
-    if (!m.persona) continue;
+    if (!m.Persona) continue;
 
-    const key = m.persona.id;
+    const key = m.Persona.id;
     if (!mapa.has(key)) {
       mapa.set(key, {
-        nombre: m.persona.nombre,
+        nombre: m.Persona.nombre,
         menciones: 0,
         tratamientoTop: '',
         tratamientoDist: {},
@@ -893,7 +893,7 @@ export async function generarReporteMinero(
     const ejesPrevios = new Map<number, number>();
     for (const m of mencionesPrevias) {
       const previosEntries = Array.from(ejesMinerosMap.entries());
-      const primerEje = m.ejesCliente.find((e) => {
+      const primerEje = m.mencion_cliente_eje.find((e) => {
         return previosEntries.some(([, id]) => id === e.ejeClienteId);
       });
       if (primerEje) {
@@ -907,7 +907,7 @@ export async function generarReporteMinero(
     // Nombres de actores previos
     const actoresPrevios = new Set<string>();
     for (const m of mencionesPrevias) {
-      if (m.persona) actoresPrevios.add(m.persona.nombre);
+      if (m.Persona) actoresPrevios.add(m.Persona.nombre);
     }
 
     // Variación total

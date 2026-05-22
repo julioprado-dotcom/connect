@@ -91,7 +91,7 @@ export async function GET() {
       ? await db.mencionTema.findMany({
           where: { Mencion: { personaId: { in: personaIds }, fechaCaptura: { gte: inicioSemana } } },
           include: {
-            ejeTematico: { select: { id: true, nombre: true, slug: true, color: true } },
+            EjeTematico: { select: { id: true, nombre: true, slug: true, color: true } },
             Mencion: { select: { personaId: true } },
           },
         })
@@ -108,7 +108,7 @@ export async function GET() {
 
     const actorEjesMap = new Map<string, typeof ejesMenciones>();
     for (const em of ejesMenciones) {
-      const pid = em.mencion.personaId;
+      const pid = em.Mencion.personaId;
       if (!pid) continue; // Skip thematic mentions
       const list = actorEjesMap.get(pid) || [];
       list.push(em);
@@ -145,9 +145,9 @@ export async function GET() {
       const ejes = actorEjesMap.get(item.personaId!) || [];
       const ejesCountMap: Record<string, { nombre: string; slug: string; color: string; count: number }> = {};
       for (const em of ejes) {
-        const key = em.ejeTematico.id;
+        const key = em.EjeTematico.id;
         if (!ejesCountMap[key]) {
-          ejesCountMap[key] = { nombre: em.ejeTematico.nombre, slug: em.ejeTematico.slug, color: em.ejeTematico.color, count: 0 };
+          ejesCountMap[key] = { nombre: em.EjeTematico.nombre, slug: em.EjeTematico.slug, color: em.EjeTematico.color, count: 0 };
         }
         ejesCountMap[key].count++;
       }

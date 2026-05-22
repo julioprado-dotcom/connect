@@ -13,7 +13,7 @@ export async function GET(
     const cliente = await db.cliente.findUnique({
       where: { id },
       include: {
-        contratos: { orderBy: { fechaCreacion: 'desc' } },
+        Contrato: { orderBy: { fechaCreacion: 'desc' } },
       },
     });
 

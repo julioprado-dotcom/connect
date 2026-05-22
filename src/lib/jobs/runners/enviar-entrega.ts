@@ -26,7 +26,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
     const contrato = await db.contrato.findUnique({
       where: { id: contratoId },
       include: {
-        cliente: {
+        Cliente: {
           select: { id: true, nombre: true, email: true, whatsapp: true },
         },
       },
@@ -63,11 +63,11 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
 
     // 3. Determinar destinatarios segun canal
     const destinatarios: string[] = []
-    if (canal === 'whatsapp' && contrato.cliente.whatsapp) {
-      destinatarios.push(contrato.cliente.whatsapp)
+    if (canal === 'whatsapp' && contrato.Cliente.whatsapp) {
+      destinatarios.push(contrato.Cliente.whatsapp)
     }
-    if (canal === 'email' && contrato.cliente.email) {
-      destinatarios.push(contrato.cliente.email)
+    if (canal === 'email' && contrato.Cliente.email) {
+      destinatarios.push(contrato.Cliente.email)
     }
 
     if (destinatarios.length === 0) {
@@ -80,7 +80,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
     // 4. Formatear para el canal
     const vars = {
       fecha: formatFechaBolivia(new Date()),
-      cliente: contrato.cliente.nombre,
+      cliente: contrato.Cliente.nombre,
     }
 
     const delivery = buildDeliveryPayload(tipoBoletin, canal, destinatarios, contenidoFinal, vars)
@@ -121,7 +121,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
         entregaId: entrega.id,
         canal,
         destinatarios,
-        cliente: contrato.cliente.nombre,
+        cliente: contrato.Cliente.nombre,
         responseTime,
         enviado: true,
       },

@@ -29,7 +29,7 @@ export async function getIndicadoresParaEje(
         activo: true,
       },
       include: {
-        valores: {
+        IndicadorValor: {
           orderBy: { fecha: 'desc' },
           take: 2,
         },
@@ -37,8 +37,8 @@ export async function getIndicadoresParaEje(
     });
 
     return indicadores.map((ind) => {
-      const ultimo = ind.valores[0];
-      const anterior = ind.valores[1];
+      const ultimo = ind.IndicadorValor[0];
+      const anterior = ind.IndicadorValor[1];
       const tendencia = calcularTendencia(
         ultimo?.valor,
         anterior?.valor

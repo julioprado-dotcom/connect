@@ -19,7 +19,7 @@ export async function GET() {
       }),
       db.reporte.findMany({
         include: {
-          persona: { select: { nombre: true } },
+          Persona: { select: { nombre: true } },
         },
         orderBy: { fechaCreacion: 'desc' },
         take: 5,
@@ -43,7 +43,7 @@ export async function GET() {
             tipo: ultimo.tipo,
             fechaCreacion: ultimo.fechaCreacion,
             totalMenciones: ultimo.totalMenciones,
-            persona: ultimo.persona ? { nombre: ultimo.persona.nombre } : null,
+            persona: ultimo.Persona ? { nombre: ultimo.Persona.nombre } : null,
           }
         : null,
       ultimos: ultimos.map((r) => ({
@@ -51,7 +51,7 @@ export async function GET() {
         tipo: r.tipo,
         fechaCreacion: r.fechaCreacion,
         totalMenciones: r.totalMenciones,
-        persona: r.persona ? { nombre: r.persona.nombre } : null,
+        persona: r.Persona ? { nombre: r.Persona.nombre } : null,
       })),
     });
   } catch (error: unknown) {

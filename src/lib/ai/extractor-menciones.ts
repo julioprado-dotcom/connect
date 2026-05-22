@@ -141,7 +141,7 @@ async function getIndicadoresCached(): Promise<any[]> {
       categoria: true,
       unidad: true,
       formatoNumero: true,
-      valores: {
+      IndicadorValor: {
         orderBy: { fecha: 'desc' },
         take: 1,
         select: { valor: true, valorTexto: true, fecha: true, confiable: true },
@@ -606,12 +606,12 @@ export async function extraerMencionesDeTexto(
     // si la noticia contiene datos que actualicen o contradigan estos indicadores.
     let indicadoresSection = '';
     const indicadoresConValor = indicadores.filter(ind =>
-      ind.valores && ind.valores.length > 0 && ind.valores[0].confiable
+      ind.IndicadorValor && ind.IndicadorValor.length > 0 && ind.IndicadorValor[0].confiable
     );
     if (indicadoresConValor.length > 0) {
       const fechaMasReciente = indicadoresConValor
         .reduce((max, ind) => {
-          const f = new Date(ind.valores[0].fecha);
+          const f = new Date(ind.IndicadorValor[0].fecha);
           return f > max ? f : max;
         }, new Date(0));
       indicadoresSection = `\nINDICADORES ACTUALES (doble uso: contexto de clasificación + insumos para productos como boletines y reportes):\n`;
@@ -619,7 +619,7 @@ export async function extraerMencionesDeTexto(
       indicadoresSection += `Estos valores son referencia real para tu análisis. Si la noticia menciona datos que contradigan\n`;
       indicadoresSection += `o actualicen algún indicador, destácalo en el resumen — esa información alimenta productos del sistema.\n\n`;
       for (const ind of indicadoresConValor) {
-        const v = ind.valores[0];
+        const v = ind.IndicadorValor[0];
         const valorFormateado = v.valorTexto || v.valor.toFixed(ind.formatoNumero || 2);
         indicadoresSection += `- ${ind.nombre}: ${valorFormateado} ${ind.unidad}\n`;
       }

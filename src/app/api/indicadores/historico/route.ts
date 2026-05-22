@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
       where,
       orderBy: [{ orden: 'asc' }, { nombre: 'asc' }],
       include: {
-        valores: {
+        IndicadorValor: {
           where: { fechaCaptura: { gte: fechaInicio } },
           orderBy: { fechaCaptura: 'asc' },
         },
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
 
     // ─── Enriquecer con estadísticas ───
     const resultado = indicadores.map(ind => {
-      const valores = ind.valores;
+      const valores = ind.IndicadorValor;
       const tieneDatos = valores.length > 0;
 
       if (!tieneDatos) {

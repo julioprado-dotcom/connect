@@ -42,7 +42,7 @@ export interface MencionConRelaciones {
   textoCompleto: string
   comentariosCount: number
   comentariosResumen: string
-  persona: {
+  Persona: {
     id: string
     nombre: string
     camara: string
@@ -55,8 +55,8 @@ export interface MencionConRelaciones {
     tipo: string
     nivel: string
   } | null
-  ejesTematicos: {
-    ejeTematico: {
+  MencionTema: {
+    EjeTematico: {
       id: string
       nombre: string
       slug: string
@@ -261,14 +261,14 @@ export function calculateTopActores(
 ): TopActorItem[] {
   const counts: Record<string, { nombre: string; partido: string; camara: string; departamento: string; count: number }> = {}
   for (const m of menciones) {
-    if (m.persona) {
-      const key = m.persona.id
+    if (m.Persona) {
+      const key = m.Persona.id
       if (!counts[key]) {
         counts[key] = {
-          nombre: m.persona.nombre,
-          partido: m.persona.partidoSigla,
-          camara: m.persona.camara,
-          departamento: m.persona.departamento,
+          nombre: m.Persona.nombre,
+          partido: m.Persona.partidoSigla,
+          camara: m.Persona.camara,
+          departamento: m.Persona.departamento,
           count: 0,
         }
       }
@@ -307,11 +307,11 @@ export function calculateClasificadores(
 ): ClasificadorItem[] {
   const counts: Record<string, { slug: string; nombre: string; menciones: number }> = {}
   for (const m of menciones) {
-    if (m.ejesTematicos) {
-      for (const et of m.ejesTematicos) {
-        const slug = et.ejeTematico.slug
+    if (m.MencionTema) {
+      for (const et of m.MencionTema) {
+        const slug = et.EjeTematico.slug
         if (!counts[slug]) {
-          counts[slug] = { slug, nombre: et.ejeTematico.nombre, menciones: 0 }
+          counts[slug] = { slug, nombre: et.EjeTematico.nombre, menciones: 0 }
         }
         counts[slug].menciones++
       }

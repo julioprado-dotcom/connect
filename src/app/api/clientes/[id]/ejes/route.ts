@@ -33,7 +33,7 @@ export async function GET(
       },
       orderBy: { creadoEn: 'desc' },
       include: {
-        _count: { select: { menciones: true } },
+        _count: { select: { mencion_cliente_eje: true } },
       },
     });
 

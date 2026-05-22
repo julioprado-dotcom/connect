@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       where,
       orderBy: [{ orden: 'asc' }, { nombre: 'asc' }],
       include: {
-        _count: { select: { valores: true, evaluaciones: true } },
+        _count: { select: { IndicadorValor: true, IndicadorEvaluacion: true } },
       },
     });
 
@@ -66,8 +66,8 @@ export async function GET(request: NextRequest) {
           ...ind,
           ultimoValor,
           ultimaEvaluacion,
-          totalValores: ind._count.valores,
-          totalEvaluaciones: ind._count.evaluaciones,
+          totalValores: ind._count.IndicadorValor,
+          totalEvaluaciones: ind._count.IndicadorEvaluacion,
         };
       })
     );

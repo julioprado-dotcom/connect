@@ -56,9 +56,9 @@ export async function POST(request: NextRequest) {
       },
       include: {
         Medio: { select: { nombre: true, tipo: true } },
-        ejesTematicos: {
+        MencionTema: {
           include: {
-            ejeTematico: { select: { slug: true, nombre: true } },
+            EjeTematico: { select: { slug: true, nombre: true } },
           },
         },
       },
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       fechaPublicacion: formatFechaBolivia(m.fechaPublicacion ?? m.fechaCaptura),
       sentimiento: m.sentimiento,
       relevancia: 5,
-      temas: m.ejesTematicos.map((mt) => mt.ejeTematico.slug),
+      temas: m.MencionTema.map((mt) => mt.EjeTematico.slug),
       url: m.url,
     }));
 

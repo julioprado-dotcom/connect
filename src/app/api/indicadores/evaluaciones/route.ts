@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       orderBy: { fechaEvaluacion: 'desc' },
       take: limit,
       include: {
-        indicador: {
+        Indicador: {
           select: { id: true, nombre: true, slug: true, categoria: true, tipo: true },
         },
       },

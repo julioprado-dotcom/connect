@@ -23,7 +23,7 @@ export async function GET() {
     const medios = await db.medio.findMany({
       where: { activo: true },
       include: {
-        _count: { select: { menciones: true } },
+        _count: { select: { Mencion: true } },
       },
       orderBy: [{ nivel: 'asc' }, { nombre: 'asc' }],
     });
@@ -77,14 +77,14 @@ export async function GET() {
       const errorRate = totalLogs > 0 ? (erroresLogs / totalLogs) * 100 : 0;
 
       // Última mención registrada
-      const ultimaMencion = menciones30 > 0 ? 'reciente' : medio._count.menciones > 0 ? 'antiguo' : 'nunca';
+      const ultimaMencion = menciones30 > 0 ? 'reciente' : medio._count.Mencion > 0 ? 'antiguo' : 'nunca';
 
       // Clasificación de salud
       let salud: 'sano' | 'degradado' | 'muerto' | 'con_errores' = 'sano';
       let alerta = '';
 
       if (menciones7 === 0 && menciones30 === 0) {
-        if (medio._count.menciones > 0) {
+        if (medio._count.Mencion > 0) {
           salud = 'muerto';
           alerta = `Sin menciones en 30+ días. Posiblemente cerrado o URL cambiada.`;
         } else {
@@ -108,7 +108,7 @@ export async function GET() {
         tipo: medio.tipo,
         nivel: medio.nivel,
         nivelLabel: getNivelLabel(medio.nivel),
-        totalMenciones: medio._count.menciones,
+        totalMenciones: medio._count.Mencion,
         menciones7dias: menciones7,
         menciones30dias: menciones30,
         errorRate: Math.round(errorRate),

@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
         take: limit,
         orderBy: { fechaCreacion: 'desc' },
         include: {
-          contratos: {
+          Contrato: {
             where: { estado: 'activo' },
             select: { id: true, tipoProducto: true, estado: true },
           },
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
         ...c,
         parlamentariosList,
         parlamentariosCount: parlamentariosList.length,
-        contratosActivos: c.contratos.length,
+        contratosActivos: c.Contrato.length,
       };
     });
 

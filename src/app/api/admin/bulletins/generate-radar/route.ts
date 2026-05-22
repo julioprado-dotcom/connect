@@ -72,9 +72,9 @@ export async function POST(request: NextRequest) {
             gte: range.fechaInicio,
             lte: range.fechaFin,
           },
-          ejesTematicos: {
+          MencionTema: {
             some: {
-              ejeTematico: { slug },
+              EjeTematico: { slug },
             },
           },
         },
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       mencionesPorEje[slug] = menciones.map((m) => ({
         titulo: m.titulo,
         medio: m.Medio?.nombre ?? null,
-        persona: m.persona?.nombre ?? null,
+        persona: m.Persona?.nombre ?? null,
         sentimiento: m.sentimiento,
       }));
 

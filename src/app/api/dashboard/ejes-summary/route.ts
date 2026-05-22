@@ -20,10 +20,10 @@ export async function GET() {
       where: { parentId: null },
       include: {
         _count: {
-          select: { menciones: true },
+          select: { Mencion: true },
         },
-        children: {
-          select: { id: true, _count: { select: { menciones: true } } },
+        other_EjeTematico: {
+          select: { id: true, _count: { select: { Mencion: true } } },
         },
       },
       orderBy: { orden: 'asc' },
@@ -32,7 +32,7 @@ export async function GET() {
     const totalActivos = ejes.length;
 
     // Batch query for today mentions (avoid N+1)
-    const allEjeIds = ejes.flatMap((e) => [e.id, ...e.children.map((c) => c.id)]);
+    const allEjeIds = ejes.flatMap((e) => [e.id, ...e.other_EjeTematico.map((c) => c.id)]);
     const todayMentionCounts = await db.mencionTema.groupBy({
       by: ['ejeTematicoId'],
       where: {
@@ -47,14 +47,14 @@ export async function GET() {
     }
 
     const ejesMapped = ejes.map((eje) => {
-      const ejeIds = [eje.id, ...eje.children.map((c) => c.id)];
+      const ejeIds = [eje.id, ...eje.other_EjeTematico.map((c) => c.id)];
       const mencionesHoy = ejeIds.reduce(
         (sum, id) => sum + (todayCountMap.get(id) ?? 0),
         0,
       );
       const totalMenciones =
-        eje._count.menciones +
-        eje.children.reduce((s, c) => s + c._count.menciones, 0);
+        eje._count.Mencion +
+        eje.other_EjeTematico.reduce((s, c) => s + c._count.Mencion, 0);
 
       return {
         id: eje.id,
@@ -64,7 +64,7 @@ export async function GET() {
         icono: eje.icono,
         mencionesHoy,
         totalMenciones,
-        temasCount: eje.children.length,
+        temasCount: eje.other_EjeTematico.length,
       };
     });
 

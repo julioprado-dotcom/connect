@@ -14,8 +14,8 @@ export async function GET() {
     const medios = await db.medio.findMany({
       orderBy: [{ nivel: 'asc' }, { nombre: 'asc' }],
       include: {
-        _count: { select: { menciones: true } },
-        fuenteEstado: {
+        _count: { select: { Mencion: true } },
+        FuenteEstado: {
           select: {
             estado: true,
             capaActual: true,
@@ -27,7 +27,7 @@ export async function GET() {
 
     const total = medios.length;
     const activos = medios.filter(m => m.activo).length;
-    const conFuente = medios.filter(m => m.fuenteEstado !== null).length;
+    const conFuente = medios.filter(m => m.FuenteEstado !== null).length;
 
     // Category distribution
     const porCategoria: Record<string, number> = {};
@@ -58,10 +58,10 @@ export async function GET() {
         nivel: m.nivel,
         departamento: m.departamento,
         activo: m.activo,
-        mencionesCount: m._count.menciones,
-        tieneFuente: !!m.fuenteEstado,
-        fuenteEstado: m.fuenteEstado?.estado ?? null,
-        fuenteCapa: m.fuenteEstado?.capaActual ?? null,
+        mencionesCount: m._count.Mencion,
+        tieneFuente: !!m.FuenteEstado,
+        fuenteEstado: m.FuenteEstado?.estado ?? null,
+        fuenteCapa: m.FuenteEstado?.capaActual ?? null,
       })),
     });
   } catch (error: unknown) {

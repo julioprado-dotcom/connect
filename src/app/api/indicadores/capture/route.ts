@@ -50,7 +50,7 @@ export async function GET() {
       where: { activo: true },
       orderBy: { orden: 'asc' },
       include: {
-        valores: {
+        IndicadorValor: {
           orderBy: { fechaCaptura: 'desc' },
           take: 1,
         },
@@ -59,7 +59,7 @@ export async function GET() {
 
     const estado = await Promise.all(
       indicadores.map(async (ind) => {
-        const ultimo = ind.valores[0]
+        const ultimo = ind.IndicadorValor[0]
         return {
           slug: ind.slug,
           nombre: ind.nombre,

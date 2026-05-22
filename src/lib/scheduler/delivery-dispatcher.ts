@@ -144,7 +144,7 @@ export async function despacharReporte(
         tipoProducto: reporte.tipo,
       },
       include: {
-        cliente: { select: { email: true, telefono: true, nombre: true } },
+        Cliente: { select: { email: true, telefono: true, nombre: true } },
       },
     });
 
@@ -281,7 +281,7 @@ export async function reintentarFallidas(maxReintentos: number = MAX_REINTENTOS)
         estado: 'fallido',
       },
       include: {
-        contrato: true,
+        Contrato: true,
       },
       take: 50,
     });
@@ -381,27 +381,27 @@ async function enviarPorCanal(params: {
 }
 
 function inferirCanales(contrato: {
-  cliente: { email: string | null; telefono: string | null } | null;
+  Cliente: { email: string | null; telefono: string | null } | null;
 }): string[] {
   const canales: string[] = [];
 
-  if (contrato.cliente?.email) canales.push('email');
-  if (contrato.cliente?.telefono) canales.push('whatsapp');
+  if (contrato.Cliente?.email) canales.push('email');
+  if (contrato.Cliente?.telefono) canales.push('whatsapp');
 
   return canales.length > 0 ? canales : ['email'];
 }
 
 function obtenerDestinatario(
   contrato: {
-    cliente: { email: string | null; telefono: string | null } | null;
+    Cliente: { email: string | null; telefono: string | null } | null;
   },
   canal: string
 ): string | null {
-  if (!contrato.cliente) return null;
+  if (!contrato.Cliente) return null;
 
   switch (canal) {
-    case 'email': return contrato.cliente.email;
-    case 'whatsapp': return contrato.cliente.telefono;
-    default: return contrato.cliente.email;
+    case 'email': return contrato.Cliente.email;
+    case 'whatsapp': return contrato.Cliente.telefono;
+    default: return contrato.Cliente.email;
   }
 }

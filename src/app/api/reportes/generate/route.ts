@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
         contenido: contenidoEstructurado,
         clasificadores: JSON.stringify(clasificadores),
       },
-      include: { persona: { select: { nombre: true, partidoSigla: true } } },
+      include: { Persona: { select: { nombre: true, partidoSigla: true } } },
     });
 
     // Push DB to GitHub as part of generation flow

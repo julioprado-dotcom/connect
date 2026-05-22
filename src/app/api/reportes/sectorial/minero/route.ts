@@ -14,8 +14,8 @@ export async function GET(request: NextRequest) {
       where: { sector: 'minero' },
       orderBy: { creadoEn: 'desc' },
       include: {
-        ejes: true,
-        envios: { select: { canal: true, destinatario: true, estado: true, enviadoEn: true } },
+        ReporteEje: true,
+        EnvioReporte: { select: { canal: true, destinatario: true, estado: true, enviadoEn: true } },
       },
     });
 
