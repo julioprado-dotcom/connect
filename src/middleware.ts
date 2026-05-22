@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { auth } from '@/lib/auth';
 
 // ─── Middleware de Seguridad Global ─────────────────────────────
 // Protege TODAS las rutas /api/* y páginas del dashboard.
@@ -57,37 +57,49 @@ function isPublicRoute(pathname: string): boolean {
 
 export { PUBLIC_API_ROUTES };
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+export default auth(async (req) => {
+  try {
+    const { pathname } = req.nextUrl;
 
-  // Permitir rutas públicas sin verificación
-  if (isPublicRoute(pathname)) {
+    // Permitir rutas públicas sin verificación
+    if (isPublicRoute(pathname)) {
+      return NextResponse.next();
+    }
+
+    // Verificar sesión (v5 — req.auth proviene del wrapper auth())
+    const session = req.auth;
+
+    if (!session) {
+      // Si es solicitud de API, devolver 401 JSON
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: 'Autenticacion requerida' },
+          { status: 401 }
+        );
+      }
+      // Si es página, redirigir a login
+      const loginUrl = new URL('/login', req.url);
+      loginUrl.searchParams.set('callbackUrl', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // Sesión válida — continuar
     return NextResponse.next();
-  }
-
-  // Verificar token JWT
-  const token = await getToken({
-    req: request,
-    secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
-  });
-
-  if (!token) {
-    // Si es solicitud de API, devolver 401 JSON
+  } catch (error) {
+    console.error('[middleware] Error de autenticacion:', error);
+    const { pathname } = req.nextUrl;
+    // Ante cualquier error, denegar acceso
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(
-        { error: 'Autenticacion requerida' },
+        { error: 'Error de autenticacion' },
         { status: 401 }
       );
     }
-    // Si es página, redirigir a login
-    const loginUrl = new URL('/login', request.url);
+    const loginUrl = new URL('/login', req.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
   }
-
-  // Token válido — continuar
-  return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: [
