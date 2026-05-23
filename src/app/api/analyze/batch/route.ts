@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
                   if (!existente) {
                     await db.mencion.create({
                       data: {
+                        id: crypto.randomUUID(),
                         personaId: leg.persona_id,
                         medioId: mencion.medioId,
                         titulo,

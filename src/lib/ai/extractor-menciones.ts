@@ -912,6 +912,7 @@ export async function crearMencionesExtraidas(
 
       const mencion = await db.mencion.create({
         data: {
+          id: crypto.randomUUID(),
           personaId: leg.persona_id,
           medioId,
           titulo,
@@ -987,6 +988,7 @@ export async function crearMencionesExtraidas(
         });
         const mencion = await db.mencion.create({
           data: {
+            id: crypto.randomUUID(),
             personaId: null,
             medioId,
             titulo,
