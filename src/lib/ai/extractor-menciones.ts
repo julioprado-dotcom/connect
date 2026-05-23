@@ -310,35 +310,128 @@ function buildSystemPrompt(marco: MarcoData | null): string {
     .map(p => `- **${p.codigo}** (${p.nombre}): ${p.descripcion || ''}`)
     .join('\n');
 
-  // ── Assemble full prompt (SIMPLIFICADO v2 para glm-4-air) ──
-  // FIX: El prompt original era ~4000+ chars con principios, preguntas fundamentales,
-  // escalas detalladas, etc. Demasiado pesado para glm-4-air. Simplificado a ~800 chars.
-  const tratamientosValidos = escala.map(e => e.codigo).join(', ');
+  // ── Assemble full prompt ──
+  return `Eres un extractor avanzado de información política boliviana. Analiza textos de noticias y detecta:
+1. Menciones a legisladores bolivianos (de la lista proporcionada)
+2. Referencias a ejes temáticos monitoreados
+3. Keywords de interés político/económico
+4. Tratamiento periodístico (NUNCA uses la palabra "sentimiento")
+5. Intención del medio (qué busca el medio al publicar)
 
-  return `Analiza noticias politicas bolivianas. Detecta legisladores y ejes tematicos de las listas.
+CONTEXTO: Se te proporcionará:
+- Una lista de LEGISLADORES con sus IDs
+- Una lista de EJES TEMÁTICOS con sus IDs y keywords
+- Una lista de KEYWORDS ADICIONALES de interés
 
-REGLAS:
-- es_relevante=true SOLO si menciona un legislador de la lista o un eje tematico
-- persona_id = ID EXACTO de la lista de legisladores
-- eje_id = ID EXACTO de la lista de ejes
-- cita = fragmento REAL del texto (no inventes)
-- contexto = resumen del contexto en 15 palabras
-- Max 5 legisladores, 3 ejes por articulo
-- tratamiento_periodistico: [${tratamientosValidos}]
-- intencion_medio: informativa|opinion|critica|elogiosa|reactiva|sin_intencion
-- confianza_clasificacion: alta|media|baja
-- resumen: max 200 palabras, fiel al tono original
-- temas_detectados: 1-5 temas cortos
+## PRINCIPIOS FUNDAMENTALES (INMUTABLES)
 
-IMPORTANTE: Lee atentamente la lista de legisladores y ejes. Si el articulo menciona
-por nombre a cualquier legislador de la lista, o trata sobre un tema de la lista de ejes,
-DEBES marcar es_relevante=true e incluir el item correspondiente con su ID exacto.
+${principiosSection}
 
-Responde SOLO con JSON valido (sin markdown ni backticks):
-{"es_relevante":true,"tratamiento_periodistico":"...","intencion_medio":"...","confianza_clasificacion":"...","resumen":"...","legisladores_mencionados":[{"persona_id":"ID","cita":"fragmento","contexto":"contexto"}],"ejes_institucionales":[{"eje_id":"ID","cita":"fragmento","relevancia":"alta|media|baja"}],"ejes_cliente":[],"temas_detectados":[],"preguntas_fundamentales":{}}
+## ESCALA DE TRATAMIENTO PERIODÍSTICO
 
-Si no es relevante:
-{"es_relevante":false,"tratamiento_periodistico":"sin_tratamiento","intencion_medio":"sin_intencion","confianza_clasificacion":"baja","resumen":"","legisladores_mencionados":[],"ejes_institucionales":[],"ejes_cliente":[],"temas_detectados":[],"preguntas_fundamentales":{}}`;
+${escalaSection}
+
+## CRITERIOS DE RELEVANCIA
+
+es_relevante = true SI se cumple AL MENOS UNO de estos criterios:
+${criteriosSection}
+
+Si la noticia no menciona nada relevante, es_relevante = false y devuelve arrays vacíos.
+${terminologiaSection}${exclusionesSection}
+## LAS 8 PREGUNTAS FUNDAMENTALES
+
+Debes intentar responder estas preguntas a partir del texto:
+${preguntasSection}
+
+## INTENCIÓN DEL MEDIO (dimensión independiente del tratamiento)
+Clasifica QUÉ BUSCA EL MEDIO al publicar esta nota (no cómo trata al actor):
+- informativa: busca informar sobre un hecho/evento, sin tomar posición
+- opinion: publica posición editorial, columna o análisis valorativo
+- critica: busca cuestionar, denunciar o generar descrédito
+- elogiosa: busca resaltar positivamente, promocionar o legitimar
+- reactiva: responde a declaración/acusación/publicación previa de otro medio o actor
+- sin_intencion: no se puede determinar o el texto es insuficiente
+
+La intención y el tratamiento son dimensiones INDEPENDIENTES: una nota puede ser informativa (intención) pero con tratamiento crítico, o puede ser elogiosa (intención) con tratamiento informativo.
+
+## REGLAS PARA LEGISLADORES
+- Solo incluir legisladores que estén en la lista proporcionada
+- persona_id debe ser EXACTAMENTE el ID proporcionado en la lista
+- cita debe ser un fragmento textual REAL del artículo (no inventado)
+- contexto debe resumir en qué contexto aparece el legislador
+- Máximo 5 legisladores por artículo
+
+## REGLAS PARA EJES TEMÁTICOS
+- Solo incluir ejes de la lista proporcionada
+- eje_id debe ser EXACTAMENTE el ID proporcionado
+- cita debe ser un fragmento real del texto que justifica la clasificación
+- relevancia: "alta" (artículo central sobre el tema), "media" (mencionado significativamente), "baja" (referencia tangencial)
+- Máximo 3 ejes por artículo
+
+## REGLAS PARA EJES DEL CLIENTE
+- Solo incluye si se proporciona la sección "EJES TEMÁTICOS DEL CLIENTE"
+- CLIENTE_EJE_ID debe ser EXACTAMENTE el ID numérico proporcionado
+- Clasifica solo si el texto coincide CLARAMENTE con las keywords del eje del cliente
+- Máximo 3 ejes del cliente por artículo
+
+## TEMAS DETECTADOS
+- Lista de 1-5 temas o conceptos clave que trata la noticia
+- Usar términos cortos y descriptivos (ej: "pensiones", "reforma laboral", "gas natural")
+
+## RESUMEN
+- Máximo 200 palabras
+- Debe reflejar la CALIDAD Y TONO ORIGINAL del texto fuente
+- No mejorar, suavizar ni reinterpretar
+
+## REGLAS CRÍTICAS
+- Usa "tratamiento periodístico" NUNCA "sentimiento"
+- Sé fiel al texto fuente — no mejorarlo, suavizarlo ni reinterpretarlo
+- Si el texto es 100% crítico, clasifícalo como 100% crítico — NO inventes balance
+- Si el texto fuente NO responde una pregunta fundamental → null (NUNCA inventes)
+- Usa terminología permitida, NUNCA uses términos prohibidos
+- Detecta ironía/sarcasmo → clasifica como tratamiento_editorial
+- Separa "por qué" (causa) de "para qué" (intención)
+- confianza_clasificacion: "alta" (muy seguro), "media" (razonablemente seguro), "baja" (poco seguro)
+
+## FORMATO DE SALIDA
+
+Responde ÚNICAMENTE con un JSON válido (sin markdown, sin backticks) con esta estructura exacta:
+{
+  "es_relevante": true,
+  "tratamiento_periodistico": "tratamiento_informativo",
+  "intencion_medio": "informativa",
+  "confianza_clasificacion": "alta",
+  "resumen": "resumen fiel de max 200 palabras",
+  "legisladores_mencionados": [
+    { "persona_id": "ID_DE_PERSONA", "cita": "fragmento textual donde aparece el legislador", "contexto": "contexto en 20 palabras" }
+  ],
+  "ejes_institucionales": [
+    { "eje_id": "ID_DEL_EJE", "cita": "fragmento relevante del texto", "relevancia": "alta|media|baja" }
+  ],
+  "ejes_cliente": [
+    { "eje_cliente_id": NUMERO_ID, "cita": "fragmento relevante del texto", "relevancia": "alta|media|baja" }
+  ],
+  "temas_detectados": ["tema1", "tema2", "tema3"],
+  "preguntas_fundamentales": {
+    "que": "evento principal or null",
+    "quien": { "declara": "nombre or null", "afectado_directo": "nombre or null", "mencionados": [] },
+    "cuando": "fecha o null",
+    "como": "mecanismo or null",
+    "por_que": "causa or null",
+    "para_que": { "actor": "intención or null", "medio": "intención or null", "confianza": "alta|media|baja" },
+    "a_quienes_afecta": { "directos": [], "indirectos": [], "potenciales": [], "mencionados_en_texto": false },
+    "donde": "lugar or null"
+  }
+}
+
+VALORES VÁLIDOS para tratamiento_periodistico:
+${escala.map(e => e.codigo).join(', ')}
+
+VALORES VÁLIDOS para intencion_medio:
+informativa, opinion, critica, elogiosa, reactiva, sin_intencion
+
+Si es_relevante = false, devolver:
+{"es_relevante": false, "tratamiento_periodistico": "sin_tratamiento", "intencion_medio": "sin_intencion", "confianza_clasificacion": "baja", "resumen": "", "legisladores_mencionados": [], "ejes_institucionales": [], "ejes_cliente": [], "temas_detectados": [], "preguntas_fundamentales": {}}`;
 }
 
 /**
@@ -437,11 +530,11 @@ export async function extraerMencionesDeTexto(
     const systemPrompt = buildSystemPrompt(marco);
 
     // 3. Cargar datos de contexto desde la DB en paralelo (cached)
-    // FIX v2: Eliminados getTemasRecientesCached() y getIndicadoresCached()
-    // porque ya no se incluyen en el prompt (reducían la efectividad del LLM).
     const dbQueries: Promise<unknown>[] = [
       getPersonasCached(),
       getEjesCached(),
+      getTemasRecientesCached(),
+      getIndicadoresCached(),
     ];
 
     // Load client-specific ejes if clientId is provided (FASE 4D)
@@ -455,9 +548,9 @@ export async function extraerMencionesDeTexto(
       );
     }
 
-    const [personas, ejes] = await Promise.all(dbQueries) as [any[], any[]];
+    const [personas, ejes, temasRecientes, indicadores] = await Promise.all(dbQueries) as [any[], any[], any[], any[]];
 
-    debugWrite(`Datos cargados: ${personas.length} personas, ${ejes.length} ejes, ${ejesCliente.length} ejes cliente`);
+    debugWrite(`Datos cargados: ${personas.length} personas, ${ejes.length} ejes, ${ejesCliente.length} ejes cliente, ${indicadores.length} indicadores`);
 
     if (personas.length === 0 && ejes.length === 0) {
       debugWrite('RETORNO ANTICIPADO: sin personas ni ejes en DB');
@@ -478,11 +571,19 @@ export async function extraerMencionesDeTexto(
           .join('\n')
       : '(Sin ejes temáticos registrados)';
 
-    // 6. Construir lista combinada de keywords de interés (solo de ejes activos)
+    // 6. Construir lista combinada de keywords de interés
     const todasKeywords = new Set<string>();
     for (const eje of ejes) {
       if (eje.keywords && typeof eje.keywords === 'string') {
         for (const kw of eje.keywords.split(',').map((k: string) => k.trim().toLowerCase()).filter(Boolean)) {
+          todasKeywords.add(kw);
+        }
+      }
+    }
+    // Agregar keywords de temas recientes para detección de tendencias
+    for (const tm of temasRecientes) {
+      if (tm.ejeTematico?.keywords && typeof tm.ejeTematico.keywords === 'string') {
+        for (const kw of tm.ejeTematico.keywords.split(',').map((k: string) => k.trim().toLowerCase()).filter(Boolean)) {
           todasKeywords.add(kw);
         }
       }
@@ -497,9 +598,32 @@ export async function extraerMencionesDeTexto(
       ejesClienteSection = `\nEJES TEMÁTICOS DEL CLIENTE (clasifica solo si el texto coincide claramente):\n${ejesCliente.map(e => `- CLIENTE_EJE_ID: ${e.id} | ${e.nombre} (keywords: ${e.keywords})`).join('\n')}\n`;
     }
 
-    // 6c. FIX: Indicadores eliminados del prompt del LLM.
-    // Ocupaban ~2K chars de ruido para una tarea de clasificación que no los necesita.
-    // Los indicadores se usan en productos (boletines, reportes) NO en extracción de menciones.
+    // 6c. Build indicadores actuales section (insumos para productos + contexto)
+    // Los indicadores NO se extraen con IA (Pipeline A es 100% regex), pero sus valores
+    // cumplen una doble función: (1) contexto de referencia para clasificar notas económicas
+    // y (2) insumos para generación de productos (boletines, reportes, alertas).
+    // El LLM debe usar estos valores para enriquecer clasificaciones temáticas y detectar
+    // si la noticia contiene datos que actualicen o contradigan estos indicadores.
+    let indicadoresSection = '';
+    const indicadoresConValor = indicadores.filter(ind =>
+      ind.IndicadorValor && ind.IndicadorValor.length > 0 && ind.IndicadorValor[0].confiable
+    );
+    if (indicadoresConValor.length > 0) {
+      const fechaMasReciente = indicadoresConValor
+        .reduce((max, ind) => {
+          const f = new Date(ind.IndicadorValor[0].fecha);
+          return f > max ? f : max;
+        }, new Date(0));
+      indicadoresSection = `\nINDICADORES ACTUALES (doble uso: contexto de clasificación + insumos para productos como boletines y reportes):\n`;
+      indicadoresSection += `(Última actualización: ${fechaMasReciente.toISOString().split('T')[0]})\n`;
+      indicadoresSection += `Estos valores son referencia real para tu análisis. Si la noticia menciona datos que contradigan\no actualicen algún indicador, destácalo en el resumen — esa información alimenta productos del sistema.\n\n`;
+      for (const ind of indicadoresConValor) {
+        const v = ind.IndicadorValor[0];
+        const valorFormateado = v.valorTexto || v.valor.toFixed(ind.formatoNumero || 2);
+        indicadoresSection += `- ${ind.nombre}: ${valorFormateado} ${ind.unidad}\n`;
+      }
+      indicadoresSection += '\n';
+    }
 
     // 7. Truncar texto si es muy largo (max ~12000 chars para el LLM)
     // FIX: Aumentado de 4000 a 12000 — artículos bolivianos típicos tienen 8000-15000 chars.
@@ -515,6 +639,7 @@ export async function extraerMencionesDeTexto(
     if (listaKeywords) {
       userContent += `KEYWORDS DE INTERÉS: ${listaKeywords}\n\n`;
     }
+    userContent += indicadoresSection;
     userContent += `TEXTO DE LA NOTICIA:\n${textoTruncado}`;
 
     debugWrite(`Prompt usuario longitud: ${userContent.length} chars, texto truncado: ${textoTruncado.length} chars`);
