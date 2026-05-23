@@ -250,7 +250,7 @@ export async function GET() {
     ])
 
     // Estado del MC
-    const mc = await db.marcoConceptual.findFirst({ where: { activa: true } })
+    const mc = await db.marco_conceptual.findFirst({ where: { activa: true } })
 
     // Fuentes con errores
     const fuentesConError = todasFuentes.filter(f => f.error && f.error.length > 0)
@@ -358,7 +358,7 @@ async function verificarPrerrequisitos(): Promise<{
 }> {
   const [personasCount, mc] = await Promise.all([
     db.persona.count(),
-    db.marcoConceptual.findFirst({ where: { activa: true } }),
+    db.marco_conceptual.findFirst({ where: { activa: true } }),
   ])
 
   // Si la DB está vacía, ejecutar seed automáticamente
@@ -496,7 +496,7 @@ async function ejecutarSeedMC(): Promise<boolean> {
       ],
     }
 
-    await db.marcoConceptual.create({
+    await db.marco_conceptual.create({
       data: {
         version: 1,
         activa: true,

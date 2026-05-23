@@ -83,7 +83,7 @@ async function getMarcoConceptualCached(): Promise<MarcoData | null> {
   if (cacheMarcoConceptual && cacheMarcoConceptual.expiry > Date.now()) {
     return cacheMarcoConceptual.data;
   }
-  const data = await db.marcoConceptual.findFirst({ where: { activa: true } });
+  const data = await db.marco_conceptual.findFirst({ where: { activa: true } });
   cacheMarcoConceptual = { data, expiry: Date.now() + CACHE_TTL };
   return data;
 }
@@ -181,7 +181,7 @@ const DEFAULT_PRINCIPIOS = [
 
 // ─── Helpers ──────────────────────────────────────────────────
 
-type MarcoData = NonNullable<Awaited<ReturnType<typeof db.marcoConceptual.findFirst>>>;
+type MarcoData = NonNullable<Awaited<ReturnType<typeof db.marco_conceptual.findFirst>>>;
 
 function safeJson<T>(field: unknown, fallback: T): T {
   if (field === null || field === undefined) return fallback;

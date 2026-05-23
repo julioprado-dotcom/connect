@@ -253,7 +253,7 @@ export async function analyzeMencion(titulo: string, texto: string): Promise<Ana
     let terminologiaProhibida: unknown = null;
 
     try {
-      const marco = await db.marcoConceptual.findFirst({ where: { activa: true } });
+      const marco = await db.marco_conceptual.findFirst({ where: { activa: true } });
 
       if (marco) {
         // Extract treatment scale categories

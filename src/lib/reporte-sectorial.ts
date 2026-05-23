@@ -543,7 +543,7 @@ interface MarcoPrinciples {
 
 async function loadMarcoConceptual(): Promise<MarcoPrinciples | null> {
   try {
-    const marco = await db.marcoConceptual.findFirst({ where: { activa: true } });
+    const marco = await db.marco_conceptual.findFirst({ where: { activa: true } });
     if (!marco) return null;
 
     return {

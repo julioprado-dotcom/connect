@@ -127,7 +127,7 @@ const DEFAULT_PARAMS: DedupParams = {
 
 async function cargarParams(): Promise<DedupParams> {
   try {
-    const marco = await db.marcoConceptual.findFirst({ where: { activa: true } });
+    const marco = await db.marco_conceptual.findFirst({ where: { activa: true } });
     if (!marco?.parametros) return DEFAULT_PARAMS;
     const p = marco.parametros as Record<string, unknown>;
     return {

@@ -5,7 +5,7 @@ import db from '@/lib/db';
 
 export async function GET() {
   try {
-    const marco = await db.marcoConceptual.findFirst({ where: { activa: true } });
+    const marco = await db.marco_conceptual.findFirst({ where: { activa: true } });
 
     if (!marco) {
       return NextResponse.json(

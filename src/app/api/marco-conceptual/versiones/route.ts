@@ -5,7 +5,7 @@ import db from '@/lib/db';
 
 export async function GET() {
   try {
-    const versiones = await db.marcoConceptual.findMany({
+    const versiones = await db.marco_conceptual.findMany({
       orderBy: { version: 'desc' },
       select: {
         id: true,

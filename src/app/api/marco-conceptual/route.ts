@@ -5,7 +5,7 @@ import db from '@/lib/db';
 
 export async function GET() {
   try {
-    const marco = await db.marcoConceptual.findFirst({
+    const marco = await db.marco_conceptual.findFirst({
       where: { activa: true },
     });
 
@@ -98,7 +98,7 @@ export async function PATCH(request: Request) {
     }
 
     // Buscar marco activo
-    const marco = await db.marcoConceptual.findFirst({ where: { activa: true } });
+    const marco = await db.marco_conceptual.findFirst({ where: { activa: true } });
     if (!marco) {
       return NextResponse.json(
         { error: 'Marco conceptual no inicializado' },
@@ -122,7 +122,7 @@ export async function PATCH(request: Request) {
     });
 
     // Actualizar campo
-    const actualizado = await db.marcoConceptual.update({
+    const actualizado = await db.marco_conceptual.update({
       where: { id: marco.id },
       data: {
         [campo]: valor,

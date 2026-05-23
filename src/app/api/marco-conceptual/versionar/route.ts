@@ -5,7 +5,7 @@ import db from '@/lib/db';
 
 export async function POST() {
   try {
-    const marcoActual = await db.marcoConceptual.findFirst({ where: { activa: true } });
+    const marcoActual = await db.marco_conceptual.findFirst({ where: { activa: true } });
 
     if (!marcoActual) {
       return NextResponse.json(
