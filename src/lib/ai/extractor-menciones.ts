@@ -957,8 +957,9 @@ export async function crearMencionesExtraidas(
       try { await reclasificarMencion(mencion.id); } catch { /* no bloquear pipeline */ }
 
       creadas++;
-    } catch {
+    } catch (createErr) {
       // Tolerancia a fallos: continuar con la siguiente
+      console.error('[CREAR-MENCION] Error creando mencion x legislador:', createErr instanceof Error ? createErr.message : createErr);
     }
   }
 
@@ -1016,8 +1017,9 @@ export async function crearMencionesExtraidas(
 
         creadas++;
       }
-    } catch {
+    } catch (createErr) {
       // Tolerancia a fallos
+      console.error('[CREAR-MENCION] Error creando mencion tematica:', createErr instanceof Error ? createErr.message : createErr);
     }
   }
 
