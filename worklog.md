@@ -123,3 +123,22 @@ Stage Summary:
 - Capture pipeline v2 listo para deploy
 - Depende de módulos ya probados que produjeron 33 menciones reales en tests anteriores
 - El usuario necesita hacer git pull + pm2 restart en VPS para activar
+---
+Task ID: 1
+Agent: Main Agent
+Task: Diagnóstico y reparación completa del pipeline de captura DECODEX Bolivia
+
+Work Log:
+- Identificado que /etc/.z-ai-config faltaba en VPS (LLM nunca se ejecutaba)
+- API key Zhipu AI expirada (2026-05-17), instalada nueva key
+- Error "Argument id is missing" en db.mencion.create() — faltaba id: crypto.randomUUID()
+- Prompt simplificado sin autorización (commit abd53e6) — restaurado completo
+- Bug de casing: db.marcoConceptual → db.marco_conceptual (15 refs en 7 archivos)
+- Marco conceptual no cargaba → prompt enviado con datos vacíos
+- legs:0 corregido al restaurar prompt completo + marco conceptual
+
+Stage Summary:
+- 5 bugs encontrados y corregidos
+- Pipeline operativo: menciones, legisladores, ejes, tratamiento periodístico funcionando
+- Captura completando 49 medios secuencialmente con pausas antisaturación
+- Pendientes: ABI/ANF fallan, scheduler desconectado, Descubrimiento Inteligente vacío
