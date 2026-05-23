@@ -959,7 +959,10 @@ export async function crearMencionesExtraidas(
       creadas++;
     } catch (createErr) {
       // Tolerancia a fallos: continuar con la siguiente
-      console.error('[CREAR-MENCION] Error creando mencion x legislador:', createErr instanceof Error ? createErr.message : createErr);
+      const errCode = (createErr as any)?.code;
+      const errMeta = (createErr as any)?.meta;
+      const errMsg = createErr instanceof Error ? createErr.message : String(createErr);
+      console.error('[CREAR-MENCION] Error creando mencion x legislador:', { message: errMsg, code: errCode, meta: errMeta, stack: createErr instanceof Error ? createErr.stack : undefined });
     }
   }
 
@@ -971,6 +974,17 @@ export async function crearMencionesExtraidas(
         where: { medioId, url, personaId: null },
       });
       if (!existente) {
+        // DEBUG: ver datos antes del create
+        console.log('[CREAR-MENCION-DBG] Creando mencion tematica:', {
+          medioId, url: url?.substring(0, 80),
+          ejeIds, ejeEstructuralId: ejeIds.length > 0 ? ejeIds[0] : null,
+          sharedDataKeys: Object.keys(sharedData),
+          temas: resultado.temas_detectados,
+          tratamiento: resultado.tratamientoPeriodistico,
+          intencion: resultado.intencionMedio,
+          confianza: resultado.confianzaClasificacion,
+          ejes_cliente_count: resultado.ejes_cliente?.length || 0,
+        });
         const mencion = await db.mencion.create({
           data: {
             personaId: null,
@@ -1019,7 +1033,10 @@ export async function crearMencionesExtraidas(
       }
     } catch (createErr) {
       // Tolerancia a fallos
-      console.error('[CREAR-MENCION] Error creando mencion tematica:', createErr instanceof Error ? createErr.message : createErr);
+      const errCode = (createErr as any)?.code;
+      const errMeta = (createErr as any)?.meta;
+      const errMsg = createErr instanceof Error ? createErr.message : String(createErr);
+      console.error('[CREAR-MENCION] Error creando mencion tematica:', { message: errMsg, code: errCode, meta: errMeta, stack: createErr instanceof Error ? createErr.stack : undefined });
     }
   }
 
