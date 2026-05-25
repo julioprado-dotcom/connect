@@ -106,7 +106,7 @@ export async function GET() {
       envios: {
         total: totalEntregas,
         exitosos: entregasExitosas,
-        fallidos: entregasFallidos,
+        fallidos: entregasFallidas,
         tasaExito: totalEntregas > 0 ? Math.round((entregasExitosas / totalEntregas) * 100) : 0,
       },
 
