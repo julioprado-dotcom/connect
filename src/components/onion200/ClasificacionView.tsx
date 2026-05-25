@@ -1,8 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchWithTimeout } from '@/lib/fetch-utils';
-import { PanelShell } from './VitalMonitor';
 import {
   Crosshair,
   Brain,
@@ -12,7 +10,10 @@ import {
   Tag,
   Inbox,
   RefreshCw,
+  Play,
 } from 'lucide-react';
+import { fetchWithTimeout } from '@/lib/fetch-utils';
+import { PanelShell } from './VitalMonitor';
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -48,6 +49,8 @@ export function ClasificacionView() {
   const [classifying, setClassifying] = useState(false);
   const [batchResult, setBatchResult] = useState<BatchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [batchSize, setBatchSize] = useState(1);
+  const [classifyingId, setClassifyingId] = useState<string | null>(null);
 
   const fetchPendientes = useCallback(async () => {
     try {
@@ -77,19 +80,19 @@ export function ClasificacionView() {
     fetchPendientes();
   }, [fetchPendientes]);
 
-  const handleClasificar = async () => {
+  const handleClasificar = async (limit?: number) => {
+    const count = limit ?? batchSize;
     setClassifying(true);
     setBatchResult(null);
     try {
       const res = await fetchWithTimeout('/api/analyze/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ limit: 20 }),
-        timeoutMs: 120000, // AI classification can be slow
+        body: JSON.stringify({ limit: count }),
+        timeoutMs: 120000,
       });
       const data = await res.json();
       setBatchResult(data);
-      // Refresh pendientes list
       setTimeout(fetchPendientes, 2000);
     } catch (e) {
       setBatchResult({
@@ -100,6 +103,44 @@ export function ClasificacionView() {
       });
     } finally {
       setClassifying(false);
+    }
+  };
+
+  const handleClasificarIndividual = async (mencionId: string) => {
+    setClassifyingId(mencionId);
+    try {
+      const res = await fetchWithTimeout('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mencionId }),
+        timeoutMs: 60000,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBatchResult({
+          analizadas: 1,
+          errores: 0,
+          totalProcesadas: 1,
+          detalles: [`${data.tipoMencion} / ${data.sentimiento} / [${(data.ejesTematicos || []).map((e: any) => e.slug || e).join(',')}]`],
+        });
+        setTimeout(fetchPendientes, 1500);
+      } else {
+        setBatchResult({
+          analizadas: 0,
+          errores: 1,
+          totalProcesadas: 1,
+          mensaje: data.error || 'Error desconocido',
+        });
+      }
+    } catch (e) {
+      setBatchResult({
+        analizadas: 0,
+        errores: 1,
+        totalProcesadas: 1,
+        mensaje: e instanceof Error ? e.message : 'Error de conexion',
+      });
+    } finally {
+      setClassifyingId(null);
     }
   };
 
@@ -142,9 +183,28 @@ export function ClasificacionView() {
             </p>
           </div>
 
+          {/* Batch size selector */}
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[9px] font-mono text-slate-600 uppercase tracking-wider">Lote:</span>
+            {[1, 3, 5, 10, 20].map(n => (
+              <button
+                key={n}
+                onClick={() => setBatchSize(n)}
+                className="px-2 py-1 rounded text-[10px] font-mono font-bold transition-all"
+                style={{
+                  color: batchSize === n ? '#06b6d4' : '#64748b',
+                  backgroundColor: batchSize === n ? 'rgba(6,182,212,0.1)' : 'rgba(255,255,255,0.02)',
+                  border: `1px solid ${batchSize === n ? 'rgba(6,182,212,0.25)' : 'rgba(255,255,255,0.06)'}`,
+                }}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+
           {/* Classify button */}
           <button
-            onClick={handleClasificar}
+            onClick={() => handleClasificar(batchSize)}
             disabled={classifying || totalPendientes === 0}
             className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-sm font-bold font-mono uppercase tracking-wider transition-all duration-200 hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
             style={{
@@ -161,7 +221,7 @@ export function ClasificacionView() {
             )}
             {classifying
               ? 'Clasificando con IA...'
-              : 'Clasificar Pendientes (20)'}
+              : `Clasificar Pendientes (${batchSize})`}
           </button>
 
           {/* Batch result */}
@@ -271,7 +331,18 @@ export function ClasificacionView() {
                     <span className="text-[10px] font-mono text-slate-500 truncate max-w-[100px]">
                       {m.Medio?.nombre || 'N/A'}
                     </span>
-                    <Tag className="w-3 h-3 text-amber-500/50 ml-auto" />
+                      <button
+                      onClick={() => handleClasificarIndividual(m.id)}
+                      disabled={classifyingId === m.id || classifying}
+                      className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider transition-all hover:bg-cyan-500/10 disabled:opacity-30"
+                      style={{ color: classifyingId === m.id ? '#06b6d4' : '#64748b', border: '1px solid rgba(6,182,212,0.12)' }}
+                      title="Clasificar esta mención"
+                    >
+                      {classifyingId === m.id
+                        ? <Loader2 className="w-3 h-3 animate-spin" />
+                        : <Play className="w-3 h-3" />
+                      }
+                    </button>
                   </div>
                   <p className="text-[11px] text-slate-400 font-mono leading-snug line-clamp-2">
                     {m.titulo || m.texto?.slice(0, 100) || 'Sin texto'}
