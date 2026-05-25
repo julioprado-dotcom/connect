@@ -12,6 +12,10 @@ export async function register() {
   // Solo ejecutar en el servidor
   if (typeof window !== 'undefined') return;
 
+  // Turbopack compila instrumentation para Edge + Node.js.
+  // EdgeRuntime es un global que solo existe en Edge — si existe, saltamos.
+  if (typeof (globalThis as any).EdgeRuntime !== 'undefined') return;
+
   console.log('[Instrumentation] Iniciando sistema DECODEX...');
 
   try {
