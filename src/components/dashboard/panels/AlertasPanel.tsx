@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Bell, Crosshair, Terminal, Radio, Activity } from 'lucide-react';
-import { PanelShell } from './PanelShell';
+import { PanelShell } from '@/components/onion200/VitalMonitor';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 // ═══════════════════════════════════════════════════════════
