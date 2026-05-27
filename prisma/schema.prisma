@@ -34,7 +34,9 @@ model CapturaLog {
   mencionesEncontradas Int      @default(0)
   exitosa              Boolean  @default(false)
   errores              String   @default("")
-  Medio                Medio    @relation(fields: [medioId], references: [id])
+  Medio                Medio    @relation(fields: [medioId], references: [id], onDelete: Cascade)
+
+  @@index([medioId])
 }
 
 model Cliente {
@@ -180,7 +182,7 @@ model FuenteEstado {
   totalMenciones     Int       @default(0)
   strategyValid      String    @default("")
   strategyScrape     String    @default("")
-  Medio              Medio     @relation(fields: [medioId], references: [id])
+  Medio              Medio     @relation(fields: [medioId], references: [id], onDelete: Cascade)
 
   @@index([medioId])
   @@index([ultimoCheck])
@@ -316,6 +318,10 @@ model Medio {
   CapturaLog           CapturaLog[]
   FuenteEstado         FuenteEstado?
   Mencion              Mencion[]
+
+  @@index([categoria])
+  @@index([nivel])
+  @@index([activo])
 }
 
 model Mencion {
@@ -364,6 +370,10 @@ model Mencion {
   mencion_cliente_eje     mencion_cliente_eje[]
 
   @@index([ejeEstructuralId])
+  @@index([medioId])
+  @@index([fechaCaptura])
+  @@index([personaId])
+  @@index([sentimiento])
 }
 
 model MencionLente {
@@ -404,6 +414,9 @@ model Persona {
   fechaActualizacion DateTime
   Mencion            Mencion[]
   Reporte            Reporte[]
+
+  @@index([camara])
+  @@index([partidoSigla])
 }
 
 model Reporte {
