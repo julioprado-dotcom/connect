@@ -70,7 +70,7 @@ export async function GET() {
       db.contrato.count({ where: { estado: 'activo' } }),
       db.contrato.count({ where: { estado: 'activo', fechaFin: { lte: en15d } } }),
       db.ejeTematico.count({ where: { activo: true } }),
-      db.suscriptor.count(),
+      db.suscriptorGratuito.count(),
       db.job.count({ where: { estado: 'completado', fechaCreacion: { gte: hace24h } } }),
       db.job.count({ where: { estado: 'fallido', fechaCreacion: { gte: hace24h } } }),
       db.job.count({ where: { estado: { in: ['pendiente', 'ejecutando'] } } }),

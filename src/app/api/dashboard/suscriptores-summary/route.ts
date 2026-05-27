@@ -15,15 +15,10 @@ export async function GET() {
     startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
 
-    const [totalSuscriptores, totalGratuitos, activosSuscriptor, activosGratuito, registradosSemanaSuscriptor, registradosSemanaGratuito, ultimos] =
+    const [totalGratuitos, activosGratuito, registradosSemanaGratuito, ultimos] =
       await Promise.all([
-        db.suscriptor.count(),
         db.suscriptorGratuito.count(),
-        db.suscriptor.count({ where: { activo: true } }),
         db.suscriptorGratuito.count({ where: { activo: true } }),
-        db.suscriptor.count({
-          where: { fechaSuscripcion: { gte: startOfWeek } },
-        }),
         db.suscriptorGratuito.count({
           where: { fechaSuscripcion: { gte: startOfWeek } },
         }),
@@ -45,10 +40,10 @@ export async function GET() {
 
     return NextResponse.json({
       timestamp: new Date().toISOString(),
-      totalSuscriptores,
+      totalSuscriptores: totalGratuitos,
       totalGratuitos,
-      activos: activosSuscriptor + activosGratuito,
-      registradosSemana: registradosSemanaSuscriptor + registradosSemanaGratuito,
+      activos: activosGratuito,
+      registradosSemana: registradosSemanaGratuito,
       ultimos: ultimosMapped,
     });
   } catch (error: unknown) {

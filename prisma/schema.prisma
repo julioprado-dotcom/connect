@@ -25,28 +25,6 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
-model AdminFeedback {
-  id                  String   @id
-  tipo                String
-  productoAfectado    String?
-  instruccionOriginal String
-  accionEjecutada     String?
-  resultado           String?
-  detalle             String?
-  sugerenciaGenerada  Boolean  @default(false)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime
-}
-
-model AprendizajeSistema {
-  id        String   @id
-  categoria String
-  leccion   String
-  contexto  String   @default("")
-  createdAt DateTime @default(now())
-  updatedAt DateTime
-}
-
 model CapturaLog {
   id                   String   @id
   fecha                DateTime @default(now())
@@ -509,16 +487,6 @@ model SugerenciaInteligencia {
   @@index([createdAt])
   @@index([tipo])
   @@index([estado])
-}
-
-model Suscriptor {
-  id               String   @id
-  nombre           String
-  email            String
-  whatsapp         String?
-  plan             String   @default("basico")
-  fechaSuscripcion DateTime @default(now())
-  activo           Boolean  @default(true)
 }
 
 model SuscriptorGratuito {

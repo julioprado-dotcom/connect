@@ -168,7 +168,7 @@ export async function GET() {
       db.entrega.count({ where: { estado: 'fallido' } }),
       db.entrega.count(),
       db.entrega.count({ where: { fechaEnvio: { gte: hoyBo } } }),
-      db.suscriptor.count(),
+      db.suscriptorGratuito.count(),
       db.entrega.findFirst({ orderBy: { fechaEnvio: 'desc' } }),
 
       // ── JOBS ──
