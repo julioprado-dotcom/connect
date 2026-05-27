@@ -2,11 +2,11 @@
 // GET /api/alertas/estado → Alertas generadas desde datos reales del sistema
 //
 // 5 niveles de severidad (estilo alertas meteorológicas):
-//   1 INFO     (#3b82f6) — Operación normal, informativo
-//   2 ADVISORY (#06b6d4) — Atención requerida, no urgente
-//   3 WATCH    (#f59e0b) — Posible problema en desarrollo
-//   4 WARNING  (#f97316) — Problema activo, requiere acción
-//   5 ALERT    (#8b5cf6) — Crítico, acción inmediata
+//   1 INFORMACIÓN (#3b82f6) — Operación normal, informativo
+//   2 AVISO       (#06b6d4) — Atención requerida, no urgente
+//   3 VIGILANCIA  (#f59e0b) — Posible problema en desarrollo
+//   4 ADVERTENCIA (#f97316) — Problema activo, requiere acción
+//   5 ALERTA      (#8b5cf6) — Crítico, acción inmediata
 
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';

@@ -35,7 +35,7 @@ interface AlertasData {
 // ═══════════════════════════════════════════════════════════
 
 const SEVERIDAD = {
-  1: { color: '#3b82f6', label: 'INFO',        desc: 'Operación normal' },
+  1: { color: '#3b82f6', label: 'INFORMACIÓN', desc: 'Operación normal' },
   2: { color: '#06b6d4', label: 'AVISO',       desc: 'Atención requerida' },
   3: { color: '#f59e0b', label: 'VIGILANCIA',  desc: 'En observación' },
   4: { color: '#f97316', label: 'ADVERTENCIA', desc: 'Requiere acción' },
