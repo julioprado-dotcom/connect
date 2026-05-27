@@ -61,6 +61,8 @@ export async function GET() {
       fuentesDegradadas,
       ultMencion,
       mencionesPorNivel,
+      mencionesPorSentimiento,
+      mencionesPorTipoMencion,
 
       // CLASIFICACIÓN
       lentesTotal,
@@ -113,12 +115,43 @@ export async function GET() {
         rows.map(r => ({ nivel: Number(r.nivel), total: Number(r.total) }))
       ),
 
+      // Menciones por sentimiento (excluir "no_clasificado" y "sin_tratamiento")
+      db.$queryRaw`
+        SELECT sentimiento, COUNT(id) as total
+        FROM Mencion
+        WHERE sentimiento IS NOT NULL
+          AND sentimiento != ''
+          AND sentimiento != 'no_clasificado'
+          AND sentimiento != 'sin_tratamiento'
+        GROUP BY sentimiento
+        ORDER BY total DESC
+      `.then((rows: Array<{ sentimiento: string; total: bigint }>) =>
+        rows.map(r => ({ sentimiento: r.sentimiento, total: Number(r.total) }))
+      ),
+
+      // Menciones por tipo de mencion (tipoMencion)
+      db.$queryRaw`
+        SELECT tipoMencion, COUNT(id) as total
+        FROM Mencion
+        WHERE tipoMencion IS NOT NULL AND tipoMencion != ''
+        GROUP BY tipoMencion
+        ORDER BY total DESC
+      `.then((rows: Array<{ tipoMencion: string; total: bigint }>) =>
+        rows.map(r => ({ tipoMencion: r.tipoMencion, total: Number(r.total) }))
+      ),
+
       // ── CLASIFICACIÓN ──
       db.lente.count(),
       // distinct count via raw SQL (Prisma v6 compatible) — cast to int
       db.$queryRaw<Array<{ c: number }>>`SELECT COUNT(DISTINCT mencionId) as c FROM MencionLente`.then(r => (Array.isArray(r) && r[0] ? Number(r[0].c) : 0)),
       db.$queryRaw<Array<{ c: number }>>`SELECT COUNT(DISTINCT mencionId) as c FROM MencionTema`.then(r => (Array.isArray(r) && r[0] ? Number(r[0].c) : 0)),
-      db.mencion.count({ where: { sentimiento: { not: null, not: '' } } }),
+      // Menciones con sentimiento REAL (excluir no_clasificado/sin_tratamiento)
+      db.mencion.count({
+        where: {
+          sentimiento: { not: null, not: '' },
+          NOT: { sentimiento: { in: ['no_clasificado', 'sin_tratamiento'] } },
+        },
+      }),
       db.ejeTematico.count({ where: { activo: true } }),
 
       // ── PRODUCCIÓN (Reporte = productos generados) ──
@@ -158,6 +191,10 @@ export async function GET() {
     // porNivel ya viene convertido de la raw query
     const porNivel = Array.isArray(mencionesPorNivel) ? mencionesPorNivel : [];
 
+    // porSentimiento y porTipoMencion
+    const porSentimiento = Array.isArray(mencionesPorSentimiento) ? mencionesPorSentimiento : [];
+    const porTipoMencion = Array.isArray(mencionesPorTipoMencion) ? mencionesPorTipoMencion : [];
+
     // Derivar porTipo de forma segura
     const porTipo = Array.isArray(productosPorTipo)
       ? productosPorTipo.map(p => ({ tipo: p.tipo, total: p._count }))
@@ -176,6 +213,8 @@ export async function GET() {
         ultimaCaptura: ultMencion?.fechaCaptura?.toISOString() ?? null,
         ultimaCapturaHace: ultMencion ? haceTexto(ultMencion.fechaCaptura) : 'nunca',
         porNivel,
+        porSentimiento,
+        porTipoMencion,
         status: fuentesDegradadas > fuentesActivas * 0.5 ? 'error'
           : fuentesDegradadas > 0 ? 'warn'
           : fuentesActivas > 0 && mencionesTotal > 0 ? 'ok'
@@ -234,7 +273,7 @@ export async function GET() {
     return NextResponse.json({
       status: 'degraded',
       timestamp: new Date().toISOString(),
-      captura: { menciones: { total: 0, hoy: 0, semana: 0 }, medios: 0, fuentes: { activas: 0, degradadas: 0 }, ultimaCaptura: null, ultimaCapturaHace: 'nunca', porNivel: [], status: 'idle' },
+      captura: { menciones: { total: 0, hoy: 0, semana: 0 }, medios: 0, fuentes: { activas: 0, degradadas: 0 }, ultimaCaptura: null, ultimaCapturaHace: 'nunca', porNivel: [], porSentimiento: [], porTipoMencion: [], status: 'idle' },
       clasificacion: { lentes: 0, ejes: 0, mencionesClasificadas: { conLente: 0, conEje: 0, conSentimiento: 0, total: 0 }, tasas: { lente: 0, eje: 0, sentimiento: 0 }, status: 'idle' },
       produccion: { productos: { total: 0, hoy: 0, semana: 0 }, reportes: 0, porTipo: [], porEstado: [], ultimoProducto: null, ultimoProductoHace: 'nunca', ultimoTipo: null, status: 'idle' },
       distribucion: { envios: { total: 0, exitosos: 0, fallidos: 0, tasaExito: 0 }, entregas: { total: 0, hoy: 0 }, suscriptores: 0, ultimoEnvio: null, ultimoEnvioHace: 'nunca', status: 'idle' },

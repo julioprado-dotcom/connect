@@ -4,17 +4,11 @@
 
 import { dequeue, complete, fail } from './queue'
 import { WORKER_CONFIG, FLOW_CONTROL, QUEUE_LIMITS } from './constants'
-import db from '@/lib/db'
 import type { JobPayload, JobTipo, RunnerResult, RunnerFn } from './types'
-import { run as runCheckFuente } from './runners/check-fuente'
-import { run as runCheckIndicador } from './runners/check-indicador'
-import { run as runScrapeFuente } from './runners/scrape-fuente'
-import { run as runCaptureIndicador } from './runners/capture-indicador'
-import { run as runGenerarBoletin } from './runners/generar-boletin'
-import { run as runEnviarEntrega } from './runners/enviar-entrega'
-import { run as runVerificarEnlaces } from './runners/verificar-enlaces'
-import { run as runMantenimiento } from './runners/mantenimiento'
-import { run as runConnectivityTest } from './runners/connectivity-test'
+// Runners se cargan dinámicamente en registerDefaultRunners() para evitar
+// que Turbopack trace módulos de Node.js (fs, path, node:https) al
+// compilar instrumentation.ts para Edge Runtime.
+import db from '@/lib/db'
 
 // Registro de runners por tipo de job
 const runners = new Map<string, RunnerFn>()
@@ -267,10 +261,35 @@ async function workerLoop(): Promise<void> {
 }
 
 // Registrar todos los runners del sistema
-export function registerDefaultRunners(): void {
+// Dynamic imports para evitar que Turbopack trace Node.js modules
+// (fs, path, node:https, node-cron) al compilar Edge Runtime.
+export async function registerDefaultRunners(): Promise<void> {
   const ws = getWorkerState()
   if (ws.runnersRegistered) return
   ws.runnersRegistered = true
+
+  // Cargar runners dinámicamente
+  const [
+    { run: runCheckFuente },
+    { run: runCheckIndicador },
+    { run: runScrapeFuente },
+    { run: runCaptureIndicador },
+    { run: runGenerarBoletin },
+    { run: runEnviarEntrega },
+    { run: runVerificarEnlaces },
+    { run: runMantenimiento },
+    { run: runConnectivityTest },
+  ] = await Promise.all([
+    import('./runners/check-fuente'),
+    import('./runners/check-indicador'),
+    import('./runners/scrape-fuente'),
+    import('./runners/capture-indicador'),
+    import('./runners/generar-boletin'),
+    import('./runners/enviar-entrega'),
+    import('./runners/verificar-enlaces'),
+    import('./runners/mantenimiento'),
+    import('./runners/connectivity-test'),
+  ])
 
   // Check-First runners (Capa 2)
   registerRunner('check_fuente', runCheckFuente)

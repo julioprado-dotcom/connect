@@ -22,7 +22,7 @@ import { withAuth } from '@/lib/auth-helpers';
 import { extraerTextoDeHtml, extraerMencionesDeTexto, crearMencionesExtraidas } from '@/lib/ai/extractor-menciones';
 import { extraerLinksDeNoticias, extraerLeadDeBloque, type NotaLink } from '@/lib/jobs/link-extractor';
 import { trijarNotas } from '@/lib/jobs/keyword-triaje';
-import { zaiFetch, zaiFetchArticle } from '@/lib/jobs/fetch/zai-fetcher';
+import { fetchPage, fetchArticle } from '@/lib/jobs/fetch/fetcher';
 
 // ─── Configuración de la Cola ──────────────────────────────────
 const QUEUE_CONFIG = {
@@ -127,18 +127,18 @@ async function processMedio(
   // FASE 1: Descargar homepage + extraer links de artículos
   // ═══════════════════════════════════════════════════════════
 
-  // Usar zaiFetch (intenta nativo primero, luego Z.ai SDK)
+  // Descargar homepage con fetch nativo
   let html = '';
   let fetchSource = 'ninguno';
-  const zaiResult = await zaiFetch(medio.url);
-  if (zaiResult && zaiResult.html.length >= 200) {
-    html = zaiResult.html;
-    fetchSource = zaiResult.source;
+ const pageResult = await fetchPage(medio.url);
+  if (pageResult && pageResult.html.length >= 200) {
+    html = pageResult.html;
+    fetchSource = pageResult.source;
   }
 
   if (!html || html.length < 200) {
     queueLog(`  ❌ ${medio.nombre}: no se pudo obtener homepage (URL: ${medio.url})`);
-    queueLog(`     → Nativo y Z.ai SDK fallaron. Verificar red del servidor.`);
+    queueLog(`     → Fetch nativo falló. Verificar red del servidor.`);
     return { linksExtracted, notasTriaje, notasClasificadas, menciones, errores: 1 };
   }
 
@@ -212,8 +212,8 @@ async function processMedio(
       continue;
     }
 
-    // Descargar nota individual — Z.ai page_reader PRIMERO (renderiza JS)
-    const notaResult = await zaiFetchArticle(nota.url);
+    // Descargar nota individual — fetch nativo
+    const notaResult = await fetchArticle(nota.url);
     let notaHtml = '';
     if (notaResult && notaResult.html.length >= 200) {
       notaHtml = notaResult.html;
@@ -371,7 +371,10 @@ export async function POST(request: NextRequest) {
 
       // Precargar URLs existentes para deduplicación
       try {
-        const existing = await db.mencion.findMany({ select: { url: true } });
+        const existing = await db.mencion.findMany({
+        select: { url: true },
+        where: { fechaCaptura: { gte: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000) } },
+      });
         for (const m of existing) {
           if (m.url) processedUrls.add(m.url);
         }

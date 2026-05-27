@@ -1,12 +1,12 @@
 # El Radar — Protocolo de Producto
 
-> **ONION200 · News Connect**
+> **ONION200 · DECODEX Bolivia**
 > Inteligencia mediática para Bolivia
 >
 > Versión: 1.0.0
 > Fecha: Julio 2025
 > Clasificación: Interno — Equipo de Producto
-> Responsable: Dirección de Producto — News Connect
+> Responsable: Dirección de Producto — DECODEX Bolivia
 
 ---
 
@@ -36,7 +36,7 @@
 ║              ● EL RADAR                                      ║
 ║              Boletín Semanal de Inteligencia Mediática        ║
 ║                                                              ║
-║              ONION200 · News Connect                         ║
+║              ONION200 · DECODEX Bolivia                         ║
 ║              Bolivia                                          ║
 ║                                                              ║
 ║              Protocolo de Producto v1.0.0                    ║
@@ -44,7 +44,7 @@
 ╚══════════════════════════════════════════════════════════════╝
 ```
 
-**El Radar** es el producto de entrada gratuito del ecosistema **News Connect**, diseñado para distribuir inteligencia mediática de valor masivo y actuar como puente hacia los productos premium del sistema ONION200.
+**El Radar** es el producto de entrada gratuito del ecosistema **DECODEX Bolivia**, diseñado para distribuir inteligencia mediática de valor masivo y actuar como puente hacia los productos premium del sistema ONION200.
 
 ---
 
@@ -92,11 +92,11 @@ El Radar     El Radar     Landing       Plan Premium
 (Descubrimiento) (Hábito semanal) (Evaluación) (Suscripción de pago)
      ↑                                                    │
      └────────────────────────────────────────────────────┘
-                    Funnel de News Connect
+                    Funnel de DECODEX Bolivia
 ```
 
 **El Radar es la puerta de entrada.** Un usuario que recibe El Radar durante 4 semanas desarrolla:
-- Confianza en los datos de News Connect
+- Confianza en los datos de DECODEX Bolivia
 - Hábito de consumo semanal
 - Necesidad natural de más profundidad → productos premium
 
@@ -108,7 +108,7 @@ El Radar     El Radar     Landing       Plan Premium
 
 | # | Objetivo | KPI Asociado | Meta Q1 |
 |---|----------|--------------|---------|
-| 1 | **Generar autoridad de marca** | Share of voice en conversaciones sobre inteligencia mediática en Bolivia | Posicionar a News Connect como referente |
+| 1 | **Generar autoridad de marca** | Share of voice en conversaciones sobre inteligencia mediática en Bolivia | Posicionar a DECODEX Bolivia como referente |
 | 2 | **Capturar suscriptores gratuitos** | Crecimiento neto de base de suscriptores | 500 suscriptores en 3 meses |
 | 3 | **Demostrar capacidad del sistema** | Tasa de Engagement con el boletín | Open rate >30%, CTR >5% |
 | 4 | **Alimentar el funnel de conversión** | Tasa de conversión gratuito → premium | >2% de suscriptores convierten en 90 días |
@@ -174,7 +174,7 @@ Cada edición de El Radar contiene **7 secciones** en el siguiente orden:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   EL RADAR · NEWS CONNECT
+   EL RADAR · DECODEX Bolivia
    Semana del [dd de mes] al [dd de mes]
    [Año] · Edición #[NN]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -372,7 +372,7 @@ Teaser de contenido premium + llamado a la acción:
      dashboards y alertas en tiempo real:
 
      [CONOCE NUESTROS PLANES PREMIUM →]
-     https://newsconnect.bo/planes
+     https://decodex.bo/planes
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -421,7 +421,7 @@ Si el lector necesita 30 segundos para decidir si sigue leyendo, fallamos. El Re
 ```markdown
 # ROLE
 
-Eres el Editor de Inteligencia Mediática de News Connect, un sistema de monitoreo
+Eres el Editor de Inteligencia Mediática de DECODEX Bolivia, un sistema de monitoreo
 de medios bolivianos que analiza tendencias y pautas informativas. Tu especialidad
 es transformar datos crudos en boletines claros, accesibles y visualmente atractivos.
 
@@ -454,7 +454,7 @@ También recibirás datos comparativos de la semana anterior.
 
 Genera un boletín semanal "El Radar" con exactamente 7 secciones:
 
-1. ENCABEZADO: "EL RADAR · NEWS CONNECT — Semana del [fecha] al [fecha] · Edición #[N]"
+1. ENCABEZADO: "EL RADAR · DECODEX Bolivia — Semana del [fecha] al [fecha] · Edición #[N]"
 2. RESUMEN EJECUTIVO: 3-4 líneas. Balance semanal en una frase. Sin jerga.
 3. RANKING DE EJES (Top 5): Tabla con posición, nombre del eje, menciones, % cambio vs semana anterior.
 4. RADAR VISUAL: Genera representación en texto plano (barras █░ escala 1-10) de los 11 ejes.
@@ -582,7 +582,7 @@ model SuscriptorGratuito {
 
 ```sql
 enum OrigenSuscripcion {
-  LANDING            -- Formulario en newsconnect.bo/radar
+  LANDING            -- Formulario en decodex.bo/radar
   RED_SOCIAL         -- Link desde LinkedIn, X, Facebook, Instagram
   REFERIDO           -- Invitación de otro suscriptor
   WEB_ORGANICA       -- Búsqueda orgánica (Google)
@@ -699,10 +699,10 @@ Cada interacción del suscriptor se registra para análisis:
 **Proveedor:** SendGrid o Mailchimp (evaluación en curso)
 
 **Especificaciones:**
-- From: `El Radar <elradar@newsconnect.bo>`
+- From: `El Radar <elradar@decodex.bo>`
 - Subject line: `El Radar #12: Hidrocarburos lidera con +47% 📊`
 - Preheader: `89 menciones en YPFB, 3 ejes en ascenso y el dato que nadie vio.`
-- Reply-to: `hola@newsconnect.bo`
+- Reply-to: `hola@decodex.bo`
 - List-unsubscribe header: Sí (cumplimiento CAN-SPAM)
 
 **Flujo de suscripción por email:**
@@ -727,14 +727,14 @@ Cada interacción del suscriptor se registra para análisis:
 **Proveedor:** Meta WhatsApp Business API
 
 **Especificaciones:**
-- Número emisor: `+591 XXXXXXXX` (número oficial News Connect)
+- Número emisor: `+591 XXXXXXXX` (número oficial DECODEX)
 - Tipo: Lista de difusión (no grupo — evita spam entre suscriptores)
 - Formato: Texto plano con imagen adjunta (radar chart)
 - Horario: 8:00 AM (misma ventana que email)
 
 **Mensaje de ejemplo:**
 ```
-📊 EL RADAR #12 · News Connect
+📊 EL RADAR #12 · DECODEX Bolivia
 Semana del 17 al 23 de junio, 2025
 
 RESUMEN: Hidrocarburos lidera con 89 menciones (+47%) impulsado por la crisis de YPFB. Movimientos Sociales mantiene segundo lugar.
@@ -750,7 +750,7 @@ TOP 5 EJES:
 
 📊 368 menciones · 23 medios · 3 ejes en ascenso
 
-👉 Acceso completo: https://newsconnect.bo/planes
+👉 Acceso completo: https://decodex.bo/planes
 ```
 
 **Nota:** El mensaje de WhatsApp se trunca a ~1200 caracteres. Si el contenido excede, se envía en 2 mensajes.
@@ -761,23 +761,23 @@ TOP 5 EJES:
 - Formato: Imagen (radar chart) + texto descriptivo (500 chars máx)
 - Frecuencia: Cada lunes 8:30 AM (30 min después del email)
 - Tono: Profesional, orientado a sector corporativo/institucional
-- Hashtags: `#InteligenciaMediatica #Bolivia #Medios #NewsConnect`
+- Hashtags: `#InteligenciaMediatica #Bolivia #Medios #DECODEX`
 
 **X (Twitter):**
 - Formato: Hilo de 3-5 tweets + imagen en primer tweet
 - Frecuencia: Cada lunes 8:30 AM
 - Tono: Directo, dativo, escaneable
-- Hashtags: `#ElRadar #NewsConnectBO`
+- Hashtags: `#ElRadar #DECODEXBO`
 
 **Facebook:**
 - Formato: Imagen (radar chart, 1080x1080px) + texto
 - Frecuencia: Cada lunes 9:00 AM
 - Tono: Accesible, orientado a público general
-- Hashtags: `#ElRadar #NewsConnect #MediosBolivia`
+- Hashtags: `#ElRadar #DECODEX #MediosBolivia`
 
 ### 9.5 Web (Página Pública `/radar`)
 
-**URL:** `https://newsconnect.bo/radar`
+**URL:** `https://decodex.bo/radar`
 
 **Contenido:**
 - Última edición completa (acceso libre)
@@ -787,7 +787,7 @@ TOP 5 EJES:
 - FAQ: "¿Qué es El Radar?", "¿Es gratis?", "¿Con qué frecuencia?"
 
 **SEO:**
-- Title: `El Radar — Boletín Semanal de Inteligencia Mediática | News Connect`
+- Title: `El Radar — Boletín Semanal de Inteligencia Mediática | DECODEX Bolivia`
 - Meta description: `Recibe cada lunes un resumen de las tendencias mediáticas de Bolivia. Gratuito. 3 minutos de lectura.`
 - Open Graph: Imagen del radar de la última edición
 - Schema.org: `Newsletter` type con `publicationFrequency: weekly`
@@ -929,10 +929,10 @@ Si el pipeline automático falla:
 
 ## 12. Relación con el Ecosistema de Productos
 
-### 12.1 Mapa de Productos News Connect
+### 12.1 Mapa de Productos DECODEX Bolivia
 
 ```
-                          NEWS CONNECT
+                          DECODEX Bolivia
                     Sistema ONION200
                          │
           ┌──────────────┼──────────────┐
@@ -1063,7 +1063,7 @@ Con meta de 500 suscriptores gratuitos en 3 meses:
 
 | Término | Definición |
 |---------|-----------|
-| **ONION200** | Nombre interno del sistema de inteligencia mediática de News Connect. Referencia a la estructura de capas (como una cebolla) del procesamiento de datos. |
+| **ONION200** | Nombre interno del sistema de inteligencia mediática de DECODEX Bolivia. Referencia a la estructura de capas (como una cebolla) del procesamiento de datos. |
 | **Eje Temático** | Clasificador que agrupa menciones por tema. El sistema tiene 11 ejes. |
 | **Mención** | Una aparición de un tema/persona en un medio de comunicación o red social. |
 | **Brecha de Visibilidad** | Diferencia entre menciones en medios corporativos vs redes/orgs sobre un mismo tema. |
@@ -1075,7 +1075,7 @@ Con meta de 500 suscriptores gratuitos en 3 meses:
 
 ---
 
-> **Documento mantenido por:** Equipo de Producto — News Connect / ONION200
+> **Documento mantenido por:** Equipo de Producto — DECODEX Bolivia / ONION200
 >
 > **Próxima revisión:** Q4 2025 o cuando se complete la primera edición pública
 >
@@ -1084,4 +1084,4 @@ Con meta de 500 suscriptores gratuitos en 3 meses:
 
 ---
 
-*El Radar es el mapa. Los productos premium son el territorio. News Connect es la brújula.*
+*El Radar es el mapa. Los productos premium son el territorio. DECODEX Bolivia es la brújula.*

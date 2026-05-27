@@ -1,74 +1,26 @@
-// Z.ai Fetcher v2 — Fetch con fallback Z.ai SDK
-// FASE 1: fetch() nativo (desde el servidor)
-// FASE 2: Z.ai page_reader (rutea por servidores de Z.ai, funciona aunque el VPS tenga restricciones de red)
+// Fetcher v3 — 100% nativo desde el VPS
+// Sin dependencias de SDK externos para web proxy
 // DECODEX Bolivia
-
-import type { CheckResult } from '../types'
 
 // ─── Interfaz ───────────────────────────────────────────────────
 
-interface ZaiPageResult {
+interface PageResult {
   title: string
   url: string
   html: string
   publishedTime?: string
-  usage?: { tokens: number }
-  source: 'native' | 'zai-sdk'
+  source: 'native'
 }
 
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
 
-// ─── Z.ai SDK singleton (lazy init) ────────────────────────────
-let zaiInstance: Awaited<ReturnType<typeof import('z-ai-web-dev-sdk').ZAI.create>> | null = null
-
-async function getZaiInstance() {
-  if (zaiInstance) return zaiInstance
-  try {
-    const ZAI = (await import('z-ai-web-dev-sdk')).ZAI
-    zaiInstance = await ZAI.create()
-    return zaiInstance
-  } catch (err) {
-    console.warn('[ZaiFetch] No se pudo inicializar Z.ai SDK:', err instanceof Error ? err.message : err)
-    return null
-  }
-}
-
 // ─── Función principal ─────────────────────────────────────────
 
 /**
- * Obtiene el contenido de una URL con doble estrategia:
- * 1. fetch() nativo desde el servidor (rápido, sin costo)
- * 2. Z.ai page_reader SDK (rutea por Z.ai, funciona con restricciones de red)
- *
- * Retorna null si ambos fallan (no lanza excepción).
+ * Obtiene el contenido de una URL usando fetch nativo desde el VPS.
+ * Retorna null si falla (no lanza excepción).
  */
-export async function zaiFetch(url: string, timeoutMs = 15000): Promise<ZaiPageResult | null> {
-  // ═══════════════════════════════════════════════════════════
-  // INTENTO 1: fetch() nativo (rápido, sin costo de tokens)
-  // ═══════════════════════════════════════════════════════════
-  const nativeResult = await nativeFetch(url, timeoutMs)
-  if (nativeResult) {
-    console.log(`[Fetch] NATIVO OK ${url} — "${nativeResult.title.substring(0, 50)}" (${nativeResult.html.length} chars)`)
-    return nativeResult
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // INTENTO 2: Z.ai SDK page_reader (rutea por servidores Z.ai)
-  // ═══════════════════════════════════════════════════════════
-  console.log(`[Fetch] Nativo falló, intentando Z.ai SDK page_reader: ${url}`)
-  const zaiResult = await zaiPageReader(url)
-  if (zaiResult) {
-    console.log(`[Fetch] Z.AI OK ${url} — "${zaiResult.title.substring(0, 50)}" (${zaiResult.html.length} chars)`)
-    return zaiResult
-  }
-
-  console.warn(`[Fetch] AMBOS FALLARON para ${url}`)
-  return null
-}
-
-// ─── Fetch nativo ─────────────────────────────────────────────
-
-async function nativeFetch(url: string, timeoutMs: number): Promise<ZaiPageResult | null> {
+export async function fetchPage(url: string, timeoutMs = 15000): Promise<PageResult | null> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined
 
   try {
@@ -91,13 +43,13 @@ async function nativeFetch(url: string, timeoutMs: number): Promise<ZaiPageResul
     timeoutId = undefined
 
     if (!response.ok) {
-      console.warn(`[Fetch] Nativo: HTTP ${response.status} para ${url}`)
+      console.warn(`[Fetch] HTTP ${response.status} para ${url}`)
       return null
     }
 
     const html = await response.text()
     if (html.length < 200) {
-      console.warn(`[Fetch] Nativo: HTML muy corto (${html.length} chars) para ${url}`)
+      console.warn(`[Fetch] HTML muy corto (${html.length} chars) para ${url}`)
       return null
     }
 
@@ -107,9 +59,9 @@ async function nativeFetch(url: string, timeoutMs: number): Promise<ZaiPageResul
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
     if (msg.includes('abort') || msg.includes('timeout')) {
-      console.warn(`[Fetch] Nativo: Timeout ${timeoutMs}ms para ${url}`)
+      console.warn(`[Fetch] Timeout ${timeoutMs}ms para ${url}`)
     } else {
-      console.warn(`[Fetch] Nativo: Error para ${url}: ${msg}`)
+      console.warn(`[Fetch] Error para ${url}: ${msg}`)
     }
     return null
   } finally {
@@ -117,83 +69,12 @@ async function nativeFetch(url: string, timeoutMs: number): Promise<ZaiPageResul
   }
 }
 
-// ─── Z.ai SDK page_reader ─────────────────────────────────────
-
-async function zaiPageReader(url: string): Promise<ZaiPageResult | null> {
-  try {
-    const zai = await getZaiInstance()
-    if (!zai) {
-      console.warn('[Fetch] Z.ai SDK no disponible')
-      return null
-    }
-
-    const result = await zai.functions.invoke('page_reader', { url })
-
-    if (!result || !result.data) {
-      console.warn(`[Fetch] Z.ai: respuesta vacía para ${url}`)
-      return null
-    }
-
-    const data = result.data
-
-    // Z.ai puede retornar contenido en diferentes campos según el formato
-    const html = data.html || data.content || data.text || data.markdown || ''
-
-    if (html.length < 200) {
-      console.warn(`[Fetch] Z.ai: contenido muy corto (${html.length} chars) para ${url}`)
-      console.warn(`[Fetch] Z.ai: campos disponibles: ${Object.keys(data || {}).join(', ')}`)
-      return null
-    }
-
-    return {
-      title: data.title || extractTitle(html),
-      url: data.url || url,
-      html,
-      publishedTime: data.publishedTime || data.publish_time || data.published_time,
-      usage: data.usage ? { tokens: data.usage.tokens || 0 } : undefined,
-      source: 'zai-sdk',
-    }
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error)
-    console.warn(`[Fetch] Z.ai SDK error para ${url}: ${msg}`)
-    return null
-  }
-}
-
-// ─── zaiFetchArticle — Z.ai PRIMERO para artículos (renderiza JS) ─
-
 /**
- * Obtiene contenido de un ARTÍCULO con estrategia invertida:
- * 1. Z.ai page_reader PRIMERO (renderiza JS, obtiene contenido completo)
- * 2. fetch() nativo como fallback (rápido pero no renderiza JS)
- *
- * Diferencia con zaiFetch(): los artículos de medios bolivianos típicamente
- * cargan contenido vía JavaScript. El fetch nativo obtiene solo el HTML shell,
- * mientras que Z.ai page_reader ejecuta JS y retorna el contenido renderizado.
+ * Obtiene contenido de un ARTÍCULO usando fetch nativo.
+ * Misma lógica que fetchPage — mantiene compatibilidad con callers que usaban zaiFetchArticle.
  */
-export async function zaiFetchArticle(url: string, timeoutMs = 20000): Promise<ZaiPageResult | null> {
-  // ═══════════════════════════════════════════════════════════
-  // INTENTO 1: Z.ai SDK page_reader (renderiza JS → contenido completo)
-  // ═══════════════════════════════════════════════════════════
-  console.log(`[FetchArticle] Intentando Z.ai page_reader: ${url}`)
-  const zaiResult = await zaiPageReader(url)
-  if (zaiResult && zaiResult.html.length >= 500) {
-    console.log(`[FetchArticle] Z.AI OK ${url} — "${zaiResult.title.substring(0, 50)}" (${zaiResult.html.length} chars)`)
-    return zaiResult
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // INTENTO 2: fetch() nativo (fallback si Z.ai falla)
-  // ═══════════════════════════════════════════════════════════
-  console.log(`[FetchArticle] Z.ai insuficiente, intentando nativo: ${url}`)
-  const nativeResult = await nativeFetch(url, timeoutMs)
-  if (nativeResult) {
-    console.log(`[FetchArticle] NATIVO OK ${url} — "${nativeResult.title.substring(0, 50)}" (${nativeResult.html.length} chars)`)
-    return nativeResult
-  }
-
-  console.warn(`[FetchArticle] AMBOS FALLARON para ${url}`)
-  return null
+export async function fetchArticle(url: string, timeoutMs = 20000): Promise<PageResult | null> {
+  return fetchPage(url, timeoutMs)
 }
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -204,15 +85,15 @@ function extractTitle(html: string): string {
   return match[1].trim().replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
 }
 
-// ─── zaiFetchText (compatibilidad) ────────────────────────────
+// ─── fetchText (compatibilidad) ────────────────────────────────
 
-export async function zaiFetchText(url: string, timeoutMs = 30000): Promise<{
+export async function fetchText(url: string, timeoutMs = 30000): Promise<{
   title: string
   text: string
   url: string
   publishedTime?: string
 } | null> {
-  const page = await zaiFetch(url, timeoutMs)
+  const page = await fetchPage(url, timeoutMs)
   if (!page) return null
 
   const text = page.html
@@ -239,15 +120,15 @@ export async function zaiFetchText(url: string, timeoutMs = 30000): Promise<{
   }
 }
 
-// ─── zaiFingerprint (compatibilidad) ──────────────────────────
+// ─── fingerprint (compatibilidad) ──────────────────────────
 
-export async function zaiFingerprint(url: string): Promise<{
+export async function fetchFingerprint(url: string): Promise<{
   hash: string
   title: string
   length: number
   html?: string
 } | null> {
-  const page = await zaiFetch(url)
+  const page = await fetchPage(url)
   if (!page) return null
 
   const normalized = page.html
@@ -276,3 +157,17 @@ async function sha256(input: string): Promise<string> {
   const hashArray = Array.from(new Uint8Array(hashBuffer))
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 }
+
+// ─── Compatibilidad: aliases para código existente ─────────
+
+/** @deprecated Usar fetchPage */
+export const zaiFetch = fetchPage
+
+/** @deprecated Usar fetchArticle */
+export const zaiFetchArticle = fetchArticle
+
+/** @deprecated Usar fetchFingerprint */
+export const zaiFingerprint = fetchFingerprint
+
+/** @deprecated Usar fetchText */
+export const zaiFetchText = fetchText

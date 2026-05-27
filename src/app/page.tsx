@@ -10,6 +10,7 @@ import { DistribucionView } from '@/components/onion200/DistribucionView';
 import { FuentesView } from '@/components/onion200/FuentesView';
 import { InteligenciaView } from '@/components/onion200/InteligenciaView';
 import { AlertasPanel } from '@/components/dashboard/panels/AlertasPanel';
+import Image from 'next/image';
 import {
   Crosshair,
   Radio,
@@ -22,7 +23,9 @@ import {
   Database,
   Sparkles,
   Bell,
+  LogOut,
 } from 'lucide-react';
+import { signOut } from 'next-auth/react';
 
 // ═══════════════════════════════════════════════════════════════
 // Types — Real data from /api/dashboard/indicadores-summary
@@ -93,11 +96,11 @@ function KPICard({
 }) {
   const statusColor =
     status === 'error'
-      ? '#f43f5e'
+      ? '#8b5cf6'
       : status === 'warning'
         ? '#f59e0b'
         : status === 'ok'
-          ? '#10b981'
+          ? '#06b6d4'
           : '#64748b';
 
   return (
@@ -176,11 +179,11 @@ function PipelineStatusBar({
 }) {
   const colorForStatus = (s?: string) =>
     s === 'error'
-      ? '#f43f5e'
+      ? '#8b5cf6'
       : s === 'warning'
         ? '#f59e0b'
         : s === 'ok'
-          ? '#10b981'
+          ? '#06b6d4'
           : '#334155';
 
   return (
@@ -291,23 +294,23 @@ export default function ONION200Dashboard() {
         }}
       >
         <div className="flex items-center gap-3">
-          {/* Logo */}
+          {/* Logo DECODEX */}
           <div
-            className="flex items-center justify-center w-9 h-9 rounded-lg"
+            className="flex items-center justify-center w-[72px] h-[72px] rounded-xl overflow-hidden"
             style={{
               border: '1px solid rgba(6,182,212,0.25)',
               backgroundColor: 'rgba(6,182,212,0.08)',
-              boxShadow: '0 0 12px rgba(6,182,212,0.1)',
+              boxShadow: '0 0 16px rgba(6,182,212,0.12)',
             }}
           >
-            <Crosshair size={18} className="text-cyan-400" />
+            <Image src="/decodex-logo.png" alt="DECODEX" width={56} height={56} className="object-contain" />
           </div>
           <div>
-            <h1 className="text-sm font-bold tracking-[0.2em] text-cyan-300 font-mono uppercase">
-              ONION200
+            <h1 className="text-lg font-bold tracking-[0.2em] text-cyan-300 font-mono uppercase">
+              DECODEX
             </h1>
-            <p className="text-[9px] tracking-wider text-slate-600 font-mono">
-              PUENTE DE MANDO · DECODEX BOLIVIA
+            <p className="text-[10px] tracking-wider text-slate-600 font-mono">
+              PUENTE DE MANDO · ONION200
             </p>
           </div>
         </div>
@@ -332,6 +335,15 @@ export default function ONION200Dashboard() {
               En línea
             </span>
           </div>
+          {/* Logout */}
+          <button
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            className="flex items-center gap-1.5 px-2 py-1 rounded text-[9px] font-mono uppercase tracking-wider transition-all hover:bg-red-500/10"
+            style={{ color: '#64748b', border: '1px solid rgba(100,116,139,0.15)' }}
+            title="Cerrar sesión"
+          >
+            <LogOut className="w-3 h-3" />
+          </button>
         </div>
       </header>
 
@@ -410,7 +422,7 @@ export default function ONION200Dashboard() {
       {/* ═══ MAIN CONTENT AREA — Conditional rendering per tab ═══ */}
       <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6">
         <div className="max-w-[1400px] mx-auto">
-          {activeTab === 'resumen' && <ResumenView />}
+          {activeTab === 'resumen' && <ResumenView onNavigateTab={handleTabChange} />}
           {activeTab === 'alertas' && <AlertasPanel />}
           {activeTab === 'fuentes' && <FuentesView />}
           {activeTab === 'captura' && <CapturaView />}

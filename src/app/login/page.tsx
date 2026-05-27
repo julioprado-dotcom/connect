@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Loader2, Shield } from 'lucide-react';
+import Image from 'next/image';
+import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -81,14 +82,14 @@ export default function LoginPage() {
           {/* Header */}
           <div className="relative z-10 text-center mb-8">
             <div
-              className="inline-flex items-center justify-center w-14 h-14 rounded-xl mb-4"
+              className="inline-flex items-center justify-center w-14 h-14 rounded-xl mb-4 overflow-hidden"
               style={{
                 backgroundColor: 'rgba(0,255,136,0.1)',
                 border: '1px solid rgba(0,255,136,0.25)',
                 boxShadow: '0 0 20px rgba(0,255,136,0.08)',
               }}
             >
-              <Shield size={28} style={{ color: '#00ff88' }} />
+              <Image src="/decodex-logo.png" alt="DECODEX" width={40} height={40} className="object-contain" />
             </div>
             <h1
               className="text-2xl font-bold tracking-[0.15em] uppercase"
@@ -221,7 +222,7 @@ export default function LoginPage() {
               className="text-[9px] uppercase tracking-wider"
               style={{ color: '#334155', fontFamily: "'JetBrains Mono', monospace" }}
             >
-              DECODEX v0.10.0 — Acceso restringido
+              DECODEX v0.15.0 — Acceso restringido
             </p>
           </div>
 

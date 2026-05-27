@@ -9,12 +9,11 @@ import { registrarResultadoCheck, determinarCapa, descripcionCapa } from '../sou
 import { checkRSS } from './rss'
 import { checkETag } from './etag'
 import { checkFingerprint } from './fingerprint'
-import { zaiFingerprint } from '../fetch/zai-fetcher'
 
 // ─── Orden de rotación de estrategias ─────────────────────────────
 // Si la principal falla, intenta la siguiente en este orden
-// Z.ai es el ULTIMO fallback — consume tokens pero bypassa TLS/Cloudflare/DNS
-const STRATEGY_ORDER: TipoCheck[] = ['rss', 'head', 'fingerprint', 'api', 'zai']
+// 100% nativo desde el VPS — sin dependencias externas
+const STRATEGY_ORDER: TipoCheck[] = ['rss', 'head', 'fingerprint', 'api']
 
 // Obtener las estrategias en orden de fallback (después de la actual)
 function getFallbackStrategies(current: TipoCheck): TipoCheck[] {
@@ -125,51 +124,6 @@ async function ejecutarEstrategia(
           estrategia,
         }
         if (fpResult.newFingerprint) datosActualizacion.fingerprint = fpResult.newFingerprint
-        return result
-      }
-
-      case 'zai': {
-        const startTime = Date.now()
-        const zaiResult = await zaiFingerprint(url)
-        const responseTime = Date.now() - startTime
-
-        if (!zaiResult) {
-          return {
-            result: {
-              cambiado: false,
-              tecnica: 'zai',
-              detalle: 'Z.ai page_reader fallo para esta URL',
-              error: 'zai_fetch_failed',
-              responseTime,
-            },
-            datosActualizacion,
-            estrategia,
-          }
-        }
-
-        // Comparar hash contra fingerprint almacenado
-        const hashChanged = !fuente.fingerprint || zaiResult.hash !== fuente.fingerprint
-        const detalle = hashChanged
-          ? `Z.ai: contenido cambiado (hash: ${zaiResult.hash.substring(0, 12)}...) — "${zaiResult.title.substring(0, 60)}"`
-          : `Z.ai: sin cambios (hash coincide) — "${zaiResult.title.substring(0, 60)}"`
-
-        const result: StrategyResult = {
-          result: {
-            cambiado: hashChanged,
-            tecnica: 'zai',
-            detalle,
-            responseTime,
-          },
-          datosActualizacion,
-          estrategia,
-        }
-        datosActualizacion.fingerprint = zaiResult.hash
-
-        // Si hubo cambio, guardar HTML para que scrape-fuente no tenga que descargarlo de nuevo
-        if (hashChanged && zaiResult.html) {
-          datosActualizacion.homepageHtml = zaiResult.html
-        }
-
         return result
       }
 

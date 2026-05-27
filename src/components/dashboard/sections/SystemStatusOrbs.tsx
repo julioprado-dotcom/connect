@@ -195,8 +195,8 @@ export function SystemStatusOrbs({ sysMetrics, entregasHoy, aiHealth, mcResumen,
                 level={aiHealth?.statusLevel || 'ok'}
                 icon={<Sparkles className="h-3.5 w-3.5" />}
                 label="IA"
-                value={aiHealth ? `${aiHealth.llamadasLLMHoy}` : '--'}
-                detail={`$${(aiHealth?.costoEstimadoHoy ?? 0).toFixed(2)}`}
+                value={aiHealth ? `~${aiHealth.llamadasLLMHoy}` : '--'}
+                detail={`≈$${(aiHealth?.costoEstimadoHoy ?? 0).toFixed(2)}`}
                 size="sm"
                 horizontal={true}
                 onClick={() => setActiveView('generadores')}

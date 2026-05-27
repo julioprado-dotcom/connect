@@ -1,6 +1,6 @@
 # El Saldo del Día — Protocolo de Producto
 
-**ONION200 / News Connect**
+**ONION200 / DECODEX Bolivia**
 **Monitor de Presencia en Medios — Bolivia**
 
 ---
@@ -29,7 +29,7 @@
 
 ## 1. Portada y Ficha Técnica
 
-**El Saldo del Día** es el segundo pilar del sistema de inteligencia mediática de ONION200 / News Connect. Mientras que otros productos del ecosistema cubren horizontes semanales o mensuales, este producto responde a la necesidad concreta y cotidiana de cada cliente de cerrar su jornada con claridad: ¿qué pasó hoy con los temas que me importan? ¿Cómo evolucionó la agenda respecto a lo que esperábamos esta mañana? ¿Hay algo que deba seguir mañana?
+**El Saldo del Día** es el segundo pilar del sistema de inteligencia mediática de ONION200 / DECODEX Bolivia. Mientras que otros productos del ecosistema cubren horizontes semanales o mensuales, este producto responde a la necesidad concreta y cotidiana de cada cliente de cerrar su jornada con claridad: ¿qué pasó hoy con los temas que me importan? ¿Cómo evolucionó la agenda respecto a lo que esperábamos esta mañana? ¿Hay algo que deba seguir mañana?
 
 Este protocolo define con precisión cada aspecto del producto: su naturaleza, su relación con el resto del ecosistema, su formato, su lógica de generación automatizada y los estándares de calidad que debe cumplir antes de llegar al cliente. Es el documento de referencia tanto para el equipo de desarrollo que implementa el motor de generación como para el equipo comercial que lo posiciona ante clientes potenciales.
 
@@ -305,7 +305,7 @@ El motor de generación de El Saldo del Día utiliza GLM (via z-ai-web-dev-sdk) 
 ### 7.1 System Prompt (Rol)
 
 ```
-Eres un analista de medios boliviano experto, integrante del equipo de ONION200 / News Connect.
+Eres un analista de medios boliviano experto, integrante del equipo de ONION200 / DECODEX Bolivia.
 Tu especialidad es el monitoreo de presencia en medios, el análisis de tendencias informativas
 y la elaboración de boletines de inteligencia mediática para clientes corporativos e
 institucionales en Bolivia.
@@ -422,7 +422,7 @@ Indicadores: [si aplica]
 2. [Alerta]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
-ONION200 | News Connect | El Saldo del Día
+ONION200 | DECODEX Bolivia | El Saldo del Día
 ```
 
 ### 7.5 Nota Técnica: Operadores Ternarios en TypeScript
@@ -592,7 +592,7 @@ Indicadores: Sin datos suficientes para tensión social.
 3. Proyecto de regalías mineras — Aunque sin debate programado, el proyecto tiene respaldo multisectorial; seguir evolución en Comisión
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
-ONION200 | News Connect | El Saldo del Día
+ONION200 | DECODEX Bolivia | El Saldo del Día
 📅 Generado: 15/06/2026 — 19:07 (hora Bolivia)
 ```
 
@@ -643,5 +643,5 @@ Antes de que el boletín sea entregado al cliente, el sistema debe verificar:
 
 ---
 
-*Documento producido por ONION200 / News Connect — Monitor de Presencia en Medios, Bolivia.*
+*Documento producido por ONION200 / DECODEX Bolivia — Monitor de Presencia en Medios, Bolivia.*
 *Este documento es de uso interno y confidencial. No se distribuye sin autorización.*

@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import { join } from 'path';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -10,7 +9,7 @@ const globalForPrisma = globalThis as unknown as {
 // con el repo. Sin esto, el sandbox inyecta DATABASE_URL apuntando
 // a /db/ que se pierde al destruir el sandbox.
 const PROJECT_ROOT = process.cwd();
-const CANONICAL_DB_PATH = join(PROJECT_ROOT, 'prisma', 'db', 'custom.db');
+const CANONICAL_DB_PATH = PROJECT_ROOT + '/prisma/db/custom.db';
 // Sobrescribir process.env para que PrismaClient use la ruta correcta
 process.env.DATABASE_URL = `file:${CANONICAL_DB_PATH}`;
 

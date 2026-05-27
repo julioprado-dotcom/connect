@@ -70,11 +70,19 @@ const COLORS = {
 
 // ─── Constantes Internas ──────────────────────────────────────────────
 
-const isPuppeteerAvailable = (): boolean => {
+// CRÍTICO: puppeteer es un módulo Node.js puro (no disponible en Edge Runtime).
+// Usamos dynamic import para evitar que Turbopack trace este módulo al compilar
+// instrumentation.ts para Edge Runtime.
+let _puppeteerAvailable: boolean | null = null
+
+const isPuppeteerAvailable = async (): Promise<boolean> => {
+  if (_puppeteerAvailable !== null) return _puppeteerAvailable
   try {
-    require('puppeteer');
+    await import('puppeteer');
+    _puppeteerAvailable = true;
     return true;
   } catch {
+    _puppeteerAvailable = false;
     return false;
   }
 };
@@ -926,7 +934,7 @@ export function generarHTMLBoletinDelGrano(data: BoletinGranoData): string {
  * ```
  */
 export async function generarPDFBoletinDelGrano(data: BoletinGranoData): Promise<Buffer> {
-  if (!isPuppeteerAvailable()) {
+  if (!await isPuppeteerAvailable()) {
     // Modo mock: retorna buffer vacío
     return Buffer.alloc(0);
   }
@@ -934,7 +942,7 @@ export async function generarPDFBoletinDelGrano(data: BoletinGranoData): Promise
   // Modo producción con Puppeteer (si está disponible)
   let puppeteer: any;
   try {
-    puppeteer = require('puppeteer');
+    puppeteer = (await import('puppeteer')).default || (await import('puppeteer'));
   } catch {
     console.warn('[BoletinDelGrano] puppeteer no instalado, usando modo mock');
     return Buffer.alloc(0);

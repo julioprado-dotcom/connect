@@ -3,23 +3,13 @@
 // Algunos sitios bolivianos (ej: abi.bo) tienen cadenas de certificados incompletas
 // Intenta fetch normal primero (seguro), y si falla por TLS, usa https nativo con rejectUnauthorized: false
 //
-// NOTA: Este archivo importa node:https, lo cual genera warnings de Edge Runtime en Turbopack.
-// Eso es esperado y no bloquea: instrumentation.ts (Node.js runtime) es quien orquesta los checks.
-// Las API routes que usan check-first se ejecutan en Node.js runtime, no Edge.
+// CRÍTICO: No usar static import de node:https aquí. Este archivo es importado
+// estáticamente desde scrape-fuente.ts → worker.ts → jobs/index.ts → instrumentation.ts.
+// Turbopack tracea node:https y lanza warnings de Edge Runtime.
+// Usamos dynamic import() dentro de httpsFetch() para evitar el trace.
 
-import https from 'node:https'
 import type { IncomingHttpHeaders } from 'node:http'
 import { CHECK_FIRST_CONFIG } from '../constants'
-
-// Agente TLS inseguro reutilizable (conexiones keep-alive)
-// FIX MEMORIA #6: Limitar maxFreeSockets para evitar acumulación de conexiones idle
-const insecureAgent = new https.Agent({
-  rejectUnauthorized: false,
-  keepAlive: true,
-  maxFreeSockets: 5,     // FIX: limitar sockets idle (antes sin límite)
-  maxSockets: 10,
-  timeout: 15_000,
-})
 
 // TLS error codes known in Node.js
 const TLS_ERROR_CODES: ReadonlySet<string> = new Set([
@@ -130,7 +120,19 @@ export async function safeFetch(
   }
 }
 
-function httpsFetch(url: string, init: RequestInit = {}): Promise<Response> {
+async function httpsFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  // Dynamic import de node:https — solo se resuelve en Node.js runtime
+  const https = await import('node:https')
+
+  // Agente TLS inseguro reutilizable (conexiones keep-alive)
+  const insecureAgent = new https.Agent({
+    rejectUnauthorized: false,
+    keepAlive: true,
+    maxFreeSockets: 5,
+    maxSockets: 10,
+    timeout: 15_000,
+  })
+
   return new Promise((resolve, reject) => {
     const urlObj = new URL(url)
     const method = ((init.method as string) || 'GET').toUpperCase()

@@ -5,7 +5,7 @@ import { AlertTriangle, ShieldCheck, Activity, Wifi, RefreshCw, ChevronRight, Te
 
 // ─── Tipos del Componente (Frontend) ──────────────────────────────────
 
-type NivelAlerta = 'VERDE' | 'AMARILLO' | 'ROJO';
+type NivelAlerta = 'INFO' | 'VIGILANCIA' | 'ALERTA';
 
 type EjeData = {
   id: string;
@@ -50,7 +50,7 @@ const EJE_NOMBRES: Record<string, string> = {
 };
 
 // ─── Adaptador: API response → DashboardData ─────────────────────────
-// Transforma el SemaforoConsolidado del backend al formato del componente.
+// Transforma el AlertasConsolidado del backend al formato del componente.
 
 function adaptarDatos(apiRes: {
   data: {
@@ -61,8 +61,8 @@ function adaptarDatos(apiRes: {
       eje: string;
       estado: string;
       alertas: Array<{ mensaje: string; nivel: string; valor: number }>;
-      indicadoresEnRojo: number;
-      indicadoresEnAmarillo: number;
+      indicadoresEnAlerta: number;
+      indicadoresEnVigilancia: number;
     }>;
     cruces_activos: Array<{
       ejeA: string;
@@ -85,8 +85,8 @@ function adaptarDatos(apiRes: {
 
   // Mapear ejes: Record → Array
   const ejes: EjeData[] = Object.values(data.ejes).map(eje => {
-    const rojos = eje.indicadoresEnRojo || 0;
-    const amarillos = eje.indicadoresEnAmarillo || 0;
+    const alertas = eje.indicadoresEnAlerta || 0;
+    const vigilancias = eje.indicadoresEnVigilancia || 0;
     const total = rojos + amarillos;
     // Calcular intensidad de riesgo (0-100) basada en alertas activas
     const valor = Math.min(100, (rojos * 40) + (amarillos * 20) + (total > 0 ? 10 : 0));
@@ -144,15 +144,15 @@ export default function AlertasView() {
       if (json.estado === 'sin_datos') {
         // No hay indicadores en la DB — mostrar estado vacío
         setData({
-          global: 'VERDE',
+          global: 'INFO',
           timestamp: new Date().toISOString(),
           ejes: [
-            { id: 'MACRO', nombre: 'MACROECONOMÍA', estado: 'VERDE', valor: 0, alertasCount: 0, alertasDetalle: [] },
-            { id: 'SOCIAL', nombre: 'CONFLICTIVIDAD', estado: 'VERDE', valor: 0, alertasCount: 0, alertasDetalle: [] },
-            { id: 'ENERGIA', nombre: 'ENERGÍA', estado: 'VERDE', valor: 0, alertasCount: 0, alertasDetalle: [] },
-            { id: 'POLITICA', nombre: 'GOBERNANZA', estado: 'VERDE', valor: 0, alertasCount: 0, alertasDetalle: [] },
-            { id: 'LOGISTICA', nombre: 'LOGÍSTICA', estado: 'VERDE', valor: 0, alertasCount: 0, alertasDetalle: [] },
-            { id: 'AMBIENTE', nombre: 'CLIMA/AGUA', estado: 'VERDE', valor: 0, alertasCount: 0, alertasDetalle: [] },
+            { id: 'MACRO', nombre: 'MACROECONOMÍA', estado: 'INFO', valor: 0, alertasCount: 0, alertasDetalle: [] },
+            { id: 'SOCIAL', nombre: 'CONFLICTIVIDAD', estado: 'INFO', valor: 0, alertasCount: 0, alertasDetalle: [] },
+            { id: 'ENERGIA', nombre: 'ENERGÍA', estado: 'INFO', valor: 0, alertasCount: 0, alertasDetalle: [] },
+            { id: 'POLITICA', nombre: 'GOBERNANZA', estado: 'INFO', valor: 0, alertasCount: 0, alertasDetalle: [] },
+            { id: 'LOGISTICA', nombre: 'LOGÍSTICA', estado: 'INFO', valor: 0, alertasCount: 0, alertasDetalle: [] },
+            { id: 'AMBIENTE', nombre: 'CLIMA/AGUA', estado: 'INFO', valor: 0, alertasCount: 0, alertasDetalle: [] },
           ],
           cruces: [],
           totalAlertas: 0,
@@ -217,21 +217,21 @@ export default function AlertasView() {
 
   const getColor = (state: string) => {
     switch (state) {
-      case 'ROJO': return 'text-red-500 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)] bg-red-500/10';
-      case 'AMARILLO': return 'text-amber-400 border-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.4)] bg-amber-400/10';
+      case 'ALERTA': return 'text-red-500 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)] bg-red-500/10';
+      case 'VIGILANCIA': return 'text-amber-400 border-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.4)] bg-amber-400/10';
       default: return 'text-emerald-500 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)] bg-emerald-500/10';
     }
   };
 
   const getBgGlow = (state: string) => {
-    if (state === 'ROJO') return 'bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-900/20 via-slate-950 to-slate-950';
-    if (state === 'AMARILLO') return 'bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-900/20 via-slate-950 to-slate-950';
+    if (state === 'ALERTA') return 'bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-900/20 via-slate-950 to-slate-950';
+    if (state === 'VIGILANCIA') return 'bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-900/20 via-slate-950 to-slate-950';
     return 'bg-slate-950';
   };
 
   const getBarGlow = (state: string) => {
-    if (state === 'ROJO') return 'shadow-[0_0_10px_red]';
-    if (state === 'AMARILLO') return 'shadow-[0_0_10px_amber]';
+    if (state === 'ALERTA') return 'shadow-[0_0_10px_red]';
+    if (state === 'VIGILANCIA') return 'shadow-[0_0_10px_amber]';
     return 'shadow-[0_0_10px_green]';
   };
 
@@ -243,7 +243,7 @@ export default function AlertasView() {
       {/* HEADER TÁCTICO */}
       <header className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
         <div className="flex items-center gap-3">
-          <Crosshair className={`w-6 h-6 ${data.global === 'ROJO' ? 'animate-pulse text-red-500' : data.global === 'AMARILLO' ? 'text-amber-400' : 'text-emerald-500'}`} />
+          <Crosshair className={`w-6 h-6 ${data.global === 'ALERTA' ? 'animate-pulse text-red-500' : data.global === 'VIGILANCIA' ? 'text-amber-400' : 'text-emerald-500'}`} />
           <div>
             <h1 className="text-lg font-bold tracking-widest uppercase text-white">Monitor de Riesgos ONION200</h1>
             <p className="text-[10px] text-slate-400 flex items-center gap-2">
@@ -265,9 +265,9 @@ export default function AlertasView() {
       {/* Barra de Recomendación (si hay alertas activas) */}
       {data.recomendacion && (
         <div className={`mb-4 px-4 py-2 rounded-lg border text-xs ${
-          data.global === 'ROJO'
+          data.global === 'ALERTA'
             ? 'bg-red-500/10 border-red-500/30 text-red-300'
-            : data.global === 'AMARILLO'
+            : data.global === 'VIGILANCIA'
               ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
               : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
         }`}>
@@ -278,7 +278,7 @@ export default function AlertasView() {
       {/* GRID PRINCIPAL */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        {/* COLUMNA IZQ: SEMÁFORO GLOBAL (4 columnas) */}
+        {/* COLUMNA IZQ: ALERTAS GLOBAL (4 columnas) */}
         <div className="lg:col-span-4 flex flex-col gap-6">
           {/* TARJETA DE ESTADO GLOBAL */}
           <div className={`relative overflow-hidden rounded-lg border backdrop-blur-md p-6 flex flex-col items-center justify-center aspect-square ${getColor(data.global)}`}>
@@ -286,11 +286,11 @@ export default function AlertasView() {
 
             {/* Círculo Central Pulsante */}
             <div className="relative w-32 h-32 flex items-center justify-center mb-4">
-              <div className={`absolute inset-0 rounded-full border-2 opacity-30 animate-ping ${data.global === 'ROJO' ? 'border-red-500' : data.global === 'AMARILLO' ? 'border-amber-400' : 'border-emerald-500'}`}></div>
-              <div className={`absolute inset-4 rounded-full border border-dashed animate-[spin_10s_linear_infinite] ${data.global === 'ROJO' ? 'border-red-400/50' : 'border-white/30'}`}></div>
+              <div className={`absolute inset-0 rounded-full border-2 opacity-30 animate-ping ${data.global === 'ALERTA' ? 'border-red-500' : data.global === 'VIGILANCIA' ? 'border-amber-400' : 'border-emerald-500'}`}></div>
+              <div className={`absolute inset-4 rounded-full border border-dashed animate-[spin_10s_linear_infinite] ${data.global === 'ALERTA' ? 'border-red-400/50' : 'border-white/30'}`}></div>
               <div className="text-center z-10">
                 <span className="block text-3xl md:text-4xl font-black tracking-tighter">
-                  {data.global === 'ROJO' ? 'ALERTA' : data.global === 'AMARILLO' ? 'PRECAUCIÓN' : 'ESTABLE'}
+                  {data.global === 'ALERTA' ? 'ALERTA' : data.global === 'VIGILANCIA' ? 'PRECAUCIÓN' : 'ESTABLE'}
                 </span>
                 <span className="text-xs opacity-80 mt-1 block">NIVEL {data.global}</span>
               </div>
@@ -302,7 +302,7 @@ export default function AlertasView() {
                 <span className="font-bold">{data.totalAlertas}</span>
               </div>
               <div className="w-full bg-black/40 h-1.5 rounded-full overflow-hidden">
-                <div className={`h-full transition-all duration-500 ${data.global === 'ROJO' ? 'bg-red-500' : data.global === 'AMARILLO' ? 'bg-amber-400' : 'bg-emerald-500'} animate-pulse`}
+                <div className={`h-full transition-all duration-500 ${data.global === 'ALERTA' ? 'bg-red-500' : data.global === 'VIGILANCIA' ? 'bg-amber-400' : 'bg-emerald-500'} animate-pulse`}
                   style={{ width: `${Math.min(100, data.totalAlertas * 10)}%` }}
                 ></div>
               </div>
@@ -349,7 +349,7 @@ export default function AlertasView() {
             >
               {/* Indicador de Estado (Barra lateral) */}
               <div className={`absolute left-0 top-0 bottom-0 w-1 transition-all duration-500 ${getBarGlow(eje.estado)} ${
-                eje.estado === 'ROJO' ? 'bg-red-500' : eje.estado === 'AMARILLO' ? 'bg-amber-400' : 'bg-emerald-500'
+                eje.estado === 'ALERTA' ? 'bg-red-500' : eje.estado === 'VIGILANCIA' ? 'bg-amber-400' : 'bg-emerald-500'
               }`}></div>
 
               <div className="flex justify-between items-start mb-2 pl-2">
@@ -371,7 +371,7 @@ export default function AlertasView() {
                 <div className="w-full bg-black/60 h-1.5 rounded-full overflow-hidden">
                   <div
                     className={`h-full transition-all duration-700 ease-out ${
-                      eje.estado === 'ROJO' ? 'bg-red-500' : eje.estado === 'AMARILLO' ? 'bg-amber-400' : 'bg-emerald-500'
+                      eje.estado === 'ALERTA' ? 'bg-red-500' : eje.estado === 'VIGILANCIA' ? 'bg-amber-400' : 'bg-emerald-500'
                     }`}
                     style={{ width: `${eje.valor}%` }}
                   ></div>

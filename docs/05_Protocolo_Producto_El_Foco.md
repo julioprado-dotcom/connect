@@ -1,6 +1,6 @@
 # El Foco — Protocolo de Producto
 
-**CONNECT / News Connect**
+**CONNECT / DECODEX Bolivia**
 **ONION200**
 **Media Monitoring & Intelligence Platform — Bolivia**
 
@@ -13,7 +13,7 @@
 | **Nivel** | Premium Entry — primer producto comercial especializado |
 | **Versión del protocolo** | 1.0 |
 | **Fecha de elaboración** | Julio 2025 |
-| **Equipo responsable** | Producto — ONION200 / News Connect |
+| **Equipo responsable** | Producto — ONION200 / DECODEX Bolivia |
 | **Clasificación** | Interno — Confidencial |
 
 ---
@@ -49,7 +49,7 @@ Cada edición de El Foco se construye alrededor de uno de los once ejes temátic
 
 ### 1.3 Posicionamiento en la Cartera de Productos
 
-El Foco ocupa el nivel **Premium Entry** dentro del funnel de productos de News Connect:
+El Foco ocupa el nivel **Premium Entry** dentro del funnel de productos de DECODEX Bolivia:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -150,7 +150,7 @@ Cada edición de El Foco sigue una estructura estándar y rigurosa que garantiza
 ║            [Nombre del Eje Temático]                         ║
 ║              [Día] de [Mes] de [Año]                         ║
 ║                                                              ║
-║  ONION200 · News Connect                                     ║
+║  ONION200 · DECODEX Bolivia                                     ║
 ╚══════════════════════════════════════════════════════════════╝
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -207,7 +207,7 @@ Cada edición de El Foco sigue una estructura estándar y rigurosa que garantiza
    └──────────────────────────────────────────────────────┘
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-El Foco · ONION200 · News Connect
+El Foco · ONION200 · DECODEX Bolivia
 Generado por inteligencia artificial · Revisado por equipo editorial
 ```
 
@@ -219,7 +219,7 @@ El encabezado es fijo y estándar para todas las ediciones:
 
 ```
 EL FOCO — [Nombre del Eje Temático] — [Día] de [Mes] de [Año]
-ONION200 · News Connect
+ONION200 · DECODEX Bolivia
 ```
 
 **Ejemplo**: `EL FOCO — Minería y Metalurgia — 15 de julio de 2025`
@@ -371,7 +371,7 @@ Total: 8 medios · 54 menciones en el eje
 ### 6.1 System Prompt para la Generación de El Foco
 
 ```markdown
-## SYSTEM PROMPT — EL FOCO · News Connect · ONION200
+## SYSTEM PROMPT — EL FOCO · DECODEX Bolivia · ONION200
 
 ### IDENTIDAD
 Eres un analista especializado en monitoreo de medios y
@@ -381,7 +381,7 @@ ecosistema mediático boliviano.
 
 ### PRODUCTO
 Estás generando una edición de "EL FOCO", el boletín
-diario de profundidad temática de News Connect / ONION200.
+diario de profundidad temática de DECODEX Bolivia / ONION200.
 Este producto se caracteriza por:
 - Análisis profundo de UN solo eje temático por edición.
 - Contexto, evolución, actores clave y prospectiva.
@@ -417,7 +417,7 @@ Genera el boletín siguiendo EXACTAMENTE esta estructura:
 
 1. **ENCABEZADO**
    Formato: "EL FOCO — [Nombre del Eje] — [Fecha]"
-   Incluir: "ONION200 · News Connect"
+   Incluir: "ONION200 · DECODEX Bolivia"
 
 2. **INDICADORES DEL SECTOR**
    Presentar los indicadores ONION200 relevantes al eje:
@@ -691,9 +691,9 @@ Cuando El Foco se adquiere en conjunto con El Termómetro y/o Saldo del Día, se
 
 ## 9. Relación con el Funnel Comercial
 
-### 9.1 El Funnel de Productos News Connect
+### 9.1 El Funnel de Productos DECODEX Bolivia
 
-El Foco ocupa una posición estratégica dentro del embudo de conversión de clientes de News Connect:
+El Foco ocupa una posición estratégica dentro del embudo de conversión de clientes de DECODEX Bolivia:
 
 ```
       AWARENESS            CONSIDERACIÓN           DECISIÓN            LEALTAD
@@ -713,7 +713,7 @@ El Foco ocupa una posición estratégica dentro del embudo de conversión de cli
 
 | Producto | Nivel | Función en el Funnel | Objetivo Comercial |
 |---|---|---|---|
-| **El Radar** | Gratuito | **Captación**: genera awareness de la marca News Connect. El cliente descubre el valor del monitoreo mediático. | Captar leads. Mostrar capacidades. Demostrar valor. |
+| **El Radar** | Gratuito | **Captación**: genera awareness de la marca DECODEX Bolivia. El cliente descubre el valor del monitoreo mediático. | Captar leads. Mostrar capacidades. Demostrar valor. |
 | **El Termómetro + Saldo del Día** | Premium Base | **Engagement**: el cliente paga por primera vez. Recibe un producto diario completo que lo hace dependiente de la información. | Primer pago. Crear hábito de consumo diario. Establecer relación. |
 | **El Foco** | Premium Entry | **Expansión**: el cliente que ya consume Termómetro descubre que necesita más profundidad en ciertos temas. Es el primer upsell natural. | Aumentar ARPU. Profundizar la relación. Demostrar expertise. |
 | **El Especializado** | Premium Mid / High | **Retención y valor máximo**: para clientes que necesitan análisis experto, asesoría estratégica o información sectorial altamente especializada. | Maximizar valor. Barrera de salida alta. Referidos. |
@@ -721,13 +721,13 @@ El Foco ocupa una posición estratégica dentro del embudo de conversión de cli
 ### 9.3 Journey del Cliente
 
 ```
-MES 1-2: Descubre News Connect a través de El Radar (gratuito).
+MES 1-2: Descubre DECODEX Bolivia a través de El Radar (gratuito).
          ↓
 MES 2-3: Recibe la propuesta de El Termómetro + Saldo del Día.
          Comienza con el plan Premium Base.
          ↓
 MES 3-5: Consume el Termómetro diariamente. Descubre que algunos ejes
-         temáticos necesitan más detalle. News Connect le ofrece
+         temáticos necesitan más detalle. DECODEX Bolivia le ofrece
          una prueba gratuita de El Foco.
          ↓
 MES 5-6: Contrata El Foco (1-3 ejes). Experimenta la profundidad
@@ -737,7 +737,7 @@ MES 6-9: Expande a más ejes temáticos o hace upgrade a paquetes.
          ↓
 MES 9+:  Si el cliente tiene necesidades sectoriales profundas,
          se le ofrece El Especializado. El cliente es un usuario
-         "power user" de News Connect.
+         "power user" de DECODEX Bolivia.
 ```
 
 ### 9.4 Métricas Clave del Funnel
@@ -844,7 +844,7 @@ Aunque la estructura base de El Foco es estándar, se pueden aplicar **capas de 
 
 ### EL FOCO — Minería y Metalurgia — 15 de julio de 2025
 
-**ONION200 · News Connect**
+**ONION200 · DECODEX Bolivia**
 
 ---
 
@@ -942,7 +942,7 @@ En el plano de precios internacionales, la tendencia mixta del LME refleja la in
 
 ---
 
-*El Foco · ONION200 · News Connect*
+*El Foco · ONION200 · DECODEX Bolivia*
 *Generado por inteligencia artificial · Revisado por equipo editorial*
 
 ---
@@ -951,6 +951,6 @@ En el plano de precios internacionales, la tendencia mixta del LME refleja la in
 
 ---
 
-> **Documento de referencia interna — News Connect · ONION200**
+> **Documento de referencia interna — DECODEX Bolivia · ONION200**
 > **Versión 1.0 — Julio 2025**
 > **Próxima revisión: Octubre 2025**

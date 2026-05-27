@@ -18,6 +18,7 @@ import {
   Eye,
   Zap,
   Database,
+  Newspaper,
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════
@@ -90,17 +91,17 @@ const AMBITO_OPTS = ['NACIONAL', 'REGIONAL', 'LOCAL', 'INTERNACIONAL'] as const;
 const ENFOQUE_OPTS = ['GENERALISTA', 'ECONOMICO', 'POLITICO', 'DEPORTIVO', 'CULTURAL'] as const;
 
 const NATURALEZA_COLORS: Record<string, { text: string; bg: string; border: string }> = {
-  ESTATICAL: { text: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.25)' },
-  ESTATAL: { text: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.25)' },
+  ESTATICAL: { text: '#06b6d4', bg: 'rgba(6,182,212,0.1)', border: 'rgba(6,182,212,0.25)' },
+  ESTATAL: { text: '#06b6d4', bg: 'rgba(6,182,212,0.1)', border: 'rgba(6,182,212,0.25)' },
   PRIVADO: { text: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)' },
-  COMUNITARIO: { text: '#06b6d4', bg: 'rgba(6,182,212,0.08)', border: 'rgba(6,182,212,0.2)' },
+  COMUNITARIO: { text: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)' },
   MIXTO: { text: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
   ONG: { text: '#a78bfa', bg: 'rgba(167,139,250,0.08)', border: 'rgba(167,139,250,0.2)' },
 };
 
 const getEstadoColor = (activo: boolean, ultimoError: string): { text: string; bg: string; border: string; blink?: boolean } => {
   if (ultimoError && ultimoError.length > 0) {
-    return { text: '#f43f5e', bg: 'rgba(244,63,94,0.06)', border: 'rgba(244,63,94,0.2)', blink: true };
+    return { text: '#8b5cf6', bg: 'rgba(139,92,246,0.06)', border: 'rgba(139,92,246,0.2)', blink: true };
   }
   if (!activo) {
     return { text: '#f59e0b', bg: 'rgba(245,158,11,0.06)', border: 'rgba(245,158,11,0.2)' };
@@ -177,7 +178,7 @@ function NaturalezaBadge({ naturaleza }: { naturaleza: string }) {
 
 function CredibilidadBar({ value }: { value: number }) {
   const pct = Math.max(0, Math.min(100, value));
-  const color = pct >= 70 ? '#10b981' : pct >= 40 ? '#f59e0b' : '#f43f5e';
+  const color = pct >= 70 ? '#06b6d4' : pct >= 40 ? '#f59e0b' : '#8b5cf6';
   return (
     <div className="flex items-center gap-2 min-w-[120px]">
       <div
@@ -241,9 +242,9 @@ function ProbeTerminal({
         {logs.map((log, i) => {
           const color =
             log.status === 'ok'
-              ? '#10b981'
+              ? '#06b6d4'
               : log.status === 'error'
-                ? '#f43f5e'
+                ? '#8b5cf6'
                 : '#f59e0b';
           return (
             <div
@@ -284,7 +285,17 @@ export function FuentesView() {
   const [probingIds, setProbingIds] = useState<Set<string>>(new Set());
   const [batchLoading, setBatchLoading] = useState(false);
   const [batchResult, setBatchResult] = useState<{ fixed: number; details: string } | null>(null);
+  const [medioMenciones, setMedioMenciones] = useState<Array<{
+    id: string;
+    titulo: string;
+    fechaCaptura: string;
+    sentimiento: string;
+    Persona?: { nombre: string } | null;
+  }>>([]);
+  const [medioMencionesLoading, setMedioMencionesLoading] = useState(false);
+  const [medioMencionesTotal, setMedioMencionesTotal] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval>>(null);
+  const detailRef = useRef<HTMLDivElement>(null);
 
   // ── Fetch medios ──
   const fetchMedios = useCallback(async () => {
@@ -318,6 +329,21 @@ export function FuentesView() {
 
   const selectedMedio = medios.find((m) => m.id === selectedId) ?? null;
 
+  // ── Fetch menciones per medio ──
+  const fetchMedioMenciones = useCallback(async (medioId: string) => {
+    setMedioMencionesLoading(true);
+    try {
+      const res = await fetchWithTimeout(`/api/menciones?medioId=${medioId}&limit=5&orderBy=fechaCaptura&orderDir=desc`, { timeoutMs: 8000 });
+      if (res.ok) {
+        const data = await res.json();
+        setMedioMenciones(data.menciones || []);
+        setMedioMencionesTotal(data.total || 0);
+      }
+    } catch { /* silent */ } finally {
+      setMedioMencionesLoading(false);
+    }
+  }, []);
+
   // ── Handlers ──
   const handleSelectRow = (medio: Medio) => {
     if (selectedId === medio.id) {
@@ -325,6 +351,7 @@ export function FuentesView() {
       setEditForm(null);
       setAiResult(null);
       setSaveResult(null);
+      setMedioMenciones([]);
       return;
     }
     setSelectedId(medio.id);
@@ -338,6 +365,11 @@ export function FuentesView() {
     });
     setAiResult(null);
     setSaveResult(null);
+    fetchMedioMenciones(medio.id);
+    // Scroll to detail panel
+    setTimeout(() => {
+      detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   const handleProbe = async (medio: Medio) => {
@@ -545,8 +577,8 @@ export function FuentesView() {
       {/* ── Inline keyframes for ERROR blink ── */}
       <style jsx global>{`
         @keyframes errorBlink {
-          0%, 100% { border-color: rgba(244,63,94,0.2); }
-          50% { border-color: rgba(244,63,94,0.6); }
+          0%, 100% { border-color: rgba(139,92,246,0.2); }
+          50% { border-color: rgba(139,92,246,0.6); }
         }
       `}</style>
 
@@ -556,8 +588,8 @@ export function FuentesView() {
           <PanelShell title="" icon={<Database className="w-4 h-4" />} className="flex-1 min-w-0">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <StatBox label="Total Flota" value={totalMedios} color="#06b6d4" />
-              <StatBox label="Activos" value={activosCount} color="#10b981" />
-              <StatBox label="Con Error" value={erroresCount} color="#f43f5e" />
+              <StatBox label="Activos" value={activosCount} color="#06b6d4" />
+              <StatBox label="Con Error" value={erroresCount} color="#8b5cf6" />
               <StatBox label="Inactivos" value={inactivosCount} color="#f59e0b" />
             </div>
           </PanelShell>
@@ -586,9 +618,9 @@ export function FuentesView() {
         <div
           className="flex items-center gap-2 px-3 py-2 rounded-md text-[10px] font-mono"
           style={{
-            color: batchResult.fixed > 0 ? '#10b981' : '#f43f5e',
-            backgroundColor: batchResult.fixed > 0 ? 'rgba(16,185,129,0.06)' : 'rgba(244,63,94,0.06)',
-            border: `1px solid ${batchResult.fixed > 0 ? 'rgba(16,185,129,0.15)' : 'rgba(244,63,94,0.15)'}`,
+            color: batchResult.fixed > 0 ? '#06b6d4' : '#8b5cf6',
+            backgroundColor: batchResult.fixed > 0 ? 'rgba(6,182,212,0.06)' : 'rgba(139,92,246,0.06)',
+            border: `1px solid ${batchResult.fixed > 0 ? 'rgba(6,182,212,0.15)' : 'rgba(139,92,246,0.15)'`,
           }}
         >
           {batchResult.fixed > 0 ? (
@@ -616,7 +648,7 @@ export function FuentesView() {
           ).map((f) => {
             const active = filter === f.key;
             const accent =
-              f.key === 'errores' ? '#f43f5e' : f.key === 'inactivos' ? '#f59e0b' : '#06b6d4';
+              f.key === 'errores' ? '#8b5cf6' : f.key === 'inactivos' ? '#f59e0b' : '#06b6d4';
             return (
               <button
                 key={f.key}
@@ -650,9 +682,9 @@ export function FuentesView() {
         {/* Error banner */}
         {error && !loading && (
           <div className="flex items-center gap-2 px-3 py-2.5 rounded-md text-[10px] font-mono mb-3" style={{
-            color: '#f43f5e',
-            backgroundColor: 'rgba(244,63,94,0.06)',
-            border: '1px solid rgba(244,63,94,0.15)',
+            color: '#8b5cf6',
+            backgroundColor: 'rgba(139,92,246,0.06)',
+            border: '1px solid rgba(139,92,246,0.15)',
           }}>
             <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
             Error al cargar flota: {error}
@@ -808,39 +840,121 @@ export function FuentesView() {
               Mostrando {filtered.length} de {totalMedios} medios
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#06b6d4' }} />
               Auto-refresco cada 60s
             </span>
           </div>
         )}
       </PanelShell>
 
-      {/* ── Edit Panel (inline, below table) ── */}
+      {/* ── Detail / Edit Panel (inline, below table) ── */}
+      <div ref={detailRef} />
       {selectedMedio && editForm && (
         <PanelShell
-          title={`Editor — ${selectedMedio.nombre}`}
-          icon={<Save className="w-4 h-4" />}
+          title={selectedMedio.nombre}
+          icon={<Radio className="w-4 h-4" />}
         >
           {/* Close button */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600 font-mono">
-                ID:
-              </span>
-              <span className="text-[9px] font-mono text-slate-500">{selectedMedio.id.slice(0, 8)}...</span>
-            </div>
+          <div className="flex items-center justify-end mb-2">
             <button
               onClick={() => {
                 setSelectedId(null);
                 setEditForm(null);
                 setAiResult(null);
                 setSaveResult(null);
+                setMedioMenciones([]);
               }}
               className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-mono text-slate-500 hover:text-red-400 transition-colors"
             >
               <X className="w-3 h-3" />
               CERRAR
             </button>
+          </div>
+
+          {/* Quick Stats Bar */}
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-4 py-3 border-y border-slate-800/60">
+            <div className="text-center">
+              <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Menciones</p>
+              <p className="text-sm font-mono text-cyan-400 tabular-nums">
+                {medioMencionesLoading ? <Loader2 className="w-3 h-3 animate-spin inline" /> : medioMencionesTotal}
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Estado</p>
+              <StatusBadge activo={selectedMedio.activo} ultimoError={selectedMedio.ultimoError} />
+            </div>
+            <div className="text-center">
+              <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Tipo</p>
+              <p className="text-[10px] font-mono text-slate-400">{selectedMedio.tipo || '---'}</p>
+            </div>
+            <div className="text-center hidden sm:block">
+              <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Depto.</p>
+              <p className="text-[10px] font-mono text-slate-400">{selectedMedio.departamento || '---'}</p>
+            </div>
+            <div className="text-center hidden sm:block">
+              <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Nivel</p>
+              <p className="text-[10px] font-mono text-slate-400">{selectedMedio.nivel || '---'}</p>
+            </div>
+          </div>
+
+          {/* Recent Mentions from this medio */}
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Newspaper className="w-3.5 h-3.5 text-amber-400/60" />
+              <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600 font-mono">
+                Ultimas menciones capturadas
+              </span>
+              {medioMencionesTotal > 5 && (
+                <span className="text-[8px] font-mono text-slate-700">({medioMencionesTotal} total, mostrando 5)</span>
+              )}
+            </div>
+            {medioMencionesLoading ? (
+              <div className="flex items-center gap-2 py-4 text-slate-600 text-xs font-mono justify-center">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Cargando menciones...
+              </div>
+            ) : medioMenciones.length === 0 ? (
+              <div className="px-3 py-3 rounded-md text-[10px] font-mono text-slate-600" style={{
+                backgroundColor: 'rgba(100,116,139,0.03)',
+                border: '1px solid rgba(100,116,139,0.06)',
+              }}>
+                Sin menciones capturadas de esta fuente aun.
+              </div>
+            ) : (
+              <div className="space-y-1.5 max-h-[250px] overflow-y-auto custom-scrollbar">
+                {medioMenciones.map((m) => {
+                  const sentColor = m.sentimiento?.includes('positivo') ? '#06b6d4' : m.sentimiento?.includes('negativo') ? '#8b5cf6' : '#64748b';
+                  return (
+                    <div key={m.id} className="flex items-start gap-2 px-3 py-2 rounded-md" style={{
+                      backgroundColor: 'rgba(0,0,0,0.3)',
+                      border: '1px solid rgba(6,182,212,0.04)',
+                    }}>
+                      <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: sentColor }} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-mono text-slate-300 leading-snug line-clamp-2">{m.titulo || 'Sin titulo'}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          {m.Persona?.nombre && (
+                            <span className="text-[8px] font-mono text-cyan-500/70">{m.Persona.nombre}</span>
+                          )}
+                          <span className="text-[8px] font-mono text-slate-700">
+                            {m.fechaCaptura ? new Date(m.fechaCaptura).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' }) : '---'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Editor Form header */}
+          <div className="flex items-center gap-2 mb-3">
+            <Save className="w-3.5 h-3.5 text-slate-600" />
+            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600 font-mono">
+              Editor de Fuente
+            </span>
+            <span className="text-[9px] font-mono text-slate-700 ml-auto">ID: {selectedMedio.id.slice(0, 8)}...</span>
           </div>
 
           {/* Form grid */}
@@ -902,7 +1016,7 @@ export function FuentesView() {
                   }
                   className="flex-1 h-1.5 rounded-full appearance-none cursor-pointer"
                   style={{
-                    background: `linear-gradient(90deg, rgba(244,63,94,0.6) 0%, rgba(245,158,11,0.6) 50%, rgba(16,185,129,0.6) 100%)`,
+                    background: `linear-gradient(90deg, rgba(139,92,246,0.6) 0%, rgba(245,158,11,0.6) 50%, rgba(6,182,212,0.6) 100%)`,
                     accentColor: '#06b6d4',
                   }}
                 />
@@ -911,10 +1025,10 @@ export function FuentesView() {
                   style={{
                     color:
                       editForm.credibilidad >= 70
-                        ? '#10b981'
+                        ? '#06b6d4'
                         : editForm.credibilidad >= 40
                           ? '#f59e0b'
-                          : '#f43f5e',
+                          : '#8b5cf6',
                   }}
                 >
                   {editForm.credibilidad}
@@ -958,7 +1072,7 @@ export function FuentesView() {
                   <p className="text-[9px] font-mono text-slate-400">
                     <span className="text-slate-600">Credibilidad sugerida:</span>{' '}
                     <span style={{
-                      color: aiResult.credibilidad >= 70 ? '#10b981' : aiResult.credibilidad >= 40 ? '#f59e0b' : '#f43f5e',
+                      color: aiResult.credibilidad >= 70 ? '#06b6d4' : aiResult.credibilidad >= 40 ? '#f59e0b' : '#8b5cf6',
                     }}>
                       {aiResult.credibilidad}/100
                     </span>
@@ -978,9 +1092,9 @@ export function FuentesView() {
             <div
               className="mb-4 flex items-center gap-2 px-3 py-2 rounded-md text-[10px] font-mono"
               style={{
-                color: saveResult.ok ? '#10b981' : '#f43f5e',
-                backgroundColor: saveResult.ok ? 'rgba(16,185,129,0.06)' : 'rgba(244,63,94,0.06)',
-                border: `1px solid ${saveResult.ok ? 'rgba(16,185,129,0.15)' : 'rgba(244,63,94,0.15)'}`,
+                color: saveResult.ok ? '#06b6d4' : '#8b5cf6',
+                backgroundColor: saveResult.ok ? 'rgba(6,182,212,0.06)' : 'rgba(139,92,246,0.06)',
+                border: `1px solid ${saveResult.ok ? 'rgba(6,182,212,0.15)' : 'rgba(139,92,246,0.15)'}`,
               }}
             >
               {saveResult.ok ? (
@@ -999,10 +1113,10 @@ export function FuentesView() {
               disabled={saving}
               className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold font-mono uppercase tracking-wider transition-all duration-200 hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
               style={{
-                color: saving ? '#64748b' : '#10b981',
-                backgroundColor: saving ? 'rgba(100,116,139,0.05)' : 'rgba(16,185,129,0.06)',
-                border: `1px solid ${saving ? 'rgba(100,116,139,0.15)' : 'rgba(16,185,129,0.2)'}`,
-                boxShadow: saving ? 'none' : '0 0 12px rgba(16,185,129,0.06)',
+                color: saving ? '#64748b' : '#06b6d4',
+                backgroundColor: saving ? 'rgba(100,116,139,0.05)' : 'rgba(6,182,212,0.06)',
+                border: `1px solid ${saving ? 'rgba(100,116,139,0.15)' : 'rgba(6,182,212,0.2)'}`,
+                boxShadow: saving ? 'none' : '0 0 12px rgba(6,182,212,0.06)',
               }}
             >
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}

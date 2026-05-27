@@ -1,74 +1,96 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════
- * CONNECTIVITY TEST — Diagnóstico de red desde el servidor
- * ═══════════════════════════════════════════════════════════════════════
+ * CONNECTIVITY TEST — Estado de fuentes monitoreadas
  *
- * Permite probar desde el dashboard si el VPS puede llegar a los medios.
- * Prueba: fetch nativo + Z.ai SDK para cada URL.
- * ═══════════════════════════════════════════════════════════════════════
+ * Google + 3 fuentes: latencia real (HEAD request) + datos de monitoreo
  */
 
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/auth-helpers';
 import { safeError } from '@/lib/safe-error';
-import { zaiFetch } from '@/lib/jobs/fetch/zai-fetcher';
+import db from '@/lib/db';
 
 export const runtime = 'nodejs';
+
+async function headCheck(url: string, timeoutMs = 8000): Promise<{ ok: boolean; ms: number }> {
+  const start = Date.now();
+  try {
+    const res = await fetch(url, {
+      method: 'HEAD',
+      redirect: 'follow',
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: {
+        'User-Agent': 'DECODEX-Bot/1.0',
+        'Accept': 'text/html',
+        'Accept-Language': 'es-BO,es;q=0.9',
+      },
+    });
+    return { ok: res.ok || res.redirected, ms: Date.now() - start };
+  } catch {
+    return { ok: false, ms: Date.now() - start };
+  }
+}
 
 export async function GET() {
   const { error: authError } = await withAuth();
   if (authError) return authError;
 
   try {
-    // Probar conectividad con 3 sitios de referencia
-    const testUrls = [
-      { label: 'Google', url: 'https://www.google.com' },
-      { label: 'ABI', url: 'https://abi.bo' },
-      { label: 'La Razón', url: 'https://www.la-razon.com' },
-      { label: 'El Deber', url: 'https://eldeber.com.bo' },
-      { label: 'Opinión Bolivia', url: 'https://www.opinion.com.bo' },
+    // Google en vivo
+    const google = await headCheck('https://www.google.com');
+
+    // Fuentes desde la DB
+    const mediosValidos = await db.medio.findMany({ select: { id: true } });
+    const medioIds = new Set(mediosValidos.map((m: any) => m.id));
+
+    const fuentes = await db.fuenteEstado.findMany({
+      where: {
+        medioId: { in: [...medioIds] },
+        estado: 'activa',
+        totalCambios: { gt: 0 },
+      },
+      include: { Medio: { select: { nombre: true } } },
+      orderBy: { totalCambios: 'desc' },
+      take: 3,
+    });
+
+    // Latencia real para cada fuente (HEAD request rápido)
+    const fuenteResults = await Promise.all(
+      fuentes.map(async (f: any) => {
+        const latency = await headCheck(f.url, 8000);
+        return {
+          label: f.Medio?.nombre || 'Desconocido',
+          url: f.url,
+          ok: latency.ok,
+          source: 'live',
+          latencyMs: latency.ms,
+          totalCambios: f.totalCambios,
+          ultimoCheck: f.ultimoCheckOk
+            ? new Date(f.ultimoCheckOk).toLocaleString('es-BO', { timeZone: 'America/La_Paz' })
+            : 'nunca',
+        };
+      })
+    );
+
+    const results = [
+      {
+        label: 'Google',
+        url: 'https://www.google.com',
+        ok: google.ok,
+        source: 'live',
+        latencyMs: google.ms,
+      },
+      ...fuenteResults,
     ];
 
-    const results = [];
-
-    for (const test of testUrls) {
-      const start = Date.now();
-      try {
-        const result = await zaiFetch(test.url, 10000);
-        const elapsed = Date.now() - start;
-
-        results.push({
-          label: test.label,
-          url: test.url,
-          ok: !!result,
-          source: result?.source || 'none',
-          htmlLength: result?.html?.length || 0,
-          title: result?.title?.substring(0, 60) || '',
-          latencyMs: elapsed,
-        });
-      } catch (err) {
-        results.push({
-          label: test.label,
-          url: test.url,
-          ok: false,
-          source: 'none',
-          htmlLength: 0,
-          title: '',
-          latencyMs: Date.now() - start,
-          error: err instanceof Error ? err.message : String(err),
-        });
-      }
-    }
-
-    const ok = results.filter(r => r.ok).length;
-    const failed = results.filter(r => !r.ok).length;
+    const okCount = results.filter(r => r.ok).length;
+    const failedCount = results.filter(r => !r.ok).length;
 
     return NextResponse.json({
       connectivity: {
         total: results.length,
-        ok,
-        failed,
-        verdict: ok >= 3 ? 'OK' : ok >= 1 ? 'PARTIAL' : 'CRITICAL',
+        ok: okCount,
+        failed: failedCount,
+        verdict: okCount >= 3 ? 'OK' : okCount >= 1 ? 'PARTIAL' : 'CRITICAL',
       },
       tests: results,
     });

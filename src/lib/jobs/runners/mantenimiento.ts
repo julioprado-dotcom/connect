@@ -11,7 +11,8 @@ import { batchDegradar } from '../frequency/adapter'
 import { batchRecalcularHorarios } from '../histogram/tracker'
 import type { JobPayload, RunnerResult, MantenimientoResult, TareaMantenimiento } from '../types'
 import { QUEUE_LIMITS } from '../constants'
-import { createSnapshot, archiveBeforePurge } from '@/lib/backup'
+// CRÍTICO: backup.ts importa fs/path (Node.js). Usamos dynamic import
+// para evitar que Turbopack trace estos módulos al compilar Edge Runtime.
 import { evaluarDegradacionMasiva } from '../source-lifecycle'
 
 export async function run(payload: JobPayload): Promise<RunnerResult> {
@@ -32,6 +33,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
   if (hayDestruccion) {
     try {
       console.log('[Mantenimiento] Creando snapshot de seguridad antes de purge...')
+      const { createSnapshot, archiveBeforePurge } = await import('@/lib/backup')
       const snap = await createSnapshot('pre-mantenimiento-purge')
 
       if (snap.success) {

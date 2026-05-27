@@ -10,12 +10,12 @@
 //   1. initJobSystem()          → registra runners, worker IDLE, health, guardian (sin scheduler)
 //   2. [warmup de 2 minutos]
 //   3. activateProductiveMode() → scheduler + worker productivo
+//
+// CRÍTICO: Todos los imports son dinámicos para evitar que Turbopack
+// trace módulos de Node.js (fs, path, node-cron, etc.) al compilar
+// instrumentation.ts para Edge Runtime. Las funciones internas hacen
+// await import() solo cuando se ejecutan en Node.js runtime.
 
-import { startWorkerIdle, startWorker, stopWorker, registerDefaultRunners, getWorkerStats } from './worker'
-import { startHealthMonitor, stopHealthMonitor } from './health'
-import { startScheduler, stopScheduler } from './scheduler'
-import { startBackupScheduler, stopBackupScheduler } from './backup-scheduler'
-import { enqueue } from './queue'
 import { WARMUP_CONFIG } from './constants'
 
 
@@ -46,23 +46,19 @@ export async function initJobSystem(): Promise<void> {
 
   console.log('[Jobs] Iniciando sistema de Job Queue (modo IDLE)...')
 
+  // Dynamic imports — solo se resuelven en Node.js runtime
+  const { registerDefaultRunners } = await import('./worker')
+  const { startWorkerIdle } = await import('./worker')
+  const { startHealthMonitor } = await import('./health')
+
   // 1. Registrar runners por defecto
-  registerDefaultRunners()
+  await registerDefaultRunners()
 
   // 2. Iniciar worker en modo IDLE (polling pero no ejecuta)
   startWorkerIdle()
 
   // 3. Iniciar health monitor (cada 60s)
   startHealthMonitor()
-
-  // 4. Container Guardian — DESACTIVADO
-  // Escribe a /proc/sys/vm/drop_caches lo que causa OOM kills en este entorno
-  // try {
-  //   const { startContainerGuardian } = await import('./container-guardian')
-  //   startContainerGuardian()
-  // } catch (err) {
-  //   console.warn('[Jobs] Container Guardian no disponible (Edge Runtime):', (err as Error).message)
-  // }
 
   console.log('[Jobs] Sistema inicializado — worker IDLE, sin scheduler')
   console.log(`[Jobs] Warmup configurado: ${WARMUP_CONFIG.delayMs / 1000}s antes de activar modo productivo`)
@@ -79,13 +75,18 @@ export async function activateProductiveMode(): Promise<void> {
 
   console.log('[Jobs] Activando modo productivo...')
 
+  // Dynamic imports
+  const { startWorker } = await import('./worker')
+  const { startScheduler } = await import('./scheduler')
+
   // 1. Activar worker (sale de idle, comienza a ejecutar jobs)
   startWorker()
 
   // 2. Iniciar scheduler automáticamente — arranca con todas las fuentes programadas
   await startScheduler()
 
-  // 3. Iniciar backup scheduler (4x/día a GitHub — NUNCA se borran)
+  // 3. Backup scheduler — desactivado por defecto
+  // const { startBackupScheduler } = await import('./backup-scheduler')
   // startBackupScheduler()
 
   console.log('[Jobs] Modo productivo activo — worker + scheduler ejecutando')
@@ -93,20 +94,25 @@ export async function activateProductiveMode(): Promise<void> {
 
 // Garantizar que el worker esté corriendo — llamado desde API routes
 // Usa globalThis para no duplicar el worker loop
-export function ensureWorkerRunning(): void {
+export async function ensureWorkerRunning(): Promise<void> {
+  const { getWorkerStats, registerDefaultRunners, startWorker } = await import('./worker')
   const stats = getWorkerStats()
   if (!stats.running) {
     console.log('[Jobs] Worker no estaba corriendo — iniciando desde ensureWorkerRunning()')
-    registerDefaultRunners()
+    await registerDefaultRunners()
     startWorker()
   }
 }
 
 // API publica para registrar runners desde otros modulos
-export { registerRunner } from './worker'
+export async function registerRunner(tipo: string, fn: (...args: unknown[]) => Promise<unknown>): Promise<void> {
+  const { registerRunner: _registerRunner } = await import('./worker')
+  _registerRunner(tipo as any, fn as any)
+}
 
 // API publica para obtener stats
-export function getStats() {
+export async function getStats() {
+  const { getWorkerStats } = await import('./worker')
   return {
     worker: getWorkerStats(),
     productive: isActive(),
@@ -115,15 +121,31 @@ export function getStats() {
 
 // Detener todo el sistema
 export async function shutdownJobSystem(): Promise<void> {
-  stopBackupScheduler()
-  stopScheduler()
-  // Container Guardian — dynamic import para evitar Edge analysis
+  try {
+    const { stopBackupScheduler } = await import('./backup-scheduler')
+    stopBackupScheduler()
+  } catch { /* backup scheduler no disponible */ }
+
+  try {
+    const { stopScheduler } = await import('./scheduler')
+    stopScheduler()
+  } catch { /* scheduler no disponible */ }
+
   try {
     const { stopContainerGuardian } = await import('./container-guardian')
     stopContainerGuardian()
-  } catch { /* ya no estaba activo */ }
-  stopHealthMonitor()
-  stopWorker()
+  } catch { /* guardian no disponible */ }
+
+  try {
+    const { stopHealthMonitor } = await import('./health')
+    stopHealthMonitor()
+  } catch { /* health monitor no disponible */ }
+
+  try {
+    const { stopWorker } = await import('./worker')
+    stopWorker()
+  } catch { /* worker no disponible */ }
+
   setInitialized(false)
   setActive(false)
   console.log('[Jobs] Sistema detenido')

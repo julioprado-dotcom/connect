@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
-import { Shield, Bot, Globe, Database, Zap, Calendar, Play, Square, Loader2 } from 'lucide-react';
+import { Shield, Bot, Globe, Database, Zap, Calendar, Play, Square, Loader2, RefreshCw, Clock, Timer, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react';
 import { PanelShell } from './VitalMonitor';
 
 // ═══════════════════════════════════════════════════════════════
@@ -85,7 +85,7 @@ function ProcessOrb({
   loading?: boolean;
 }) {
   const status = online ? 'ok' : 'error';
-  const color = online ? '#10b981' : '#f43f5e';
+  const color = online ? '#06b6d4' : '#8b5cf6';
   const statusLabel = online ? 'En línea' : 'Desconectado';
   const glowSize = online ? 6 : 12;
 
@@ -137,9 +137,9 @@ function ProcessOrb({
           disabled={loading}
           className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-mono font-bold uppercase tracking-wider transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
-            color: online ? '#f43f5e' : '#10b981',
-            backgroundColor: online ? 'rgba(244,63,94,0.08)' : 'rgba(16,185,129,0.08)',
-            border: `1px solid ${online ? 'rgba(244,63,94,0.2)' : 'rgba(16,185,129,0.2)'}`,
+            color: online ? '#8b5cf6' : '#06b6d4',
+            backgroundColor: online ? 'rgba(139,92,246,0.08)' : 'rgba(6,182,212,0.08)',
+            border: `1px solid ${online ? 'rgba(139,92,246,0.2)' : 'rgba(6,182,212,0.2)'}`,
           }}
           title={online ? `Detener ${label}` : `Activar ${label}`}
         >
@@ -165,7 +165,7 @@ function HealthGauge({ score }: { score: number }) {
   const radius = 28;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
-  const color = score >= 80 ? '#10b981' : score >= 50 ? '#f59e0b' : '#f43f5e';
+  const color = score >= 80 ? '#06b6d4' : score >= 50 ? '#f59e0b' : '#8b5cf6';
 
   return (
     <div className="flex items-center gap-4 py-2">
@@ -200,18 +200,23 @@ function HealthGauge({ score }: { score: number }) {
 function PipelineOrb({
   status,
   label,
+  onClick,
 }: {
   status: 'ok' | 'warning' | 'error' | 'idle' | 'warn' | 'pending' | string;
   label: string;
+  onClick?: () => void;
 }) {
   const statusKey = status === 'warn' ? 'warning' : (status as 'ok' | 'warning' | 'error' | 'idle') || 'idle';
-  const colorMap = { ok: '#10b981', warning: '#f59e0b', error: '#f43f5e', idle: '#64748b', pending: '#06b6d4' };
+  const colorMap = { ok: '#06b6d4', warning: '#f59e0b', error: '#8b5cf6', idle: '#64748b', pending: '#3b82f6' };
   const labelMap = { ok: 'En línea', warning: 'Degradado', error: 'Desconectado', idle: 'Inactivo', pending: 'Pendiente' };
   const color = colorMap[statusKey] || colorMap.idle;
   const glowSize = statusKey === 'error' ? 12 : statusKey === 'warning' ? 8 : 6;
 
   return (
-    <div className="flex items-center gap-3 py-1">
+    <button
+      onClick={onClick}
+      className={"group flex items-center gap-3 py-1 w-full text-left transition-all duration-200 " + (onClick ? 'cursor-pointer rounded-md px-2 hover:bg-white/[0.04] active:scale-[0.98]' : 'cursor-default')}
+    >
       <div className="relative flex-shrink-0">
         <div
           className="w-2.5 h-2.5 rounded-full"
@@ -231,7 +236,10 @@ function PipelineOrb({
       >
         {labelMap[statusKey] || status}
       </span>
-    </div>
+      {onClick && (
+        <ArrowRight className="w-3 h-3 ml-auto text-slate-600 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition-all duration-200" />
+      )}
+    </button>
   );
 }
 
@@ -239,13 +247,35 @@ function PipelineOrb({
 // SystemStatus — Main component (updated for multi-process)
 // ═══════════════════════════════════════════════════════════════
 
-export function SystemStatus() {
+interface SchedulerStatus {
+  running: boolean;
+  totalTasks: number;
+  tasks: Array<{ name: string; expression: string; nextRun: string | null; active: boolean }>;
+}
+
+type TabKey = 'resumen' | 'alertas' | 'fuentes' | 'captura' | 'clasificacion' | 'inteligencia' | 'produccion' | 'distribucion';
+
+interface SystemStatusProps {
+  onNavigateTab?: (tab: TabKey) => void;
+}
+
+export function SystemStatus({ onNavigateTab }: SystemStatusProps) {
   const [health, setHealth] = useState<SystemHealth | null>(null);
   const [processes, setProcesses] = useState<ProcessesData | null>(null);
   const [pipeline, setPipeline] = useState<PipelineStatus | null>(null);
   const [toggleLoading, setToggleLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [schedulerOpen, setSchedulerOpen] = useState(false);
+  const [schedulerStatus, setSchedulerStatus] = useState<SchedulerStatus | null>(null);
+  const [schedulerAction, setSchedulerAction] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval>>(null);
+
+  const fetchSchedulerStatus = useCallback(async () => {
+    try {
+      const res = await fetchWithTimeout('/api/jobs/scheduler', { timeoutMs: 5000 });
+      if (res.ok) setSchedulerStatus(await res.json());
+    } catch { /* silent */ }
+  }, []);
 
   const fetchData = useCallback(async () => {
     try {
@@ -276,13 +306,37 @@ export function SystemStatus() {
       const res = await fetch(endpoint, { method: 'POST' });
       const data = await res.json();
       console.log(`[SystemStatus] Toggle ${endpoint}:`, data);
-      // Re-fetch después de toggle para actualizar UI
       setTimeout(fetchData, 2000);
     } catch (e) {
       console.error(`[SystemStatus] Toggle error:`, e);
     } finally {
       setToggleLoading(null);
     }
+  };
+
+  const handleSchedulerAction = async (accion: string) => {
+    setSchedulerAction(accion);
+    try {
+      const res = await fetch('/api/jobs/scheduler', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        console.log(`[SystemStatus] Scheduler ${accion}:`, data);
+        setTimeout(() => { fetchData(); fetchSchedulerStatus(); }, 1500);
+      }
+    } catch (e) {
+      console.error(`[SystemStatus] Scheduler action error:`, e);
+    } finally {
+      setSchedulerAction(null);
+    }
+  };
+
+  const handleOpenScheduler = () => {
+    setSchedulerOpen(!schedulerOpen);
+    if (!schedulerOpen) fetchSchedulerStatus();
   };
 
   // Usar datos de procesos (heartbeat) como fuente primaria para Worker/Scheduler
@@ -386,6 +440,111 @@ export function SystemStatus() {
             loading={toggleLoading === '/api/system/scheduler/toggle'}
           />
 
+          {/* Scheduler Panel (collapsible) */}
+          <button
+            onClick={handleOpenScheduler}
+            className="w-full flex items-center justify-between px-2 py-1.5 rounded-md transition-all hover:bg-slate-800/30"
+            style={{ border: '1px solid rgba(6,182,212,0.06)' }}
+          >
+            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600 font-mono flex items-center gap-1.5">
+              <Timer className="w-3 h-3 text-cyan-600" />
+              Planificador de Tareas
+            </span>
+            {schedulerOpen ? <ChevronUp className="w-3 h-3 text-slate-600" /> : <ChevronDown className="w-3 h-3 text-slate-600" />}
+          </button>
+
+          {schedulerOpen && (
+            <div className="space-y-2 px-2 py-2 rounded-lg" style={{
+              backgroundColor: 'rgba(6,182,212,0.02)',
+              border: '1px solid rgba(6,182,212,0.08)',
+            }}>
+              {/* Scheduler status */}
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] font-mono text-slate-500">
+                  Estado: <span style={{ color: schedulerStatus?.running ? '#06b6d4' : '#8b5cf6' }}>
+                    {schedulerStatus?.running ? 'ACTIVO' : 'PAUSADO'}
+                  </span>
+                </span>
+                <span className="text-[9px] font-mono text-slate-700">
+                  {schedulerStatus?.totalTasks ?? 0} tareas programadas
+                </span>
+              </div>
+
+              {/* Action buttons */}
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  onClick={() => handleSchedulerAction('recalcular')}
+                  disabled={schedulerAction !== null}
+                  className="flex items-center justify-center gap-1 py-1.5 px-2 rounded text-[9px] font-bold font-mono uppercase tracking-wider transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{
+                    color: '#06b6d4',
+                    backgroundColor: 'rgba(6,182,212,0.06)',
+                    border: '1px solid rgba(6,182,212,0.15)',
+                  }}
+                  title="Recalcular horarios optimos basados en actividad de fuentes"
+                >
+                  {schedulerAction === 'recalcular' ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                  Recalcular
+                </button>
+                <button
+                  onClick={() => handleSchedulerAction('pause')}
+                  disabled={schedulerAction !== null || !schedulerStatus?.running}
+                  className="flex items-center justify-center gap-1 py-1.5 px-2 rounded text-[9px] font-bold font-mono uppercase tracking-wider transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{
+                    color: '#f59e0b',
+                    backgroundColor: 'rgba(245,158,11,0.06)',
+                    border: '1px solid rgba(245,158,11,0.15)',
+                  }}
+                >
+                  {schedulerAction === 'pause' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Square className="w-3 h-3" />}
+                  Pausar
+                </button>
+                <button
+                  onClick={() => handleSchedulerAction('resume')}
+                  disabled={schedulerAction !== null || schedulerStatus?.running}
+                  className="flex items-center justify-center gap-1 py-1.5 px-2 rounded text-[9px] font-bold font-mono uppercase tracking-wider transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{
+                    color: '#06b6d4',
+                    backgroundColor: 'rgba(6,182,212,0.06)',
+                    border: '1px solid rgba(6,182,212,0.15)',
+                  }}
+                >
+                  {schedulerAction === 'resume' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
+                  Reanudar
+                </button>
+              </div>
+
+              {/* Task list */}
+              {schedulerStatus?.tasks && schedulerStatus.tasks.length > 0 && (
+                <div className="space-y-1 max-h-[200px] overflow-y-auto custom-scrollbar">
+                  {schedulerStatus.tasks.map((task, i) => (
+                    <div key={i} className="flex items-center gap-2 px-2 py-1 rounded" style={{
+                      backgroundColor: 'rgba(255,255,255,0.01)',
+                      border: '1px solid rgba(255,255,255,0.03)',
+                    }}>
+                      <span
+                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: task.active ? '#06b6d4' : '#64748b' }}
+                      />
+                      <span className="text-[9px] font-mono text-slate-400 flex-1 truncate">
+                        {task.name}
+                      </span>
+                      <span className="text-[8px] font-mono text-slate-700 flex items-center gap-1">
+                        <Clock className="w-2.5 h-2.5" />
+                        {task.expression}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Info */}
+              <p className="text-[8px] font-mono text-slate-700 leading-relaxed">
+                <b>Recalcular</b> relee fuentes activas y reoptimiza horarios. <b>Pausar/Reanudar</b> detiene/continua todas las tareas programadas sin perder configuracion.
+              </p>
+            </div>
+          )}
+
           {/* Separator */}
           <div className="h-[1px]" style={{ background: 'linear-gradient(90deg, transparent, rgba(6,182,212,0.08), transparent)' }} />
 
@@ -393,10 +552,10 @@ export function SystemStatus() {
           <p className="text-[9px] font-bold uppercase tracking-widest text-slate-700 font-mono px-1">
             Flujo de Proceso
           </p>
-          <PipelineOrb status={pipeline?.captura?.status ?? 'idle'} label="Captura" />
-          <PipelineOrb status={pipeline?.clasificacion?.status ?? 'idle'} label="Clasificacion" />
-          <PipelineOrb status={pipeline?.produccion?.status ?? 'idle'} label="Produccion" />
-          <PipelineOrb status={pipeline?.distribucion?.status ?? 'idle'} label="Distribucion" />
+          <PipelineOrb status={pipeline?.captura?.status ?? 'idle'} label="Captura" onClick={onNavigateTab ? () => onNavigateTab('captura') : undefined} />
+          <PipelineOrb status={pipeline?.clasificacion?.status ?? 'idle'} label="Clasificacion" onClick={onNavigateTab ? () => onNavigateTab('clasificacion') : undefined} />
+          <PipelineOrb status={pipeline?.produccion?.status ?? 'idle'} label="Produccion" onClick={onNavigateTab ? () => onNavigateTab('produccion') : undefined} />
+          <PipelineOrb status={pipeline?.distribucion?.status ?? 'idle'} label="Distribucion" onClick={onNavigateTab ? () => onNavigateTab('distribucion') : undefined} />
 
           {/* Separator */}
           <div className="h-[1px]" style={{ background: 'linear-gradient(90deg, transparent, rgba(6,182,212,0.08), transparent)' }} />
@@ -416,9 +575,11 @@ export function SystemStatus() {
               <span
                 className="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded"
                 style={{
-                  color: health.environment === 'production' ? '#10b981' : '#f59e0b',
-                  backgroundColor: health.environment === 'production' ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)',
-                  border: `1px solid ${health.environment === 'production' ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)'}`,
+                  color: health.environment === 'production' ? '#06b6d4' : '#f59e0b',
+                  backgroundColor: health.environment === 'production' ? 'rgba(6,182,212,0.08)' : 'rgba(245,158,11,0.08)',
+                  borderColor: health.environment === 'production' ? 'rgba(6,182,212,0.2)' : 'rgba(245,158,11,0.2)',
+                  borderWidth: '1px',
+                  borderStyle: 'solid',
                 }}
               >
                 {health.environment}

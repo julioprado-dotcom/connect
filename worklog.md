@@ -142,3 +142,152 @@ Stage Summary:
 - Pipeline operativo: menciones, legisladores, ejes, tratamiento periodístico funcionando
 - Captura completando 49 medios secuencialmente con pausas antisaturación
 - Pendientes: ABI/ANF fallan, scheduler desconectado, Descubrimiento Inteligente vacío
+
+---
+Task ID: 0
+Agent: Main Agent
+Task: Fase 0 — Branding Cleanup: Logo, Favicon, NewsConnect residuals
+
+Work Log:
+- Auditoría completa de branding: código limpio, docs con 43+ referencias NewsConnect
+- CRITICAL FIX: `/public/logo.png` no existía pero 4 componentes lo referenciaban (DashboardShell x2, SideNav, LoadingScreen) → copiado decodex-logo.png a logo.png
+- Eliminados 5 SVGs default de Next.js (vercel.svg, globe.svg, file.svg, next.svg, window.svg)
+- Eliminado favicon.ico vacío (0 bytes) — layout.tsx ya usa favicon.png
+- Actualizado package.json version 0.14.0 → 0.15.0 (coincide con resto del código)
+- Limpieza masiva de NewsConnect en documentación (43 reemplazos en 5 archivos):
+  - docs/03_Protocolo_Producto_El_Radar.md: 16 replacements (URLs, hashtags, texto)
+  - docs/02_Protocolo_Producto_Saldo_Del_Dia.md: 6 replacements
+  - docs/04_Indicadores_ONION200.md: 2 replacements
+  - docs/05_Protocolo_Producto_El_Foco.md: 18 replacements
+  - documents/cover.html: 1 replacement
+- Verificación final: 0 referencias NewsConnect en código fuente, solo 2 en archivos históricos (generate-report.js, Acta-Nacimiento)
+
+Stage Summary:
+- Branding DECODEX completo en toda la aplicación
+- 4 componentes con imágenes rotas ahora arreglados
+- Documentación limpia de residuals NewsConnect (newsconnect.bo URLs reemplazadas por decodex.bo)
+- Versión unificada a 0.15.0
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fase 1 — Fix fake KPIs and misleading defaults
+
+Work Log:
+- Auditoría completa de 18 archivos: KPIs principales ya eran reales (DB queries)
+- 4 issues encontrados y corregidos:
+  1. summary/route.ts:132 — productos {total:11, ops:4} HARDCODED → ALL_PRODUCTS.length + filter
+  2. summary/route.ts:116 — indicadores.activos = totalMenciones (mislabel) → indicadoresActivos
+  3. StatusBar.tsx:229-232 — defaults 'ok' while loading → 'idle' (misleading green)
+  4. SystemStatusOrbs.tsx:198-199 — LLM calls/cost sin qualifier → ~ y ≈ (estimados)
+- Build limpio, push exitoso
+
+Stage Summary:
+- Commit 2f42eeb — 4 KPIs corregidos
+- Productos: ahora calcula desde ALL_PRODUCTS catalog (11 total, 4 operativos — coincidió pero ahora es dinámico)
+- Indicadores: ahora muestra indicadoresActivos reales desde DB (no menciones)
+- StatusBar: ya no muestra verde durante carga
+- IA StatusOrb: ahora indica que son estimaciones (~llamadas, ≈$costo)
+
+---
+Task ID: 2
+Agent: Main Agent (with fullstack-developer subagents)
+Task: Fase 2a — Produccion + Distribucion tabs interactive enhancement
+
+Work Log:
+- Analizado estado de 8 tabs del dashboard ONION200
+- ProduccionView (0 acciones → 7+): catalogo grid, GENERAR buttons, param modals, content preview, quick actions
+- DistribucionView (0 acciones → 6+): retry fallidos, test canales, agregar suscriptor, filter tabs, canal icons
+- Build limpio, push exitoso
+
+Stage Summary:
+- Commit 441693b — +1555 lines
+- Produccion: 22 backend endpoints ahora conectados al UI (generate por tipo, preview ultimo, ejes/personas selectors)
+- Distribucion: 12 backend endpoints conectados al UI (retry, test canales, add subscriber)
+- Ambas tabs pasaron de read-only a fullmente interactivas
+
+---
+Task ID: 2b
+Agent: Main Agent (with fullstack-developer subagents)
+Task: Fase 2b — Captura content display + Alertas spaceship HUD
+
+Work Log:
+- CapturaView: Added 'Contenido Capturado' full-width section (menciones with medio, persona, URL, timestamp, sentiment, snippet)
+- CapturaView: Pagination (Ver Mas), refresh button, Bolivia timezone
+- AlertasPanel: Replaced SemaforoSVG with HudGauge (270° arc, tick marks, scanning line, severity animations)
+- Build limpio, push exitoso
+
+Stage Summary:
+- Commit e5f5186 — +444 lines
+- Captura: now shows actual captured content with clickable URLs and metadata
+- Alertas: semáforo removed, spaceship HUD scanner gauge with 3 severity states
+- Remaining for Fase 2: Clasificación detail modal (optional enhancement)
+
+---
+Task ID: 7
+Agent: main
+Task: Fase 3 — PipelineOrbs clickeables + Centro de Comando
+
+Work Log:
+- Modified `page.tsx` to pass `onNavigateTab` callback to `ResumenView`
+- Updated `ResumenView.tsx` to accept `onNavigateTab` and add `CommandCenter` panel
+- Modified `SystemStatus.tsx`: PipelineOrbs now clickable (div→button with onClick), navigates to corresponding tab
+- Modified `LiveFeed.tsx`: Added "Ver todas las menciones →" footer button that navigates to Captura tab
+- Created `CommandCenter.tsx`: Full manual control panel with:
+  - "Forzar Captura" button (POST /api/admin/kick-capture, enqueues checks for top 8 sources)
+  - "Captura v2" start/stop buttons (POST/DELETE /api/capture, full scraping pipeline)
+  - Real-time queue status display (pending, in progress, active sources)
+  - Live progress bar with stats (links, triaje, classified, mentions)
+  - Jobs summary with state breakdown (pending/in_progress/completed/failed)
+  - Collapsible recent logs for capture v2
+  - Auto-refresh every 10s
+- Build: ✓ Compiled successfully in 18.3s (only pre-existing Edge warnings)
+- Committed as `b74207d` and pushed to origin/main
+
+Stage Summary:
+- Fase 3 complete — all KPIs and pipeline orbs are now clickable/navigable
+- Worker/Scheduler controls were already present in SystemStatus (toggles + scheduler panel)
+- CommandCenter provides manual pipeline triggers from the dashboard UI
+- User needs to `git pull && npx next build && pm2 restart` on VPS to see changes
+---
+Task ID: 1
+Agent: main
+Task: Hacer clickeables los enlaces en Capturas y Clasificación (abrir ficha MencionDetailModal)
+
+Work Log:
+- Analizado estado actual: CapturaView ya tenía MencionDetailModal funcional (commit previo)
+- ClasificacionView tenía menciones como <div> sin interacción — no abrían la ficha
+- Añadido import de MencionDetailModal + icono Eye en ClasificacionView
+- Cambiado <div> → <button> con onClick → setSelectedMencionId
+- Agregado state selectedMencionId
+- stopPropagation en botón Clasificar individual (▶) para no abrir ficha al clasificar
+- Hover hint "VER →" aparece al pasar el mouse (igual que CapturaView)
+- Commit 7c79e29, push exitoso
+
+Stage Summary:
+- ClasificacionView ahora abre MencionDetailModal al hacer click en cualquier mención pendiente
+- Botón ▶ de clasificar individual sigue funcionando sin abrir la ficha (stopPropagation)
+- CapturaView ya estaba funcionando correctamente desde commit anterior
+
+---
+Task ID: 1
+Agent: Super Z (main)
+Task: CSS-only charts para dashboard DECODEX (MiniCharts)
+
+Work Log:
+- Cloned repo from GitHub to local workspace
+- Added porSentimiento + porTipoMencion raw SQL queries to indicadores-summary API
+- Created MiniCharts.tsx component (v1: colorful) — commit 734c917
+- User feedback: "no combina con el resto lineas delgadas, pocos colores etc"
+- Rewrote MiniCharts.tsx (v2: minimalist) — commit 74b792f
+  - 2px thin bars, monochrome cyan only
+  - SVG ring 2px stroke instead of conic-gradient donut
+  - Uses PanelShell for consistency with other panels
+  - Compact labels, no color shadows, no "en vivo" indicator
+- Pushed both commits to GitHub, user pulled and deployed on VPS
+
+Stage Summary:
+- API: 2 new fields in captura (porSentimiento, porTipoMencion)
+- Component: MiniCharts.tsx with ThinBars + SentimentRing
+- Integrated in ResumenView.tsx (3-col layout: VitalMonitor + SystemStatus + MiniCharts)
+- User confirmed "perfecto" after minimalist redesign

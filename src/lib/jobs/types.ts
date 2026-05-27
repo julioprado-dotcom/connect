@@ -39,7 +39,7 @@ export interface JobCreate {
 
 // Check-First
 
-export type TipoCheck = 'rss' | 'head' | 'fingerprint' | 'api' | 'zai'
+export type TipoCheck = 'rss' | 'head' | 'fingerprint' | 'api'
 
 export interface CheckResult {
   cambiado: boolean

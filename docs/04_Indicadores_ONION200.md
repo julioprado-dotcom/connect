@@ -2,7 +2,7 @@
 
 ## Infraestructura de Datos Macroeconómicos y Sectoriales
 
-**Motor:** ONION200 — News Connect Bolivia
+**Motor:** ONION200 — DECODEX Bolivia
 **Versión:** 1.0
 **Fecha:** Mayo 2026
 **Clasificación:** Documento técnico de arquitectura
@@ -492,4 +492,4 @@ const valor = data.valor !== undefined ? Number(data.valor) : 0
 
 ---
 
-*Documento ONION200 — News Connect Bolivia — Mayo 2026*
+*Documento ONION200 — DECODEX Bolivia — Mayo 2026*

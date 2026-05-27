@@ -236,9 +236,9 @@ export function VitalMonitor() {
 
   // Determine color based on severity
   const getColor = (pct: number): string => {
-    if (pct > 85) return '#f43f5e'; // red
-    if (pct > 60) return '#f59e0b'; // amber
-    return '#06b6d4'; // cyan
+    if (pct > 85) return '#8b5cf6'; // violeta — alerta
+    if (pct > 60) return '#f59e0b'; // ámbar — vigilancia
+    return '#06b6d4'; // cyan — ok
   };
 
   if (error && !vitals) {

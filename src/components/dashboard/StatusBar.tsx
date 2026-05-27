@@ -226,10 +226,10 @@ export function StatusBar() {
   }, [expanded]);
 
   // Status derivations
-  const captura = data ? getCapturaStatus(data.captura) : { status: 'ok' as OrbStatus, value: 0 };
-  const clasif = data ? getClasificacionStatus(data.clasificacion) : { status: 'ok' as OrbStatus, value: 0 };
-  const prod = data ? getProduccionStatus(data.produccion) : { status: 'ok' as OrbStatus, value: '--' };
-  const dist = data ? getDistribucionStatus(data.distribucion) : { status: 'ok' as OrbStatus, value: 'OK' };
+  const captura = data ? getCapturaStatus(data.captura) : { status: 'idle' as OrbStatus, value: 0 };
+  const clasif = data ? getClasificacionStatus(data.clasificacion) : { status: 'idle' as OrbStatus, value: 0 };
+  const prod = data ? getProduccionStatus(data.produccion) : { status: 'idle' as OrbStatus, value: '--' };
+  const dist = data ? getDistribucionStatus(data.distribucion) : { status: 'idle' as OrbStatus, value: '--' };
 
   const toggle = (panel: ExpandedPanel) => {
     setExpanded(prev => prev === panel ? null : panel);

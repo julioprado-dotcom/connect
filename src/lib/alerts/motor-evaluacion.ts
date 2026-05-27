@@ -1,10 +1,10 @@
 // ─── Motor de Evaluación de Alertas Tempranas — DECODEX Bolivia ────────────
-// Evalúa indicadores contra umbrales y genera el semáforo consolidado.
+// Evalúa indicadores contra umbrales y genera el estado de alertas consolidado.
 //
 // Algoritmo basado en Apéndice Técnico A, Sección 3:
-// - 🟢 VERDE: Ningún indicador supera umbral 🟡
-// - 🟡 AMARILLO: 1 indicador en 🔴 O 2+ indicadores en 🟡
-// - 🔴 ROJO: 2+ indicadores en 🔴 O 1🔴 + 2+🟡 O cruce sistémico activo
+// - 🔵 INFO: Ningún indicador supera umbral 🟠
+// - 🟠 VIGILANCIA: 1 indicador en 🟣 O 2+ indicadores en 🟠
+// - 🟣 ALERTA: 2+ indicadores en 🟣 O 1🟣 + 2+🟠 O cruce sistémico activo
 
 import {
   UMBRALES_CRITICOS,
@@ -36,8 +36,8 @@ export interface EstadoEje {
   nombre: string;
   estado: NivelAlerta;
   alertas: AlertaGenerada[];
-  indicadoresEnRojo: number;
-  indicadoresEnAmarillo: number;
+  indicadoresCriticos: number;
+  indicadoresEnVigilancia: number;
   totalEvaluados: number;
 }
 
@@ -50,7 +50,7 @@ export interface CruceActivo {
   mensaje: string;
 }
 
-export interface SemaforoConsolidado {
+export interface alertasConsolidado {
   fecha: string;
   hora_actualizacion: string;
   estado_global: NivelAlerta;
@@ -73,7 +73,7 @@ export interface IndicadorEntrada {
 
 /**
  * Evalúa un set de indicadores contra todos los umbrales configurados.
- * Retorna el semáforo consolidado completo.
+ * Retorna el estado de alertas consolidado completo.
  *
  * @param indicadores - Array de indicadores con sus valores actuales
  * @param opciones - Opciones de configuración
@@ -84,7 +84,7 @@ export function evaluarIndicadores(
     fecha?: Date;
     incluirRecomendacion?: boolean;
   } = {}
-): SemaforoConsolidado {
+): alertasConsolidado {
   const now = opciones.fecha || new Date();
   const alertas: AlertaGenerada[] = [];
 
@@ -103,7 +103,7 @@ export function evaluarIndicadores(
     if (datos === undefined) continue; // No hay dato para este umbral
 
     const nivel = umbral.condicion(datos.valor, datos.historial);
-    if (nivel === 'VERDE') continue; // Solo registrar alertas activas
+    if (nivel === 'INFO') continue; // Solo registrar alertas activas
 
     alertas.push({
       id: `${umbral.id}_${now.getTime()}`,
@@ -154,11 +154,11 @@ export function evaluarIndicadores(
 // ─── Consolidación por Eje ───────────────────────────────────────────────
 
 /**
- * Agrupa alertas por eje y calcula el estado semáforo de cada uno.
+ * Agrupa alertas por eje y calcula el estado de alertas de cada uno.
  * Aplica reglas de la Sección 3.1 del Apéndice Técnico:
- * - ROJO: 2+ indicadores en rojo, o 1 rojo + 2+ amarillo
- * - AMARILLO: 1 rojo, o 2+ amarillo
- * - VERDE: todo normal
+ * - ALERTA: 2+ indicadores criticos, o 1 critico + 2+ en vigilancia
+ * - VIGILANCIA: 1 critico, o 2+ en vigilancia
+ * - INFO: todo normal
  */
 export function consolidarEjes(
   alertas: AlertaGenerada[],
@@ -172,10 +172,10 @@ export function consolidarEjes(
       eje: eje.key,
       slug: eje.slug,
       nombre: eje.nombre,
-      estado: 'VERDE',
+      estado: 'INFO',
       alertas: [],
-      indicadoresEnRojo: 0,
-      indicadoresEnAmarillo: 0,
+      indicadoresCriticos: 0,
+      indicadoresEnVigilancia: 0,
       totalEvaluados: 0,
     };
   }
@@ -188,28 +188,28 @@ export function consolidarEjes(
     const estadoEje = resultado[ejeDef.slug];
     estadoEje.alertas.push(alerta);
 
-    if (alerta.nivel === 'ROJO') {
-      estadoEje.indicadoresEnRojo++;
-    } else if (alerta.nivel === 'AMARILLO') {
-      estadoEje.indicadoresEnAmarillo++;
+    if (alerta.nivel === 'ALERTA') {
+      estadoEje.indicadoresCriticos++;
+    } else if (alerta.nivel === 'VIGILANCIA') {
+      estadoEje.indicadoresEnVigilancia++;
     }
   }
 
-  // Calcular estado semáforo por eje
+  // Calcular estado de alertas por eje
   for (const slug of Object.keys(resultado)) {
     const estadoEje = resultado[slug];
-    const { indicadoresEnRojo: rojos, indicadoresEnAmarillo: amarillos } = estadoEje;
+    const { indicadoresCriticos: criticos, indicadoresEnVigilancia: vigilando } = estadoEje;
 
-    if (rojos >= 2 || (rojos >= 1 && amarillos >= 2)) {
-      estadoEje.estado = 'ROJO';
-    } else if (rojos >= 1 || amarillos >= 2) {
-      estadoEje.estado = 'AMARILLO';
-    } else if (amarillos >= 1) {
-      // 1 amarillo solo → eje en amarillo según regla estricta
-      // La regla dice "2+ en amarillo", pero 1 amarillo en eje social/energía es relevante
-      estadoEje.estado = 'AMARILLO';
+    if (criticos >= 2 || (criticos >= 1 && vigilando >= 2)) {
+      estadoEje.estado = 'ALERTA';
+    } else if (criticos >= 1 || vigilando >= 2) {
+      estadoEje.estado = 'VIGILANCIA';
+    } else if (vigilando >= 1) {
+      // 1 en vigilancia solo → eje en vigilancia según regla estricta
+      // La regla dice "2+ en vigilancia", pero 1 en eje social/energía es relevante
+      estadoEje.estado = 'VIGILANCIA';
     } else {
-      estadoEje.estado = 'VERDE';
+      estadoEje.estado = 'INFO';
     }
   }
 
@@ -233,8 +233,8 @@ export function evaluarCruces(
   }
 
   for (const cruce of CRUCES_SISTEMICOS) {
-    const estadoA = estadoPorEje.get(cruce.ejeA) || 'VERDE';
-    const estadoB = estadoPorEje.get(cruce.ejeB) || 'VERDE';
+    const estadoA = estadoPorEje.get(cruce.ejeA) || 'INFO';
+    const estadoB = estadoPorEje.get(cruce.ejeB) || 'INFO';
 
     if (cruce.activarSi(estadoA, estadoB)) {
       activos.push({
@@ -242,7 +242,7 @@ export function evaluarCruces(
         ejeA: cruce.ejeA,
         ejeB: cruce.ejeB,
         nombre: cruce.nombre,
-        nivel: (estadoA === 'ROJO' && estadoB === 'ROJO') ? 'alto' : 'medio',
+        nivel: (estadoA === 'ALERTA' && estadoB === 'ALERTA') ? 'alto' : 'medio',
         mensaje: cruce.mensaje,
       });
     }
@@ -254,27 +254,27 @@ export function evaluarCruces(
 // ─── Estado Global ────────────────────────────────────────────────────────
 
 /**
- * Calcula el estado global del semáforo.
- * ROJO si: algún eje en ROJO, o hay cruces sistémicos activos de nivel alto.
- * AMARILLO si: algún eje en AMARILLO.
- * VERDE si: todos los ejes en VERDE.
+ * Calcula el estado global de alertas.
+ * ALERTA si: algún eje en ALERTA, o hay cruces sistémicos activos de nivel alto.
+ * VIGILANCIA si: algún eje en VIGILANCIA.
+ * INFO si: todos los ejes en INFO.
  */
 export function calcularEstadoGlobal(
   ejesEstado: Record<string, EstadoEje>,
   cruces: CruceActivo[]
 ): NivelAlerta {
-  // Si hay cruce sistémico de nivel alto → ROJO global
-  if (cruces.some(c => c.nivel === 'alto')) return 'ROJO';
+  // Si hay cruce sistémico de nivel alto → ALERTA global
+  if (cruces.some(c => c.nivel === 'alto')) return 'ALERTA';
 
   for (const slug of Object.keys(ejesEstado)) {
-    if (ejesEstado[slug].estado === 'ROJO') return 'ROJO';
+    if (ejesEstado[slug].estado === 'ALERTA') return 'ALERTA';
   }
 
   for (const slug of Object.keys(ejesEstado)) {
-    if (ejesEstado[slug].estado === 'AMARILLO') return 'AMARILLO';
+    if (ejesEstado[slug].estado === 'VIGILANCIA') return 'VIGILANCIA';
   }
 
-  return 'VERDE';
+  return 'INFO';
 }
 
 // ─── Generación de Recomendación ──────────────────────────────────────────
@@ -284,25 +284,25 @@ function generarRecomendacion(
   alertas: AlertaGenerada[],
   cruces: CruceActivo[]
 ): string {
-  if (estadoGlobal === 'VERDE') {
+  if (estadoGlobal === 'INFO') {
     return 'Situación estable. Monitoreo rutinario de indicadores.';
   }
 
   const partes: string[] = [];
 
-  // Alertas rojas primero
-  const rojas = alertas.filter(a => a.nivel === 'ROJO');
-  const amarillas = alertas.filter(a => a.nivel === 'AMARILLO');
+  // Alertas criticas primero
+  const criticas = alertas.filter(a => a.nivel === 'ALERTA');
+  const vigilancia = alertas.filter(a => a.nivel === 'VIGILANCIA');
 
-  if (rojas.length > 0) {
-    partes.push(`Atender ${rojas.length} alerta(s) roja(s): ${rojas.map(a => a.nombre).join(', ')}.`);
+  if (criticas.length > 0) {
+    partes.push(`Atender ${criticas.length} alerta(s) critica(s): ${criticas.map(a => a.nombre).join(', ')}.`);
   }
 
   if (cruces.length > 0) {
     partes.push(`Cruce(s) sistémico(s) activo(s): ${cruces.map(c => c.nombre).join(', ')}.`);
   }
 
-  if (estadoGlobal === 'ROJO') {
+  if (estadoGlobal === 'ALERTA') {
     partes.push('Considerar activación de protocolo de crisis y preparar informe especial.');
   } else {
     partes.push('Monitoreo intensificado. Preparar informe de seguimiento en caso de escalada.');
@@ -318,29 +318,29 @@ function generarResumen(
   ejesEstado: Record<string, EstadoEje>,
   alertas: AlertaGenerada[]
 ): string {
-  const emoji = estadoGlobal === 'ROJO' ? '🔴' : estadoGlobal === 'AMARILLO' ? '🟡' : '🟢';
-  const rojos = alertas.filter(a => a.nivel === 'ROJO').length;
-  const amarillos = alertas.filter(a => a.nivel === 'AMARILLO').length;
+  const emoji = estadoGlobal === 'ALERTA' ? '🟣' : estadoGlobal === 'VIGILANCIA' ? '🟠' : '🔵';
+  const criticas = alertas.filter(a => a.nivel === 'ALERTA').length;
+  const vigilancia = alertas.filter(a => a.nivel === 'VIGILANCIA').length;
 
   const ejesStr = Object.entries(ejesEstado)
     .map(([slug, eje]) => {
-      const ico = eje.estado === 'ROJO' ? '🔴' : eje.estado === 'AMARILLO' ? '🟡' : '🟢';
+      const ico = eje.estado === 'ALERTA' ? '🟣' : eje.estado === 'VIGILANCIA' ? '🟠' : '🔵';
       return `${ico} ${eje.nombre}`;
     })
     .join(' | ');
 
-  return `${emoji} Estado Global: ${estadoGlobal} — ${rojos} alerta(s) roja(s), ${amarillos} amarilla(s). Ejes: ${ejesStr}`;
+  return `${emoji} Estado Global: ${estadoGlobal} — ${criticas} alerta(s) critica(s), ${vigilancia} en vigilancia. Ejes: ${ejesStr}`;
 }
 
-// ─── Semáforo Compacto (para logs y testing) ──────────────────────────────
+// ─── Alertas Compacto (para logs y testing) ──────────────────────────────
 
 /**
- * Retorna un string compacto del semáforo por eje, útil para logs.
- * Ejemplo: "MACRO[🔴] SOCIAL[🟡] ENERGIA[🟢] POLITICA[🟢] LOGISTICA[🟢] AMBIENTE[🟡]"
+ * Retorna un string compacto de alertas por eje, útil para logs.
+ * Ejemplo: "MACRO[🟣] SOCIAL[🟠] ENERGIA[🔵] POLITICA[🔵] LOGISTICA[🔵] AMBIENTE[🟠]"
  */
-export function semaforoCompacto(semaforo: SemaforoConsolidado): string {
-  const emoji = (n: NivelAlerta) => n === 'ROJO' ? '🔴' : n === 'AMARILLO' ? '🟡' : '🟢';
-  return Object.values(semaforo.ejes)
+export function alertasCompacto(alertas: alertasConsolidado): string {
+  const emoji = (n: NivelAlerta) => n === 'ALERTA' ? '🟣' : n === 'VIGILANCIA' ? '🟠' : '🔵';
+  return Object.values(alertas.ejes)
     .map(e => `${e.eje}[${emoji(e.estado)}]`)
     .join(' ');
 }

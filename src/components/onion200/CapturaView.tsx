@@ -12,11 +12,15 @@ import {
   Clock,
   BarChart3,
   Newspaper,
+  ExternalLink,
+  RefreshCw,
   Pause,
   Square,
   Wifi,
   WifiOff,
+  Eye,
 } from 'lucide-react';
+import { MencionDetailModal } from './LiveFeed';
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -54,6 +58,24 @@ interface CaptureStatus {
   } | null;
 }
 
+interface Mencion {
+  id: string;
+  titulo: string;
+  contenido: string;
+  url: string | null;
+  medio: { nombre: string } | null;
+  persona: { nombre: string; camara: string } | null;
+  sentimiento: 'positivo' | 'negativo' | 'neutro' | 'no_clasificado';
+  fechaCaptura: string;
+  tratamientoPeriodistico: string | null;
+  ejesTematicos: { eje: { nombre: string } }[];
+}
+
+interface MencionesResponse {
+  menciones: Mencion[];
+  total: number;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // CapturaView — Consola de captura con controles manuales
 // ═══════════════════════════════════════════════════════════════
@@ -70,10 +92,16 @@ export function CapturaView() {
   const [error, setError] = useState<string | null>(null);
   const [connTest, setConnTest] = useState<null | {
     connectivity: { total: number; ok: number; failed: number; verdict: string };
-    tests: { label: string; url: string; ok: boolean; source: string; htmlLength: number; latencyMs: number; title?: string; error?: string }[];
+    tests: { label: string; url: string; ok: boolean; source: string; htmlLength?: number; latencyMs?: number; totalCambios?: number; ultimoCheck?: string; error?: string }[];
   }>(null);
   const [connLoading, setConnLoading] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval>>(null);
+
+  // ── Contenido Capturado state ──
+  const [menciones, setMenciones] = useState<Mencion[]>([]);
+  const [mencionesLoading, setMencionesLoading] = useState(false);
+  const [mencionesTotal, setMencionesTotal] = useState(0);
+  const [selectedMencionId, setSelectedMencionId] = useState<string | null>(null);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -96,6 +124,33 @@ export function CapturaView() {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [fetchStatus]);
+
+  // ── Fetch menciones ──
+  const fetchMenciones = useCallback(async (offset = 0, append = false) => {
+    setMencionesLoading(true);
+    try {
+      const res = await fetchWithTimeout(
+        `/api/menciones?limit=20&offset=${offset}&orderBy=fechaCaptura&orderDir=desc`,
+        { timeoutMs: 10000 },
+      );
+      if (res.ok) {
+        const data: MencionesResponse = await res.json();
+        setMenciones(prev => (append ? [...prev, ...data.menciones] : data.menciones));
+        setMencionesTotal(data.total);
+      }
+    } catch {
+      /* silent */
+    } finally {
+      setMencionesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMenciones(0, false);
+  }, [fetchMenciones]);
+
+  const handleRefreshMenciones = () => fetchMenciones(0, false);
+  const handleLoadMore = () => fetchMenciones(menciones.length, true);
 
   const handleLaunchCapture = async () => {
     setLaunching(true);
@@ -342,8 +397,8 @@ export function CapturaView() {
                     color: t.ok ? '#10b981' : '#f43f5e',
                     backgroundColor: t.ok ? 'rgba(16,185,129,0.03)' : 'rgba(244,63,94,0.03)',
                   }}>
-                    <span>{t.ok ? '✓' : '✗'} {t.label}</span>
-                    <span className="text-slate-600">{t.ok ? `${t.source} ${t.latencyMs}ms` : (t.error || 'falló')}</span>
+                    <span>{(t.ok || t.totalCambios) ? '✓' : '✗'} {t.label}</span>
+                    <span className="text-slate-600">{t.ok ? `${t.latencyMs}ms` + (t.totalCambios ? ` / ${t.totalCambios} cambios` : '') : (t.totalCambios ? `${t.totalCambios} cambios (monitoreo)` : (t.error || 'falló'))}</span>
                   </div>
                 ))}
               </div>
@@ -419,6 +474,180 @@ export function CapturaView() {
             </div>
           )}
         </PanelShell>
+      </div>
+
+      {/* ═══ Contenido Capturado — full width below ═══ */}
+      <div className="lg:col-span-12">
+        <PanelShell title="Contenido Capturado" icon={<Newspaper className="w-4 h-4" />}>
+          {/* Toolbar */}
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-mono text-slate-600">
+              {mencionesTotal} menciones · mostrando {menciones.length}
+            </span>
+            <button
+              onClick={handleRefreshMenciones}
+              disabled={mencionesLoading}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[10px] font-mono uppercase font-bold transition-all hover:scale-[1.02] disabled:opacity-40"
+              style={{
+                color: '#06b6d4',
+                backgroundColor: 'rgba(6,182,212,0.06)',
+                border: '1px solid rgba(6,182,212,0.15)',
+              }}
+            >
+              <RefreshCw className={`w-3 h-3 ${mencionesLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+
+          {/* Loading / Empty / List */}
+          {mencionesLoading && menciones.length === 0 ? (
+            <div className="flex items-center justify-center py-8 gap-2 text-slate-600 text-xs font-mono">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Cargando menciones...
+            </div>
+          ) : menciones.length === 0 ? (
+            <div className="flex items-center justify-center py-8 gap-2 text-slate-600 text-xs font-mono">
+              <Newspaper className="w-4 h-4" />
+              Sin menciones capturadas
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-1">
+              {menciones.map(m => {
+                const sentColor =
+                  m.sentimiento === 'positivo'
+                    ? '#10b981'
+                    : m.sentimiento === 'negativo'
+                      ? '#f43f5e'
+                      : m.sentimiento === 'no_clasificado'
+                        ? '#f59e0b'
+                        : '#64748b';
+                const sentBg =
+                  m.sentimiento === 'positivo'
+                    ? 'rgba(16,185,129,0.1)'
+                    : m.sentimiento === 'negativo'
+                      ? 'rgba(244,63,94,0.1)'
+                      : m.sentimiento === 'no_clasificado'
+                        ? 'rgba(245,158,11,0.1)'
+                        : 'rgba(100,116,139,0.1)';
+                const sentLabel =
+                  m.sentimiento === 'no_clasificado'
+                    ? 'N/C'
+                    : m.sentimiento.charAt(0).toUpperCase() + m.sentimiento.slice(1);
+
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => setSelectedMencionId(m.id)}
+                    className="group rounded-md p-3 transition-all duration-200 hover:scale-[1.005] cursor-pointer text-left w-full"
+                    style={{
+                      backgroundColor: '#080808',
+                      border: '1px solid rgba(100,116,139,0.1)',
+                    }}
+                    title="Click para ver detalle completo"
+                  >
+                    {/* Header: medio · persona · sentimiento */}
+                    <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                      {m.medio?.nombre && (
+                        <span
+                          className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded"
+                          style={{
+                            color: '#a855f7',
+                            backgroundColor: 'rgba(168,85,247,0.1)',
+                            border: '1px solid rgba(168,85,247,0.2)',
+                          }}
+                        >
+                          {m.medio.nombre}
+                        </span>
+                      )}
+                      {m.persona?.nombre && (
+                        <span className="text-[10px] font-mono text-slate-300">
+                          {m.persona.nombre}
+                          {m.persona.camara && (
+                            <span className="text-slate-600 ml-1">
+                              ({m.persona.camara})
+                            </span>
+                          )}
+                        </span>
+                      )}
+                      <span
+                        className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ml-auto"
+                        style={{ color: sentColor, backgroundColor: sentBg }}
+                      >
+                        {sentLabel}
+                      </span>
+                    </div>
+
+                    {/* Title */}
+                    {m.titulo && (
+                      <p className="text-[11px] font-mono text-slate-200 font-semibold mb-1 leading-snug">
+                        {m.titulo}
+                      </p>
+                    )}
+
+                    {/* URL */}
+                    {m.url && (
+                      <a
+                        href={m.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        className="inline-flex items-center gap-1 text-[9px] font-mono text-cyan-400 hover:text-cyan-300 transition-colors mb-1 truncate max-w-full"
+                      >
+                        <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">{m.url}</span>
+                      </a>
+                    )}
+
+                    {/* Timestamp + click hint */}
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-[9px] font-mono text-slate-600">
+                        {new Date(m.fechaCaptura).toLocaleString('es-BO', {
+                          timeZone: 'America/La_Paz',
+                        })}
+                      </p>
+                      <span className="text-[8px] font-mono text-slate-700 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                        <Eye className="w-3 h-3" /> VER DETALLE →
+                      </span>
+                    </div>
+
+                    {/* Content snippet */}
+                    {m.contenido && (
+                      <p className="text-[10px] font-mono text-slate-500 leading-relaxed mt-1">
+                        {m.contenido.slice(0, 200)}
+                        {m.contenido.length > 200 ? '...' : ''}
+                      </p>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* VER MAS button */}
+          {menciones.length > 0 && menciones.length < mencionesTotal && (
+            <button
+              onClick={handleLoadMore}
+              disabled={mencionesLoading}
+              className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider transition-all hover:scale-[1.01] disabled:opacity-40"
+              style={{
+                color: '#06b6d4',
+                backgroundColor: 'rgba(6,182,212,0.06)',
+                border: '1px solid rgba(6,182,212,0.15)',
+              }}
+            >
+              {mencionesLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Ver Mas ({mencionesTotal - menciones.length} restantes)
+            </button>
+          )}
+        </PanelShell>
+
+        {/* Detail Modal */}
+        {selectedMencionId && (
+          <MencionDetailModal
+            mencionId={selectedMencionId}
+            onClose={() => setSelectedMencionId(null)}
+          />
+        )}
       </div>
     </div>
   );

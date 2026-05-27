@@ -37,6 +37,12 @@ function isPublicRoute(pathname: string): boolean {
     return true;
   }
 
+  // Archivos estáticos del directorio /public (logo, favicon, etc.)
+  const publicExtensions = ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif', '.ico', '.woff', '.woff2', '.ttf', '.eot'];
+  if (publicExtensions.some(ext => pathname.endsWith(ext))) {
+    return true;
+  }
+
   // Rutas de API públicas
   if (PUBLIC_API_ROUTES.some((route) => pathname === route || pathname.startsWith(route + '/'))) {
     return true;
@@ -104,6 +110,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico).*)',
   ],
 };

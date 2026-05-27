@@ -13,11 +13,12 @@ import { registrarCambio } from '../histogram/tracker'
 import { evaluarFrecuencia } from '../frequency/adapter'
 import type { JobPayload, RunnerResult } from '../types'
 import { extraerTextoDeHtml, extraerMencionesDeTexto, crearMencionesExtraidas } from '@/lib/ai/extractor-menciones'
-import { zaiFetch } from '../fetch/zai-fetcher'
+import { fetchPage } from '../fetch/fetcher'
 import { safeFetch } from '../check-first/safe-fetch'
 import { extraerLinksDeNoticias, extraerLeadDeBloque, type NotaLink } from '../link-extractor'
 import { trijarNotas, type TriajeResult } from '../keyword-triaje'
-import { checkAndBackupDB } from '@/lib/auto-recovery'
+// CRÍTICO: auto-recovery.ts importa fs/path (Node.js). Usamos dynamic import
+// para evitar que Turbopack trace estos módulos al compilar Edge Runtime.
 import { getHtml, clearHtml } from '../html-cache'
 
 // ─── Configuración ───────────────────────────────────────────
@@ -289,10 +290,13 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
     }
 
     // Backup periódico de DB (cada 100 ciclos o 6h)
-    const backup = checkAndBackupDB()
-    if (backup.backed) {
-      console.log(`[scrape-fuente] Backup ejecutado: ${backup.path}`)
-    }
+    try {
+      const { checkAndBackupDB } = await import('@/lib/auto-recovery')
+      const backup = checkAndBackupDB()
+      if (backup.backed) {
+        console.log(`[scrape-fuente] Backup ejecutado: ${backup.path}`)
+      }
+    } catch { /* auto-recovery no disponible */ }
 
     return {
       success: true,
@@ -339,18 +343,11 @@ async function descargarHomepage(url: string): Promise<string> {
     console.warn(`[scrape-fuente] safeFetch homepage falló: ${e instanceof Error ? e.message : e}`)
   }
 
-  // Intento 2: Z.ai page_reader
-  console.log(`[scrape-fuente] Intentando Z.ai para homepage ${url}...`)
-  const zaiResult = await zaiFetch(url)
-  if (zaiResult && zaiResult.html.length > 500) {
-    return zaiResult.html
-  }
-
   return ''
 }
 
 /**
- * Descargar una nota individual (safeFetch → fallback Z.ai)
+ * Descargar una nota individual (safeFetch nativo)
  * FIX: usa safeFetch para manejar certificados TLS rotos
  */
 async function descargarNota(url: string): Promise<string> {
@@ -370,12 +367,6 @@ async function descargarNota(url: string): Promise<string> {
     }
   } catch (e) {
     console.warn(`[scrape-fuente] safeFetch nota falló: ${url} — ${e instanceof Error ? e.message : e}`)
-  }
-
-  // Intento 2: Z.ai page_reader
-  const zaiResult = await zaiFetch(url)
-  if (zaiResult && zaiResult.html.length > 200) {
-    return zaiResult.html
   }
 
   return ''
@@ -418,10 +409,13 @@ async function procesarUrlsDirectas(
   })
 
   // Backup periódico de DB (cada 100 ciclos o 6h)
-  const backup = checkAndBackupDB()
-  if (backup.backed) {
-    console.log(`[scrape-fuente] Backup ejecutado: ${backup.path}`)
-  }
+  try {
+    const { checkAndBackupDB } = await import('@/lib/auto-recovery')
+    const backup = checkAndBackupDB()
+    if (backup.backed) {
+      console.log(`[scrape-fuente] Backup ejecutado: ${backup.path}`)
+    }
+  } catch { /* auto-recovery no disponible */ }
 
   return {
     success: true,
@@ -460,10 +454,13 @@ async function procesarFallbackHomepage(
   })
 
   // Backup periódico de DB (cada 100 ciclos o 6h)
-  const backup = checkAndBackupDB()
-  if (backup.backed) {
-    console.log(`[scrape-fuente] Backup ejecutado: ${backup.path}`)
-  }
+  try {
+    const { checkAndBackupDB } = await import('@/lib/auto-recovery')
+    const backup = checkAndBackupDB()
+    if (backup.backed) {
+      console.log(`[scrape-fuente] Backup ejecutado: ${backup.path}`)
+    }
+  } catch { /* auto-recovery no disponible */ }
 
   return {
     success: true,

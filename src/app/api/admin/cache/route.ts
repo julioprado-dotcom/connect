@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
         let success = false
         try {
           const mod = await import('@/lib/jobs/container-guardian')
-          success = mod.manualDropPageCache()
+          success = await mod.manualDropPageCache()
         } catch { /* guardian no disponible */ }
         resultados.push({
           target: 'page_cache (SO)',

@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { safeError } from '@/lib/rate-guard';
+import { ALL_PRODUCTS } from '@/constants/nav';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -113,9 +114,9 @@ export async function GET() {
         status: alertasNegativas > 5 ? 'error' as const : alertasNegativas > 0 ? 'warn' as const : 'ok' as const,
       },
       indicadores: {
-        activos: totalMenciones, // Refleja menciones capturadas como indicador de actividad
+        activos: indicadoresActivos,
         ultimaEvaluacion,
-        status: totalMenciones > 0 ? 'ok' as const : 'idle' as const,
+        status: indicadoresActivos > 0 ? 'ok' as const : 'idle' as const,
       },
       boletines: {
         entregasHoy: entregasHoyCount,
@@ -129,7 +130,11 @@ export async function GET() {
         status: !ultimoReporte ? 'idle' as const
           : (Date.now() - ultimoReporte.getTime() > 48 * 60 * 60 * 1000) ? 'warn' as const : 'ok' as const,
       },
-      productos: { total: 11, operativos: 4, status: 'ok' as const },
+      productos: {
+        total: ALL_PRODUCTS.length,
+        operativos: ALL_PRODUCTS.filter(p => p.estado === 'operativo').length,
+        status: 'ok' as const,
+      },
       clientes: {
         activos: clientesActivos,
         status: clientesActivos > 0 ? 'ok' as const : 'idle' as const,

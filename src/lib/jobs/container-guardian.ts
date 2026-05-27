@@ -8,7 +8,11 @@
 //   85% → detiene worker + purga TODO + alerta emergency
 // Recupera automáticamente cuando baja a <65%
 
-import fs from 'fs'
+// CRÍTICO: No usar `import fs from 'fs'` aquí — este archivo es importado
+// dinámicamente desde jobs/index.ts (que a su vez viene de instrumentation.ts).
+// Turbopack tracea todas las importaciones estáticas de Node.js (fs, path, os)
+// y lanza warnings de Edge Runtime incluso si el código nunca se ejecuta en Edge.
+// Usamos import('fs') dinámico dentro de funciones para evitar el trace.
 import { GUARDIAN_CONFIG } from './constants'
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -68,8 +72,9 @@ function createInitialStatus(): GuardianStatus {
 
 // ── cgroup Reader ────────────────────────────────────────────────────
 
-function readCgroup(): { usageMB: number; limitMB: number; pct: number } | null {
+async function readCgroup(): Promise<{ usageMB: number; limitMB: number; pct: number } | null> {
   try {
+    const fs = await import('fs')
     const limit = parseInt(fs.readFileSync('/sys/fs/cgroup/memory/memory.limit_in_bytes', 'utf-8').trim(), 10)
     const usage = parseInt(fs.readFileSync('/sys/fs/cgroup/memory/memory.usage_in_bytes', 'utf-8').trim(), 10)
     if (limit > 0) {
@@ -85,8 +90,9 @@ function readCgroup(): { usageMB: number; limitMB: number; pct: number } | null 
 
 // ── Page Cache Drop ──────────────────────────────────────────────────
 
-function dropPageCache(): boolean {
+async function dropPageCache(): Promise<boolean> {
   try {
+    const fs = await import('fs')
     fs.writeFileSync('/proc/sys/vm/drop_caches', '3', 'utf-8')
     return true
   } catch {
@@ -255,7 +261,7 @@ async function tick(): Promise<void> {
     case 'warn':
       // 70%: drop page cache + purge .next/dev
       console.warn(`[Guardian] WARN: Contenedor a ${cgroup.pct}% — ejecutando drop_caches + purge`)
-      const dropped = dropPageCache()
+      const dropped = await dropPageCache()
       const purged = purgeNextDevCache()
       snapshot.action = 'drop_pagecache'
       snapshot.message = `Page cache liberado: ${dropped ? 'OK' : 'FALLÓ'}. Purge .next: ${purged} MB`
@@ -273,7 +279,7 @@ async function tick(): Promise<void> {
         console.log(`[Guardian] ${snapshot.message}`)
       }
       // También drop caches
-      dropPageCache()
+      await dropPageCache()
       purgeNextDevCache()
       recordAction(snapshot)
       break
@@ -289,7 +295,7 @@ async function tick(): Promise<void> {
         snapshot.message = `EMERGENCY #${status.emergencyCount}: Worker y scheduler detenidos. Contenedor: ${cgroup.pct}%`
         console.error(`[Guardian] ${snapshot.message}`)
       }
-      dropPageCache()
+      await dropPageCache()
       recordAction(snapshot)
       break
   }
@@ -338,8 +344,8 @@ export function getGuardianStatus(): GuardianStatus {
  * Ejecutar drop_caches manualmente desde API.
  * Retorna true si tuvo éxito.
  */
-export function manualDropPageCache(): boolean {
-  const result = dropPageCache()
+export async function manualDropPageCache(): Promise<boolean> {
+  const result = await dropPageCache()
   if (result) {
     const snapshot: GuardianSnapshot = {
       timestamp: new Date().toISOString(),

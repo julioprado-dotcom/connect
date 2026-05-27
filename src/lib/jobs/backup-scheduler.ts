@@ -9,15 +9,14 @@
 //   12:00 PM (mediodía) → UTC 16:00
 //   18:00 PM (tarde)    → UTC 22:00
 //   23:00 PM (noche)    → UTC 03:00
-
-import cron from 'node-cron'
-import { execSync } from 'child_process'
-import path from 'path'
-import fs from 'fs'
+//
+// CRÍTICO: No hay imports estáticos de Node.js (fs, path, child_process, node-cron).
+// Todo se importa dinámicamente dentro de funciones para evitar que Turbopack
+// trace estos módulos al compilar instrumentation.ts para Edge Runtime.
 
 interface BackupSchedulerState {
   running: boolean
-  tasks: ReturnType<typeof cron.schedule>[]
+  tasks: { stop: () => void }[]  // cron.ScheduledTask solo usa .stop()
   lastBackup: string | null
   backupCount: number
 }
@@ -36,11 +35,6 @@ function getBackupState(): BackupSchedulerState {
   return _bs.__decodex_backup_scheduler__
 }
 
-// Rutas
-const PROJECT_ROOT = process.cwd()
-const SCRIPT_PATH = path.join(PROJECT_ROOT, 'scripts', 'backup-db-github.sh')
-const DB_PATH = path.join(PROJECT_ROOT, 'prisma', 'db', 'custom.db')
-
 // Horarios de backup (horas UTC = Bolivia -4) — 4 veces al día
 const BACKUP_SCHEDULES: { utcHour: number; periodo: string }[] = [
   { utcHour: 9,  periodo: '05-mañana' },   // Bolivia 05:00 AM
@@ -52,12 +46,22 @@ const BACKUP_SCHEDULES: { utcHour: number; periodo: string }[] = [
 // Lock para evitar backups simultáneos
 let backupInProgress = false
 
-export function startBackupScheduler(): void {
+export async function startBackupScheduler(): Promise<void> {
   const state = getBackupState()
   if (state.running) {
     console.log('[BackupScheduler] Ya está corriendo')
     return
   }
+
+  // Dynamic imports — solo se resuelven en Node.js runtime
+  const cron = await import('node-cron')
+  const path = await import('path')
+  const fs = await import('fs')
+
+  const PROJECT_ROOT = process.cwd()
+  const SCRIPT_PATH = path.join(PROJECT_ROOT, 'scripts', 'backup-db-github.sh')
+  const DB_PATH = path.join(PROJECT_ROOT, 'prisma', 'db', 'custom.db')
+
   state.running = true
 
   console.log('[BackupScheduler] Iniciando backup automático 4x/día a GitHub...')
@@ -78,8 +82,13 @@ export function startBackupScheduler(): void {
       }
 
       // Verificar que la DB exista
-      if (!fs.existsSync(DB_PATH) || fs.statSync(DB_PATH).size === 0) {
-        console.warn(`[BackupScheduler] DB no encontrada o vacía: ${DB_PATH}`)
+      try {
+        if (!fs.existsSync(DB_PATH) || fs.statSync(DB_PATH).size === 0) {
+          console.warn(`[BackupScheduler] DB no encontrada o vacía: ${DB_PATH}`)
+          return
+        }
+      } catch {
+        console.warn(`[BackupScheduler] No se pudo verificar DB: ${DB_PATH}`)
         return
       }
 
@@ -88,6 +97,9 @@ export function startBackupScheduler(): void {
         const startMs = Date.now()
 
         console.log(`[BackupScheduler] Ejecutando backup ${schedule.periodo}...`)
+
+        // Dynamic import de child_process
+        const { execSync } = await import('child_process')
 
         // Ejecutar script de backup
         execSync(`bash "${SCRIPT_PATH}" --force`, {

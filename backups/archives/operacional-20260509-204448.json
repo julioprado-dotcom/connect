@@ -1,0 +1,294 @@
+{
+  "domain": "operacional",
+  "timestamp": "20260509-204448",
+  "tablas": {
+    "Mencion": [
+      {
+        "id": "cmoyysxrt0058jq942g38jba0",
+        "personaId": null,
+        "medioId": "cmoyxdqtu002hjq94134shxxh",
+        "titulo": "Bolivia Verifica &#8211; Somos un medio digital independiente sin fines de lucro ni tendencia política que se dedica a la verificación de informaciòn falsa (fake news) y del discurso público para luchar contra la desinformación y mejorar la participación democrática. Chatbot Olivia +591 62352290.",
+        "texto": "El Laboratorio de la UMSA detectó niveles críticos de goma en muestras recientes de gasolina. El análisis se realizó en el marco de un proyecto de investigación sobre calidad de combustibles. El halla",
+        "url": "https://boliviaverifica.bo",
+        "fechaPublicacion": null,
+        "fechaCaptura": "2026-05-09T23:18:13.241Z",
+        "tipoMencion": "referencia_tematica",
+        "temas": "gasolina, calidad de combustibles, umsa, refinación",
+        "reach": 0,
+        "verificado": false,
+        "fechaCreacion": "2026-05-09T23:18:13.241Z",
+        "enlaceActivo": true,
+        "fechaVerificacion": null,
+        "textoCompleto": "El Laboratorio de la UMSA detectó niveles críticos de goma en muestras recientes de gasolina. El análisis se realizó en el marco de un proyecto de investigación sobre calidad de combustibles. El halla",
+        "comentariosCount": 0,
+        "comentariosResumen": "",
+        "sentimiento": "tratamiento_informativo",
+        "tratamientoPeriodistico": "tratamiento_informativo",
+        "confianzaClasificacion": "alta",
+        "preguntasFundamentales": {
+          "que": "El Laboratorio de la UMSA detectó niveles críticos de goma en muestras recientes de gasolina",
+          "quien": {
+            "declara": "Laboratorio de la UMSA",
+            "afectado_directo": null,
+            "mencionados": []
+          },
+          "cuando": "08-05-2026",
+          "como": "Análisis de muestras de gasolina",
+          "por_que": "Problemas en la refinación o almacenamiento de combustibles",
+          "para_que": {
+            "actor": null,
+            "medio": "Informar sobre un hallazgo científico relacionado con la calidad de combustibles",
+            "confianza": "alta"
+          },
+          "a_quienes_afecta": {
+            "directos": [],
+            "indirectos": [
+              "consumidores de gasolina"
+            ],
+            "potenciales": [
+              "sector automotriz",
+              "transportistas"
+            ],
+            "mencionados_en_texto": false
+          },
+          "donde": "Bolivia"
+        },
+        "esDuplicado": false,
+        "mencionOriginalId": null,
+        "mediosRelacionados": null,
+        "eventoId": null,
+        "coberturasAdicionales": null,
+        "deduplicacionLog": null,
+        "intencionMedio": "informativa"
+      }
+    ],
+    "MencionTema": [
+      {
+        "id": "cmoyysxru005ajq94t6616pez",
+        "mencionId": "cmoyysxrt0058jq942g38jba0",
+        "ejeTematicoId": "cmoyxdqrt000hjq94vxwe9pjg"
+      },
+      {
+        "id": "cmoyysxrv005cjq9498v3a15h",
+        "mencionId": "cmoyysxrt0058jq942g38jba0",
+        "ejeTematicoId": "cmoyxdqqv0000jq947lgkab5i"
+      }
+    ],
+    "CapturaLog": [
+      {
+        "id": "cmoyysxrw005ejq948e648frd",
+        "fecha": "2026-05-09T23:18:13.244Z",
+        "medioId": "cmoyxdqtu002hjq94134shxxh",
+        "nivel": "1",
+        "totalArticulos": 1,
+        "mencionesEncontradas": 1,
+        "exitosa": true,
+        "errores": ""
+      },
+      {
+        "id": "cmoyywiag005mjq94mn7cgzcz",
+        "fecha": "2026-05-09T23:20:59.800Z",
+        "medioId": "cmoyxdqtp002cjq94j5dv3v7b",
+        "nivel": "1",
+        "totalArticulos": 0,
+        "mencionesEncontradas": 0,
+        "exitosa": false,
+        "errores": "fetch failed"
+      }
+    ],
+    "Job": [
+      {
+        "id": "cmoyypmcq0051jq94318alz6i",
+        "tipo": "check_fuente",
+        "prioridad": 0,
+        "estado": "completado",
+        "payload": "{\"fuenteId\":\"cmoyyphxj0048jq94v9v5rpce\",\"medioId\":\"cmoyxdqu0002ojq94ar9ct7nw\"}",
+        "resultado": "{\"cambiado\":false,\"fuenteId\":\"cmoyyphxj0048jq94v9v5rpce\",\"medioId\":\"cmoyxdqu0002ojq94ar9ct7nw\",\"tecnica\":\"rss\",\"detalle\":\"Feed vacio o no parseable (xml=144323b, items=0, entries=0) [3277ms]\",\"responseTime\":3277,\"tipoCheckUsado\":\"rss\",\"estrategiasProbadas\":[{\"estrategia\":\"rss\",\"exito\":true,\"detalle\":\"Feed vacio o no parseable (xml=144323b, items=0, entries=0) [3277ms]\"}]}",
+        "error": "",
+        "intentos": 1,
+        "maxIntentos": 3,
+        "fechaCreacion": "2026-05-09T23:15:38.475Z",
+        "fechaInicio": "2026-05-09T23:15:41.429Z",
+        "fechaFin": "2026-05-09T23:15:44.716Z",
+        "proximaEjecucion": "2026-05-09T23:15:38.473Z",
+        "programa": ""
+      },
+      {
+        "id": "cmoyyqgge0052jq94jqqk8dz3",
+        "tipo": "check_fuente",
+        "prioridad": 0,
+        "estado": "completado",
+        "payload": "{\"fuenteId\":\"cmoyyphxk004ajq946nq9qa11\",\"medioId\":\"cmoyxdqtt002gjq94zjskuc3i\"}",
+        "resultado": "{\"cambiado\":false,\"fuenteId\":\"cmoyyphxk004ajq946nq9qa11\",\"medioId\":\"cmoyxdqtt002gjq94zjskuc3i\",\"tecnica\":\"rss\",\"detalle\":\"Error: fetch failed\",\"responseTime\":6,\"tipoCheckUsado\":\"rss\",\"estrategiasProbadas\":[{\"estrategia\":\"rss\",\"exito\":true,\"detalle\":\"Error: fetch failed\"}]}",
+        "error": "",
+        "intentos": 1,
+        "maxIntentos": 3,
+        "fechaCreacion": "2026-05-09T23:16:17.486Z",
+        "fechaInicio": "2026-05-09T23:16:21.874Z",
+        "fechaFin": "2026-05-09T23:16:21.885Z",
+        "proximaEjecucion": "2026-05-09T23:16:17.485Z",
+        "programa": ""
+      },
+      {
+        "id": "cmoyyr88o0053jq94epttzmsv",
+        "tipo": "check_fuente",
+        "prioridad": 0,
+        "estado": "completado",
+        "payload": "{\"fuenteId\":\"cmoyyphxm004cjq94czpjf18q\",\"medioId\":\"cmoyxdqtz002mjq94ug5p9awz\"}",
+        "resultado": "{\"cambiado\":false,\"fuenteId\":\"cmoyyphxm004cjq94czpjf18q\",\"medioId\":\"cmoyxdqtz002mjq94ug5p9awz\",\"tecnica\":\"rss\",\"detalle\":\"HTTP 301: Moved Permanently [1418ms]\",\"responseTime\":1418,\"tipoCheckUsado\":\"rss\",\"estrategiasProbadas\":[{\"estrategia\":\"rss\",\"exito\":true,\"detalle\":\"HTTP 301: Moved Permanently [1418ms]\"}]}",
+        "error": "",
+        "intentos": 1,
+        "maxIntentos": 3,
+        "fechaCreacion": "2026-05-09T23:16:53.496Z",
+        "fechaInicio": "2026-05-09T23:16:54.162Z",
+        "fechaFin": "2026-05-09T23:16:55.585Z",
+        "proximaEjecucion": "2026-05-09T23:16:53.495Z",
+        "programa": ""
+      },
+      {
+        "id": "cmoyyrxpn0054jq94l4166h0c",
+        "tipo": "check_fuente",
+        "prioridad": 0,
+        "estado": "completado",
+        "payload": "{\"fuenteId\":\"cmoyyphxn004ejq94nym9gcvk\",\"medioId\":\"cmoyxdqu0002njq94zknep9vj\"}",
+        "resultado": "{\"cambiado\":false,\"fuenteId\":\"cmoyyphxn004ejq94nym9gcvk\",\"medioId\":\"cmoyxdqu0002njq94zknep9vj\",\"tecnica\":\"rss\",\"detalle\":\"Error: fetch failed\",\"responseTime\":7,\"tipoCheckUsado\":\"rss\",\"estrategiasProbadas\":[{\"estrategia\":\"rss\",\"exito\":true,\"detalle\":\"Error: fetch failed\"}]}",
+        "error": "",
+        "intentos": 1,
+        "maxIntentos": 3,
+        "fechaCreacion": "2026-05-09T23:17:26.507Z",
+        "fechaInicio": "2026-05-09T23:17:27.800Z",
+        "fechaFin": "2026-05-09T23:17:27.811Z",
+        "proximaEjecucion": "2026-05-09T23:17:26.506Z",
+        "programa": ""
+      },
+      {
+        "id": "cmoyysn6k0055jq94nui8axkd",
+        "tipo": "check_fuente",
+        "prioridad": 0,
+        "estado": "completado",
+        "payload": "{\"fuenteId\":\"cmoyyphxo004gjq945t43v5o9\",\"medioId\":\"cmoyxdqtu002hjq94134shxxh\"}",
+        "resultado": "{\"cambiado\":true,\"fuenteId\":\"cmoyyphxo004gjq945t43v5o9\",\"medioId\":\"cmoyxdqtu002hjq94134shxxh\",\"tecnica\":\"head\",\"detalle\":\"Primera verificacion, sin cache previo [951ms]\",\"responseTime\":951,\"tipoCheckUsado\":\"head\",\"scrapeEncolado\":true,\"estrategiasProbadas\":[{\"estrategia\":\"head\",\"exito\":true,\"detalle\":\"Primera verificacion, sin cache previo [951ms]\"}]}",
+        "error": "",
+        "intentos": 1,
+        "maxIntentos": 3,
+        "fechaCreacion": "2026-05-09T23:17:59.516Z",
+        "fechaInicio": "2026-05-09T23:18:00.318Z",
+        "fechaFin": "2026-05-09T23:18:01.278Z",
+        "proximaEjecucion": "2026-05-09T23:17:59.515Z",
+        "programa": ""
+      },
+      {
+        "id": "cmoyysojh0056jq94t83821ma",
+        "tipo": "scrape_fuente",
+        "prioridad": 1,
+        "estado": "completado",
+        "payload": "{\"fuenteId\":\"cmoyyphxo004gjq945t43v5o9\",\"medioId\":\"cmoyxdqtu002hjq94134shxxh\"}",
+        "resultado": "{\"fuenteId\":\"cmoyyphxo004gjq945t43v5o9\",\"medioId\":\"cmoyxdqtu002hjq94134shxxh\",\"medioNombre\":\"Bolivia Verifica\",\"urlsProcesadas\":1,\"totalMencionesCreadas\":1,\"resultados\":[{\"url\":\"https://boliviaverifica.bo\",\"status\":200,\"titulo\":\"Bolivia Verifica &#8211; Somos un medio digital independiente sin fines de lucro ni tendencia política que se dedica a la verificación de informaciòn falsa (fake news) y del discurso público para luchar contra la desinformación y mejorar la participación democrática. Chatbot Olivia +591 62352290.\",\"menciones\":1}],\"responseTime\":9908}",
+        "error": "",
+        "intentos": 1,
+        "maxIntentos": 3,
+        "fechaCreacion": "2026-05-09T23:18:01.278Z",
+        "fechaInicio": "2026-05-09T23:18:03.335Z",
+        "fechaFin": "2026-05-09T23:18:13.249Z",
+        "proximaEjecucion": "2026-05-09T23:18:01.277Z",
+        "programa": ""
+      },
+      {
+        "id": "cmoyytcp0005fjq94aw77wb37",
+        "tipo": "check_fuente",
+        "prioridad": 0,
+        "estado": "completado",
+        "payload": "{\"fuenteId\":\"cmoyyphxp004ijq94fxeu7uvg\",\"medioId\":\"cmoyxdqto002bjq94uj3l3xt1\"}",
+        "resultado": "{\"cambiado\":false,\"fuenteId\":\"cmoyyphxp004ijq94fxeu7uvg\",\"medioId\":\"cmoyxdqto002bjq94uj3l3xt1\",\"tecnica\":\"head\",\"detalle\":\"Error: fetch failed\",\"responseTime\":8,\"tipoCheckUsado\":\"head\",\"estrategiasProbadas\":[{\"estrategia\":\"head\",\"exito\":true,\"detalle\":\"Error: fetch failed\"}]}",
+        "error": "",
+        "intentos": 1,
+        "maxIntentos": 3,
+        "fechaCreacion": "2026-05-09T23:18:32.581Z",
+        "fechaInicio": "2026-05-09T23:18:35.730Z",
+        "fechaFin": "2026-05-09T23:18:35.741Z",
+        "proximaEjecucion": "2026-05-09T23:18:32.579Z",
+        "programa": ""
+      },
+      {
+        "id": "cmoyyu4hb005gjq94yam956si",
+        "tipo": "check_fuente",
+        "prioridad": 0,
+        "estado": "completado",
+        "payload": "{\"fuenteId\":\"cmoyyphxr004kjq94weqvkbeo\",\"medioId\":\"cmoyxdqtr002djq94w991nrpy\"}",
+        "resultado": "{\"cambiado\":false,\"fuenteId\":\"cmoyyphxr004kjq94weqvkbeo\",\"medioId\":\"cmoyxdqtr002djq94w991nrpy\",\"tecnica\":\"head\",\"detalle\":\"Error: fetch failed\",\"responseTime\":6,\"tipoCheckUsado\":\"head\",\"estrategiasProbadas\":[{\"estrategia\":\"head\",\"exito\":true,\"detalle\":\"Error: fetch failed\"}]}",
+        "error": "",
+        "intentos": 1,
+        "maxIntentos": 3,
+        "fechaCreacion": "2026-05-09T23:19:08.591Z",
+        "fechaInicio": "2026-05-09T23:19:12.812Z",
+        "fechaFin": "2026-05-09T23:19:12.822Z",
+        "proximaEjecucion": "2026-05-09T23:19:08.590Z",
+        "programa": ""
+      },
+      {
+        "id": "cmoyyuw9h005hjq94x0sj90a6",
+        "tipo": "check_fuente",
+        "prioridad": 0,
+        "estado": "completado",
+        "payload": "{\"fuenteId\":\"cmoyyphxs004mjq94qgzepyvn\",\"medioId\":\"cmoyxdqtv002ijq945vygkolc\"}",
+        "resultado": "{\"cambiado\":false,\"fuenteId\":\"cmoyyphxs004mjq94qgzepyvn\",\"medioId\":\"cmoyxdqtv002ijq945vygkolc\",\"tecnica\":\"head\",\"detalle\":\"HTTP 403: Forbidden [30ms]\",\"responseTime\":30,\"tipoCheckUsado\":\"head\",\"estrategiasProbadas\":[{\"estrategia\":\"head\",\"exito\":true,\"detalle\":\"HTTP 403: Forbidden [30ms]\"}]}",
+        "error": "",
+        "intentos": 1,
+        "maxIntentos": 3,
+        "fechaCreacion": "2026-05-09T23:19:44.598Z",
+        "fechaInicio": "2026-05-09T23:19:44.926Z",
+        "fechaFin": "2026-05-09T23:19:44.960Z",
+        "proximaEjecucion": "2026-05-09T23:19:44.596Z",
+        "programa": ""
+      },
+      {
+        "id": "cmoyyvlqh005ijq94bbv3z2l8",
+        "tipo": "check_fuente",
+        "prioridad": 0,
+        "estado": "completado",
+        "payload": "{\"fuenteId\":\"cmoyyphxt004ojq943dnk49ma\",\"medioId\":\"cmoyxdqtn002ajq94psxkao5h\"}",
+        "resultado": "{\"cambiado\":false,\"fuenteId\":\"cmoyyphxt004ojq943dnk49ma\",\"medioId\":\"cmoyxdqtn002ajq94psxkao5h\",\"tecnica\":\"head\",\"detalle\":\"HTTP 403: Forbidden [98ms]\",\"responseTime\":98,\"tipoCheckUsado\":\"head\",\"estrategiasProbadas\":[{\"estrategia\":\"head\",\"exito\":true,\"detalle\":\"HTTP 403: Forbidden [98ms]\"}]}",
+        "error": "",
+        "intentos": 1,
+        "maxIntentos": 3,
+        "fechaCreacion": "2026-05-09T23:20:17.609Z",
+        "fechaInicio": "2026-05-09T23:20:22.141Z",
+        "fechaFin": "2026-05-09T23:20:22.244Z",
+        "proximaEjecucion": "2026-05-09T23:20:17.609Z",
+        "programa": ""
+      },
+      {
+        "id": "cmoyywdjb005jjq94t96wntlm",
+        "tipo": "check_fuente",
+        "prioridad": 0,
+        "estado": "completado",
+        "payload": "{\"fuenteId\":\"cmoyyphxu004qjq94705hzjjj\",\"medioId\":\"cmoyxdqtp002cjq94j5dv3v7b\"}",
+        "resultado": "{\"cambiado\":true,\"fuenteId\":\"cmoyyphxu004qjq94705hzjjj\",\"medioId\":\"cmoyxdqtp002cjq94j5dv3v7b\",\"tecnica\":\"head\",\"detalle\":\"Primera verificacion, sin cache previo [2149ms]\",\"responseTime\":2149,\"tipoCheckUsado\":\"head\",\"scrapeEncolado\":true,\"estrategiasProbadas\":[{\"estrategia\":\"head\",\"exito\":true,\"detalle\":\"Primera verificacion, sin cache previo [2149ms]\"}]}",
+        "error": "",
+        "intentos": 1,
+        "maxIntentos": 3,
+        "fechaCreacion": "2026-05-09T23:20:53.640Z",
+        "fechaInicio": "2026-05-09T23:20:54.454Z",
+        "fechaFin": "2026-05-09T23:20:56.609Z",
+        "proximaEjecucion": "2026-05-09T23:20:53.639Z",
+        "programa": ""
+      },
+      {
+        "id": "cmoyywfts005kjq94zo77nd5l",
+        "tipo": "scrape_fuente",
+        "prioridad": 1,
+        "estado": "completado",
+        "payload": "{\"fuenteId\":\"cmoyyphxu004qjq94705hzjjj\",\"medioId\":\"cmoyxdqtp002cjq94j5dv3v7b\"}",
+        "resultado": "{\"fuenteId\":\"cmoyyphxu004qjq94705hzjjj\",\"medioId\":\"cmoyxdqtp002cjq94j5dv3v7b\",\"medioNombre\":\"Los Tiempos\",\"urlsProcesadas\":1,\"totalMencionesCreadas\":0,\"resultados\":[{\"url\":\"https://lostiempos.com\",\"status\":0,\"titulo\":\"\",\"menciones\":0}],\"responseTime\":653}",
+        "error": "",
+        "intentos": 1,
+        "maxIntentos": 3,
+        "fechaCreacion": "2026-05-09T23:20:56.609Z",
+        "fechaInicio": "2026-05-09T23:20:59.147Z",
+        "fechaFin": "2026-05-09T23:20:59.805Z",
+        "proximaEjecucion": "2026-05-09T23:20:56.608Z",
+        "programa": ""
+      }
+    ]
+  }
+}

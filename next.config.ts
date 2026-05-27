@@ -18,7 +18,7 @@ const nextConfig: NextConfig = {
     formats: ['image/avif', 'image/webp'],
   },
 
-  serverExternalPackages: ['@prisma/client', 'better-sqlite3'],
+  serverExternalPackages: ['@prisma/client', 'better-sqlite3', 'node-cron'],
 
   experimental: {
     optimizePackageImports: [

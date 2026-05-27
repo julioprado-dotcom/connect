@@ -5,7 +5,6 @@
  */
 
 // CRÍTICO: instrumentation DEBE correr en Node.js runtime, no Edge Runtime.
-// Sin esto, fs/path/child_process fallan y el scheduler/jobs nunca inician.
 export const runtime = 'nodejs';
 
 export async function register() {
@@ -21,11 +20,10 @@ export async function register() {
   try {
     const { initJobSystem, activateProductiveMode } = await import('@/lib/jobs');
 
-    // Fase 1: Inicializar en modo IDLE (registra runners, worker polling)
+    // Fase 1: Inicializar en modo IDLE
     await initJobSystem();
 
     // Fase 2: Activar modo productivo después de warmup
-    // Esperar a que Next.js termine de compilar rutas
     setTimeout(async () => {
       try {
         await activateProductiveMode();

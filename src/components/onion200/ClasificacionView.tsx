@@ -11,9 +11,11 @@ import {
   Inbox,
   RefreshCw,
   Play,
+  Eye,
 } from 'lucide-react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 import { PanelShell } from './VitalMonitor';
+import { MencionDetailModal } from './LiveFeed';
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -51,6 +53,7 @@ export function ClasificacionView() {
   const [error, setError] = useState<string | null>(null);
   const [batchSize, setBatchSize] = useState(1);
   const [classifyingId, setClassifyingId] = useState<string | null>(null);
+  const [selectedMencionId, setSelectedMencionId] = useState<string | null>(null);
 
   const fetchPendientes = useCallback(async () => {
     try {
@@ -308,13 +311,15 @@ export function ClasificacionView() {
           ) : (
             <div className="space-y-1 max-h-[500px] overflow-y-auto custom-scrollbar pr-1">
               {menciones.map((m, i) => (
-                <div
+                <button
                   key={m.id}
-                  className="group rounded-md px-3 py-2 transition-all duration-200"
+                  onClick={() => setSelectedMencionId(m.id)}
+                  className="group rounded-md px-3 py-2 transition-all duration-200 cursor-pointer text-left w-full hover:scale-[1.005]"
                   style={{
                     background: i === 0 ? 'rgba(6,182,212,0.04)' : 'rgba(255,255,255,0.01)',
                     border: `1px solid ${i === 0 ? 'rgba(6,182,212,0.1)' : 'rgba(255,255,255,0.03)'}`,
                   }}
+                  title="Click para ver detalle completo"
                 >
                   <div className="flex items-center gap-2 mb-1">
                     {m.Persona?.nombre ? (
@@ -331,8 +336,11 @@ export function ClasificacionView() {
                     <span className="text-[10px] font-mono text-slate-500 truncate max-w-[100px]">
                       {m.Medio?.nombre || 'N/A'}
                     </span>
-                      <button
-                      onClick={() => handleClasificarIndividual(m.id)}
+                    <span className="text-[8px] font-mono text-slate-700 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                      <Eye className="w-3 h-3" /> VER →
+                    </span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleClasificarIndividual(m.id); }}
                       disabled={classifyingId === m.id || classifying}
                       className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider transition-all hover:bg-cyan-500/10 disabled:opacity-30"
                       style={{ color: classifyingId === m.id ? '#06b6d4' : '#64748b', border: '1px solid rgba(6,182,212,0.12)' }}
@@ -347,7 +355,7 @@ export function ClasificacionView() {
                   <p className="text-[11px] text-slate-400 font-mono leading-snug line-clamp-2">
                     {m.titulo || m.texto?.slice(0, 100) || 'Sin texto'}
                   </p>
-                </div>
+                </button>
               ))}
               {totalPendientes > menciones.length && (
                 <p className="text-center text-[9px] font-mono text-slate-700 py-2">
@@ -355,6 +363,14 @@ export function ClasificacionView() {
                 </p>
               )}
             </div>
+          )}
+
+          {/* Detail Modal */}
+          {selectedMencionId && (
+            <MencionDetailModal
+              mencionId={selectedMencionId}
+              onClose={() => setSelectedMencionId(null)}
+            />
           )}
         </PanelShell>
       </div>
