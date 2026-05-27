@@ -635,7 +635,7 @@ export function ProduccionView() {
 
       try {
         if (paramModalTipo === 'EL_FOCO') {
-          const res = await fetchWithTimeout('/api/ejes-tematicos', { timeoutMs: 6000 });
+          const res = await fetchWithTimeout('/api/ejes', { timeoutMs: 6000 });
           if (res.ok) {
             const json = await res.json();
             setEjes(Array.isArray(json) ? json : json.ejes || json.data || []);

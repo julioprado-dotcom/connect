@@ -57,13 +57,13 @@ export async function GET() {
         const rawTotal = await db.$queryRawUnsafe<{ c: bigint }[]>('SELECT COUNT(*) as c FROM Mencion');
         total = Number(rawTotal[0]?.c || 0);
 
-        const rawHoy = await db.$queryRawUnsafe<{ c: bigint }[]>(`SELECT COUNT(*) as c FROM Mencion WHERE fechaCaptura >= '${hoyISO}' AND fechaCaptura < '${mananaISO}'`);
+        const rawHoy = await db.$queryRaw<{ c: bigint }[]>`SELECT COUNT(*) as c FROM Mencion WHERE fechaCaptura >= ${hoyISO} AND fechaCaptura < ${mananaISO}`;
         hoyCount = Number(rawHoy[0]?.c || 0);
 
-        const rawAyer = await db.$queryRawUnsafe<{ c: bigint }[]>(`SELECT COUNT(*) as c FROM Mencion WHERE fechaCaptura >= '${ayerISO}' AND fechaCaptura < '${hoyISO}'`);
+        const rawAyer = await db.$queryRaw<{ c: bigint }[]>`SELECT COUNT(*) as c FROM Mencion WHERE fechaCaptura >= ${ayerISO} AND fechaCaptura < ${hoyISO}`;
         ayerCount = Number(rawAyer[0]?.c || 0);
 
-        const rawSemana = await db.$queryRawUnsafe<{ c: bigint }[]>(`SELECT COUNT(*) as c FROM Mencion WHERE fechaCaptura >= '${semanaISO}'`);
+        const rawSemana = await db.$queryRaw<{ c: bigint }[]>`SELECT COUNT(*) as c FROM Mencion WHERE fechaCaptura >= ${semanaISO}`;
         semanaCount = Number(rawSemana[0]?.c || 0);
       } catch (e) {
         console.error('[menciones-summary] Raw SQL fallback error:', e);
@@ -81,7 +81,14 @@ export async function GET() {
     }> = [];
 
     try {
-      const rows = await db.$queryRawUnsafe<any[]>(`
+      const rows = await db.$queryRaw<Array<{
+        id: string;
+        titulo: string;
+        fechaCaptura: string;
+        tratamientoPeriodistico: string | null;
+        personaNombre: string | null;
+        medioNombre: string;
+      }>>`
         SELECT 
           m.id, m.titulo, m.fechaCaptura, m.tratamientoPeriodistico,
           p.nombre as personaNombre,
@@ -91,7 +98,7 @@ export async function GET() {
         LEFT JOIN Medio md ON md.id = m.medioId
         ORDER BY m.rowid DESC
         LIMIT 10
-      `);
+      `;
       ultimas = rows.map((r: any) => ({
         id: r.id,
         titulo: r.titulo || '',

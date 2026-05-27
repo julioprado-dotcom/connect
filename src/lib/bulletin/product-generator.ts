@@ -3,6 +3,7 @@
 // Delega la config de productos a constants/products.ts
 
 import db from '@/lib/db'
+import { Prisma } from '@prisma/client'
 import type { TipoBoletin, ProductoConfig } from '@/types/bulletin'
 import { PRODUCTOS } from '@/constants/products'
 
@@ -28,18 +29,17 @@ export async function getMencionesForBulletin(
   // Workaround: obtener IDs con raw SQL y luego findMany con id IN.
   const inicioStr = fechaInicio.toISOString();
   const finStr = fechaFin.toISOString();
-  const personaFilter = options.personaId ? `AND m.personaId = '${options.personaId}'` : '';
-  const sql = [
-    'SELECT DISTINCT m.id FROM Mencion m',
-    'WHERE m.esDuplicado = 0',
-    '  AND (',
-    `    (m.fechaPublicacion IS NOT NULL AND m.fechaPublicacion >= '${inicioStr}' AND m.fechaPublicacion < '${finStr}')`,
-    '    OR',
-    `    (m.fechaPublicacion IS NULL AND m.fechaCaptura >= '${inicioStr}' AND m.fechaCaptura < '${finStr}')`,
-    '  )',
-    personaFilter,
-  ].join('\n');
-  const idsRaw = await db.$queryRawUnsafe<Array<{ id: string }>>(sql)
+  const sql = Prisma.sql`
+    SELECT DISTINCT m.id FROM Mencion m
+    WHERE m.esDuplicado = 0
+      AND (
+        (m.fechaPublicacion IS NOT NULL AND m.fechaPublicacion >= ${inicioStr} AND m.fechaPublicacion < ${finStr})
+        OR
+        (m.fechaPublicacion IS NULL AND m.fechaCaptura >= ${inicioStr} AND m.fechaCaptura < ${finStr})
+      )
+      ${options.personaId ? Prisma.sql`AND m.personaId = ${options.personaId}` : Prisma.sql``}
+  `;
+  const idsRaw = await db.$queryRaw<Array<{ id: string }>>(sql)
   const mencionesIds = idsRaw.map(r => r.id);
 
   // Filtrar por ejes tematicos si se piden (post-filter sobre los IDs)
