@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { safeError } from '@/lib/rate-guard';
+import { guardError } from '@/lib/rate-guard';
 import { scrapingState } from '@/lib/scraping-state';
 
 export async function GET() {
@@ -278,6 +278,6 @@ export async function GET() {
       },
     });
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'stats') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'stats') }, { status: 500 });
   }
 }

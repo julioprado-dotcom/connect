@@ -14,7 +14,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
-import { PanelShell } from './VitalMonitor';
+import { PanelShell } from './PanelShell';
 import { MencionDetailModal } from './LiveFeed';
 
 // ═══════════════════════════════════════════════════════════════

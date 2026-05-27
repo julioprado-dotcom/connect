@@ -5,7 +5,7 @@
  */
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { safeError } from '@/lib/rate-guard';
+import { guardError } from '@/lib/rate-guard';
 import { ALL_PRODUCTS } from '@/constants/nav';
 
 export const dynamic = 'force-dynamic';
@@ -179,6 +179,6 @@ export async function GET() {
       },
     });
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'dashboard-summary') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'dashboard-summary') }, { status: 500 });
   }
 }

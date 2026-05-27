@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { safeError } from '@/lib/rate-guard';
+import { guardError } from '@/lib/rate-guard';
 
 /**
  * Validación SSRF: verifica que una URL no apunte a recursos internos.
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
       detalles,
     });
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'verify-links') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'verify-links') }, { status: 500 });
   }
 }
 
@@ -209,6 +209,6 @@ export async function GET() {
       recientes,
     });
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'verify-links') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'verify-links') }, { status: 500 });
   }
 }

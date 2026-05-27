@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { safeError } from '@/lib/rate-guard';
+import { guardError } from '@/lib/rate-guard';
 
 // GET /api/indicadores — Listar indicadores (con filtros)
 export async function GET(request: NextRequest) {
@@ -119,6 +119,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ indicador }, { status: 201 });
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'indicadores') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'indicadores') }, { status: 500 });
   }
 }

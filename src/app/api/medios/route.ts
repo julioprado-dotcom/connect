@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { safeError } from '@/lib/rate-guard';
+import { guardError } from '@/lib/rate-guard';
 import { medioCreateSchema } from '@/lib/validations';
 import { guardedParse, RATE } from '@/lib/rate-guard';
 
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
       resumenPorCategoria,
     });
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'medios') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'medios') }, { status: 500 });
   }
 }
 
@@ -152,6 +152,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ medio }, { status: 201 });
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'medios') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'medios') }, { status: 500 });
   }
 }

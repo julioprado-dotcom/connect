@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { PanelShell } from './VitalMonitor';
+import { PanelShell } from './PanelShell';
 
 // ═══════════════════════════════════════════════════════════════
 // Types

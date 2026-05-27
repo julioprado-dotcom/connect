@@ -10,7 +10,7 @@ import db from '@/lib/db';
 import { getWorkerStats } from '@/lib/jobs/worker';
 import { getSchedulerStatus } from '@/lib/jobs/scheduler';
 import { BOLETINES_SCHEDULE, FRECUENCIA_MAP } from '@/lib/jobs/constants';
-import { safeError } from '@/lib/rate-guard';
+import { guardError } from '@/lib/rate-guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -456,6 +456,6 @@ export async function GET() {
     });
   } catch (error: unknown) {
     console.error('[API /dashboard/pipeline GET]', error);
-    return NextResponse.json({ error: safeError(error, 'dashboard/pipeline') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'dashboard/pipeline') }, { status: 500 });
   }
 }

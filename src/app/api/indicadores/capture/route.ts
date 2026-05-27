@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server'
 import { capturarTier1, seedIndicadores, getUltimoValor } from '@/lib/indicadores/capturer-tier1'
 import db from '@/lib/db'
-import { safeError } from '@/lib/rate-guard'
+import { guardError } from '@/lib/rate-guard'
 
 export async function POST() {
   try {
@@ -37,7 +37,7 @@ export async function POST() {
     })
   } catch (error) {
     return NextResponse.json(
-      { exito: false, error: safeError(error, 'indicadores/capture') },
+      { exito: false, error: guardError(error, 'indicadores/capture') },
       { status: 500 }
     )
   }
@@ -87,7 +87,7 @@ export async function GET() {
     })
   } catch (error) {
     return NextResponse.json(
-      { exito: false, error: safeError(error, 'indicadores/capture') },
+      { exito: false, error: guardError(error, 'indicadores/capture') },
       { status: 500 }
     )
   }

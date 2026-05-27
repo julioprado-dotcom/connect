@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { safeError } from '@/lib/rate-guard';
+import { guardError } from '@/lib/rate-guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -181,7 +181,7 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     console.error('[API /dashboard/fuentes GET]', error);
     return NextResponse.json(
-      { error: safeError(error, 'dashboard/fuentes') },
+      { error: guardError(error, 'dashboard/fuentes') },
       { status: 500 },
     );
   }

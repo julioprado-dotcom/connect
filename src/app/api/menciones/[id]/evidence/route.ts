@@ -12,7 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { safeError } from '@/lib/rate-guard';
+import { guardError } from '@/lib/rate-guard';
 import { generateSignedUrl, verifySignedUrl } from '@/lib/forensic-capture';
 import { readFile, stat } from 'fs/promises';
 import { join } from 'path';
@@ -174,7 +174,7 @@ export async function GET(
       },
     });
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'evidence') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'evidence') }, { status: 500 });
   }
 }
 

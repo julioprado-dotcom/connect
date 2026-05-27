@@ -7,7 +7,7 @@
 
 import { NextResponse } from 'next/server'
 import { capturarTier1, seedIndicadores } from '@/lib/indicadores/capturer-tier1'
-import { safeError } from '@/lib/rate-guard'
+import { guardError } from '@/lib/rate-guard'
 
 export async function POST() {
   try {
@@ -42,7 +42,7 @@ export async function POST() {
     })
   } catch (error) {
     return NextResponse.json(
-      { exito: false, error: safeError(error, 'indicadores/sync') },
+      { exito: false, error: guardError(error, 'indicadores/sync') },
       { status: 500 }
     )
   }

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 import { Shield, Bot, Globe, Database, Zap, Calendar, Play, Square, Loader2, RefreshCw, Clock, Timer, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react';
-import { PanelShell } from './VitalMonitor';
+import { PanelShell } from './PanelShell';
 
 // ═══════════════════════════════════════════════════════════════
 // Types

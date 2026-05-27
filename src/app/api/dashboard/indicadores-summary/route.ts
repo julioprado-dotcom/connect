@@ -10,7 +10,7 @@
  */
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { safeError } from '@/lib/rate-guard';
+import { guardError } from '@/lib/rate-guard';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

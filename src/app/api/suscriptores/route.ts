@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { suscriptorCreateSchema, suscriptorUpdateSchema } from '@/lib/validations';
-import { guardedParse, rateGuard, RATE } from '@/lib/rate-guard';
-import { safeError as safeErrorGuard } from '@/lib/rate-guard';
+import { guardedParse, rateGuard, RATE, guardError } from '@/lib/rate-guard';
 import { safeError } from '@/lib/safe-error';
 import { isRateLimited, getClientIp } from '@/lib/rate-limit';
 import { withAuth } from '@/lib/auth-helpers';
@@ -143,7 +142,7 @@ export async function PUT(request: NextRequest) {
     if (code === 'DUPLICATE') {
       return NextResponse.json({ error: 'Ya existe un suscriptor con ese email' }, { status: 409 });
     }
-    return NextResponse.json({ error: safeErrorGuard(error, 'suscriptores') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'suscriptores') }, { status: 500 });
   }
 }
 

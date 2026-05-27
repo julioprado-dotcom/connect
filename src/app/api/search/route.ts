@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { guardedParse, rateGuard, RATE, safeError } from '@/lib/rate-guard';
+import { guardedParse, rateGuard, RATE, guardError } from '@/lib/rate-guard';
 import { searchSchema } from '@/lib/validations';
 import { webSearchNative } from '@/lib/web-search-native';
 
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(results);
   } catch (error: unknown) {
     return NextResponse.json(
-      { error: safeError(error, 'search') },
+      { error: guardError(error, 'search') },
       { status: 500 }
     );
   }
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(results);
   } catch (error: unknown) {
     return NextResponse.json(
-      { error: safeError(error, 'search') },
+      { error: guardError(error, 'search') },
       { status: 500 }
     );
   }

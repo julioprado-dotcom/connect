@@ -5,7 +5,7 @@
  * based on the commercial plan (Termometro, Saldo, El Foco, El Radar).
  */
 import { NextResponse } from 'next/server';
-import { safeError } from '@/lib/rate-guard';
+import { guardError } from '@/lib/rate-guard';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -68,6 +68,6 @@ export async function GET() {
       nota: 'Modelo Generador no implementado aun — datos del plan comercial',
     });
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'generadores-summary') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'generadores-summary') }, { status: 500 });
   }
 }

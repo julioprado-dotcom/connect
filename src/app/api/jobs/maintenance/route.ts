@@ -5,7 +5,7 @@ export const runtime = 'nodejs'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { purgeCompleted, purgeFailed, reclaimOrphanJobs, countByEstado } from '@/lib/jobs/queue'
-import { safeError } from '@/lib/rate-guard'
+import { guardError } from '@/lib/rate-guard'
 
 type MaintenanceAction = 'purge_completados' | 'purge_fallidos' | 'reclaim_huerfanos' | 'estado_cola'
 
@@ -73,6 +73,6 @@ export async function POST(request: NextRequest) {
     }
   } catch (error: unknown) {
     console.error('[API /jobs/maintenance POST]', error)
-    return NextResponse.json({ error: safeError(error, 'jobs/maintenance') }, { status: 500 })
+    return NextResponse.json({ error: guardError(error, 'jobs/maintenance') }, { status: 500 })
   }
 }

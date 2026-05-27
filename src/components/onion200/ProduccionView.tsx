@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
-import { PanelShell } from './VitalMonitor';
+import { PanelShell } from './PanelShell';
 import {
   FileText, TrendingUp, Clock, Loader2, Play, ChevronDown, ChevronUp,
   Eye, X, CheckCircle2, AlertTriangle, Zap, Package,

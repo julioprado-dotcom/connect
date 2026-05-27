@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
-import { guardedParse, RATE, safeError } from '@/lib/rate-guard'
+import { guardedParse, RATE, guardError } from '@/lib/rate-guard'
 
 // ─── Fuentes Ola 1 con sus RSS feeds y configuración ─────────────────
 const FUENTES_OLA1: Array<{
@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     return NextResponse.json(
-      { error: safeError(error, 'productos/activar') },
+      { error: guardError(error, 'productos/activar') },
       { status: 500 },
     )
   }
@@ -326,7 +326,7 @@ export async function GET() {
     })
   } catch (error) {
     return NextResponse.json(
-      { error: safeError(error, 'productos/status') },
+      { error: guardError(error, 'productos/status') },
       { status: 500 },
     )
   }

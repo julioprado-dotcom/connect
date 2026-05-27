@@ -4,7 +4,7 @@
  */
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { safeError } from '@/lib/rate-guard';
+import { guardError } from '@/lib/rate-guard';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -62,6 +62,6 @@ export async function GET() {
       topClientes,
     });
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'clientes-summary') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'clientes-summary') }, { status: 500 });
   }
 }

@@ -7,7 +7,7 @@
  */
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { safeError } from '@/lib/rate-guard';
+import { guardError } from '@/lib/rate-guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -300,6 +300,6 @@ export async function GET() {
       entregasPendientes,
     });
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'alertas-comerciales') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'alertas-comerciales') }, { status: 500 });
   }
 }

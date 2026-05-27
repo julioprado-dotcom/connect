@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { safeError } from '@/lib/rate-guard';
+import { guardError } from '@/lib/rate-guard';
 
 export async function GET(request: NextRequest) {
   try {
@@ -46,6 +46,6 @@ export async function GET(request: NextRequest) {
       totalPages: Math.ceil(total / limit),
     });
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'menciones') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'menciones') }, { status: 500 });
   }
 }

@@ -17,7 +17,7 @@ import {
   Eye,
   ChevronLeft,
 } from 'lucide-react';
-import { PanelShell } from './VitalMonitor';
+import { PanelShell } from './PanelShell';
 
 // ═══════════════════════════════════════════════════════════════
 // Types

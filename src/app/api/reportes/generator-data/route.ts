@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { safeError } from '@/lib/rate-guard';
+import { guardError } from '@/lib/rate-guard';
 import { PRODUCTOS, PRODUCTOS_DEDICADOS } from '@/constants/products';
 import type { TipoBoletin } from '@/types/bulletin';
 import {
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     // Fallback: handler por defecto para dedicados sin panel específico
     return handleTermometroSaldo(fecha, ejeSlug, tipo);
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'generator-data') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'generator-data') }, { status: 500 });
   }
 }
 

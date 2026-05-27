@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { entregaCreateSchema } from '@/lib/validations';
-import { guardedParse, RATE, safeError } from '@/lib/rate-guard';
+import { guardedParse, RATE, guardError } from '@/lib/rate-guard';
 
 // GET /api/entregas — Listar entregas con filtros
 export async function GET(req: NextRequest) {
@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
       stats: { enviadasHoy, fallidasHoy, pendientes },
     });
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'entregas') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'entregas') }, { status: 500 });
   }
 }
 
@@ -101,6 +101,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ entrega }, { status: 201 });
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'entregas') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'entregas') }, { status: 500 });
   }
 }

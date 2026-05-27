@@ -6,7 +6,7 @@ export const runtime = 'nodejs'
 import { NextRequest, NextResponse } from 'next/server'
 import { enqueue, getJobs, countByEstado } from '@/lib/jobs/queue'
 import type { JobTipo, JobPrioridad, JobEstado } from '@/lib/jobs/types'
-import { safeError } from '@/lib/rate-guard'
+import { guardError } from '@/lib/rate-guard'
 import db from '@/lib/db'
 import { QUEUE_LIMITS, FLOW_CONTROL } from '@/lib/jobs/constants'
 
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     })
   } catch (error: unknown) {
     console.error('[API /jobs GET]', error)
-    return NextResponse.json({ error: safeError(error, 'jobs') }, { status: 500 })
+    return NextResponse.json({ error: guardError(error, 'jobs') }, { status: 500 })
   }
 }
 
@@ -119,6 +119,6 @@ export async function POST(request: NextRequest) {
     }
   } catch (error: unknown) {
     console.error('[API /jobs POST]', error)
-    return NextResponse.json({ error: safeError(error, 'jobs') }, { status: 500 })
+    return NextResponse.json({ error: guardError(error, 'jobs') }, { status: 500 })
   }
 }

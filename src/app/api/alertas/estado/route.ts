@@ -10,7 +10,7 @@
 
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { safeError } from '@/lib/rate-guard';
+import { guardError } from '@/lib/rate-guard';
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -460,7 +460,7 @@ export async function GET() {
     return NextResponse.json({ estado: 'ok', data: response });
   } catch (error: unknown) {
     return NextResponse.json(
-      { error: safeError(error, 'alertas/estado') },
+      { error: guardError(error, 'alertas/estado') },
       { status: 500 }
     );
   }

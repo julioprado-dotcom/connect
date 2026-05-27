@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { RATE, safeError } from '@/lib/rate-guard';
+import { RATE, guardError } from '@/lib/rate-guard';
 import { isRateLimited, getClientIp } from '@/lib/rate-limit';
 import { medioUpdateSchema } from '@/lib/validations';
 import { guardedParse } from '@/lib/rate-guard';
@@ -18,7 +18,7 @@ export async function GET(
     }
     return NextResponse.json({ medio });
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'medios/[id]') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'medios/[id]') }, { status: 500 });
   }
 }
 
@@ -65,7 +65,7 @@ export async function PUT(
 
     return NextResponse.json({ medio });
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'medios/[id]') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'medios/[id]') }, { status: 500 });
   }
 }
 
@@ -95,6 +95,6 @@ export async function DELETE(
     await db.medio.delete({ where: { id } });
     return NextResponse.json({ message: 'Medio eliminado', deleted: true });
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'medios/[id]') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'medios/[id]') }, { status: 500 });
   }
 }

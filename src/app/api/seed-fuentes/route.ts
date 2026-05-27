@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
-import { safeError } from '@/lib/rate-guard'
+import { guardError } from '@/lib/rate-guard'
 
 // Frecuencia base por nivel (del motor de captura)
 const FRECUENCIA_POR_NIVEL: Record<string, string> = {
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
       detalles,
     })
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'seed-fuentes') }, { status: 500 })
+    return NextResponse.json({ error: guardError(error, 'seed-fuentes') }, { status: 500 })
   }
 }
 
@@ -165,6 +165,6 @@ export async function GET() {
       porNivel,
     })
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'seed-fuentes') }, { status: 500 })
+    return NextResponse.json({ error: guardError(error, 'seed-fuentes') }, { status: 500 })
   }
 }

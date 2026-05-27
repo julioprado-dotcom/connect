@@ -156,7 +156,7 @@ export async function guardedParse<T extends z.ZodTypeAny>(
 /**
  * Returns a safe, generic error message. Never exposes internal details.
  */
-export function safeError(error: unknown, context: string): string {
+export function guardError(error: unknown, context: string): string {
   // Log the real error for debugging (server-side only)
   if (error instanceof Error) {
     console.error(`[${context}]`, error.message);

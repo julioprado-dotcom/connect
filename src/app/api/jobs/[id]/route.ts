@@ -6,7 +6,7 @@ export const runtime = 'nodejs'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getJob, cancel, pauseJob, resumeJob, deleteJob } from '@/lib/jobs/queue'
-import { safeError } from '@/lib/rate-guard'
+import { guardError } from '@/lib/rate-guard'
 import { withAuth } from '@/lib/auth-helpers'
 
 export async function GET(
@@ -24,7 +24,7 @@ export async function GET(
     return NextResponse.json({ job })
   } catch (error: unknown) {
     console.error('[API /jobs/[id] GET]', error)
-    return NextResponse.json({ error: safeError(error, 'jobs/[id]') }, { status: 500 })
+    return NextResponse.json({ error: guardError(error, 'jobs/[id]') }, { status: 500 })
   }
 }
 
@@ -66,7 +66,7 @@ export async function PATCH(
     return NextResponse.json({ exito: true, reanudado: true })
   } catch (error: unknown) {
     console.error('[API /jobs/[id] PATCH]', error)
-    return NextResponse.json({ error: safeError(error, 'jobs/[id]') }, { status: 500 })
+    return NextResponse.json({ error: guardError(error, 'jobs/[id]') }, { status: 500 })
   }
 }
 
@@ -101,6 +101,6 @@ export async function DELETE(
     return NextResponse.json({ exito: true, cancelado: true })
   } catch (error: unknown) {
     console.error('[API /jobs/[id] DELETE]', error)
-    return NextResponse.json({ error: safeError(error, 'jobs/[id]') }, { status: 500 })
+    return NextResponse.json({ error: guardError(error, 'jobs/[id]') }, { status: 500 })
   }
 }

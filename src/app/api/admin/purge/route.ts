@@ -6,7 +6,7 @@
 
 import { NextResponse } from 'next/server'
 import db from '@/lib/db'
-import { safeError } from '@/lib/rate-guard'
+import { guardError } from '@/lib/rate-guard'
 import { withAuth } from '@/lib/auth-helpers'
 
 // Tables to DELETE (test data)
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     return NextResponse.json(
-      { exito: false, error: safeError(error, 'admin/purge') },
+      { exito: false, error: guardError(error, 'admin/purge') },
       { status: 500 }
     )
   }

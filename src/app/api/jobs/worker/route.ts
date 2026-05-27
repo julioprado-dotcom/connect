@@ -4,7 +4,7 @@ export const runtime = 'nodejs'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { startWorker, stopWorker, getWorkerStats } from '@/lib/jobs/worker'
-import { safeError } from '@/lib/rate-guard'
+import { guardError } from '@/lib/rate-guard'
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,6 +28,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ exito: true, estado: 'running' })
   } catch (error: unknown) {
     console.error('[API /jobs/worker POST]', error)
-    return NextResponse.json({ error: safeError(error, 'jobs/worker') }, { status: 500 })
+    return NextResponse.json({ error: guardError(error, 'jobs/worker') }, { status: 500 })
   }
 }

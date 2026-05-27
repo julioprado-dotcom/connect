@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { safeError } from '@/lib/rate-guard';
+import { guardError } from '@/lib/rate-guard';
 
 // GET /api/indicadores/evaluaciones — Listar evaluaciones
 // Query params: indicadorId, escalaNivel, limit
@@ -98,6 +98,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ evaluacion }, { status: 201 });
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'indicadores/evaluaciones') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'indicadores/evaluaciones') }, { status: 500 });
   }
 }

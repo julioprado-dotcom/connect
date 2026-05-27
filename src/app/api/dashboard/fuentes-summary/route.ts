@@ -5,7 +5,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { determinarCapa, type CapaFuente } from '@/lib/jobs/source-lifecycle';
-import { safeError } from '@/lib/rate-guard';
+import { guardError } from '@/lib/rate-guard';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -80,6 +80,6 @@ export async function GET() {
       fuentes: fuentesConCapa,
     });
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'fuentes-summary') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'fuentes-summary') }, { status: 500 });
   }
 }

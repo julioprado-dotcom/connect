@@ -6,7 +6,7 @@ export const runtime = 'nodejs'
 import { NextRequest, NextResponse } from 'next/server'
 import { rescheduleAll, startScheduler, stopScheduler, getSchedulerStatus } from '@/lib/jobs/scheduler'
 import { getBackupSchedulerStatus } from '@/lib/jobs/backup-scheduler'
-import { safeError } from '@/lib/rate-guard'
+import { guardError } from '@/lib/rate-guard'
 import { withAuth } from '@/lib/auth-helpers'
 
 export async function GET() {
@@ -22,7 +22,7 @@ export async function GET() {
     })
   } catch (error: unknown) {
     console.error('[API /jobs/scheduler GET]', error)
-    return NextResponse.json({ error: safeError(error, 'jobs/scheduler') }, { status: 500 })
+    return NextResponse.json({ error: guardError(error, 'jobs/scheduler') }, { status: 500 })
   }
 }
 
@@ -60,6 +60,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: unknown) {
     console.error('[API /jobs/scheduler POST]', error)
-    return NextResponse.json({ error: safeError(error, 'jobs/scheduler') }, { status: 500 })
+    return NextResponse.json({ error: guardError(error, 'jobs/scheduler') }, { status: 500 })
   }
 }

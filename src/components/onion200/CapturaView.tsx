@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
-import { PanelShell } from './VitalMonitor';
+import { PanelShell } from './PanelShell';
 import {
   Radio,
   Rocket,

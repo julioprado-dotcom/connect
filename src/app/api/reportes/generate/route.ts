@@ -14,7 +14,7 @@ import {
   getSentimientoLabelExtendido,
 } from '@/lib/reportes-utils';
 import type { MencionConRelaciones, ResumenParams } from '@/lib/reportes-utils';
-import { guardedParse, RATE, safeError } from '@/lib/rate-guard';
+import { guardedParse, RATE, guardError } from '@/lib/rate-guard';
 import { reporteGenerateSchema } from '@/lib/validations';
 
 // ─── Tipos válidos derivados del catálogo (data-driven) ───
@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
       }
     );
   } catch (error: unknown) {
-    return NextResponse.json({ error: safeError(error, 'reportes/generate') }, { status: 500 });
+    return NextResponse.json({ error: guardError(error, 'reportes/generate') }, { status: 500 });
   }
 }
 
