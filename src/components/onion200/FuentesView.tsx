@@ -129,7 +129,7 @@ function SkeletonRow() {
             className="h-3 rounded-sm animate-pulse"
             style={{
               backgroundColor: 'rgba(6,182,212,0.05)',
-              width: `${widths[i]}%`,
+              width: widths[i] + '%',
             }}
           />
         </td>
@@ -147,7 +147,7 @@ function StatusBadge({ activo, ultimoError }: { activo: boolean; ultimoError: st
       style={{
         color: text,
         backgroundColor: bg,
-        border: `1px solid ${border}`,
+        border: '1px solid ' + border,
         animation: blink ? 'errorBlink 2s ease-in-out infinite' : undefined,
       }}
     >
@@ -168,7 +168,7 @@ function NaturalezaBadge({ naturaleza }: { naturaleza: string }) {
       style={{
         color: colors.text,
         backgroundColor: colors.bg,
-        border: `1px solid ${colors.border}`,
+        border: '1px solid ' + colors.border,
       }}
     >
       {naturaleza || 'SIN CLASIFICAR'}
@@ -188,9 +188,9 @@ function CredibilidadBar({ value }: { value: number }) {
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{
-            width: `${pct}%`,
+            width: pct + '%',
             backgroundColor: color,
-            boxShadow: `0 0 6px ${color}40`,
+            boxShadow: '0 0 6px ' + color + '40',
           }}
         />
       </div>
@@ -601,7 +601,7 @@ export function FuentesView() {
           style={{
             color: batchLoading ? '#64748b' : '#f59e0b',
             backgroundColor: batchLoading ? 'rgba(100,116,139,0.05)' : 'rgba(245,158,11,0.06)',
-            border: `1px solid ${batchLoading ? 'rgba(100,116,139,0.15)' : 'rgba(245,158,11,0.2)'}`,
+            border: batchLoading ? '1px solid rgba(100,116,139,0.15)' : '1px solid rgba(245,158,11,0.2)',
           }}
         >
           {batchLoading ? (
@@ -620,7 +620,7 @@ export function FuentesView() {
           style={{
             color: batchResult.fixed > 0 ? '#06b6d4' : '#8b5cf6',
             backgroundColor: batchResult.fixed > 0 ? 'rgba(6,182,212,0.06)' : 'rgba(139,92,246,0.06)',
-            border: `1px solid ${batchResult.fixed > 0 ? 'rgba(6,182,212,0.15)' : 'rgba(139,92,246,0.15)'`,
+            border: batchResult.fixed > 0 ? '1px solid rgba(6,182,212,0.15)' : '1px solid rgba(139,92,246,0.15)',
           }}
         >
           {batchResult.fixed > 0 ? (
@@ -656,14 +656,16 @@ export function FuentesView() {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[10px] font-bold font-mono uppercase tracking-wider transition-all duration-200"
                 style={{
                   color: active ? accent : '#64748b',
-                  backgroundColor: active ? `${accent}10` : 'transparent',
-                  border: `1px solid ${active ? `${accent}25` : 'rgba(100,116,139,0.1)'}`,
+                  backgroundColor: active ? accent + '10' : 'transparent',
+                  border: active
+                    ? '1px solid ' + accent + '25'
+                    : '1px solid rgba(100,116,139,0.1)',
                 }}
               >
                 {f.label}
                 <span
                   className="ml-0.5 text-[9px] tabular-nums"
-                  style={{ color: active ? `${accent}90` : '#475569' }}
+                  style={{ color: active ? accent + '90' : '#475569' }}
                 >
                   [{f.count}]
                 </span>
@@ -801,7 +803,9 @@ export function FuentesView() {
                             style={{
                               color: isProbing ? '#64748b' : '#06b6d4',
                               backgroundColor: isProbing ? 'rgba(100,116,139,0.05)' : 'rgba(6,182,212,0.06)',
-                              border: `1px solid ${isProbing ? 'rgba(100,116,139,0.15)' : 'rgba(6,182,212,0.15)'}`,
+                              border: isProbing
+                                ? '1px solid rgba(100,116,139,0.15)'
+                                : '1px solid rgba(6,182,212,0.15)',
                             }}
                           >
                             {isProbing ? (
@@ -1016,7 +1020,7 @@ export function FuentesView() {
                   }
                   className="flex-1 h-1.5 rounded-full appearance-none cursor-pointer"
                   style={{
-                    background: `linear-gradient(90deg, rgba(139,92,246,0.6) 0%, rgba(245,158,11,0.6) 50%, rgba(6,182,212,0.6) 100%)`,
+                    background: 'linear-gradient(90deg, rgba(139,92,246,0.6) 0%, rgba(245,158,11,0.6) 50%, rgba(6,182,212,0.6) 100%)',
                     accentColor: '#06b6d4',
                   }}
                 />
@@ -1094,7 +1098,7 @@ export function FuentesView() {
               style={{
                 color: saveResult.ok ? '#06b6d4' : '#8b5cf6',
                 backgroundColor: saveResult.ok ? 'rgba(6,182,212,0.06)' : 'rgba(139,92,246,0.06)',
-                border: `1px solid ${saveResult.ok ? 'rgba(6,182,212,0.15)' : 'rgba(139,92,246,0.15)'}`,
+                border: saveResult.ok ? '1px solid rgba(6,182,212,0.15)' : '1px solid rgba(139,92,246,0.15)',
               }}
             >
               {saveResult.ok ? (
@@ -1115,7 +1119,7 @@ export function FuentesView() {
               style={{
                 color: saving ? '#64748b' : '#06b6d4',
                 backgroundColor: saving ? 'rgba(100,116,139,0.05)' : 'rgba(6,182,212,0.06)',
-                border: `1px solid ${saving ? 'rgba(100,116,139,0.15)' : 'rgba(6,182,212,0.2)'}`,
+                border: saving ? '1px solid rgba(100,116,139,0.15)' : '1px solid rgba(6,182,212,0.2)',
                 boxShadow: saving ? 'none' : '0 0 12px rgba(6,182,212,0.06)',
               }}
             >
@@ -1130,7 +1134,7 @@ export function FuentesView() {
               style={{
                 color: aiAnalyzing ? '#64748b' : '#a78bfa',
                 backgroundColor: aiAnalyzing ? 'rgba(100,116,139,0.05)' : 'rgba(167,139,250,0.06)',
-                border: `1px solid ${aiAnalyzing ? 'rgba(100,116,139,0.15)' : 'rgba(167,139,250,0.2)'}`,
+                border: aiAnalyzing ? '1px solid rgba(100,116,139,0.15)' : '1px solid rgba(167,139,250,0.2)',
                 boxShadow: aiAnalyzing ? 'none' : '0 0 12px rgba(167,139,250,0.06)',
               }}
             >

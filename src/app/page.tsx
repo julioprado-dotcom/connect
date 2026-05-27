@@ -24,8 +24,11 @@ import {
   Sparkles,
   Bell,
   LogOut,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
+import { useTheme } from '@/components/theme-provider';
 
 // ═══════════════════════════════════════════════════════════════
 // Types — Real data from /api/dashboard/indicadores-summary
@@ -246,6 +249,7 @@ export default function ONION200Dashboard() {
   const [activeTab, setActiveTab] = useState<TabKey>('resumen');
   const [kpis, setKpis] = useState<PipelineKPIs | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string>('');
+  const { theme, setTheme } = useTheme();
 
   const fetchKPIs = useCallback(async () => {
     try {
@@ -335,6 +339,15 @@ export default function ONION200Dashboard() {
               En línea
             </span>
           </div>
+          {/* Theme toggle */}
+          <button
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="flex items-center gap-1.5 px-2 py-1 rounded text-[9px] font-mono uppercase tracking-wider transition-all hover:bg-white/5"
+            style={{ color: '#64748b', border: '1px solid rgba(100,116,139,0.15)' }}
+            title={theme === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
+          >
+            {theme === 'dark' ? <Sun className="w-3 h-3" /> : <Moon className="w-3 h-3" />}
+          </button>
           {/* Logout */}
           <button
             onClick={() => signOut({ callbackUrl: '/login' })}
