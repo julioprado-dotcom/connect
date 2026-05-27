@@ -62,18 +62,28 @@ export async function middleware(request: NextRequest) {
   try {
     const { pathname } = request.nextUrl;
 
+    // Redirigir HTTP → HTTPS cuando se accede por dominio en producción
+    const forwardedProto = request.headers.get('x-forwarded-proto');
+    const host = request.headers.get('host') || '';
+    if (forwardedProto === 'http' && host.includes('decodex-bolivia.net')) {
+      const url = request.url.replace('http://', 'https://');
+      return NextResponse.redirect(url, 301);
+    }
+
     // Permitir rutas públicas sin verificación
     if (isPublicRoute(pathname)) {
       return NextResponse.next();
     }
 
     // Verificar token JWT (compatible con Edge Runtime)
+    // secureCookie: true cuando el request llega por HTTPS (detectado vía X-Forwarded-Proto)
+    // Esto funciona tanto en dev (HTTP) como en producción con Caddy (HTTPS)
+    const isSecure = forwardedProto === 'https' || request.url.startsWith('https://');
+
     const token = await getToken({
       req: request,
       secret: process.env.AUTH_SECRET,
-      // secureCookie solo true si hay HTTPS (requiere __Secure- prefix en cookie)
-      // TODO: activar cuando se configure SSL/HTTPS con Let's Encrypt
-      secureCookie: false,
+      secureCookie: isSecure,
     });
 
     if (!token) {
