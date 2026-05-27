@@ -41,23 +41,25 @@ export async function POST() {
     }
 
     let updated = 0
-    for (const medio of medios) {
-      const peso = calcularPesoInformativo({
-        nombre: medio.nombre,
-        credibilidad: medio.credibilidad,
-        ambito: medio.ambito,
-        naturaleza: medio.naturaleza,
-        nivel: medio.nivel,
-        tipo: medio.tipo,
-        mencionesCount: mencionesCounts.get(medio.id) || 0,
-      })
+    await db.$transaction(async (tx) => {
+      for (const medio of medios) {
+        const peso = calcularPesoInformativo({
+          nombre: medio.nombre,
+          credibilidad: medio.credibilidad,
+          ambito: medio.ambito,
+          naturaleza: medio.naturaleza,
+          nivel: medio.nivel,
+          tipo: medio.tipo,
+          mencionesCount: mencionesCounts.get(medio.id) || 0,
+        })
 
-      await db.medio.update({
-        where: { id: medio.id },
-        data: { pesoInformativo: peso },
-      })
-      updated++
-    }
+        await tx.medio.update({
+          where: { id: medio.id },
+          data: { pesoInformativo: peso },
+        })
+        updated++
+      }
+    })
 
     return NextResponse.json({
       message: `${updated} medios actualizados`,

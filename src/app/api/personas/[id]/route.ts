@@ -92,15 +92,15 @@ export async function GET(
       orderBy: { _count: { id: 'desc' } },
     });
 
-    const mediosStats = await Promise.all(
-      mediosGrouped.map(async (item) => {
-        const medio = await db.medio.findUnique({
-          where: { id: item.medioId },
-          select: { nombre: true },
-        });
-        return { medio: medio?.nombre || 'Desconocido', count: item._count.id };
-      })
+    const mediosIds = [...new Set(mediosGrouped.map(item => item.medioId))];
+    const mediosMap = new Map(
+      (await db.medio.findMany({ where: { id: { in: mediosIds } }, select: { id: true, nombre: true } }))
+        .map(m => [m.id, m.nombre])
     );
+    const mediosStats = mediosGrouped.map(item => ({
+      medio: mediosMap.get(item.medioId) || 'Desconocido',
+      count: item._count.id,
+    }));
 
     return NextResponse.json({
       persona: {
