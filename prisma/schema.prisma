@@ -50,7 +50,9 @@ model AprendizajeSistema {
   /* módulos: "estrategia_captura" | "descubrimiento_keywords" */
   medioId             String?
   ejeTematicoId       String?
+  personaId           String?
   keywordPropuesta    String?
+  actorPropuesto      String?
   tipoDato            String    @default("")
   datoActual          String    @default("")
   datoOptimo          String    @default("")
@@ -69,6 +71,7 @@ model AprendizajeSistema {
   @@index([estado])
   @@index([medioId])
   @@index([ejeTematicoId])
+  @@index([personaId])
   @@index([createdAt])
   @@index([modulo, estado])
 }
