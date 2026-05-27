@@ -25,6 +25,54 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
+/* ──── Feedback del admin al sistema de IA ──── */
+model AdminFeedback {
+  id                  String    @id
+  tipo                String
+  instruccionOriginal String
+  resultado            String    @default("parcial")
+  accionEjecutada     String    @default("")
+  detalle             String    @default("")
+  productoAfectado    String?
+  sugerenciaGenerada  Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @default(now())
+
+  @@index([tipo])
+  @@index([createdAt])
+  @@index([resultado])
+}
+
+/* ──── Aprendizaje del sistema (auto-optimización) ──── */
+model AprendizajeSistema {
+  id                  String    @id
+  modulo              String
+  /* módulos: "estrategia_captura" | "descubrimiento_keywords" */
+  medioId             String?
+  ejeTematicoId       String?
+  keywordPropuesta    String?
+  tipoDato            String    @default("")
+  datoActual          String    @default("")
+  datoOptimo          String    @default("")
+  confianza           Float     @default(0)
+  impacto             String    @default("")
+  estado              String    @default("pendiente")
+  /* estados: pendiente | aplicada | descartada | en_revision */
+  aplicadaEn          DateTime?
+  origen              String    @default("sistema")
+  /* origen: sistema | admin | ia */
+  metadata            String    @default("{}")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @default(now())
+
+  @@index([modulo])
+  @@index([estado])
+  @@index([medioId])
+  @@index([ejeTematicoId])
+  @@index([createdAt])
+  @@index([modulo, estado])
+}
+
 model CapturaLog {
   id                   String   @id
   fecha                DateTime @default(now())
