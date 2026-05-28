@@ -1,25 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 
-// GET /api/indicadores/[slug]/history?dias=30
+// GET /api/indicadores/[id]/history?dias=30
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { slug } = await params;
+    const { id } = await params;
     const searchParams = request.nextUrl.searchParams;
     const diasParam = parseInt(searchParams.get('dias') || '30', 10);
     const dias = Math.min(Math.max(diasParam, 1), 365);
 
-    // Look up the indicador by slug
-    const indicador = await db.indicador.findUnique({
-      where: { slug },
+    // Look up the indicador by id (accepts both id and slug)
+    const indicador = await db.indicador.findFirst({
+      where: {
+        OR: [{ id }, { slug: id }],
+      },
     });
 
     if (!indicador) {
       return NextResponse.json(
-        { error: `Indicador no encontrado: ${slug}` },
+        { error: `Indicador no encontrado: ${id}` },
         { status: 404 }
       );
     }
