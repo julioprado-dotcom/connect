@@ -1,10 +1,9 @@
 /**
  * @module indicadores.constants
- * @description Static configuration data for the Indicadores service.
+ * @description Datos de configuración estática para el servicio de Indicadores.
  *
- * Contains all indicator metadata, source configurations, category definitions,
- * fallback values, and unit conversion constants. Extracted from indicadores.ts
- * to improve maintainability.
+ * Contiene metadatos de indicadores, configuración de fuentes, definiciones de categorías,
+ * valores de respaldo y constantes de conversión de unidades.
  */
 
 import type {
@@ -123,7 +122,7 @@ export const INDICADOR_META: Readonly<Record<SlugIndicador, IndicadorMeta>> = {
     yahooSymbol: 'PB=F',
     stooqSymbol: 'LLEA.UK',
   },
-  // Commodities mineros adicionales
+  // Minerales adicionales
   'com-oro': {
     nombre: 'Oro (Internacional)',
     unidad: 'USD/oz',
@@ -160,14 +159,14 @@ export const INDICADOR_META: Readonly<Record<SlugIndicador, IndicadorMeta>> = {
   },
   'agr-soya': {
     nombre: 'Soya (Internacional)',
-    unidad: 'USc/bushel',
+    unidad: 'USc/fanega',
     moneda: 'USD',
     categoria: 'agricolas',
     yahooSymbol: 'ZS=F',
   },
   'agr-arroz': {
     nombre: 'Arroz (Internacional)',
-    unidad: 'USD/cwt',
+    unidad: 'USD/quintal',
     moneda: 'USD',
     categoria: 'agricolas',
     yahooSymbol: 'ZR=F',
@@ -181,14 +180,14 @@ export const INDICADOR_META: Readonly<Record<SlugIndicador, IndicadorMeta>> = {
   },
   'agr-maiz': {
     nombre: 'Maíz (Internacional)',
-    unidad: 'USc/bushel',
+    unidad: 'USc/fanega',
     moneda: 'USD',
     categoria: 'agricolas',
     yahooSymbol: 'ZC=F',
   },
   'agr-trigo': {
     nombre: 'Trigo (Internacional)',
-    unidad: 'USc/bushel',
+    unidad: 'USc/fanega',
     moneda: 'USD',
     categoria: 'agricolas',
     yahooSymbol: 'ZW=F',
@@ -390,7 +389,7 @@ export const INDICADOR_META: Readonly<Record<SlugIndicador, IndicadorMeta>> = {
     yahooSymbol: 'RB=F',
   },
   'nrg-diesel': {
-    nombre: 'Diésel (Heating Oil)',
+    nombre: 'Diésel (Aceite de Calefacción)',
     unidad: 'USD/gal',
     moneda: 'USD',
     categoria: 'energeticos',
@@ -417,14 +416,14 @@ export const FUENTES_POR_INDICADOR: Readonly<
   // Minerales LME — 3 fuentes por metal: scraping LME, Yahoo Finance, Stooq CSV
   'lme-cobre': [
     {
-      nombre: 'Yahoo Finance (COMEX Cu)',
+      nombre: 'Yahoo Finance (Cobre COMEX)',
       url: 'https://query1.finance.yahoo.com/v8/finance/chart/HG=F?interval=1d&range=2d',
       tipo: 'api',
       activa: true,
       timeout: DEFAULT_TIMEOUT,
     },
     {
-      nombre: 'Stooq (LME Copper)',
+      nombre: 'Stooq (Cobre LME)',
       url: 'https://stooq.com/q/l/?s=lcop.uk&i=d',
       tipo: 'stooq',
       activa: true,
@@ -449,14 +448,14 @@ export const FUENTES_POR_INDICADOR: Readonly<
   ],
   'lme-estano': [
     {
-      nombre: 'Investing.com (Tin)',
+      nombre: 'Investing.com (Estaño)',
       url: 'https://www.investing.com/commodities/tin',
       tipo: 'investing_com',
       activa: true,
       timeout: DEFAULT_TIMEOUT,
     },
     {
-      nombre: 'Stooq (LME Tin)',
+      nombre: 'Stooq (Estaño LME)',
       url: 'https://stooq.com/q/l/?s=tin.uk&i=d',
       tipo: 'stooq',
       activa: true,
@@ -465,14 +464,14 @@ export const FUENTES_POR_INDICADOR: Readonly<
   ],
   'lme-plata': [
     {
-      nombre: 'Yahoo Finance (COMEX Ag)',
+      nombre: 'Yahoo Finance (Plata COMEX)',
       url: 'https://query1.finance.yahoo.com/v8/finance/chart/SI=F?interval=1d&range=2d',
       tipo: 'api',
       activa: true,
       timeout: DEFAULT_TIMEOUT,
     },
     {
-      nombre: 'Stooq (Silver USD/oz)',
+      nombre: 'Stooq (Plata USD/oz)',
       url: 'https://stooq.com/q/l/?s=xagusd&i=d',
       tipo: 'stooq',
       activa: true,
@@ -481,24 +480,24 @@ export const FUENTES_POR_INDICADOR: Readonly<
   ],
   'lme-plomo': [
     {
-      nombre: 'Investing.com (Lead)',
+      nombre: 'Investing.com (Plomo)',
       url: 'https://www.investing.com/commodities/lead',
       tipo: 'investing_com',
       activa: true,
       timeout: DEFAULT_TIMEOUT,
     },
     {
-      nombre: 'Stooq (LME Lead)',
+      nombre: 'Stooq (Plomo LME)',
       url: 'https://stooq.com/q/l/?s=lead.uk&i=d',
       tipo: 'stooq',
       activa: true,
       timeout: DEFAULT_TIMEOUT,
     },
   ],
-  // Commodities mineros adicionales — Yahoo Finance
+  // Minerales adicionales — Yahoo Finance
   'com-oro': [
     {
-      nombre: 'Yahoo Finance (Gold)',
+      nombre: 'Yahoo Finance (Oro)',
       url: 'https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval=1d&range=2d',
       tipo: 'api',
       activa: true,
@@ -523,10 +522,10 @@ export const FUENTES_POR_INDICADOR: Readonly<
       timeout: DEFAULT_TIMEOUT,
     },
   ],
-  // Agrícolas — Yahoo Finance (commodities internacionales)
+  // Agrícolas — Yahoo Finance (mercados internacionales)
   'agr-cafe': [
     {
-      nombre: 'Yahoo Finance (Coffee)',
+      nombre: 'Yahoo Finance (Café)',
       url: 'https://query1.finance.yahoo.com/v8/finance/chart/KC=F?interval=1d&range=2d',
       tipo: 'api',
       activa: true,
@@ -535,7 +534,7 @@ export const FUENTES_POR_INDICADOR: Readonly<
   ],
   'agr-soya': [
     {
-      nombre: 'Yahoo Finance (Soybeans)',
+      nombre: 'Yahoo Finance (Soya)',
       url: 'https://query1.finance.yahoo.com/v8/finance/chart/ZS=F?interval=1d&range=2d',
       tipo: 'api',
       activa: true,
@@ -544,7 +543,7 @@ export const FUENTES_POR_INDICADOR: Readonly<
   ],
   'agr-arroz': [
     {
-      nombre: 'Yahoo Finance (Rice)',
+      nombre: 'Yahoo Finance (Arroz)',
       url: 'https://query1.finance.yahoo.com/v8/finance/chart/ZR=F?interval=1d&range=2d',
       tipo: 'api',
       activa: true,
@@ -553,7 +552,7 @@ export const FUENTES_POR_INDICADOR: Readonly<
   ],
   'agr-azucar': [
     {
-      nombre: 'Yahoo Finance (Sugar)',
+      nombre: 'Yahoo Finance (Azúcar)',
       url: 'https://query1.finance.yahoo.com/v8/finance/chart/SB=F?interval=1d&range=2d',
       tipo: 'api',
       activa: true,
@@ -562,7 +561,7 @@ export const FUENTES_POR_INDICADOR: Readonly<
   ],
   'agr-maiz': [
     {
-      nombre: 'Yahoo Finance (Corn)',
+      nombre: 'Yahoo Finance (Maíz)',
       url: 'https://query1.finance.yahoo.com/v8/finance/chart/ZC=F?interval=1d&range=2d',
       tipo: 'api',
       activa: true,
@@ -571,7 +570,7 @@ export const FUENTES_POR_INDICADOR: Readonly<
   ],
   'agr-trigo': [
     {
-      nombre: 'Yahoo Finance (Wheat)',
+      nombre: 'Yahoo Finance (Trigo)',
       url: 'https://query1.finance.yahoo.com/v8/finance/chart/ZW=F?interval=1d&range=2d',
       tipo: 'api',
       activa: true,
@@ -580,7 +579,7 @@ export const FUENTES_POR_INDICADOR: Readonly<
   ],
   'agr-quinua': [
     {
-      nombre: 'FAO / Quinoa Market',
+      nombre: 'FAO / Mercado de Quinua',
       url: 'https://www.fao.org/faostat/en/#data/PP',
       tipo: 'scraping',
       activa: false,
@@ -851,7 +850,7 @@ export const FUENTES_POR_INDICADOR: Readonly<
   // Energéticos — Yahoo Finance
   'nrg-petroleo': [
     {
-      nombre: 'Yahoo Finance (WTI Crude)',
+      nombre: 'Yahoo Finance (Petróleo WTI)',
       url: 'https://query1.finance.yahoo.com/v8/finance/chart/CL=F?interval=1d&range=2d',
       tipo: 'api',
       activa: true,
@@ -860,7 +859,7 @@ export const FUENTES_POR_INDICADOR: Readonly<
   ],
   'nrg-gas-natural': [
     {
-      nombre: 'Yahoo Finance (Natural Gas)',
+      nombre: 'Yahoo Finance (Gas Natural)',
       url: 'https://query1.finance.yahoo.com/v8/finance/chart/NG=F?interval=1d&range=2d',
       tipo: 'api',
       activa: true,
@@ -869,7 +868,7 @@ export const FUENTES_POR_INDICADOR: Readonly<
   ],
   'nrg-gasolina': [
     {
-      nombre: 'Yahoo Finance (RBOB Gasoline)',
+      nombre: 'Yahoo Finance (Gasolina RBOB)',
       url: 'https://query1.finance.yahoo.com/v8/finance/chart/RB=F?interval=1d&range=2d',
       tipo: 'api',
       activa: true,
@@ -878,7 +877,7 @@ export const FUENTES_POR_INDICADOR: Readonly<
   ],
   'nrg-diesel': [
     {
-      nombre: 'Yahoo Finance (Heating Oil)',
+      nombre: 'Yahoo Finance (Aceite de Calefacción)',
       url: 'https://query1.finance.yahoo.com/v8/finance/chart/HO=F?interval=1d&range=2d',
       tipo: 'api',
       activa: true,
@@ -887,7 +886,7 @@ export const FUENTES_POR_INDICADOR: Readonly<
   ],
   'nrg-glp': [
     {
-      nombre: 'Yahoo Finance (Propane)',
+      nombre: 'Yahoo Finance (Propano)',
       url: 'https://query1.finance.yahoo.com/v8/finance/chart/PL=F?interval=1d&range=2d',
       tipo: 'api',
       activa: true,
@@ -902,7 +901,7 @@ export const FUENTES_POR_INDICADOR: Readonly<
 export const CATEGORIAS: Readonly<CategoriaInfo[]> = [
   {
     slug: 'minerales',
-    nombre: 'Minerales y Commodities',
+    nombre: 'Minerales y Materias Primas',
     descripcion: 'Cotizaciones internacionales de minerales, metales preciosos y estratégicos',
     indicadores: ['lme-cobre', 'lme-zinc', 'lme-estano', 'lme-plata', 'lme-plomo', 'com-oro', 'com-litio', 'com-tierras-raras'],
   },
@@ -944,8 +943,8 @@ export const CATEGORIAS: Readonly<CategoriaInfo[]> = [
   },
   {
     slug: 'agricolas',
-    nombre: 'Commodities Agrícolas',
-    descripcion: 'Precios internacionales de commodities agrícolas relevantes para Bolivia',
+    nombre: 'Productos Agrícolas',
+    descripcion: 'Precios internacionales de productos agrícolas relevantes para Bolivia',
     indicadores: ['agr-cafe', 'agr-quinua', 'agr-soya', 'agr-arroz', 'agr-azucar', 'agr-maiz', 'agr-trigo'],
   },
   {
@@ -968,17 +967,17 @@ export const CATEGORIAS: Readonly<CategoriaInfo[]> = [
   },
 ];
 
-// ─── Valores conocidos (fallback) ────────────────────────────────────────────
+// ─── Valores conocidos (respaldo) ────────────────────────────────────────────
 
-/** Valores conocidos como fallback (últimos valores cacheados históricos) */
+/** Valores conocidos como respaldo (últimos valores cacheados históricos) */
 export const knownValues: Readonly<Record<SlugIndicador, number>> = {
-  'lme-cobre': 13_187,    // COMEX Cu ~$5.98/lb = ~$13,187/ton (May 2026)
+  'lme-cobre': 13_187,    // Cobre COMEX ~$5.98/lb = ~$13,187/ton (May 2026)
   'lme-zinc': 2_850,      // LME Zinc ~$2,850/ton (est.)
-  'lme-estano': 35_000,   // LME Tin ~$35,000/ton (est.)
-  'lme-plata': 2_446_668, // COMEX Ag ~$76.1/oz = ~$2,446,668/ton (May 2026)
-  'lme-plomo': 2_350,     // LME Lead ~$2,350/ton (est.)
-  'com-oro': 2330,        // Gold ~$2,330/oz (May 2026)
-  'com-litio': 8500,      // Lithium carbonate ~$8,500/ton (China spot)
+  'lme-estano': 35_000,   // Estaño LME ~$35,000/ton (est.)
+  'lme-plata': 2_446_668, // Plata COMEX ~$76.1/oz = ~$2,446,668/ton (May 2026)
+  'lme-plomo': 2_350,     // Plomo LME ~$2,350/ton (est.)
+  'com-oro': 2330,        // Oro ~$2,330/oz (May 2026)
+  'com-litio': 8500,      // Carbonato de litio ~$8,500/ton (China spot)
   'com-tierras-raras': 42,  // REMX ETF ~$42 (est.)
   'agr-cafe': 279.05,
   'agr-quinua': 3200,
@@ -1016,11 +1015,11 @@ export const knownValues: Readonly<Record<SlugIndicador, number>> = {
   'produccion-petroleo': 44_000,
   'exportaciones-fob': 7_850,
   ipc: 1.42,
-  'nrg-petroleo': 62,       // WTI Crude ~$62/bbl
+  'nrg-petroleo': 62,       // Petróleo WTI ~$62/bbl
   'nrg-gas-natural': 2.50,  // Henry Hub ~$2.50/MMBtu
-  'nrg-gasolina': 2.15,     // RBOB Gasoline ~$2.15/gal
-  'nrg-diesel': 2.05,       // Heating Oil ~$2.05/gal
-  'nrg-glp': 0.85,          // Propane ~$0.85/gal
+  'nrg-gasolina': 2.15,     // Gasolina RBOB ~$2.15/gal
+  'nrg-diesel': 2.05,       // Aceite de Calefacción ~$2.05/gal
+  'nrg-glp': 0.85,          // Propano ~$0.85/gal
 };
 
 // ─── Constantes de conversión ──────────────────────────────────────────────
@@ -1050,7 +1049,7 @@ export const STOOQ_MULTIPLIER: Partial<Record<SlugIndicador, number>> = {
 };
 
 /**
- * Convierte un valor según la configuración del indicador (legacy — ya no se usa directamente).
+ * Convierte un valor según la configuración del indicador (legado — ya no se usa directamente).
  */
 export function convertUnit(value: number, slug: SlugIndicador): number {
   const meta = INDICADOR_META[slug];
