@@ -874,6 +874,7 @@ export async function capturarUno(slug: string): Promise<CapturaResult> {
             activo: true,
             orden: INDICADORES_TIER1.indexOf(autoDef),
             ejesTematicos: getEjesForIndicador(autoDef.slug),
+            fechaActualizacion: new Date(), // Requerido por schema (sin @default)
           },
         })
         console.log(`[capturarUno] Indicador auto-creado: ${autoDef.nombre} (${slug})`)
