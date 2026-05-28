@@ -299,13 +299,8 @@ async function scheduleIndicatorJobs(): Promise<void> {
     return
   }
 
-  // Captura batch Tier 1: cada 6 horas (hora Bolivia, UTC-4)
-  // node-cron usa hora local del servidor (UTC)
-  // 08:00 Bolivia = 12:00 UTC
-  // 14:00 Bolivia = 18:00 UTC
-  // 20:00 Bolivia = 00:00 UTC
-  // 02:00 Bolivia = 06:00 UTC
-  const expresion = '0 12,18,0,6 * * *'
+  // Captura batch Tier 1: una vez al día (08:00 AM Bolivia = 12:00 UTC)
+  const expresion = '0 12 * * *'
 
   if (!cron.validate(expresion)) return
 
@@ -324,9 +319,9 @@ async function scheduleIndicatorJobs(): Promise<void> {
         return
       }
 
-      // Proteccion: verificar que no se haya capturado en las ultimas 5 horas
+      // Proteccion: verificar que no se haya capturado en las ultimas 23 horas
       const reciente = new Date()
-      reciente.setHours(reciente.getHours() - 5)
+      reciente.setHours(reciente.getHours() - 23)
 
       const recentCapture = await db.job.findFirst({
         where: {
@@ -355,7 +350,7 @@ async function scheduleIndicatorJobs(): Promise<void> {
   })
 
   getState().tasks.push(task)
-  console.log(`[Scheduler] Captura indicadores Tier 1 programada cada 6h (${formatCronHuman(expresion)}) — ${indicadoresTier1} indicadores activos`)
+  console.log(`[Scheduler] Captura indicadores Tier 1 programada diaria 08:00 Bolivia (${formatCronHuman(expresion)}) — ${indicadoresTier1} indicadores activos`)
 }
 
 // Programar mantenimiento nocturno (04:00 AM todos los dias)

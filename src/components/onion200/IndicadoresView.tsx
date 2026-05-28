@@ -28,6 +28,7 @@ import {
   SkeletonCard,
   ProgressBar,
   IndicatorCard,
+  HistoryModal,
 } from './IndicadoresView.subcomponents';
 
 // ═══════════════════════════════════════════════════════════════
@@ -40,6 +41,10 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
   const [indicadores, setIndicadores] = useState<EnrichedIndicador[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // History modal state
+  const [historyIndicator, setHistoryIndicator] = useState<EnrichedIndicador | null>(null);
+  const [historyCatColor, setHistoryCatColor] = useState('#06b6d4');
 
   // Capture state
   const [capturing, setCapturing] = useState(false);
@@ -344,6 +349,12 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
                         syncing={syncingSlugs.has(ind.slug)}
                         onSync={handleSyncOne}
                         catColor={cat.color}
+                        onClick={() => {
+                          if (ind.tipo === 'cuantitativo') {
+                            setHistoryIndicator(ind);
+                            setHistoryCatColor(cat.color);
+                          }
+                        }}
                       />
                     ))}
                 </div>
@@ -358,6 +369,15 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
         <span className="w-1 h-1 rounded-full animate-pulse" style={{ backgroundColor: '#06b6d4' }} />
         Auto-refresco cada 5 min
       </div>
+
+      {/* ── History Modal ── */}
+      {historyIndicator && (
+        <HistoryModal
+          indicador={historyIndicator}
+          catColor={historyCatColor}
+          onClose={() => setHistoryIndicator(null)}
+        />
+      )}
     </div>
   );
 }

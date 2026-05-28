@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { Loader2, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Loader2, RefreshCw, X, TrendingUp, Minus, TrendingDown } from 'lucide-react';
 import { TIER_CONFIG } from './IndicadoresView.types';
 import type { EnrichedIndicador } from './IndicadoresView.types';
 
@@ -198,11 +198,13 @@ export function IndicatorCard({
   syncing,
   onSync,
   catColor,
+  onClick,
 }: {
   indicador: EnrichedIndicador;
   syncing: boolean;
   onSync: (slug: string) => void;
   catColor: string;
+  onClick?: () => void;
 }) {
   const uv = indicador.ultimoValor;
   const ue = indicador.ultimaEvaluacion;
@@ -221,7 +223,7 @@ export function IndicatorCard({
 
   return (
     <div
-      className="rounded p-3 relative overflow-hidden transition-all duration-150 group"
+      className="rounded p-3 relative overflow-hidden transition-all duration-150 group cursor-pointer"
       style={{
         background: 'rgba(5, 5, 5, 0.8)',
         border: '1px solid ' + catColor + '18',
@@ -236,6 +238,11 @@ export function IndicatorCard({
         (e.currentTarget as HTMLElement).style.borderColor = catColor + '18';
         (e.currentTarget as HTMLElement).style.background = 'rgba(5, 5, 5, 0.8)';
         (e.currentTarget as HTMLElement).style.boxShadow = '0 0 8px ' + catColor + '08';
+      }}
+      onClick={(e) => {
+        // Don't trigger if clicking sync button
+        if ((e.target as HTMLElement).closest('button[disabled]') || (e.target as HTMLElement).closest('button')) return;
+        onClick?.();
       }}
     >
       <div className="relative z-10">
@@ -324,6 +331,296 @@ export function IndicatorCard({
             background: 'linear-gradient(90deg, transparent 10%, ' + catColor + '12 50%, transparent 90%)',
           }}
         />
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// History Chart — SVG line chart for modal view
+// ═══════════════════════════════════════════════════════════════
+
+function HistoryChart({
+  data,
+  color,
+  width = 500,
+  height = 180,
+}: {
+  data: Array<{ fecha: string; valor: number; confiable?: boolean }>;
+  color: string;
+  width?: number;
+  height?: number;
+}) {
+  if (!data || data.length < 2) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <p className="text-[10px] font-mono text-slate-600">
+          Sin suficientes datos historicos (necesitas al menos 2 capturas en dias diferentes)
+        </p>
+      </div>
+    );
+  }
+
+  const points = [...data].reverse();
+  const values = points.map(p => p.valor);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const padY = 12;
+  const padX = 40;
+  const chartW = width - padX - 16;
+  const chartH = height - padY * 2;
+
+  // Y-axis labels
+  const ySteps = 4;
+  const yLabels = Array.from({ length: ySteps + 1 }, (_, i) => {
+    const val = min + (range * (ySteps - i)) / ySteps;
+    return val;
+  });
+
+  // Build path
+  const linePoints = points.map((p, i) => {
+    const x = padX + (i / (points.length - 1)) * chartW;
+    const y = padY + chartH - ((p.valor - min) / range) * chartH;
+    return { x, y, ...p };
+  });
+
+  const pathD = linePoints.map((p, i) => (i === 0 ? `M${p.x},${p.y}` : `L${p.x},${p.y}`)).join(' ');
+
+  // Area fill
+  const areaD = pathD + ` L${linePoints[linePoints.length - 1].x},${padY + chartH} L${linePoints[0].x},${padY + chartH} Z`;
+
+  // Stats
+  const first = values[0];
+  const last = values[values.length - 1];
+  const change = last - first;
+  const changePct = first !== 0 ? ((change / first) * 100).toFixed(2) : '0.00';
+  const avg = (values.reduce((a, b) => a + b, 0) / values.length);
+  const high = max;
+  const low = min;
+
+  return (
+    <div>
+      {/* Stats row */}
+      <div className="grid grid-cols-4 gap-3 mb-4">
+        <StatBox label="Actual" value={last.toFixed(2)} color={color} />
+        <StatBox label="Promedio" value={avg.toFixed(2)} color="#64748b" />
+        <StatBox label="Max" value={high.toFixed(2)} color="#10b981" />
+        <StatBox label="Min" value={low.toFixed(2)} color="#f43f5e" />
+      </div>
+
+      {/* Change indicator */}
+      <div className="flex items-center gap-2 mb-3 px-1">
+        {change > 0 ? <TrendingUp className="w-3.5 h-3.5 text-emerald-400" /> :
+         change < 0 ? <TrendingDown className="w-3.5 h-3.5 text-rose-400" /> :
+         <Minus className="w-3.5 h-3.5 text-slate-400" />}
+        <span className="text-[10px] font-mono" style={{ color: change > 0 ? '#10b981' : change < 0 ? '#f43f5e' : '#64748b' }}>
+          {change > 0 ? '+' : ''}{changePct}% variacion
+        </span>
+        <span className="text-[9px] font-mono text-slate-600 ml-auto">
+          {points[0].fecha} — {points[points.length - 1].fecha}
+        </span>
+      </div>
+
+      {/* Chart */}
+      <svg width="100%" viewBox={`0 0 ${width} ${height}`} className="block">
+        {/* Grid lines */}
+        {yLabels.map((val, i) => {
+          const y = padY + chartH - (i / ySteps) * chartH;
+          return (
+            <g key={i}>
+              <line x1={padX} y1={y} x2={padX + chartW} y2={y} stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+              <text x={padX - 4} y={y + 3} textAnchor="end" fill="#475569" fontSize="8" fontFamily="monospace">
+                {val.toFixed(val >= 100 ? 0 : 2)}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Area fill */}
+        <path d={areaD} fill={color} opacity="0.06" />
+
+        {/* Line */}
+        <path d={pathD} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* Data points */}
+        {linePoints.map((p, i) => (
+          <g key={i}>
+            <circle cx={p.x} cy={p.y} r="2.5" fill={color} opacity={p.confiable === false ? 0.3 : 0.8} />
+            {/* Date label for every Nth point */}
+            {(i === 0 || i === linePoints.length - 1 || i % Math.max(1, Math.floor(linePoints.length / 6)) === 0) && (
+              <text x={p.x} y={height - 2} textAnchor="middle" fill="#475569" fontSize="7" fontFamily="monospace">
+                {p.fecha.slice(5)}
+              </text>
+            )}
+          </g>
+        ))}
+
+        {/* Current value dot with glow */}
+        <circle cx={linePoints[linePoints.length - 1].x} cy={linePoints[linePoints.length - 1].y} r="4" fill={color}>
+          <animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.8;0.4;0.8" dur="2s" repeatCount="indefinite" />
+        </circle>
+      </svg>
+    </div>
+  );
+}
+
+// Helper stat box for chart header
+function StatBox({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div className="text-center px-2 py-1.5 rounded" style={{ background: color + '08', border: '1px solid ' + color + '12' }}>
+      <p className="text-[8px] font-mono uppercase text-slate-600 tracking-wider">{label}</p>
+      <p className="text-sm font-bold font-mono tabular-nums" style={{ color }}>{value}</p>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// History Modal — detailed chart when clicking an indicator
+// ═══════════════════════════════════════════════════════════════
+
+interface HistoryData {
+  fecha: string;
+  valor: number;
+  valorTexto: string;
+  confiable: boolean;
+}
+
+export function HistoryModal({
+  indicador,
+  catColor,
+  onClose,
+}: {
+  indicador: EnrichedIndicador;
+  catColor: string;
+  onClose: () => void;
+}) {
+  const [history, setHistory] = useState<HistoryData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dias, setDias] = useState(30);
+
+  const fetchHistory = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/indicadores/${indicador.id}/history?dias=${dias}`);
+      if (res.ok) {
+        const json = await res.json();
+        setHistory(json.data || []);
+      }
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  }, [indicador.id, dias]);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
+
+  // Close on Escape
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="rounded-lg overflow-hidden max-w-lg w-full"
+        style={{
+          background: '#0a0a0a',
+          border: '1px solid ' + catColor + '25',
+          boxShadow: '0 0 40px ' + catColor + '10',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: '1px solid ' + catColor + '15' }}>
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: catColor, boxShadow: '0 0 6px ' + catColor + '60' }} />
+          <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-300 flex-1 truncate">
+            {indicador.nombre}
+          </h3>
+          <span className="text-[8px] font-mono text-slate-600">{history.length} registros</span>
+          <button onClick={onClose} className="p-1 rounded hover:bg-white/5 transition-colors">
+            <X className="w-3.5 h-3.5 text-slate-500" />
+          </button>
+        </div>
+
+        {/* Period selector */}
+        <div className="flex items-center gap-1 px-4 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+          {[7, 30, 90, 180, 365].map((d) => (
+            <button
+              key={d}
+              onClick={() => setDias(d)}
+              className="px-2 py-1 rounded text-[8px] font-bold font-mono uppercase transition-all"
+              style={{
+                color: dias === d ? catColor : '#475569',
+                backgroundColor: dias === d ? catColor + '12' : 'transparent',
+                border: '1px solid ' + (dias === d ? catColor + '25' : 'transparent'),
+              }}
+            >
+              {d}d
+            </button>
+          ))}
+          <button
+            onClick={fetchHistory}
+            disabled={loading}
+            className="ml-auto p-1 rounded hover:bg-white/5 transition-colors disabled:opacity-40"
+          >
+            <RefreshCw className={'w-3 h-3 text-slate-500' + (loading ? ' animate-spin' : '')} />
+          </button>
+        </div>
+
+        {/* Chart content */}
+        <div className="p-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-5 h-5 animate-spin text-cyan-500" />
+              <span className="ml-2 text-[10px] font-mono text-slate-500">Cargando historial...</span>
+            </div>
+          ) : (
+            <HistoryChart data={history} color={catColor} />
+          )}
+
+          {/* Data table (last 10) */}
+          {history.length > 0 && (
+            <div className="mt-4 max-h-[120px] overflow-y-auto custom-scrollbar" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+              <table className="w-full text-[8px] font-mono">
+                <thead>
+                  <tr className="text-slate-600 uppercase">
+                    <th className="text-left py-1.5 px-2">Fecha</th>
+                    <th className="text-right py-1.5 px-2">Valor</th>
+                    <th className="text-right py-1.5 px-2">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.slice(0, 20).map((row, i) => (
+                    <tr key={i} className="border-t border-white/[0.02] hover:bg-white/[0.02]">
+                      <td className="py-1 px-2 text-slate-400">{row.fecha}</td>
+                      <td className="py-1 px-2 text-right text-slate-300">{row.valorTexto || row.valor}</td>
+                      <td className="py-1 px-2 text-right">
+                        <span className="w-1 h-1 rounded-full inline-block" style={{
+                          backgroundColor: row.confiable ? '#10b981' : '#f59e0b',
+                          boxShadow: '0 0 3px ' + (row.confiable ? '#10b981' : '#f59e0b') + '50',
+                        }} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom glow */}
+        <div className="h-[1px]" style={{ background: 'linear-gradient(90deg, transparent 5%, ' + catColor + '30 50%, transparent 95%)' }} />
       </div>
     </div>
   );
