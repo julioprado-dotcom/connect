@@ -60,7 +60,7 @@ interface CaptureResult {
   mensaje?: string;
   datos?: {
     exitosos: Array<{ slug: string; valor: string; confiable: boolean }>;
-    fallidos: Array<{ slug: string; error: string }>;
+    fallidos: Array<{ slug: string; error: string; metadata?: string }>;
     total: number;
     duracionMs: number;
   };
@@ -628,7 +628,7 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
           {/* Capture result */}
           {captureResult && (
             <div
-              className="flex items-center gap-2 px-3 py-2.5 rounded-md text-[10px] font-mono"
+              className="flex flex-wrap items-center gap-2 px-3 py-2.5 rounded-md text-[10px] font-mono"
               style={{
                 color: captureResult.exito ? '#06b6d4' : '#8b5cf6',
                 backgroundColor: captureResult.exito ? 'rgba(6,182,212,0.06)' : 'rgba(139,92,246,0.06)',
@@ -647,12 +647,24 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
                   <span>
                     Exitosos: {captureResult.datos.exitosos.length} | Fallidos:{' '}
                     {captureResult.datos.fallidos.length}
+                    <span className="ml-3 text-slate-500" style={{ borderLeft: '2px solid rgba(100,116,139,0.3)', paddingLeft: '10px' }}>
+                      en {captureResult.datos.duracionMs
+                        ? formatElapsed(Math.floor(captureResult.datos.duracionMs / 1000))
+                        : '---'}
+                    </span>
                   </span>
-                  <span className="ml-2 flex-shrink-0 text-slate-500" style={{ borderLeft: '1px solid rgba(100,116,139,0.2)', paddingLeft: '8px' }}>
-                    {captureResult.datos.duracionMs
-                      ? formatElapsed(Math.floor(captureResult.datos.duracionMs / 1000))
-                      : ''}
-                  </span>
+                  {captureResult.datos.fallidos.length > 0 && (
+                    <details className="ml-3">
+                      <summary className="cursor-pointer text-slate-500 hover:text-violet-400 transition-colors">Ver errores</summary>
+                      <div className="mt-1.5 space-y-0.5">
+                        {captureResult.datos.fallidos.map((f, idx) => (
+                          <div key={idx} className="text-[9px] text-slate-500">
+                            <span className="text-violet-400">{f.slug}</span>: {typeof f.error === 'string' ? (() => { try { const p = JSON.parse(f.error); return p.error || p.hint || f.error; } catch { return f.error; } })() : JSON.stringify(f.error)}
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
                 </>
               ) : (
                 <span>{captureResult.error || 'Error desconocido'}</span>

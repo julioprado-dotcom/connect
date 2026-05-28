@@ -29,7 +29,8 @@ export async function POST() {
         })),
         fallidos: resultado.fallidos.map(r => ({
           slug: r.slug,
-          error: r.metadata,
+          error: r.error || r.metadata,
+          metadata: r.metadata,
         })),
         total: resultado.total,
         duracionMs: duracion,
