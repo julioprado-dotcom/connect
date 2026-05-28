@@ -66,7 +66,9 @@ export async function middleware(request: NextRequest) {
     const forwardedProto = request.headers.get('x-forwarded-proto');
     const host = request.headers.get('host') || '';
     if (forwardedProto === 'http' && host.includes('decodex-bolivia.net')) {
-      const url = request.url.replace('http://', 'https://');
+      const url = new URL(request.url);
+      url.protocol = 'https:';
+      url.host = host;
       return NextResponse.redirect(url, 301);
     }
 
