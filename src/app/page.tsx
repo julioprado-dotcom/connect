@@ -9,6 +9,7 @@ import { ProduccionView } from '@/components/onion200/ProduccionView';
 import { DistribucionView } from '@/components/onion200/DistribucionView';
 import { FuentesView } from '@/components/onion200/FuentesView';
 import { InteligenciaView } from '@/components/onion200/InteligenciaView';
+import { IndicadoresView } from '@/components/onion200/IndicadoresView';
 import { AlertasPanel } from '@/components/dashboard/panels/AlertasPanel';
 import Image from 'next/image';
 import {
@@ -26,6 +27,7 @@ import {
   LogOut,
   Sun,
   Moon,
+  TrendingUp,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { useTheme } from '@/components/theme-provider';
@@ -54,7 +56,7 @@ interface PipelineKPIs {
   };
 }
 
-type TabKey = 'resumen' | 'alertas' | 'fuentes' | 'captura' | 'clasificacion' | 'inteligencia' | 'produccion' | 'distribucion';
+type TabKey = 'resumen' | 'alertas' | 'indicadores' | 'fuentes' | 'captura' | 'clasificacion' | 'inteligencia' | 'produccion' | 'distribucion';
 
 interface TabConfig {
   key: TabKey;
@@ -66,6 +68,7 @@ interface TabConfig {
 const TABS: TabConfig[] = [
   { key: 'resumen', label: 'RESUMEN', icon: <Monitor className="w-3.5 h-3.5" /> },
   { key: 'alertas', label: 'ALERTAS', icon: <Bell className="w-3.5 h-3.5" /> },
+  { key: 'indicadores', label: 'INDICADORES', icon: <TrendingUp className="w-3.5 h-3.5" /> },
   { key: 'fuentes', label: 'FUENTES', icon: <Database className="w-3.5 h-3.5" /> },
   { key: 'captura', label: 'CAPTURA', icon: <Radio className="w-3.5 h-3.5" />, statusKey: 'captura' },
   { key: 'clasificacion', label: 'CLASIFICACION', icon: <Crosshair className="w-3.5 h-3.5" />, statusKey: 'clasificacion' },
@@ -437,6 +440,7 @@ export default function ONION200Dashboard() {
         <div className="max-w-[1400px] mx-auto">
           {activeTab === 'resumen' && <ResumenView onNavigateTab={handleTabChange} />}
           {activeTab === 'alertas' && <AlertasPanel />}
+          {activeTab === 'indicadores' && <IndicadoresView onNavigateTab={handleTabChange} />}
           {activeTab === 'fuentes' && <FuentesView />}
           {activeTab === 'captura' && <CapturaView />}
           {activeTab === 'clasificacion' && <ClasificacionView />}
