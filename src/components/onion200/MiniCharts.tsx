@@ -30,6 +30,13 @@ const SENTIMIENTO_LABELS: Record<string, string> = {
   positivo: 'Pos', negativo: 'Neg', neutral: 'Neu', mixto: 'Mix',
 };
 
+const SENTIMIENTO_COLORS: Record<string, string> = {
+  positivo: '#06b6d4',
+  negativo: '#f43f5e',
+  neutral: '#64748b',
+  mixto: '#f59e0b',
+};
+
 // ═══════════════════════════════════════════════════════════════
 // Thin Bars — monochrome cyan, 2px height
 // ═══════════════════════════════════════════════════════════════
@@ -110,7 +117,8 @@ function SentimentRing({
     const gap = circumference - dashLen;
     const offset = -accumulated * circumference;
     accumulated += pct;
-    return { ...d, pct, dashLen, gap, offset };
+    const color = SENTIMIENTO_COLORS[d.label.toLowerCase()] || '#06b6d4';
+    return { ...d, pct, dashLen, gap, offset, color };
   });
 
   return (
@@ -130,11 +138,12 @@ function SentimentRing({
                 key={i}
                 cx="28" cy="28" r={radius}
                 fill="none"
-                stroke="rgba(6,182,212,0.3)"
+                stroke={arc.color}
                 strokeWidth="2"
                 strokeDasharray={`${arc.dashLen} ${arc.gap}`}
                 strokeDashoffset={arc.offset}
                 strokeLinecap="round"
+                opacity={0.7}
               />
             ))}
           </svg>
@@ -149,9 +158,9 @@ function SentimentRing({
         <div className="space-y-0.5 flex-1">
           {arcs.map((arc, i) => (
             <div key={i} className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: 'rgba(6,182,212,0.35)' }} />
-              <span className="text-[9px] font-mono text-slate-500">{arc.label}</span>
-              <span className="text-[9px] font-mono tabular-nums text-slate-600 ml-auto">
+              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: arc.color + '90', boxShadow: '0 0 4px ' + arc.color + '40' }} />
+              <span className="text-[9px] font-mono" style={{ color: arc.color + 'cc' }}>{arc.label}</span>
+              <span className="text-[9px] font-mono tabular-nums text-slate-500 ml-auto">
                 {(arc.pct * 100).toFixed(0)}%
               </span>
             </div>
