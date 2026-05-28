@@ -3,10 +3,10 @@
 import * as React from 'react';
 
 /**
- * ThemeProvider — iframe-safe wrapper.
- * En el sandbox de Z.ai, localStorage lanza SecurityError.
- * next-themes lo usa internamente, así que lo envolvemos con error boundary.
- * Si falla, renderiza children sin tema (usa CSS variables del :root).
+ * ThemeProvider — iframe-safe wrapper con persistencia localStorage.
+ * - Aplica clase 'dark'/'light' en <html>
+ * - Persiste elección en localStorage para mantener entre recargas
+ * - Sin dependencia de next-themes (iframe-safe)
  */
 const ThemeContext = React.createContext<{
   theme: string;
@@ -23,49 +23,54 @@ export function ThemeProvider({ children, ...props }: {
   defaultTheme?: string;
   enableSystem?: boolean;
 }) {
-  const [theme, setThemeState] = React.useState(props.defaultTheme || 'dark');
+  const defaultT = props.defaultTheme || 'dark';
+  const [theme, setThemeState] = React.useState(defaultT);
   const [mounted, setMounted] = React.useState(false);
-  const [safe, setSafe] = React.useState(true);
 
+  // On mount: read persisted theme from localStorage, then apply class
   React.useEffect(() => {
-    // Test if localStorage is accessible (iframe sandbox check)
     try {
-      const test = '__theme_test__';
-      window.localStorage.setItem(test, '1');
-      window.localStorage.removeItem(test);
+      const stored = window.localStorage.getItem('decodex-theme');
+      if (stored === 'light' || stored === 'dark') {
+        setThemeState(stored);
+        applyClass(stored);
+      } else {
+        applyClass(defaultT);
+      }
     } catch {
-      // localStorage blocked — use simple class-based theming without next-themes
-      setSafe(false);
+      // localStorage blocked (iframe) — use default
+      applyClass(defaultT);
     }
     setMounted(true);
   }, []);
 
-  // Safe theme setter — applies class to <html> directly
+  // Persist + apply theme
   const setTheme = React.useCallback((t: string) => {
     setThemeState(t);
+    applyClass(t);
     try {
-      const root = document.documentElement;
-      root.classList.remove('light', 'dark');
-      root.classList.add(t);
-    } catch { /* silent */ }
+      window.localStorage.setItem('decodex-theme', t);
+    } catch { /* silent — iframe */ }
   }, []);
 
-  // On mount, apply theme class to <html>
+  // Re-apply on theme state change (for controlled updates)
   React.useEffect(() => {
     if (mounted) {
-      try {
-        const root = document.documentElement;
-        root.classList.remove('light', 'dark');
-        root.classList.add(theme);
-      } catch { /* silent */ }
+      applyClass(theme);
     }
   }, [mounted, theme]);
 
-  // If localStorage works and next-themes is available, we could use it
-  // But for iframe safety, we use our own simple implementation
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );
+}
+
+function applyClass(t: string) {
+  try {
+    const root = document.documentElement;
+    root.classList.remove('light', 'dark');
+    root.classList.add(t);
+  } catch { /* silent */ }
 }

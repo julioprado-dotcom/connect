@@ -434,7 +434,17 @@ export default function ONION200Dashboard() {
             title="Gestión Comercial"
           >
             <LayoutGrid className="w-3 h-3" />
-            <span className="hidden sm:inline">Gestión</span>
+            <span className="hidden sm:inline">Clientes</span>
+          </Link>
+          {/* Entregas nav link */}
+          <Link
+            href="/entregas"
+            className="flex items-center gap-1.5 px-2 py-1 rounded text-[9px] font-mono uppercase tracking-wider transition-all hover:bg-cyan-500/10"
+            style={{ color: colors.btnColor, border: '1px solid ' + colors.btnBorder }}
+            title="Gestión de Entregas"
+          >
+            <Send className="w-3 h-3" />
+            <span className="hidden sm:inline">Entregas</span>
           </Link>
           {/* Theme toggle */}
           <button

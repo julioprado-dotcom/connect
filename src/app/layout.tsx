@@ -50,7 +50,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background text-foreground" style={{'--brand-mint': '#00E5A0', '--brand-navy': '#0A1628', '--brand-night': '#1A2744', '--brand-sand': '#F5F5F0', '--brand-amber': '#F59E0B'} as React.CSSProperties}>

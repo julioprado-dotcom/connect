@@ -617,28 +617,18 @@ export default function DetalleContratoPage({
   // ─── Loading state ────────────────────────────────────────
   if (loading) {
     return (
-      <div
-        className="min-h-screen flex flex-col"
-        style={{ backgroundColor: '#080c14' }}
-      >
-        <div className="flex-1 flex items-center justify-center">
+      <div className="min-h-[60vh] flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="w-6 h-6 animate-spin text-cyan-500" />
             <span className="text-xs font-mono text-slate-500">Cargando contrato...</span>
           </div>
-        </div>
-      </div>
     );
   }
 
   // ─── Error state ─────────────────────────────────────────
   if (error || !contrato) {
     return (
-      <div
-        className="min-h-screen flex flex-col"
-        style={{ backgroundColor: '#080c14' }}
-      >
-        <div className="flex-1 flex items-center justify-center px-4">
+      <div className="min-h-[60vh] flex items-center justify-center px-4">
           <div className="text-center space-y-3 max-w-md">
             <XCircle className="w-10 h-10 mx-auto text-red-500/60" />
             <p className="text-sm font-mono text-red-400">{error || 'Contrato no encontrado'}</p>
@@ -650,8 +640,6 @@ export default function DetalleContratoPage({
               Volver a Clientes
             </Link>
           </div>
-        </div>
-      </div>
     );
   }
 
@@ -664,45 +652,26 @@ export default function DetalleContratoPage({
 
   // ─── Main render ─────────────────────────────────────────
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ backgroundColor: '#080c14' }}
-    >
+    <div className="space-y-4">
       {/* ═══ HEADER BAR ═══ */}
-      <header
-        className="sticky top-0 z-40 px-4 sm:px-6 py-3 flex items-center justify-between flex-shrink-0"
-        style={{
-          backgroundColor: '#0d1321',
-          borderBottom: '1px solid rgba(6, 182, 212, 0.08)',
-        }}
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <Link
-            href="/clientes"
-            className="flex items-center gap-1.5 text-xs font-mono text-slate-500 hover:text-cyan-400 transition-colors flex-shrink-0"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Clientes</span>
-          </Link>
-          <div className="w-px h-4 bg-slate-800 flex-shrink-0" />
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-sm font-bold text-cyan-400 font-mono uppercase tracking-wider truncate">
-                Contrato
-              </h1>
-              <span className="text-[10px] font-mono text-slate-600">
-                {truncateId(contrato.id)}
-              </span>
-              <StatusBadge estado={contrato.estado} />
-            </div>
-            <p className="text-[10px] font-mono text-slate-600 mt-0.5 truncate">
-              {contrato.Cliente?.nombre || 'Sin cliente'}
-            </p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-sm font-bold text-cyan-400 font-mono uppercase tracking-wider">
+              Contrato
+            </h1>
+            <span className="text-[10px] font-mono text-slate-600">
+              {truncateId(contrato.id)}
+            </span>
+            <StatusBadge estado={contrato.estado} />
           </div>
+          <p className="text-[10px] font-mono text-slate-600 mt-0.5 truncate">
+            {contrato.Cliente?.nombre || 'Sin cliente'}
+          </p>
         </div>
         <button
           onClick={openEdit}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider transition-all"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider transition-all flex-shrink-0"
           style={{
             backgroundColor: 'rgba(6, 182, 212, 0.08)',
             border: '1px solid rgba(6, 182, 212, 0.15)',
@@ -712,10 +681,7 @@ export default function DetalleContratoPage({
           <Pencil className="w-3 h-3" />
           <span className="hidden sm:inline">Editar</span>
         </button>
-      </header>
-
-      {/* ═══ MAIN CONTENT ═══ */}
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+      </div>
         <div className="max-w-4xl mx-auto space-y-4">
 
           {/* ═══ CLIENTE INFO ═══ */}

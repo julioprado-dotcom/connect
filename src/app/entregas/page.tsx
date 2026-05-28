@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 import { PanelShell } from '@/components/onion200/PanelShell';
+import { usePageColors } from '@/components/sub-page-shell';
 import { ALL_PRODUCTS, CANAL_LABELS } from '@/constants/nav';
 import {
   ArrowLeft,
@@ -392,6 +393,7 @@ function EmptyState() {
 /* ─── MAIN PAGE ────────────────────────────────────────────── */
 export default function EntregasPage() {
   const router = useRouter();
+  const colors = usePageColors();
 
   // Data state
   const [entregas, setEntregas] = useState<EntregaRecord[]>([]);
@@ -494,52 +496,17 @@ export default function EntregasPage() {
   }
 
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ backgroundColor: '#020202' }}
-    >
-      {/* Scan lines overlay */}
-      <div
-        className="fixed inset-0 pointer-events-none opacity-20"
-        style={{
-          background:
-            'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(6,182,212,0.012) 3px, rgba(6,182,212,0.012) 4px)',
-        }}
-      />
-
-      {/* ═══ HEADER ═══ */}
-      <header
-        className="relative z-10 flex-shrink-0 px-4 sm:px-6 py-4 flex items-center justify-between"
-        style={{
-          borderBottom: '1px solid rgba(6,182,212,0.08)',
-          background: 'linear-gradient(180deg, rgba(6,182,212,0.04) 0%, transparent 100%)',
-        }}
-      >
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => router.push('/')}
-            className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono uppercase tracking-wider transition-all hover:bg-white/5"
-            style={{ color: '#64748b' }}
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Dashboard
-          </button>
-          <div
-            className="w-px h-5"
-            style={{ backgroundColor: 'rgba(6,182,212,0.12)' }}
-          />
-          <div>
-            <h1 className="text-sm font-bold tracking-[0.15em] text-cyan-400/90 font-mono uppercase">
-              Gestion de Entregas
-            </h1>
-            <p className="text-[10px] tracking-wider text-slate-600 font-mono">
-              Seguimiento de entregas de productos ONION200
-            </p>
-          </div>
+    <div className="space-y-4">
+      {/* ═══ Page title ═══ */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-sm font-bold tracking-[0.15em] font-mono uppercase" style={{ color: colors.text }}>
+            Gestion de Entregas
+          </h1>
+          <p className="text-[10px] tracking-wider font-mono" style={{ color: colors.textMuted }}>
+            Seguimiento de entregas de productos ONION200
+          </p>
         </div>
-
-        {/* Live indicator */}
         <div className="hidden sm:flex items-center gap-1.5">
           <span
             className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"
@@ -549,11 +516,7 @@ export default function EntregasPage() {
             en vivo
           </span>
         </div>
-      </header>
-
-      {/* ═══ MAIN CONTENT ═══ */}
-      <main className="relative z-10 flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6">
-        <div className="max-w-[1400px] mx-auto space-y-4">
+      </div>
 
           {/* ═══ STATS BAR ═══ */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -828,24 +791,6 @@ export default function EntregasPage() {
               </>
             )}
           </PanelShell>
-        </div>
-      </main>
-
-      {/* ═══ FOOTER ═══ */}
-      <footer
-        className="relative z-10 flex-shrink-0 px-4 sm:px-6 py-1.5 flex items-center justify-between"
-        style={{
-          borderTop: '1px solid rgba(6,182,212,0.06)',
-          background: 'rgba(5,5,5,0.9)',
-        }}
-      >
-        <span className="text-[9px] font-mono text-slate-700">
-          ONION200 v2.0 · Gestion de Entregas
-        </span>
-        <span className="text-[9px] font-mono text-slate-700">
-          DECODEX Bolivia · Inteligencia de Senales · 2025-2030
-        </span>
-      </footer>
     </div>
   );
 }
