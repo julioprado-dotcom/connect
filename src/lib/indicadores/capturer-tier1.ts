@@ -31,7 +31,7 @@ const INDICADORES_TIER1 = [
     nombre: 'Tipo de Cambio Oficial',
     categoria: 'monetario',
     fuente: 'Banco Central de Bolivia',
-    url: 'https://www.bcb.gob.bo/?q=tipos_de_cambio',
+    url: 'https://www.bcb.gob.bo/?q=cotizaciones_tc',
     periodicidad: 'diaria',
     unidad: 'Bs/USD',
     formatoNumero: 2,
@@ -617,7 +617,7 @@ async function capturarTcOficial(): Promise<CapturaResult> {
   const fecha = new Date()
 
   try {
-    const response = await fetch('https://www.bcb.gob.bo/?q=tipos_de_cambio', {
+    const response = await fetch('https://www.bcb.gob.bo/?q=cotizaciones_tc', {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': 'text/html,application/xhtml+xml',
@@ -631,18 +631,29 @@ async function capturarTcOficial(): Promise<CapturaResult> {
 
     const html = await response.text()
 
-    // Parseo: buscar patrones numéricos que parezcan tipo de cambio (6.86 - 8.50 rango)
-    const tcPattern = /(\d+)[.,](\d{2})/g
-    let match = tcPattern.exec(html)
+    // Parseo: buscar "Tipo de cambio Bs por 1 Dólar USA" y luego "Venta" con número
+    // La nueva página muestra: Compra 6,86 y Venta 6,96
     let valor = 0
 
-    while (match !== null) {
-      const num = parseFloat(`${match[1]}.${match[2]}`)
-      if (num >= 6.5 && num <= 9.0) {
-        valor = num
-        break
+    // Buscar patrón "Venta" seguido de un número con formato boliviano (X,XX)
+    const ventaPattern = /Venta[\s\S]*?(\d+)[,.](\d{2})/i
+    const ventaMatch = ventaPattern.exec(html)
+    if (ventaMatch) {
+      valor = parseFloat(`${ventaMatch[1]}.${ventaMatch[2]}`)
+    }
+
+    // Fallback: buscar cualquier número en rango tipo de cambio (6.50 - 10.50)
+    if (valor === 0) {
+      const tcPattern = /(\d+)[.,](\d{2})/g
+      let match = tcPattern.exec(html)
+      while (match !== null) {
+        const num = parseFloat(`${match[1]}.${match[2]}`)
+        if (num >= 6.5 && num <= 10.5) {
+          valor = num
+          break
+        }
+        match = tcPattern.exec(html)
       }
-      match = tcPattern.exec(html)
     }
 
     if (valor === 0) {
@@ -755,14 +766,41 @@ export async function capturarUno(slug: string): Promise<CapturaResult> {
   }
 
   if (!indicadorDef) {
-    return {
-      slug,
-      valor: 0,
-      valorTexto: 'N/D',
-      confiable: false,
-      fecha,
-      metadata: JSON.stringify({ error: 'Indicador no encontrado' }),
-      error: 'Indicador no encontrado',
+    // Si el slug tiene fuente automática, crearlo en la DB al vuelo
+    const autoDef = INDICADORES_TIER1.find(d => d.slug === slug)
+    if (autoDef) {
+      try {
+        indicadorDef = await db.indicador.create({
+          data: {
+            ...autoDef,
+            activo: true,
+            orden: INDICADORES_TIER1.indexOf(autoDef),
+            ejesTematicos: getEjesForIndicador(autoDef.slug),
+          },
+        })
+        console.log(`[capturarUno] Indicador auto-creado: ${autoDef.nombre} (${slug})`)
+      } catch (createErr) {
+        console.error(`[capturarUno] Error creando indicador ${slug}:`, createErr)
+        return {
+          slug,
+          valor: 0,
+          valorTexto: 'N/D',
+          confiable: false,
+          fecha,
+          metadata: JSON.stringify({ error: 'Indicador no encontrado y error al crearlo' }),
+          error: 'Indicador no encontrado',
+        }
+      }
+    } else {
+      return {
+        slug,
+        valor: 0,
+        valorTexto: 'N/D',
+        confiable: false,
+        fecha,
+        metadata: JSON.stringify({ error: 'Indicador no encontrado' }),
+        error: 'Indicador no encontrado',
+      }
     }
   }
 
