@@ -2,269 +2,37 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
-import { sentimentColor } from '@/constants/colors';
 import { PanelShell } from './PanelShell';
 import {
   Radio,
   Search,
-  Save,
-  Brain,
-  Activity,
   AlertTriangle,
   CheckCircle2,
   Wrench,
   RefreshCw,
   Loader2,
-  X,
   Eye,
   Zap,
   Database,
-  Newspaper,
 } from 'lucide-react';
-
-// ═══════════════════════════════════════════════════════════════
-// Types
-// ═══════════════════════════════════════════════════════════════
-
-interface Medio {
-  id: string;
-  nombre: string;
-  url: string;
-  tipo: string;
-  categoria: string;
-  nivel: string;
-  departamento: string | null;
-  plataformas: string;
-  notas: string;
-  pais: string;
-  activo: boolean;
-  naturaleza: string;
-  ambito: string;
-  enfoque: string;
-  credibilidad: number;
-  ultimaRevisionHumana: string | null;
-  ultimoError: string;
-  fechaCreacion: string;
-  mencionesCount?: number;
-}
-
-interface ProbeLogEntry {
-  step: string;
-  status: 'ok' | 'error' | 'warn';
-  message: string;
-  ms?: number;
-}
-
-interface ProbeResult {
-  medioId: string;
-  nombre: string;
-  url: string;
-  logs: ProbeLogEntry[];
-  success: boolean;
-  estado: string;
-}
-
-interface AIAnalysis {
-  naturaleza: string;
-  ambito: string;
-  enfoque: string;
-  credibilidad: number;
-  razon: string;
-}
-
-interface EditForm {
-  nombre: string;
-  url: string;
-  naturaleza: string;
-  ambito: string;
-  enfoque: string;
-  credibilidad: number;
-}
-
-type FilterMode = 'todos' | 'errores' | 'inactivos';
-
-// ═══════════════════════════════════════════════════════════════
-// Constants
-// ═══════════════════════════════════════════════════════════════
-
-const NATURALEZA_OPTS = ['ESTATAL', 'PRIVADO', 'COMUNITARIO', 'MIXTO', 'ONG'] as const;
-const AMBITO_OPTS = ['NACIONAL', 'REGIONAL', 'LOCAL', 'INTERNACIONAL'] as const;
-const ENFOQUE_OPTS = ['GENERALISTA', 'ECONOMICO', 'POLITICO', 'DEPORTIVO', 'CULTURAL'] as const;
-
-const NATURALEZA_COLORS: Record<string, { text: string; bg: string; border: string }> = {
-  ESTATICAL: { text: '#06b6d4', bg: 'rgba(6,182,212,0.1)', border: 'rgba(6,182,212,0.25)' },
-  ESTATAL: { text: '#06b6d4', bg: 'rgba(6,182,212,0.1)', border: 'rgba(6,182,212,0.25)' },
-  PRIVADO: { text: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)' },
-  COMUNITARIO: { text: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)' },
-  MIXTO: { text: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
-  ONG: { text: '#a78bfa', bg: 'rgba(167,139,250,0.08)', border: 'rgba(167,139,250,0.2)' },
-};
-
-const getEstadoColor = (activo: boolean, ultimoError: string): { text: string; bg: string; border: string; blink?: boolean } => {
-  if (ultimoError && ultimoError.length > 0) {
-    return { text: '#8b5cf6', bg: 'rgba(139,92,246,0.06)', border: 'rgba(139,92,246,0.2)', blink: true };
-  }
-  if (!activo) {
-    return { text: '#f59e0b', bg: 'rgba(245,158,11,0.06)', border: 'rgba(245,158,11,0.2)' };
-  }
-  return { text: '#06b6d4', bg: 'rgba(6,182,212,0.06)', border: 'rgba(6,182,212,0.15)' };
-};
-
-const getEstadoLabel = (activo: boolean, ultimoError: string): string => {
-  if (ultimoError && ultimoError.length > 0) return 'ERROR';
-  if (!activo) return 'INACTIVO';
-  return 'ACTIVO';
-};
-
-// ═══════════════════════════════════════════════════════════════
-// Sub-components
-// ═══════════════════════════════════════════════════════════════
-
-function SkeletonRow() {
-  const widths = [75, 50, 40, 60, 55, 45];
-  return (
-    <tr className="border-b border-slate-800/40">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <td key={i} className="px-3 py-2.5">
-          <div
-            className="h-3 rounded-sm animate-pulse"
-            style={{
-              backgroundColor: 'rgba(6,182,212,0.05)',
-              width: widths[i] + '%',
-            }}
-          />
-        </td>
-      ))}
-    </tr>
-  );
-}
-
-function StatusBadge({ activo, ultimoError }: { activo: boolean; ultimoError: string }) {
-  const { text, bg, border, blink } = getEstadoColor(activo, ultimoError);
-  const label = getEstadoLabel(activo, ultimoError);
-  return (
-    <span
-      className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase tracking-wider"
-      style={{
-        color: text,
-        backgroundColor: bg,
-        border: '1px solid ' + border,
-        animation: blink ? 'errorBlink 2s ease-in-out infinite' : undefined,
-      }}
-    >
-      {label}
-    </span>
-  );
-}
-
-function NaturalezaBadge({ naturaleza }: { naturaleza: string }) {
-  const colors = NATURALEZA_COLORS[naturaleza] || {
-    text: '#64748b',
-    bg: 'rgba(100,116,139,0.06)',
-    border: 'rgba(100,116,139,0.15)',
-  };
-  return (
-    <span
-      className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold font-mono uppercase tracking-wider"
-      style={{
-        color: colors.text,
-        backgroundColor: colors.bg,
-        border: '1px solid ' + colors.border,
-      }}
-    >
-      {naturaleza || 'SIN CLASIFICAR'}
-    </span>
-  );
-}
-
-function CredibilidadBar({ value }: { value: number }) {
-  const pct = Math.max(0, Math.min(100, value));
-  const color = pct >= 70 ? '#06b6d4' : pct >= 40 ? '#f59e0b' : '#8b5cf6';
-  return (
-    <div className="flex items-center gap-2 min-w-[120px]">
-      <div
-        className="flex-1 h-1.5 rounded-full overflow-hidden"
-        style={{ backgroundColor: 'rgba(6,182,212,0.06)' }}
-      >
-        <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{
-            width: pct + '%',
-            backgroundColor: color,
-            boxShadow: '0 0 6px ' + color + '40',
-          }}
-        />
-      </div>
-      <span
-        className="text-[10px] font-mono font-bold tabular-nums min-w-[24px] text-right"
-        style={{ color }}
-      >
-        {pct}
-      </span>
-    </div>
-  );
-}
-
-function ProbeTerminal({
-  logs,
-  probing,
-}: {
-  logs: ProbeLogEntry[];
-  probing: boolean;
-}) {
-  const endRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [logs]);
-
-  if (logs.length === 0 && !probing) return null;
-
-  return (
-    <div
-      className="rounded-md overflow-hidden mt-2"
-      style={{
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        border: '1px solid rgba(6,182,212,0.08)',
-      }}
-    >
-      <div className="px-3 py-1.5 border-b border-slate-800/60 flex items-center gap-2">
-        <Activity className="w-3 h-3 text-cyan-500/60" />
-        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600 font-mono">
-          Diagnostico de Conexion
-        </span>
-        {probing && (
-          <span className="ml-auto flex items-center gap-1">
-            <Loader2 className="w-3 h-3 animate-spin text-cyan-400" />
-            <span className="text-[9px] font-mono text-cyan-400/70">Sondeando...</span>
-          </span>
-        )}
-      </div>
-      <div className="max-h-[160px] overflow-y-auto p-2 space-y-0.5 custom-scrollbar">
-        {logs.map((log, i) => {
-          const color =
-            log.status === 'ok'
-              ? '#06b6d4'
-              : log.status === 'error'
-                ? '#8b5cf6'
-                : '#f59e0b';
-          return (
-            <div
-              key={i}
-              className="text-[9px] font-mono leading-relaxed px-1"
-              style={{ color }}
-            >
-              <span className="text-slate-600">{'>'}</span> {log.message}
-              {log.ms !== undefined && (
-                <span className="text-slate-600 ml-1">({log.ms}ms)</span>
-              )}
-            </div>
-          );
-        })}
-        <div ref={endRef} />
-      </div>
-    </div>
-  );
-}
+import type {
+  Medio,
+  ProbeLogEntry,
+  ProbeResult,
+  AIAnalysis,
+  EditForm,
+  FilterMode,
+  MedioMencion,
+} from './FuentesView.types';
+import {
+  SkeletonRow,
+  StatusBadge,
+  NaturalezaBadge,
+  CredibilidadBar,
+  StatBox,
+} from './FuentesView.helpers';
+import { ProbeTerminal } from './FuentesView.probe';
+import { MedioDetailPanel } from './FuentesView.edit-modal';
 
 // ═══════════════════════════════════════════════════════════════
 // FuentesView — Main Component
@@ -286,13 +54,7 @@ export function FuentesView() {
   const [probingIds, setProbingIds] = useState<Set<string>>(new Set());
   const [batchLoading, setBatchLoading] = useState(false);
   const [batchResult, setBatchResult] = useState<{ fixed: number; details: string } | null>(null);
-  const [medioMenciones, setMedioMenciones] = useState<Array<{
-    id: string;
-    titulo: string;
-    fechaCaptura: string;
-    sentimiento: string;
-    Persona?: { nombre: string } | null;
-  }>>([]);
+  const [medioMenciones, setMedioMenciones] = useState<MedioMencion[]>([]);
   const [medioMencionesLoading, setMedioMencionesLoading] = useState(false);
   const [medioMencionesTotal, setMedioMencionesTotal] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval>>(null);
@@ -371,6 +133,14 @@ export function FuentesView() {
     setTimeout(() => {
       detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
+  };
+
+  const handleCloseDetail = () => {
+    setSelectedId(null);
+    setEditForm(null);
+    setAiResult(null);
+    setSaveResult(null);
+    setMedioMenciones([]);
   };
 
   const handleProbe = async (medio: Medio) => {
@@ -855,397 +625,22 @@ export function FuentesView() {
       {/* ── Detail / Edit Panel (inline, below table) ── */}
       <div ref={detailRef} />
       {selectedMedio && editForm && (
-        <PanelShell
-          title={selectedMedio.nombre}
-          icon={<Radio className="w-4 h-4" />}
-        >
-          {/* Close button */}
-          <div className="flex items-center justify-end mb-2">
-            <button
-              onClick={() => {
-                setSelectedId(null);
-                setEditForm(null);
-                setAiResult(null);
-                setSaveResult(null);
-                setMedioMenciones([]);
-              }}
-              className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-mono text-slate-500 hover:text-red-400 transition-colors"
-            >
-              <X className="w-3 h-3" />
-              CERRAR
-            </button>
-          </div>
-
-          {/* Quick Stats Bar */}
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-4 py-3 border-y border-slate-800/60">
-            <div className="text-center">
-              <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Menciones</p>
-              <p className="text-sm font-mono text-cyan-400 tabular-nums">
-                {medioMencionesLoading ? <Loader2 className="w-3 h-3 animate-spin inline" /> : medioMencionesTotal}
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Estado</p>
-              <StatusBadge activo={selectedMedio.activo} ultimoError={selectedMedio.ultimoError} />
-            </div>
-            <div className="text-center">
-              <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Tipo</p>
-              <p className="text-[10px] font-mono text-slate-400">{selectedMedio.tipo || '---'}</p>
-            </div>
-            <div className="text-center hidden sm:block">
-              <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Depto.</p>
-              <p className="text-[10px] font-mono text-slate-400">{selectedMedio.departamento || '---'}</p>
-            </div>
-            <div className="text-center hidden sm:block">
-              <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Nivel</p>
-              <p className="text-[10px] font-mono text-slate-400">{selectedMedio.nivel || '---'}</p>
-            </div>
-          </div>
-
-          {/* Recent Mentions from this medio */}
-          <div className="mb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Newspaper className="w-3.5 h-3.5 text-amber-400/60" />
-              <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600 font-mono">
-                Ultimas menciones capturadas
-              </span>
-              {medioMencionesTotal > 5 && (
-                <span className="text-[8px] font-mono text-slate-700">({medioMencionesTotal} total, mostrando 5)</span>
-              )}
-            </div>
-            {medioMencionesLoading ? (
-              <div className="flex items-center gap-2 py-4 text-slate-600 text-xs font-mono justify-center">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Cargando menciones...
-              </div>
-            ) : medioMenciones.length === 0 ? (
-              <div className="px-3 py-3 rounded-md text-[10px] font-mono text-slate-600" style={{
-                backgroundColor: 'rgba(100,116,139,0.03)',
-                border: '1px solid rgba(100,116,139,0.06)',
-              }}>
-                Sin menciones capturadas de esta fuente aun.
-              </div>
-            ) : (
-              <div className="space-y-1.5 max-h-[250px] overflow-y-auto custom-scrollbar">
-                {medioMenciones.map((m) => {
-                  const sentColor = sentimentColor(m.sentimiento || 'no_clasificado');
-                  return (
-                    <div key={m.id} className="flex items-start gap-2 px-3 py-2 rounded-md" style={{
-                      backgroundColor: 'rgba(0,0,0,0.3)',
-                      border: '1px solid rgba(6,182,212,0.04)',
-                    }}>
-                      <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: sentColor }} />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-mono text-slate-300 leading-snug line-clamp-2">{m.titulo || 'Sin titulo'}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          {m.Persona?.nombre && (
-                            <span className="text-[8px] font-mono text-cyan-500/70">{m.Persona.nombre}</span>
-                          )}
-                          <span className="text-[8px] font-mono text-slate-700">
-                            {m.fechaCaptura ? new Date(m.fechaCaptura).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' }) : '---'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Editor Form header */}
-          <div className="flex items-center gap-2 mb-3">
-            <Save className="w-3.5 h-3.5 text-slate-600" />
-            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600 font-mono">
-              Editor de Fuente
-            </span>
-            <span className="text-[9px] font-mono text-slate-700 ml-auto">ID: {selectedMedio.id.slice(0, 8)}...</span>
-          </div>
-
-          {/* Form grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            {/* Nombre */}
-            <FormInput
-              label="Nombre"
-              value={editForm.nombre}
-              onChange={(v) => setEditForm((f) => f && { ...f, nombre: v })}
-            />
-
-            {/* URL */}
-            <FormInput
-              label="URL"
-              value={editForm.url}
-              onChange={(v) => setEditForm((f) => f && { ...f, url: v })}
-            />
-
-            {/* Naturaleza */}
-            <FormSelect
-              label="Naturaleza"
-              value={editForm.naturaleza}
-              options={[...NATURALEZA_OPTS]}
-              placeholder="Sin clasificar"
-              onChange={(v) => setEditForm((f) => f && { ...f, naturaleza: v })}
-            />
-
-            {/* Ambito */}
-            <FormSelect
-              label="Ambito"
-              value={editForm.ambito}
-              options={[...AMBITO_OPTS]}
-              placeholder="Sin clasificar"
-              onChange={(v) => setEditForm((f) => f && { ...f, ambito: v })}
-            />
-
-            {/* Enfoque */}
-            <FormSelect
-              label="Enfoque"
-              value={editForm.enfoque}
-              options={[...ENFOQUE_OPTS]}
-              placeholder="Sin clasificar"
-              onChange={(v) => setEditForm((f) => f && { ...f, enfoque: v })}
-            />
-
-            {/* Credibilidad */}
-            <div>
-              <label className="block text-[9px] font-bold uppercase tracking-widest text-slate-600 font-mono mb-2">
-                Credibilidad
-              </label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="range"
-                  min={1}
-                  max={100}
-                  value={editForm.credibilidad}
-                  onChange={(e) =>
-                    setEditForm((f) => f && { ...f, credibilidad: parseInt(e.target.value, 10) })
-                  }
-                  className="flex-1 h-1.5 rounded-full appearance-none cursor-pointer"
-                  style={{
-                    background: 'linear-gradient(90deg, rgba(139,92,246,0.6) 0%, rgba(245,158,11,0.6) 50%, rgba(6,182,212,0.6) 100%)',
-                    accentColor: '#06b6d4',
-                  }}
-                />
-                <span
-                  className="text-sm font-bold font-mono tabular-nums min-w-[32px] text-right"
-                  style={{
-                    color:
-                      editForm.credibilidad >= 70
-                        ? '#06b6d4'
-                        : editForm.credibilidad >= 40
-                          ? '#f59e0b'
-                          : '#8b5cf6',
-                  }}
-                >
-                  {editForm.credibilidad}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* AI Analysis result */}
-          {aiResult && (
-            <div
-              className="mb-4 px-3 py-3 rounded-md"
-              style={{
-                backgroundColor: 'rgba(167,139,250,0.04)',
-                border: '1px solid rgba(167,139,250,0.12)',
-              }}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Brain className="w-3.5 h-3.5 text-purple-400/70" />
-                <span className="text-[9px] font-bold uppercase tracking-widest text-purple-400/70 font-mono">
-                  Sugerencia IA
-                </span>
-              </div>
-              <div className="space-y-1">
-                {aiResult.naturaleza && (
-                  <p className="text-[9px] font-mono text-slate-400">
-                    <span className="text-slate-600">Naturaleza:</span> {aiResult.naturaleza}
-                  </p>
-                )}
-                {aiResult.ambito && (
-                  <p className="text-[9px] font-mono text-slate-400">
-                    <span className="text-slate-600">Ambito:</span> {aiResult.ambito}
-                  </p>
-                )}
-                {aiResult.enfoque && (
-                  <p className="text-[9px] font-mono text-slate-400">
-                    <span className="text-slate-600">Enfoque:</span> {aiResult.enfoque}
-                  </p>
-                )}
-                {aiResult.credibilidad > 0 && (
-                  <p className="text-[9px] font-mono text-slate-400">
-                    <span className="text-slate-600">Credibilidad sugerida:</span>{' '}
-                    <span style={{
-                      color: aiResult.credibilidad >= 70 ? '#06b6d4' : aiResult.credibilidad >= 40 ? '#f59e0b' : '#8b5cf6',
-                    }}>
-                      {aiResult.credibilidad}/100
-                    </span>
-                  </p>
-                )}
-                {aiResult.razon && (
-                  <p className="text-[9px] font-mono text-slate-500 mt-1 italic">
-                    {aiResult.razon}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Save result */}
-          {saveResult && (
-            <div
-              className="mb-4 flex items-center gap-2 px-3 py-2 rounded-md text-[10px] font-mono"
-              style={{
-                color: saveResult.ok ? '#06b6d4' : '#8b5cf6',
-                backgroundColor: saveResult.ok ? 'rgba(6,182,212,0.06)' : 'rgba(139,92,246,0.06)',
-                border: saveResult.ok ? '1px solid rgba(6,182,212,0.15)' : '1px solid rgba(139,92,246,0.15)',
-              }}
-            >
-              {saveResult.ok ? (
-                <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
-              ) : (
-                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-              )}
-              {saveResult.msg}
-            </div>
-          )}
-
-          {/* Action buttons */}
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold font-mono uppercase tracking-wider transition-all duration-200 hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-              style={{
-                color: saving ? '#64748b' : '#06b6d4',
-                backgroundColor: saving ? 'rgba(100,116,139,0.05)' : 'rgba(6,182,212,0.06)',
-                border: saving ? '1px solid rgba(100,116,139,0.15)' : '1px solid rgba(6,182,212,0.2)',
-                boxShadow: saving ? 'none' : '0 0 12px rgba(6,182,212,0.06)',
-              }}
-            >
-              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-              {saving ? 'Guardando...' : 'Guardar'}
-            </button>
-
-            <button
-              onClick={handleAiAnalyze}
-              disabled={aiAnalyzing}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold font-mono uppercase tracking-wider transition-all duration-200 hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-              style={{
-                color: aiAnalyzing ? '#64748b' : '#a78bfa',
-                backgroundColor: aiAnalyzing ? 'rgba(100,116,139,0.05)' : 'rgba(167,139,250,0.06)',
-                border: aiAnalyzing ? '1px solid rgba(100,116,139,0.15)' : '1px solid rgba(167,139,250,0.2)',
-                boxShadow: aiAnalyzing ? 'none' : '0 0 12px rgba(167,139,250,0.06)',
-              }}
-            >
-              {aiAnalyzing ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Brain className="w-3.5 h-3.5" />
-              )}
-              {aiAnalyzing ? 'Analizando...' : 'Analizar IA'}
-            </button>
-          </div>
-        </PanelShell>
+        <MedioDetailPanel
+          selectedMedio={selectedMedio}
+          editForm={editForm}
+          setEditForm={setEditForm}
+          saving={saving}
+          saveResult={saveResult}
+          aiAnalyzing={aiAnalyzing}
+          aiResult={aiResult}
+          medioMenciones={medioMenciones}
+          medioMencionesLoading={medioMencionesLoading}
+          medioMencionesTotal={medioMencionesTotal}
+          onSave={handleSave}
+          onAiAnalyze={handleAiAnalyze}
+          onClose={handleCloseDetail}
+        />
       )}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Helper sub-components
-// ═══════════════════════════════════════════════════════════════
-
-function StatBox({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div className="text-center py-1">
-      <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">{label}</p>
-      <p className="text-lg font-bold font-mono tabular-nums" style={{ color }}>
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function FormInput({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div>
-      <label className="block text-[9px] font-bold uppercase tracking-widest text-slate-600 font-mono mb-2">
-        {label}
-      </label>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 rounded-md text-[11px] font-mono text-slate-300 outline-none transition-all duration-200"
-        style={{
-          backgroundColor: 'rgba(0,0,0,0.4)',
-          border: '1px solid rgba(6,182,212,0.08)',
-        }}
-        onFocus={(e) => {
-          (e.target as HTMLInputElement).style.borderColor = 'rgba(6,182,212,0.25)';
-          (e.target as HTMLInputElement).style.boxShadow = '0 0 8px rgba(6,182,212,0.06)';
-        }}
-        onBlur={(e) => {
-          (e.target as HTMLInputElement).style.borderColor = 'rgba(6,182,212,0.08)';
-          (e.target as HTMLInputElement).style.boxShadow = 'none';
-        }}
-      />
-    </div>
-  );
-}
-
-function FormSelect({
-  label,
-  value,
-  options,
-  placeholder,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: string[];
-  placeholder: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div>
-      <label className="block text-[9px] font-bold uppercase tracking-widest text-slate-600 font-mono mb-2">
-        {label}
-      </label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 rounded-md text-[11px] font-mono text-slate-300 outline-none transition-all duration-200 appearance-none cursor-pointer"
-        style={{
-          backgroundColor: 'rgba(0,0,0,0.4)',
-          border: '1px solid rgba(6,182,212,0.08)',
-        }}
-        onFocus={(e) => {
-          (e.target as HTMLSelectElement).style.borderColor = 'rgba(6,182,212,0.25)';
-          (e.target as HTMLSelectElement).style.boxShadow = '0 0 8px rgba(6,182,212,0.06)';
-        }}
-        onBlur={(e) => {
-          (e.target as HTMLSelectElement).style.borderColor = 'rgba(6,182,212,0.08)';
-          (e.target as HTMLSelectElement).style.boxShadow = 'none';
-        }}
-      >
-        <option value="">{placeholder}</option>
-        {options.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
-      </select>
     </div>
   );
 }
