@@ -364,12 +364,6 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
         </div>
       )}
 
-      {/* ── Footer: auto-refresh ── */}
-      <div className="flex items-center justify-center gap-2 text-[8px] font-mono text-slate-700 py-1">
-        <span className="w-1 h-1 rounded-full animate-pulse" style={{ backgroundColor: '#06b6d4' }} />
-        Auto-refresco cada 5 min
-      </div>
-
       {/* ── History Modal ── */}
       {historyIndicator && (
         <HistoryModal
