@@ -56,7 +56,7 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
   // ── Fetch indicadores ──
   const fetchIndicadores = useCallback(async () => {
     try {
-      const res = await fetchWithTimeout('/api/indicadores', { timeoutMs: 12000 });
+      const res = await fetchWithTimeout('/api/indicadores?history=7', { timeoutMs: 12000 });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       setIndicadores(Array.isArray(data.indicadores) ? data.indicadores : []);
@@ -72,7 +72,7 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
     let mounted = true;
     const load = async () => {
       try {
-        const res = await fetchWithTimeout('/api/indicadores', { timeoutMs: 12000 });
+        const res = await fetchWithTimeout('/api/indicadores?history=7', { timeoutMs: 12000 });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         if (mounted) {

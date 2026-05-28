@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     const categoria = searchParams.get('categoria') || '';
     const tipo = searchParams.get('tipo') || '';
     const activo = searchParams.get('activo') || '';
+    const historyDays = parseInt(searchParams.get('history') || '0', 10);
 
     const where: Record<string, unknown> = {};
     if (categoria) where.categoria = categoria;
@@ -42,6 +43,31 @@ export async function GET(request: NextRequest) {
 
     const evaluacionMap = new Map<string, (typeof ultimasEvaluaciones)[number]>();
     for (const e of ultimasEvaluaciones) { if (!evaluacionMap.has(e.indicadorId)) evaluacionMap.set(e.indicadorId, e); }
+
+    // If ?history=N is requested, batch-fetch historical values for cuantitativo indicators
+    let historialMap = new Map<string, Array<{ fecha: string; valor: number }>>();
+    if (historyDays > 0 && cuantitativoIds.length > 0) {
+      const clampedDays = Math.min(Math.max(historyDays, 1), 365);
+      const allHistory = await db.indicadorValor.findMany({
+        where: { indicadorId: { in: cuantitativoIds } },
+        orderBy: { fecha: 'desc' },
+        take: clampedDays * cuantitativoIds.length, // enough to cover N days per indicator
+      });
+
+      // Group by indicadorId, keeping only the first N per indicator
+      const perIndicator = new Map<string, Array<{ fecha: string; valor: number }>>();
+      for (const v of allHistory) {
+        if (!perIndicator.has(v.indicadorId)) perIndicator.set(v.indicadorId, []);
+        const arr = perIndicator.get(v.indicadorId)!;
+        if (arr.length < clampedDays) {
+          arr.push({
+            fecha: v.fecha.toISOString().split('T')[0],
+            valor: v.valor,
+          });
+        }
+      }
+      historialMap = perIndicator;
+    }
 
     const enriched = indicadores.map((ind) => {
       let ultimoValor = null;
@@ -86,6 +112,7 @@ export async function GET(request: NextRequest) {
         ultimaEvaluacion,
         totalValores: ind._count.IndicadorValor,
         totalEvaluaciones: ind._count.IndicadorEvaluacion,
+        historial: ind.tipo === 'cuantitativo' ? historialMap.get(ind.id) || [] : undefined,
       };
     });
 

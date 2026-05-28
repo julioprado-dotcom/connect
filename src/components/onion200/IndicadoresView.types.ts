@@ -36,6 +36,7 @@ export interface EnrichedIndicador {
   ultimaEvaluacion?: UltimaEvaluacion | null;
   totalValores: number;
   totalEvaluaciones: number;
+  historial?: Array<{ fecha: string; valor: number }>;
 }
 
 export interface CaptureResult {

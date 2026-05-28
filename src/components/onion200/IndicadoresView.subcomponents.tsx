@@ -127,6 +127,69 @@ export function ProgressBar({ elapsed, maxDuration }: { elapsed: number; maxDura
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Mini Sparkline — tiny SVG line chart (stock-ticker style)
+// ═══════════════════════════════════════════════════════════════
+
+export function MiniSparkline({
+  data,
+  color,
+  width = 80,
+  height = 24,
+}: {
+  data: Array<{ fecha: string; valor: number }>;
+  color: string;
+  width?: number;
+  height?: number;
+}) {
+  if (!data || data.length < 2) return null;
+
+  // Reverse so oldest is first (left), newest is last (right)
+  const points = [...data].reverse();
+  const values = points.map(p => p.valor);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+
+  const svgPoints = points.map((p, i) => {
+    const x = (i / (points.length - 1)) * width;
+    const y = height - ((p.valor - min) / range) * (height - 2) - 1;
+    return `${x},${y}`;
+  }).join(' ');
+
+  const lastVal = values[values.length - 1];
+  const prevVal = values[values.length - 2];
+  const trend = lastVal >= prevVal ? 'up' : 'down';
+  const trendColor = trend === 'up' ? '#10b981' : '#f43f5e';
+
+  return (
+    <div className="flex items-end gap-1">
+      <svg width={width} height={height} className="flex-shrink-0">
+        <polyline
+          points={svgPoints}
+          fill="none"
+          stroke={color}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="0.7"
+        />
+        {/* End dot */}
+        <circle
+          cx={(points.length - 1) / (points.length - 1) * width}
+          cy={height - ((lastVal - min) / range) * (height - 2) - 1}
+          r="2"
+          fill={trendColor}
+          opacity="0.9"
+        />
+      </svg>
+      <span className="text-[7px] font-mono font-bold" style={{ color: trendColor }}>
+        {trend === 'up' ? '▲' : '▼'}
+      </span>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Indicator Card — compact terminal-style display
 // ═══════════════════════════════════════════════════════════════
 
@@ -216,6 +279,13 @@ export function IndicatorCard({
             </span>
           )}
         </div>
+
+        {/* Sparkline — only for cuantitativo with history */}
+        {isCuantitativo && indicador.historial && indicador.historial.length >= 2 && (
+          <div className="mt-1.5 mb-1">
+            <MiniSparkline data={indicador.historial} color={catColor} />
+          </div>
+        )}
 
         {/* Meta: source · date — single line */}
         <div className="flex items-center gap-1.5 text-[8px] font-mono text-slate-500 leading-none">
