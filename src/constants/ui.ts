@@ -1,6 +1,9 @@
 /**
  * Constantes de UI — DECODEX Bolivia
- * Colores, labels y datos estáticos de presentación.
+ * Labels y datos estáticos de presentación.
+ *
+ * NOTA: Los colores de sentimiento y tratamiento están centralizados en
+ * @/constants/colors.ts — NO definir colores inline en componentes.
  */
 
 export const PARTIDO_COLORS: Record<string, string> = {
@@ -23,41 +26,6 @@ export const PARTIDO_TEXT_COLORS: Record<string, string> = {
   'APB SUMATE': 'text-purple-600',
   'MAS IPSP': 'text-orange-500',
   'BIA YUQUI': 'text-teal-600',
-};
-
-export const SENTIMIENTO_STYLES: Record<string, string> = {
-  positivo: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
-  negativo: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
-  neutro: 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300',
-  neutral: 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300',
-  mixto: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
-  critico: 'bg-red-200 text-red-900 dark:bg-red-900/50 dark:text-red-200',
-  elogioso: 'bg-green-200 text-green-900 dark:bg-green-900/40 dark:text-green-300',
-  no_clasificado: 'bg-stone-50 text-stone-500 dark:bg-stone-800 dark:text-stone-400',
-};
-
-// Styles for tratamiento periodístico (the actual LLM classification)
-export const TRATAMIENTO_STYLES: Record<string, string> = {
-  tratamiento_informativo: 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300',
-  tratamiento_analitico: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300',
-  tratamiento_critico: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
-  tratamiento_editorial: 'bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300',
-  tratamiento_agresivo: 'bg-red-200 text-red-900 dark:bg-red-900/50 dark:text-red-200',
-  tratamiento_elogioso: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
-  tratamiento_ambiguo: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
-  sin_tratamiento: 'bg-stone-50 text-stone-500 dark:bg-stone-800 dark:text-stone-400',
-};
-
-// Short display labels for tratamiento periodístico
-export const TRATAMIENTO_LABELS: Record<string, string> = {
-  tratamiento_informativo: 'Informativo',
-  tratamiento_analitico: 'Analítico',
-  tratamiento_critico: 'Crítico',
-  tratamiento_editorial: 'Editorial',
-  tratamiento_agresivo: 'Agresivo',
-  tratamiento_elogioso: 'Elogioso',
-  tratamiento_ambiguo: 'Ambiguo',
-  sin_tratamiento: 'S/C',
 };
 
 export const TIPO_MENCION_LABELS: Record<string, string> = {
@@ -84,33 +52,6 @@ export const NIVEL_COLORS: Record<string, string> = {
   '2': 'bg-amber-600 text-white',
   '3': 'bg-stone-500 text-white',
 };
-
-// Categorías de medios — clasificación por tipo de fuente
-export const CATEGORIA_LABELS: Record<string, string> = {
-  oficial: 'Medios Oficiales',
-  corporativo: 'Corporativos',
-  regional: 'Regionales',
-  alternativo: 'Alternativos',
-  red_social: 'Redes Sociales',
-};
-
-export const CATEGORIA_COLORS: Record<string, string> = {
-  oficial: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
-  corporativo: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
-  regional: 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300',
-  alternativo: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
-  red_social: 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300',
-};
-
-export const CATEGORIA_ICONS: Record<string, string> = {
-  oficial: 'landmark',
-  corporativo: 'building-2',
-  regional: 'map-pin',
-  alternativo: 'newspaper',
-  red_social: 'share-2',
-};
-
-export const CATEGORIAS = ['oficial', 'corporativo', 'regional', 'alternativo', 'red_social'] as const;
 
 export const TIPO_MEDIO_LABELS: Record<string, string> = {
   agencia_noticias: 'Agencia de Noticias',

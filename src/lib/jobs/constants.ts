@@ -111,12 +111,18 @@ export const HORARIOS_CONFIG_DEFAULT: HorariosConfig = {
 // ── Horarios de boletines ONION200 ─────────────────────────────────────
 
 export const BOLETINES_SCHEDULE: BoletinSchedule[] = [
+  // ── Diarios (lunes a viernes) ──
   { hora: 7,  minuto: 0, tipo: 'EL_TERMOMETRO',    prioridad: 3 },
   { hora: 19, minuto: 0, tipo: 'SALDO_DEL_DIA',     prioridad: 3 },
   { hora: 9,  minuto: 0, tipo: 'EL_FOCO',           prioridad: 5 },
-  { hora: 8,  minuto: 0, tipo: 'EL_RADAR',          prioridad: 5 },
   { hora: 10, minuto: 0, tipo: 'EL_ESPECIALIZADO',  prioridad: 5 },
-  { hora: 8,  minuto: 0, tipo: 'BOLETIN_DEL_GRANO', prioridad: 5 },
+  // ── Semanales (lunes únicamente) ──
+  { hora: 8,  minuto: 0, tipo: 'EL_RADAR',          prioridad: 5, dias: '1' },
+  { hora: 8,  minuto: 0, tipo: 'BOLETIN_DEL_GRANO', prioridad: 5, dias: '1' },
+  { hora: 8,  minuto: 0, tipo: 'VOZ_Y_VOTO',        prioridad: 5, dias: '1' },
+  { hora: 8,  minuto: 0, tipo: 'EL_HILO',           prioridad: 5, dias: '1' },
+  { hora: 8,  minuto: 0, tipo: 'FOCO_DE_LA_SEMANA', prioridad: 5, dias: '1' },
+  { hora: 10, minuto: 0, tipo: 'EL_INFORME_CERRADO', prioridad: 5, dias: '1' },
 ]
 
 // ── Configuracion del Worker ───────────────────────────────────────────

@@ -6,6 +6,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { sentimentColor } from '@/constants/colors';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -113,7 +114,7 @@ function generateContenidoTexto(menciones: MencionSlim[], resumen: string, keywo
       ? formatDate(new Date(m.fechaPublicacion))
       : 'Sin fecha';
     const persona = m.personaNombre ? `👤 ${m.personaNombre}` : '';
-    const sentimientoIcon = m.sentimiento === 'positivo' ? '🟢' : m.sentimiento === 'negativo' ? '🔴' : m.sentimiento === 'neutro' ? '🟡' : '⚪';
+    const sentimientoIcon = '';
 
     return [
       `${i + 1}. ${m.titulo}`,
@@ -144,7 +145,7 @@ function generateContenidoHtml(menciones: MencionSlim[], resumen: string, keywor
     const fecha = m.fechaPublicacion
       ? formatDate(new Date(m.fechaPublicacion))
       : 'Sin fecha';
-    const sentColor = m.sentimiento === 'positivo' ? '#00ff88' : m.sentimiento === 'negativo' ? '#ff3355' : '#ffaa00';
+    const sentColor = sentimentColor(m.sentimiento || 'no_clasificado');
 
     return `<div style="padding:12px;margin-bottom:8px;background:#12121a;border:1px solid #1a1a2e;border-radius:8px;">
       <div style="font-weight:bold;color:#fff;margin-bottom:4px;">${i + 1}. ${m.titulo}</div>

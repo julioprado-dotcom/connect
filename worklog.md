@@ -312,3 +312,26 @@ Stage Summary:
 - Certbot auto-renueva el certificado en background
 - Archivos: src/middleware.ts, Caddyfile
 - Certificado: /etc/letsencrypt/live/decodex-bolivia.net/
+---
+Task ID: 1
+Agent: main
+Task: Scheduler, dispatcher, colores centralizados, cleanup
+
+Work Log:
+- Analizado generator-scheduler.ts: prototipo huérfano que duplica sistema de jobs existente
+- Eliminado generator-scheduler.ts (327 líneas)
+- Agregados 5 productos faltantes a BOLETINES_SCHEDULE: VOZ_Y_VOTO, EL_HILO, FOCO_DE_LA_SEMANA, EL_INFORME_CERRADO (todos lunes 08:00/10:00)
+- Agregado campo `dias?` a BoletinSchedule type para soportar días específicos
+- Actualizado cron-builder para usar `b.dias || '1-5'`
+- Corregidos 7 bugs en delivery-dispatcher.ts: estados femeninos→masculinos, retry contenido vacío, WhatsApp campo incorrecto, parseo JSON contenido, registro contenido en Entrega, orderBy en retry, eliminado estado 'leido'
+- Creado constants/colors.ts como fuente única de verdad para sentimiento (5 valores) y tratamiento (8 valores)
+- Actualizados 4 componentes a colores centralizados: LiveFeed.tsx, CapturaView.tsx, FuentesView.tsx, boletin-express/route.ts
+- Eliminados semáforos (🟢🔴🟡) de boletin-express
+- Limpieza de constants/ui.ts: eliminados SENTIMIENTO_STYLES, TRATAMIENTO_STYLES, TRATAMIENTO_LABELS, CATEGORIA_LABELS, CATEGORIA_COLORS, CATEGORIA_ICONS, CATEGORIAS
+- Build exitoso
+
+Stage Summary:
+- Scheduler: de 6 a 10 productos programados (4 diarios + 6 semanales lunes)
+- Dispatcher: 7 bugs corregidos, listo para producción
+- Colores: 1 fuente de verdad (constants/colors.ts), 4 componentes actualizados, sin semáforos
+- constants/ui.ts: de 139 a 81 líneas (solo labels y datos estáticos de partidos/medios)

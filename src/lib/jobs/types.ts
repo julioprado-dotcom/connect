@@ -142,6 +142,7 @@ export interface BoletinSchedule {
   minuto: number
   tipo: string
   prioridad: JobPrioridad
+  dias?: string // expresión día-semana cron (ej: '1' = lunes, '1-5' = lun-vie). Default '1-5'
 }
 
 // Worker

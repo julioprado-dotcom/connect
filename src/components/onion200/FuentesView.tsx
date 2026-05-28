@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
+import { sentimentColor } from '@/constants/colors';
 import { PanelShell } from './PanelShell';
 import {
   Radio,
@@ -927,7 +928,7 @@ export function FuentesView() {
             ) : (
               <div className="space-y-1.5 max-h-[250px] overflow-y-auto custom-scrollbar">
                 {medioMenciones.map((m) => {
-                  const sentColor = m.sentimiento?.includes('positivo') ? '#06b6d4' : m.sentimiento?.includes('negativo') ? '#8b5cf6' : '#64748b';
+                  const sentColor = sentimentColor(m.sentimiento || 'no_clasificado');
                   return (
                     <div key={m.id} className="flex items-start gap-2 px-3 py-2 rounded-md" style={{
                       backgroundColor: 'rgba(0,0,0,0.3)',

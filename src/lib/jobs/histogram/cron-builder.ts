@@ -45,7 +45,7 @@ export function buildCronEntries(
 export function getBoletinCronEntries(): CronEntry[] {
   return BOLETINES_SCHEDULE.map(b => ({
     horario: b.hora,
-    expresion: `${b.minuto} ${b.hora} * * 1-5`, // lunes a viernes
+    expresion: `${b.minuto} ${b.hora} * * ${b.dias || '1-5'}`,
     tipo: 'generar_boletin',
     tipoBoletin: b.tipo,  // preservar el tipo de producto real
     prioridad: b.prioridad,

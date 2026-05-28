@@ -21,6 +21,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { MencionDetailModal } from './LiveFeed';
+import { sentimentColor, sentimentBg, sentimentLabel } from '@/constants/colors';
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -513,26 +514,9 @@ export function CapturaView() {
           ) : (
             <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-1">
               {menciones.map(m => {
-                const sentColor =
-                  m.sentimiento === 'positivo'
-                    ? '#10b981'
-                    : m.sentimiento === 'negativo'
-                      ? '#f43f5e'
-                      : m.sentimiento === 'no_clasificado'
-                        ? '#f59e0b'
-                        : '#64748b';
-                const sentBg =
-                  m.sentimiento === 'positivo'
-                    ? 'rgba(16,185,129,0.1)'
-                    : m.sentimiento === 'negativo'
-                      ? 'rgba(244,63,94,0.1)'
-                      : m.sentimiento === 'no_clasificado'
-                        ? 'rgba(245,158,11,0.1)'
-                        : 'rgba(100,116,139,0.1)';
-                const sentLabel =
-                  m.sentimiento === 'no_clasificado'
-                    ? 'N/C'
-                    : m.sentimiento.charAt(0).toUpperCase() + m.sentimiento.slice(1);
+                const sentColor = sentimentColor(m.sentimiento || 'no_clasificado');
+                const sentBg = sentimentBg(m.sentimiento || 'no_clasificado');
+                const sentLabel = sentimentLabel(m.sentimiento || 'no_clasificado');
 
                 return (
                   <button

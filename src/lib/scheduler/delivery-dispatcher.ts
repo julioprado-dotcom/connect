@@ -1,15 +1,24 @@
 /**
- * DECODEX v0.8.0 — Dispatcher de Entregas
- * Motor ONION200 — Equipo B — TAREA 3f
+ * DECODEX v0.11.0 — Dispatcher de Entregas
+ * Motor ONION200
  *
  * Despacho automatico de entregas de productos
  * a clientes segun sus contratos. Incluye tracking
  * de estado y reintentos para entregas fallidas.
+ *
+ * FIXES aplicados (v0.11.0):
+ * - Estados masculinos: enviado/fallido (no enviada/fallida)
+ * - Retry usa contenido almacenado en Entrega (no vacío)
+ * - WhatsApp usa campo `whatsapp` del Cliente (fallback a telefono)
+ * - Parsea JSON de reporte.contenido para extraer textoCompleto
+ * - Registra contenido en Entrega para rastreabilidad
+ * - Retry ordenado por fechaCreacion ASC
+ * - Eliminado estado 'leido' inexistente
  */
 
 import db from '@/lib/db';
 import { type TipoBoletin } from '@/types/bulletin';
-import { formatFechaBolivia, formatearMencionesPorEje } from '@/lib/reportes-utils';
+import { formatFechaBolivia } from '@/lib/reportes-utils';
 export { formatFechaBolivia } from '@/lib/reportes-utils';
 import { sendWhatsApp, sendEmail, generatePDF } from '@/lib/delivery-channels';
 
@@ -55,7 +64,6 @@ function formatForChannel(
 ): string {
   switch (canal) {
     case 'whatsapp':
-      // WhatsApp: texto plano con formato básico
       return contenido
         .replace(/#{1,3}\s/g, '*')
         .replace(/\*\*(.*?)\*\*/g, '*$1*')
@@ -69,6 +77,18 @@ function formatForChannel(
 }
 
 /**
+ * Parsea contenido de reporte (puede ser JSON con textoCompleto).
+ */
+function parseContenidoReporte(contenido: string): string {
+  try {
+    const parsed = JSON.parse(contenido);
+    return parsed.textoCompleto || contenido;
+  } catch {
+    return contenido;
+  }
+}
+
+/**
  * Registra una entrega pendiente en la base de datos.
  */
 async function registrarEntrega(params: {
@@ -77,6 +97,7 @@ async function registrarEntrega(params: {
   canal: string;
   destinatario: string;
   estado: string;
+  contenido?: string;
 }): Promise<string | null> {
   try {
     const entrega = await db.entrega.create({
@@ -86,6 +107,7 @@ async function registrarEntrega(params: {
         canal: params.canal,
         destinatarios: JSON.stringify([params.destinatario]),
         estado: params.estado,
+        contenido: params.contenido ?? '',
       },
     });
     return entrega.id;
@@ -137,14 +159,17 @@ export async function despacharReporte(
       throw new Error(`Reporte ${reporteId} no encontrado`);
     }
 
-    // 2. Obtener contratos activos que incluyen este tipo de producto
+    // 2. Parsear contenido (JSON con textoCompleto o texto plano)
+    const contenidoFinal = parseContenidoReporte(reporte.contenido);
+
+    // 3. Obtener contratos activos que incluyen este tipo de producto
     const contratos = await db.contrato.findMany({
       where: {
         estado: 'activo',
         tipoProducto: reporte.tipo,
       },
       include: {
-        Cliente: { select: { email: true, telefono: true, nombre: true } },
+        Cliente: { select: { email: true, telefono: true, whatsapp: true, nombre: true } },
       },
     });
 
@@ -160,7 +185,7 @@ export async function despacharReporte(
       };
     }
 
-    // 3. Despachar a cada contrato
+    // 4. Despachar a cada contrato
     const resultados: DispatchDetalle[] = [];
     let exitosas = 0;
     let fallidas = 0;
@@ -172,13 +197,14 @@ export async function despacharReporte(
         const destinatario = obtenerDestinatario(contrato, canal);
         if (!destinatario) continue;
 
-        // Registrar entrega pendiente
+        // Registrar entrega pendiente (con contenido para rastreabilidad)
         const entregaId = await registrarEntrega({
           contratoId: contrato.id,
           tipoBoletin: reporte.tipo,
           canal,
           destinatario,
           estado: 'pendiente',
+          contenido: contenidoFinal,
         });
 
         if (!entregaId) {
@@ -195,7 +221,7 @@ export async function despacharReporte(
 
         // Formatear contenido para el canal
         const contenidoFormateado = formatForChannel(
-          reporte.contenido,
+          contenidoFinal,
           `${reporte.tipo} — DECODEX`,
           canal
         );
@@ -247,7 +273,7 @@ export async function despacharReporte(
       }
     }
 
-    // 4. Actualizar estado del reporte
+    // 5. Actualizar estado del reporte
     if (exitosas > 0) {
       await db.reporte.update({
         where: { id: reporteId },
@@ -283,18 +309,20 @@ export async function reintentarFallidas(maxReintentos: number = MAX_REINTENTOS)
       include: {
         Contrato: true,
       },
+      orderBy: { fechaCreacion: 'asc' },
       take: 50,
     });
 
     let reintentadas = 0;
 
     for (const entrega of entregasFallidas) {
-      // Verificar reintento
+      // Contar reintentos previos para esta entrega específica
       const reintentosPrevios = await db.entrega.count({
         where: {
           contratoId: entrega.contratoId,
           canal: entrega.canal,
           estado: 'fallido',
+          id: { lt: entrega.id },
         },
       });
 
@@ -303,18 +331,18 @@ export async function reintentarFallidas(maxReintentos: number = MAX_REINTENTOS)
         continue;
       }
 
-      // Reenviar
+      // Reenviar con contenido almacenado
       try {
         const result = await enviarPorCanal({
           canal: entrega.canal as string,
           destinatario: JSON.parse(entrega.destinatarios)[0] ?? '',
           asunto: `Reenvio: ${entrega.tipoBoletin} — DECODEX`,
-          contenido: '',
+          contenido: entrega.contenido || '',
         });
 
         await actualizarEstadoEntrega(
           entrega.id,
-          result.exito ? 'enviada' : 'fallida',
+          result.exito ? 'enviado' : 'fallido',
           result.trackingId,
           result.error
         );
@@ -333,28 +361,25 @@ export async function reintentarFallidas(maxReintentos: number = MAX_REINTENTOS)
 }
 
 /**
- * Obtiene entregas pendientes y sus estadisticas.
+ * Obtiene estadísticas de entregas.
  */
 export async function obtenerEstadisticasEntregas(): Promise<{
   pendientes: number;
   enviadas: number;
   fallidas: number;
-  leidas: number;
   total: number;
 }> {
-  const [pendientes, enviadas, fallidas, leidas] = await Promise.all([
+  const [pendientes, enviadas, fallidas] = await Promise.all([
     db.entrega.count({ where: { estado: 'pendiente' } }),
     db.entrega.count({ where: { estado: 'enviado' } }),
     db.entrega.count({ where: { estado: 'fallido' } }),
-    db.entrega.count({ where: { estado: 'leido' } }),
   ]);
 
   return {
     pendientes,
     enviadas,
     fallidas,
-    leidas,
-    total: pendientes + enviadas + fallidas + leidas,
+    total: pendientes + enviadas + fallidas,
   };
 }
 
@@ -381,19 +406,21 @@ async function enviarPorCanal(params: {
 }
 
 function inferirCanales(contrato: {
-  Cliente: { email: string | null; telefono: string | null } | null;
+  Cliente: { email: string | null; telefono: string | null; whatsapp: string | null } | null;
 }): string[] {
   const canales: string[] = [];
 
   if (contrato.Cliente?.email) canales.push('email');
-  if (contrato.Cliente?.telefono) canales.push('whatsapp');
+  // Preferir campo whatsapp específico, fallback a telefono
+  if (contrato.Cliente?.whatsapp) canales.push('whatsapp');
+  else if (contrato.Cliente?.telefono) canales.push('whatsapp');
 
   return canales.length > 0 ? canales : ['email'];
 }
 
 function obtenerDestinatario(
   contrato: {
-    Cliente: { email: string | null; telefono: string | null } | null;
+    Cliente: { email: string | null; telefono: string | null; whatsapp: string | null } | null;
   },
   canal: string
 ): string | null {
@@ -401,7 +428,7 @@ function obtenerDestinatario(
 
   switch (canal) {
     case 'email': return contrato.Cliente.email;
-    case 'whatsapp': return contrato.Cliente.telefono;
+    case 'whatsapp': return contrato.Cliente.whatsapp || contrato.Cliente.telefono;
     default: return contrato.Cliente.email;
   }
 }

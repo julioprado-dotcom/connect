@@ -18,6 +18,7 @@ import {
   ChevronLeft,
 } from 'lucide-react';
 import { PanelShell } from './PanelShell';
+import { sentimentColor, sentimentBg } from '@/constants/colors';
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -58,23 +59,11 @@ interface Comentario {
 // Helpers
 // ═══════════════════════════════════════════════════════════════
 
-function sentimentColor(s: string): string {
-  if (s.includes('positivo')) return '#10b981';
-  if (s.includes('negativo')) return '#f43f5e';
-  return '#64748b';
-}
-
 function sentimentLabel(s: string): string {
   if (s.includes('positivo')) return 'POSITIVO';
   if (s.includes('negativo')) return 'NEGATIVO';
   if (s.includes('neutro')) return 'NEUTRO';
   return 'SIN CLASIFICAR';
-}
-
-function sentimentBg(s: string): string {
-  if (s.includes('positivo')) return 'rgba(16,185,129,0.08)';
-  if (s.includes('negativo')) return 'rgba(244,63,94,0.08)';
-  return 'rgba(100,116,139,0.08)';
 }
 
 function tiempoRelativo(fechaStr: string): string {
