@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 import { ResumenView } from '@/components/onion200/ResumenView';
 import { CapturaView } from '@/components/onion200/CapturaView';
@@ -28,6 +29,7 @@ import {
   Sun,
   Moon,
   TrendingUp,
+  LayoutGrid,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { useTheme } from '@/components/theme-provider';
@@ -78,6 +80,79 @@ const TABS: TabConfig[] = [
 ];
 
 // ═══════════════════════════════════════════════════════════════
+// Theme color palette
+// ═══════════════════════════════════════════════════════════════
+
+interface ThemeColors {
+  bg: string;
+  headerBg: string;
+  border: string;
+  borderSubtle: string;
+  borderSubtle2: string;
+  text: string;
+  textMuted: string;
+  textLabel: string;
+  textKpiEmpty: string;
+  cyanGlow: string;
+  footerBg: string;
+  hoverBg: string;
+  kpiBase: string;
+  kpiActive: string;
+  tabHoverClass: string;
+  logoBorder: string;
+  logoBg: string;
+  logoBoxShadow: string;
+  btnBorder: string;
+  btnColor: string;
+}
+
+const DARK_COLORS: ThemeColors = {
+  bg: '#020202',
+  headerBg: 'linear-gradient(180deg, rgba(6,182,212,0.04) 0%, transparent 100%)',
+  border: 'rgba(6,182,212,0.08)',
+  borderSubtle: 'rgba(6,182,212,0.06)',
+  borderSubtle2: 'rgba(6,182,212,0.04)',
+  text: '#e5e5e5',
+  textMuted: '#64748b',
+  textLabel: 'rgb(71 85 105)',
+  textKpiEmpty: '#334155',
+  cyanGlow: 'rgba(6,182,212,0.06)',
+  footerBg: 'rgba(5,5,5,0.9)',
+  hoverBg: 'rgba(6,182,212,0.06)',
+  kpiBase: 'rgba(5,5,5,0.9)',
+  kpiActive: 'rgba(5,5,5,0.9)',
+  tabHoverClass: 'hover:bg-white/[0.02]',
+  logoBorder: 'rgba(6,182,212,0.25)',
+  logoBg: 'rgba(6,182,212,0.08)',
+  logoBoxShadow: '0 0 16px rgba(6,182,212,0.12)',
+  btnBorder: 'rgba(100,116,139,0.15)',
+  btnColor: '#64748b',
+};
+
+const LIGHT_COLORS: ThemeColors = {
+  bg: '#f8fafc',
+  headerBg: 'linear-gradient(180deg, rgba(6,182,212,0.08) 0%, transparent 100%)',
+  border: 'rgba(6,182,212,0.15)',
+  borderSubtle: 'rgba(6,182,212,0.1)',
+  borderSubtle2: 'rgba(6,182,212,0.06)',
+  text: '#1e293b',
+  textMuted: '#64748b',
+  textLabel: 'rgb(100 116 139)',
+  textKpiEmpty: '#cbd5e1',
+  cyanGlow: 'rgba(6,182,212,0.08)',
+  footerBg: 'rgba(248,250,252,0.95)',
+  hoverBg: 'rgba(6,182,212,0.08)',
+  kpiBase: 'rgba(255,255,255,0.9)',
+  kpiActive: 'rgba(255,255,255,0.9)',
+  tabHoverClass: 'hover:bg-black/[0.02]',
+  logoBorder: 'rgba(6,182,212,0.35)',
+  logoBg: 'rgba(6,182,212,0.12)',
+  logoBoxShadow: '0 0 16px rgba(6,182,212,0.15)',
+  btnBorder: 'rgba(100,116,139,0.25)',
+  btnColor: '#475569',
+};
+
+// ═══════════════════════════════════════════════════════════════
 // KPI Card — Real data, zero hardcode
 // ═══════════════════════════════════════════════════════════════
 
@@ -90,6 +165,7 @@ function KPICard({
   status,
   onClick,
   active,
+  colors,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -99,6 +175,7 @@ function KPICard({
   status?: string;
   onClick?: () => void;
   active?: boolean;
+  colors: ThemeColors;
 }) {
   const statusColor =
     status === 'error'
@@ -115,10 +192,10 @@ function KPICard({
       className="rounded-lg p-3 relative overflow-hidden transition-all duration-300 text-left cursor-pointer hover:scale-[1.02]"
       style={{
         background: active
-          ? `linear-gradient(135deg, ${color}10 0%, rgba(5,5,5,0.9) 60%)`
-          : `linear-gradient(135deg, ${color}06 0%, rgba(5,5,5,0.9) 60%)`,
-        border: `1px solid ${active ? `${color}30` : `${color}15`}`,
-        boxShadow: active ? `0 0 16px ${color}10` : `0 0 12px ${color}06`,
+          ? 'linear-gradient(135deg, ' + color + '10 0%, ' + colors.kpiActive + ' 60%)'
+          : 'linear-gradient(135deg, ' + color + '06 0%, ' + colors.kpiBase + ' 60%)',
+        border: '1px solid ' + (active ? color + '30' : color + '15'),
+        boxShadow: active ? '0 0 16px ' + color + '10' : '0 0 12px ' + color + '06',
       }}
     >
       {/* Scan line */}
@@ -131,30 +208,34 @@ function KPICard({
       />
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-1.5">
-          <span style={{ color: `${color}90` }}>{icon}</span>
+          <span style={{ color: color + '90' }}>{icon}</span>
           {status && status !== 'idle' && (
             <span
               className="w-2 h-2 rounded-full flex-shrink-0"
               style={{
                 backgroundColor: statusColor,
-                boxShadow: `0 0 6px ${statusColor}60`,
+                boxShadow: '0 0 6px ' + statusColor + '60',
               }}
             />
           )}
         </div>
         <p
-          className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-600 font-mono mb-1"
+          className="text-[9px] font-bold uppercase tracking-[0.12em] font-mono mb-1"
+          style={{ color: colors.textLabel }}
         >
           {label}
         </p>
         <p
           className="text-xl font-bold font-mono tabular-nums leading-none"
-          style={{ color: value !== null ? '#e5e5e5' : '#334155' }}
+          style={{ color: value !== null ? colors.text : colors.textKpiEmpty }}
         >
           {value !== null ? value : '---'}
         </p>
         {sub && (
-          <p className="text-[9px] font-mono text-slate-600 mt-1 truncate">
+          <p
+            className="text-[9px] font-mono mt-1 truncate"
+            style={{ color: colors.textMuted }}
+          >
             {sub}
           </p>
         )}
@@ -162,7 +243,7 @@ function KPICard({
         <div
           className="absolute bottom-0 left-0 right-0 h-[1px]"
           style={{
-            background: `linear-gradient(90deg, transparent, ${color}20, transparent)`,
+            background: 'linear-gradient(90deg, transparent, ' + color + '20, transparent)',
           }}
         />
       </div>
@@ -178,10 +259,12 @@ function PipelineStatusBar({
   pipeline,
   activeTab,
   onTabChange,
+  colors,
 }: {
   pipeline: PipelineKPIs;
   activeTab: TabKey;
   onTabChange: (tab: TabKey) => void;
+  colors: ThemeColors;
 }) {
   const colorForStatus = (s?: string) =>
     s === 'error'
@@ -195,7 +278,7 @@ function PipelineStatusBar({
   return (
     <div
       className="flex items-center gap-1 sm:gap-2 overflow-x-auto py-2 px-3"
-      style={{ borderBottom: '1px solid rgba(6,182,212,0.06)' }}
+      style={{ borderBottom: '1px solid ' + colors.borderSubtle }}
     >
       {TABS.map((tab, i) => {
         const isActive = activeTab === tab.key;
@@ -206,12 +289,12 @@ function PipelineStatusBar({
           <React.Fragment key={tab.key}>
             <button
               onClick={() => onTabChange(tab.key)}
-              className="flex items-center gap-1.5 flex-shrink-0 px-2 py-1 rounded-md transition-all duration-200 hover:bg-white/[0.02] cursor-pointer"
+              className={'flex items-center gap-1.5 flex-shrink-0 px-2 py-1 rounded-md transition-all duration-200 cursor-pointer ' + colors.tabHoverClass}
               style={{
-                backgroundColor: isActive ? 'rgba(6,182,212,0.06)' : 'transparent',
+                backgroundColor: isActive ? colors.hoverBg : 'transparent',
               }}
             >
-              <span style={{ color: `${color}90` }}>{tab.icon}</span>
+              <span style={{ color: color + '90' }}>{tab.icon}</span>
               <span
                 className="text-[9px] font-bold tracking-wider font-mono whitespace-nowrap"
                 style={{ color }}
@@ -223,7 +306,7 @@ function PipelineStatusBar({
                   className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                   style={{
                     backgroundColor: color,
-                    boxShadow: `0 0 4px ${color}50`,
+                    boxShadow: '0 0 4px ' + color + '50',
                   }}
                 />
               )}
@@ -253,6 +336,8 @@ export default function ONION200Dashboard() {
   const [kpis, setKpis] = useState<PipelineKPIs | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string>('');
   const { theme, setTheme } = useTheme();
+
+  const colors: ThemeColors = theme === 'dark' ? DARK_COLORS : LIGHT_COLORS;
 
   const fetchKPIs = useCallback(async () => {
     try {
@@ -289,15 +374,14 @@ export default function ONION200Dashboard() {
   return (
     <div
       className="min-h-screen flex flex-col overflow-hidden"
-      style={{ backgroundColor: '#020202' }}
+      style={{ backgroundColor: colors.bg }}
     >
       {/* ═══ HEADER — ONION200 Branding ═══ */}
       <header
         className="flex-shrink-0 px-4 sm:px-6 py-3 flex items-center justify-between"
         style={{
-          borderBottom: '1px solid rgba(6,182,212,0.08)',
-          background:
-            'linear-gradient(180deg, rgba(6,182,212,0.04) 0%, transparent 100%)',
+          borderBottom: '1px solid ' + colors.border,
+          background: colors.headerBg,
         }}
       >
         <div className="flex items-center gap-3">
@@ -305,9 +389,9 @@ export default function ONION200Dashboard() {
           <div
             className="flex items-center justify-center w-[72px] h-[72px] rounded-xl overflow-hidden"
             style={{
-              border: '1px solid rgba(6,182,212,0.25)',
-              backgroundColor: 'rgba(6,182,212,0.08)',
-              boxShadow: '0 0 16px rgba(6,182,212,0.12)',
+              border: '1px solid ' + colors.logoBorder,
+              backgroundColor: colors.logoBg,
+              boxShadow: colors.logoBoxShadow,
             }}
           >
             <Image src="/decodex-logo.png" alt="DECODEX" width={56} height={56} className="object-contain" />
@@ -322,7 +406,7 @@ export default function ONION200Dashboard() {
           </div>
         </div>
 
-        {/* Right side: status + clock */}
+        {/* Right side: status + clock + nav */}
         <div className="flex items-center gap-3">
           {lastUpdate && (
             <span className="hidden sm:flex items-center gap-1.5 text-[9px] font-mono text-slate-600">
@@ -342,11 +426,21 @@ export default function ONION200Dashboard() {
               En línea
             </span>
           </div>
+          {/* Gestión nav link */}
+          <Link
+            href="/clientes"
+            className="flex items-center gap-1.5 px-2 py-1 rounded text-[9px] font-mono uppercase tracking-wider transition-all hover:bg-cyan-500/10"
+            style={{ color: colors.btnColor, border: '1px solid ' + colors.btnBorder }}
+            title="Gestión Comercial"
+          >
+            <LayoutGrid className="w-3 h-3" />
+            <span className="hidden sm:inline">Gestión</span>
+          </Link>
           {/* Theme toggle */}
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             className="flex items-center gap-1.5 px-2 py-1 rounded text-[9px] font-mono uppercase tracking-wider transition-all hover:bg-white/5"
-            style={{ color: '#64748b', border: '1px solid rgba(100,116,139,0.15)' }}
+            style={{ color: colors.btnColor, border: '1px solid ' + colors.btnBorder }}
             title={theme === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
           >
             {theme === 'dark' ? <Sun className="w-3 h-3" /> : <Moon className="w-3 h-3" />}
@@ -355,7 +449,7 @@ export default function ONION200Dashboard() {
           <button
             onClick={() => signOut({ callbackUrl: '/login' })}
             className="flex items-center gap-1.5 px-2 py-1 rounded text-[9px] font-mono uppercase tracking-wider transition-all hover:bg-red-500/10"
-            style={{ color: '#64748b', border: '1px solid rgba(100,116,139,0.15)' }}
+            style={{ color: colors.btnColor, border: '1px solid ' + colors.btnBorder }}
             title="Cerrar sesión"
           >
             <LogOut className="w-3 h-3" />
@@ -368,12 +462,13 @@ export default function ONION200Dashboard() {
         pipeline={kpis || {}}
         activeTab={activeTab}
         onTabChange={handleTabChange}
+        colors={colors}
       />
 
-      {/* ═══ KPI CARDS — Real data row (hidden when not on resumen/captura/clasificacion/produccion/distribucion) ═══ */}
+      {/* ═══ KPI CARDS — Real data row ═══ */}
       <div
         className="flex-shrink-0 px-4 sm:px-6 py-3 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3"
-        style={{ borderBottom: '1px solid rgba(6,182,212,0.04)' }}
+        style={{ borderBottom: '1px solid ' + colors.borderSubtle2 }}
       >
         <KPICard
           icon={<Radio className="w-4 h-4" />}
@@ -381,20 +476,21 @@ export default function ONION200Dashboard() {
           value={captura?.menciones?.hoy ?? null}
           sub={
             captura
-              ? `${captura.menciones?.total ?? 0} total · ${captura.fuentes?.activas ?? 0} fuentes`
+              ? (captura.menciones?.total ?? 0) + ' total · ' + (captura.fuentes?.activas ?? 0) + ' fuentes'
               : undefined
           }
           color="#10b981"
           status={captura?.status}
           onClick={() => handleTabChange('captura')}
           active={activeTab === 'captura'}
+          colors={colors}
         />
         <KPICard
           icon={<Crosshair className="w-4 h-4" />}
           label="Clasificacion"
           value={
             clasif?.tasas?.eje !== undefined
-              ? `${clasif.tasas.eje}%`
+              ? clasif.tasas.eje + '%'
               : null
           }
           sub={clasif ? 'con eje tematico' : undefined}
@@ -402,18 +498,20 @@ export default function ONION200Dashboard() {
           status={clasif?.status}
           onClick={() => handleTabChange('clasificacion')}
           active={activeTab === 'clasificacion'}
+          colors={colors}
         />
         <KPICard
           icon={<BarChart3 className="w-4 h-4" />}
           label="Productos Semana"
           value={prod?.productos?.semana ?? null}
           sub={
-            prod ? `${prod.productos?.hoy ?? 0} hoy` : undefined
+            prod ? (prod.productos?.hoy ?? 0) + ' hoy' : undefined
           }
           color="#f59e0b"
           status={prod?.status}
           onClick={() => handleTabChange('produccion')}
           active={activeTab === 'produccion'}
+          colors={colors}
         />
         <KPICard
           icon={<Send className="w-4 h-4" />}
@@ -425,13 +523,14 @@ export default function ONION200Dashboard() {
           }
           sub={
             dist
-              ? `${dist.envios?.exitosos ?? 0} OK · ${dist.envios?.fallidos ?? 0} fallidos`
+              ? (dist.envios?.exitosos ?? 0) + ' OK · ' + (dist.envios?.fallidos ?? 0) + ' fallidos'
               : undefined
           }
           color="#a78bfa"
           status={dist?.status}
           onClick={() => handleTabChange('distribucion')}
           active={activeTab === 'distribucion'}
+          colors={colors}
         />
       </div>
 
@@ -454,8 +553,8 @@ export default function ONION200Dashboard() {
       <footer
         className="flex-shrink-0 px-4 sm:px-6 py-1.5 flex items-center justify-between"
         style={{
-          borderTop: '1px solid rgba(6,182,212,0.06)',
-          background: 'rgba(5,5,5,0.9)',
+          borderTop: '1px solid ' + colors.borderSubtle,
+          background: colors.footerBg,
         }}
       >
         <span className="text-[9px] font-mono text-slate-700">
