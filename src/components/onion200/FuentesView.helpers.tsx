@@ -82,7 +82,7 @@ export function CredibilidadBar({ value }: { value: number }) {
   return (
     <div className="flex items-center gap-2 min-w-[120px]">
       <div
-        className="flex-1 h-1.5 rounded-full overflow-hidden"
+        className="flex-1 h-0.5 rounded-full overflow-hidden"
         style={{ backgroundColor: 'rgba(6,182,212,0.06)' }}
       >
         <div
