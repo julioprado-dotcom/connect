@@ -209,20 +209,32 @@ export async function capturarUno(slug: string): Promise<CapturaResult> {
     }
   }
 
-  // 3) Persistir resultado en DB (independientemente del éxito o fracaso)
+  // 3) Persistir resultado en DB — SOLO si tiene datos reales (valor > 0)
+  //    Usa upsert para actualizar registros de hoy que tengan valor=0
   try {
-    const valorId = `${indicadorDef.id}-${resultado.fecha.toISOString().slice(0, 10)}`
-    await db.indicadorValor.create({
-      data: {
-        id: valorId,
-        indicadorId: indicadorDef.id,
-        fecha: resultado.fecha,
-        valor: resultado.valor,
-        valorTexto: resultado.valorTexto,
-        confiable: resultado.confiable,
-        metadata: resultado.metadata,
-      },
-    })
+    if (resultado.valor > 0) {
+      const valorId = `${indicadorDef.id}-${resultado.fecha.toISOString().slice(0, 10)}`
+      await db.indicadorValor.upsert({
+        where: { id: valorId },
+        create: {
+          id: valorId,
+          indicadorId: indicadorDef.id,
+          fecha: resultado.fecha,
+          valor: resultado.valor,
+          valorTexto: resultado.valorTexto,
+          confiable: resultado.confiable,
+          metadata: resultado.metadata,
+        },
+        update: {
+          valor: resultado.valor,
+          valorTexto: resultado.valorTexto,
+          confiable: resultado.confiable,
+          metadata: resultado.metadata,
+        },
+      })
+    } else {
+      console.warn(`[capturarUno] ${slug}: valor=0 — NO se guarda en DB (preserva valor anterior)`)
+    }
   } catch (dbError) {
     console.error(`[capturarUno] Error guardando ${slug}:`, dbError)
     // No propagar — el error de DB no frena al indicador
