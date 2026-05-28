@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { capturarTier1, seedIndicadores } from '@/lib/indicadores/capturer-tier1'
+import { capturarTier1, seedIndicadores, cleanupOrphanIndicadores } from '@/lib/indicadores/capturer-tier1'
 import { guardError } from '@/lib/rate-guard'
 
 export async function POST() {
@@ -19,6 +19,15 @@ export async function POST() {
     } catch (seedError) {
       console.warn('[sync] Seed parcial:', seedError)
       // Seed no frena la captura
+    }
+
+    // Step 1.5: Limpiar indicadores huérfanos (sin capturador)
+    let eliminados: string[] = []
+    try {
+      eliminados = await cleanupOrphanIndicadores()
+    } catch (cleanupError) {
+      console.warn('[sync] Cleanup parcial:', cleanupError)
+      // Cleanup no frena la captura
     }
 
     // Step 2: Captura secuencial uno por uno
@@ -38,6 +47,7 @@ export async function POST() {
       })),
       total: resultado.total,
       seeded,
+      eliminados: eliminados.length > 0 ? eliminados : undefined,
       timestamp: new Date().toISOString(),
     })
   } catch (error) {

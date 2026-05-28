@@ -699,8 +699,6 @@ export function getEjesForIndicador(slug: string): string {
     'fx-ars-usd': 'economia,relaciones-internacionales',
     'fx-pyg-usd': 'economia,relaciones-internacionales',
     'fx-jpy-usd': 'economia,relaciones-internacionales,mineria',
-    'fx-gbp-usd': 'economia,relaciones-internacionales',
-    'fx-chf-usd': 'economia,relaciones-internacionales',
     'com-oro': 'mineria,economia,hidrocarburos-energia',
     'com-oro-bcb': 'mineria,economia,hidrocarburos-energia',
     'com-plata-bcb': 'mineria,economia',

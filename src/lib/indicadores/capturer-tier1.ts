@@ -45,6 +45,86 @@ export async function seedIndicadores() {
   }
 }
 
+// ─── Limpieza de indicadores huérfanos ──────────────────────────
+
+/**
+ * Elimina de la DB los indicadores cuyo slug NO está en INDICADORES_TIER1.
+ * Esto limpia indicadores creados por versiones anteriores del config
+ * que ya no tienen capturador ni fuente de datos.
+ *
+ * Se ejecuta durante el sync para mantener la DB limpia.
+ * Retorna la lista de slugs eliminados.
+ */
+export async function cleanupOrphanIndicadores(): Promise<string[]> {
+  const configSlugs = new Set(INDICADORES_TIER1.map(d => d.slug))
+
+  // Slugs conocidos que deben eliminarse (huérfanos/duplicados de versiones anteriores)
+  const ORPHAN_SLUGS = [
+    // Duplicados LME (reemplazados por lme-* sin prefijo mineria-precios-)
+    'mineria-precios-lme-zinc',
+    'mineria-precios-lme-estano',
+    'mineria-precios-lme-plata',
+    'mineria-precios-lme-plomo',
+    // Macro BCB sin capturador funcional
+    'macro-ipc-bcb',
+    'macro-tasa-interes',
+    'macro-reservas-internacionales',
+    // RIN duplicado
+    'rin-bcb',
+  ]
+
+  const eliminados: string[] = []
+
+  for (const slug of ORPHAN_SLUGS) {
+    // No eliminar si está en el config actual
+    if (configSlugs.has(slug)) continue
+
+    try {
+      const exists = await db.indicador.findUnique({ where: { slug } })
+      if (exists) {
+        // Cascade elimina IndicadorValor e IndicadorEvaluación automáticamente
+        await db.indicador.delete({ where: { slug } })
+        eliminados.push(slug)
+        console.log(`🗑️  Indicador huérfano eliminado: ${exists.nombre} (${slug})`)
+      }
+    } catch (err) {
+      console.warn(`[cleanup] Error eliminando ${slug}:`, err instanceof Error ? err.message : 'unknown')
+    }
+  }
+
+  // También eliminar cualquier indicador de la DB que no esté en config
+  // y no sea un indicador creado manualmente por el usuario (Tier 2/3 cualitativos)
+  try {
+    const allDb = await db.indicador.findMany({
+      where: { NOT: { slug: { in: [...configSlugs, ...ORPHAN_SLUGS] } } },
+      select: { id: true, slug: true, nombre: true, tier: true },
+    })
+    for (const ind of allDb) {
+      // Solo eliminar Tier 1 (automáticos) que no están en config
+      // No eliminar indicadores Tier 2/3 cualitativos (pueden ser manuales)
+      if (ind.tier === 1) {
+        try {
+          await db.indicador.delete({ where: { slug: ind.slug } })
+          eliminados.push(ind.slug)
+          console.log(`🗑️  Indicador Tier 1 huérfano eliminado: ${ind.nombre} (${ind.slug})`)
+        } catch (err) {
+          console.warn(`[cleanup] Error eliminando ${ind.slug}:`, err instanceof Error ? err.message : 'unknown')
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[cleanup] Error buscando huérfanos adicionales:', err)
+  }
+
+  if (eliminados.length > 0) {
+    console.log(`[cleanup] Total eliminados: ${eliminados.length}`)
+  } else {
+    console.log('[cleanup] No se encontraron indicadores huérfanos')
+  }
+
+  return eliminados
+}
+
 // ─── Captura individual (micro-llamada) ───────────────────────────
 
 /**

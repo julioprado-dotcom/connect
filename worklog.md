@@ -335,3 +335,28 @@ Stage Summary:
 - Dispatcher: 7 bugs corregidos, listo para producción
 - Colores: 1 fuente de verdad (constants/colors.ts), 4 componentes actualizados, sin semáforos
 - constants/ui.ts: de 139 a 81 líneas (solo labels y datos estáticos de partidos/medios)
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Eliminar 8 indicadores huérfanos y conectar tc-paralelo-venta al BCB
+
+Work Log:
+- Investigué la estructura del BCB: el Valor Referencial del USD está en la HOMEPAGE (https://www.bcb.gob.bo/) como widget KPI-2, NO en la página de cotizaciones_tc
+- Encontré los valores reales: Compra 9.93, Venta 10.14 en divs con clase "bcb-val"
+- Reescribí completamente `capturarTcParalelo()` para scrapear la homepage del BCB
+- Probé el capturador: funciona correctamente (Compra 9.93, Venta 10.14)
+- Creé función `cleanupOrphanIndicadores()` que elimina indicadores huérfanos de la DB
+- Eliminé GBP y CHF del BCB_CODIGO_MAP y del mapeo de ejes temáticos
+- Integré cleanup en el sync API (se ejecuta automáticamente durante cada sync)
+- Build exitoso: npx next build compiló sin errores
+
+Stage Summary:
+- Archivos modificados:
+  - src/lib/indicadores/capturer-tier1.capturers.ts: capturarTcParalelo() reescrito, GBP/CHF eliminados
+  - src/lib/indicadores/capturer-tier1.ts: nueva función cleanupOrphanIndicadores()
+  - src/lib/indicadores/capturer-tier1.config.ts: fx-gbp-usd y fx-chf-usd eliminados del mapping
+  - src/app/api/indicadores/sync/route.ts: cleanup integrado en el sync
+- 8 indicadores huérfanos se eliminarán automáticamente al próximo sync: mineria-precios-lme-{zinc,estano,plata,plomo}, macro-ipc-bcb, macro-tasa-interes, macro-reservas-internacionales, rin-bcb
+- tc-paralelo-venta y tc-paralelo-compra ahora capturan datos reales del BCB (Valor Referencial USD)
+- Pendiente: desplegar en VPS con git push

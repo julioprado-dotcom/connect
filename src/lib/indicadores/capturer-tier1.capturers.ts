@@ -50,9 +50,7 @@ const BCB_CODIGO_MAP: Record<string, {
   'CLP':              { slug: 'fx-clp-usd',  unidad: 'Bs/CLP', decimales: 5 },
   'PEN':              { slug: 'fx-pen-usd',  unidad: 'Bs/PEN', decimales: 2 },
   'PYG':              { slug: 'fx-pyg-usd',  unidad: 'Bs/PYG', decimales: 5 },
-  'GBP':              { slug: 'fx-gbp-usd',  unidad: 'Bs/GBP', decimales: 2 },
   'CNY':              { slug: 'fx-cny-usd',  unidad: 'Bs/CNY', decimales: 2 },
-  'CHF':              { slug: 'fx-chf-usd',  unidad: 'Bs/CHF', decimales: 2 },
   'CZK':              { slug: 'fx-czk-usd',  unidad: 'Bs/CZK', decimales: 4 },
   // ─── Metales preciosos (directo del BCB en USD) ─────────
   'USD./O.T.F.':     { slug: 'com-oro-bcb', unidad: 'USD/oz', decimales: 2 },
@@ -781,11 +779,18 @@ export async function capturarLmeReal(
 
 /**
  * Captura el Valor Referencial del USD del BCB (compra y venta).
- * Este valor se publica en la página principal del BCB como sección
- * "Valor referencial del dólar estadounidense" — separada del TC oficial.
  *
- * Scraping: busca patrones de texto "Compra" / "Venta" cerca de números
- * en la sección del Valor Referencial.
+ * Este valor se publica en la página PRINCIPAL del BCB como widget KPI-2:
+ *   <article class="bcb-kpi2-card">
+ *     <p class="bcb-kpi2-name">Valor referencial del dólar estadounidense</p>
+ *     <div class="bcb-kpi2-body">
+ *       <div class="bcb-row"><div class="bcb-lbl">Compra</div>...<div class="bcb-val">9,93</div></div>
+ *       <div class="bcb-row"><div class="bcb-lbl">Venta</div>...<div class="bcb-val">10,14</div></div>
+ *     </div>
+ *   </article>
+ *
+ * NOTA: Este es DISTINTO del TC Oficial (Compra 6.86 / Venta 6.96).
+ * El Valor Referencial refleja el mercado paralelo/libre.
  */
 export async function capturarTcParalelo(tipo: 'venta' | 'compra' = 'venta'): Promise<CapturaResult> {
   const slug = tipo === 'compra' ? 'tc-paralelo-compra' : 'tc-paralelo-venta'
@@ -797,8 +802,9 @@ export async function capturarTcParalelo(tipo: 'venta' | 'compra' = 'venta'): Pr
   }
 
   // ── Estrategia 1: Scraping de la página principal del BCB ──
+  // El widget de Valor Referencial está en la homepage, NO en cotizaciones_tc
   try {
-    const bcbUrl = 'https://www.bcb.gob.bo/?q=cotizaciones_tc'
+    const bcbUrl = 'https://www.bcb.gob.bo/'
     const resp = await fetch(bcbUrl, {
       headers,
       signal: AbortSignal.timeout(15000),
@@ -807,28 +813,46 @@ export async function capturarTcParalelo(tipo: 'venta' | 'compra' = 'venta'): Pr
     if (resp.ok) {
       const html = await resp.text()
 
-      // Buscar la sección "Valor referencial" — contiene compra y venta
-      // El BCB usa formato: "Compra 9,93" y "Venta 10,14"
-      const referencialRegex = /valor\s+referencial[^]*?(compra[^0-9]*?([\d.,]+)[^0-9]*?venta[^0-9]*?([\d.,]+)|venta[^0-9]*?([\d.,]+)[^0-9]*?compra[^0-9]*?([\d.,]+))/is
-      const m = referencialRegex.exec(html)
+      // Buscar la sección "Valor referencial del dólar estadounidense"
+      const refIdx = html.indexOf('Valor referencial del d\u00f3lar estadounidense')
+      if (refIdx >= 0) {
+        // Extraer el bloque de la tarjeta (hasta el cierre </article>)
+        const bloqueStart = refIdx
+        const bloqueEnd = html.indexOf('</article>', bloqueStart)
+        if (bloqueEnd >= 0) {
+          const bloque = html.slice(bloqueStart, bloqueEnd)
 
-      if (m) {
-        // Determinar compra y venta según qué grupo capturó
-        let compraStr: string | null = null
-        let ventaStr: string | null = null
+          // Extraer Compra y Venta del bloque usando regex por labels
+          // Formato: <div class="bcb-lbl">Compra</div>...<div class="bcb-val">9,93</div>
+          const lblCompraIdx = bloque.indexOf('bcb-lbl">Compra')
+          const lblVentaIdx = bloque.indexOf('bcb-lbl">Venta')
 
-        if (m[1] !== undefined && m[2] !== undefined) {
-          compraStr = m[1]
-          ventaStr = m[2]
-        } else if (m[3] !== undefined && m[4] !== undefined) {
-          ventaStr = m[3]
-          compraStr = m[4]
-        }
+          let compraVal: number | null = null
+          let ventaVal: number | null = null
 
-        // Buscar el valor solicitado
-        const rawStr = tipo === 'compra' ? compraStr : ventaStr
-        if (rawStr) {
-          const valor = parsearNumeroBoliviano(rawStr)
+          if (lblCompraIdx >= 0) {
+            const valCompraStart = bloque.indexOf('bcb-val">', lblCompraIdx)
+            if (valCompraStart >= 0) {
+              const valStart = valCompraStart + 'bcb-val">'.length
+              const valEnd = bloque.indexOf('</div>', valStart)
+              if (valEnd >= 0) {
+                compraVal = parsearNumeroBoliviano(bloque.slice(valStart, valEnd))
+              }
+            }
+          }
+
+          if (lblVentaIdx >= 0) {
+            const valVentaStart = bloque.indexOf('bcb-val">', lblVentaIdx)
+            if (valVentaStart >= 0) {
+              const valStart = valVentaStart + 'bcb-val">'.length
+              const valEnd = bloque.indexOf('</div>', valStart)
+              if (valEnd >= 0) {
+                ventaVal = parsearNumeroBoliviano(bloque.slice(valStart, valEnd))
+              }
+            }
+          }
+
+          const valor = tipo === 'compra' ? compraVal : ventaVal
           if (valor !== null && valor > 0) {
             const etiqueta = tipo === 'compra' ? 'Compra' : 'Venta'
             console.log(`[TC Paralelo ${etiqueta}] BCB OK: ${valor.toFixed(2)} Bs/USD`)
@@ -840,38 +864,11 @@ export async function capturarTcParalelo(tipo: 'venta' | 'compra' = 'venta'): Pr
               fecha,
               metadata: JSON.stringify({
                 fuente: 'Banco Central de Bolivia',
-                metodo: 'bcb_valor_referencial',
-                compra: compraStr ? parsearNumeroBoliviano(compraStr) : undefined,
-                venta: ventaStr ? parsearNumeroBoliviano(ventaStr) : undefined,
+                metodo: 'bcb_valor_referencial_homepage',
+                compra: compraVal,
+                venta: ventaVal,
               }),
             }
-          }
-        }
-      }
-
-      // Fallback: buscar patrones individuales más flexibles
-      // "Compra" seguido de un número con coma decimal
-      const compraMatch = html.match(/compra[^0-9]*?(\d{1,2}[.,]\d{2})/i)
-      const ventaMatch = html.match(/venta[^0-9]*?(\d{1,2}[.,]\d{2})/i)
-
-      // Verificar que los valores están en rango razonable (5-20 Bs/USD)
-      if (compraMatch && ventaMatch) {
-        const compra = parsearNumeroBoliviano(compraMatch[1])
-        const venta = parsearNumeroBoliviano(ventaMatch[1])
-        if (compra && venta && compra > 5 && compra < 20 && venta > 5 && venta < 20) {
-          const valor = tipo === 'compra' ? compra : venta
-          const etiqueta = tipo === 'compra' ? 'Compra' : 'Venta'
-          console.log(`[TC Paralelo ${etiqueta}] BCB fallback OK: ${valor.toFixed(2)} Bs/USD`)
-          return {
-            slug,
-            valor: Number(valor.toFixed(2)),
-            valorTexto: `${valor.toFixed(2)} Bs/USD`,
-            confiable: true,
-            fecha,
-            metadata: JSON.stringify({
-              fuente: 'Banco Central de Bolivia',
-              metodo: 'bcb_valor_referencial_fallback',
-            }),
           }
         }
       }
