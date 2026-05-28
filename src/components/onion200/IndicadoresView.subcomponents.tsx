@@ -158,7 +158,7 @@ export function IndicatorCard({
 
   return (
     <div
-      className="rounded p-2 relative overflow-hidden transition-all duration-150 group"
+      className="rounded p-3 relative overflow-hidden transition-all duration-150 group"
       style={{
         background: 'rgba(5, 5, 5, 0.8)',
         border: '1px solid ' + catColor + '10',
@@ -174,13 +174,13 @@ export function IndicatorCard({
     >
       <div className="relative z-10">
         {/* Header row: dot + name + tier + sync */}
-        <div className="flex items-center gap-1.5 mb-1.5">
+        <div className="flex items-center gap-1.5 mb-2">
           <ConfiableDot confiable={uv?.confiable} />
           <h4
-            className="text-[9px] font-bold font-mono uppercase tracking-wider truncate text-slate-500"
+            className="text-[10px] font-bold font-mono uppercase tracking-wider truncate text-slate-400"
             title={indicador.nombre}
           >
-            {indicador.nombre.length > 22 ? indicador.nombre.slice(0, 20) + '...' : indicador.nombre}
+            {indicador.nombre}
           </h4>
           <span className="ml-auto flex items-center gap-1 flex-shrink-0">
             <TierBadge tier={indicador.tier} />
@@ -202,13 +202,13 @@ export function IndicatorCard({
         {/* Value + unit — single line */}
         <div className="flex items-baseline gap-1 mb-1">
           <span
-            className="text-base sm:text-lg font-bold font-mono tabular-nums leading-none"
+            className="text-xl sm:text-2xl font-bold font-mono tabular-nums leading-none"
             style={{ color: hasData ? '#e5e5e5' : '#334155' }}
           >
             {displayValue}
           </span>
           {indicador.unidad && (
-            <span className="text-[8px] font-mono text-slate-600 uppercase tracking-wider truncate">
+            <span className="text-[9px] font-mono text-slate-600 uppercase tracking-wider truncate">
               {indicador.unidad}
             </span>
           )}

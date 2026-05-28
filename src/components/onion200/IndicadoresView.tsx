@@ -188,7 +188,7 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
 
   // ── Render ──
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* ── Stats Row — inline, no cards ── */}
       <div className="flex items-center gap-4 px-1 text-[9px] font-mono">
         <MiniStatCard label="Activos" value={loading ? '---' : totalActivos} color="#06b6d4" icon={<BarChart3 className="w-3 h-3" />} />
@@ -294,7 +294,7 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
 
       {/* ── Indicators Grid ── */}
       {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
           {Array.from({ length: 12 }).map((_, i) => (
             <SkeletonCard key={i} />
           ))}
@@ -305,7 +305,7 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
           <p className="text-xs font-mono text-slate-600">Sin indicadores</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {categoryKeys.map((catKey) => {
             const cat = CATEGORIAS[catKey] || { label: catKey, color: '#64748b' };
             const items = grouped[catKey];
@@ -333,8 +333,8 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
                   </span>
                 </div>
 
-                {/* Compact grid: 6 cols desktop, 4 tablet, 3 mobile, 2 small mobile */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-1.5">
+                {/* Grid balanceado: 2 mobile, 3 tablet, 4 desktop, 5 wide */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
                   {items
                     .sort((a, b) => a.orden - b.orden)
                     .map((ind) => (
