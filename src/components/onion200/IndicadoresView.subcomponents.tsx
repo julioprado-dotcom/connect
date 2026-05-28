@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Loader2, RefreshCw, X, TrendingUp, Minus, TrendingDown } from 'lucide-react';
-import { TIER_CONFIG } from './IndicadoresView.types';
+import { Loader2, RefreshCw, X, TrendingUp, Minus, TrendingDown, Plus, Pause, Play, Trash2 } from 'lucide-react';
+import { TIER_CONFIG, CATEGORIAS } from './IndicadoresView.types';
 import type { EnrichedIndicador } from './IndicadoresView.types';
 
 // ═══════════════════════════════════════════════════════════════
@@ -621,6 +621,378 @@ export function HistoryModal({
 
         {/* Bottom glow */}
         <div className="h-[1px]" style={{ background: 'linear-gradient(90deg, transparent 5%, ' + catColor + '30 50%, transparent 95%)' }} />
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Manage Modal — add, pause, delete indicators
+// ═══════════════════════════════════════════════════════════════
+
+const CATEGORY_OPTIONS = Object.entries(CATEGORIAS).map(([key, val]) => ({ key, label: val.label }));
+
+const emptyForm = {
+  nombre: '',
+  slug: '',
+  categoria: 'economico',
+  tipo: 'cuantitativo',
+  fuente: '',
+  unidad: '',
+  formatoNumero: 2,
+  tier: 3,
+};
+
+export function ManageModal({
+  indicadores,
+  onClose,
+  onUpdated,
+}: {
+  indicadores: EnrichedIndicador[];
+  onClose: () => void;
+  onUpdated: () => void;
+}) {
+  const [mode, setMode] = useState<'list' | 'add'>('list');
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const sorted = [...indicadores].sort((a, b) => {
+    if (a.activo !== b.activo) return a.activo ? -1 : 1;
+    return a.orden - b.orden;
+  });
+
+  const handleToggle = async (ind: EnrichedIndicador) => {
+    setBusyId(ind.id);
+    try {
+      const res = await fetch('/api/indicadores/' + ind.id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activo: !ind.activo }),
+      });
+      if (res.ok) {
+        onUpdated();
+        setMsg({ ok: true, text: ind.activo ? ind.nombre + ' pausado' : ind.nombre + ' reactivado' });
+      }
+    } catch { /* silent */ }
+    setBusyId(null);
+    setTimeout(() => setMsg(null), 2000);
+  };
+
+  const handleDelete = async (id: string) => {
+    setBusyId(id);
+    try {
+      const res = await fetch('/api/indicadores/' + id, { method: 'DELETE' });
+      if (res.ok) {
+        onUpdated();
+        setMsg({ ok: true, text: 'Indicador eliminado' });
+        setDeleteConfirm(null);
+      }
+    } catch { /* silent */ }
+    setBusyId(null);
+    setTimeout(() => setMsg(null), 2000);
+  };
+
+  const handleAdd = async () => {
+    if (!form.nombre.trim() || !form.slug.trim()) {
+      setMsg({ ok: false, text: 'Nombre y slug son obligatorios' });
+      setTimeout(() => setMsg(null), 3000);
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch('/api/indicadores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) {
+        onUpdated();
+        setMode('list');
+        setForm(emptyForm);
+        setMsg({ ok: true, text: 'Indicador creado' });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setMsg({ ok: false, text: err.error || 'Error al crear' });
+      }
+    } catch {
+      setMsg({ ok: false, text: 'Error de conexion' });
+    }
+    setSaving(false);
+    setTimeout(() => setMsg(null), 3000);
+  };
+
+  // Close on Escape
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
+  const accent = '#a78bfa';
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="rounded-lg overflow-hidden w-full max-w-xl"
+        style={{
+          background: '#0a0a0a',
+          border: '1px solid ' + accent + '25',
+          boxShadow: '0 0 40px ' + accent + '10',
+          maxHeight: '80vh',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: '1px solid ' + accent + '15' }}>
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: accent, boxShadow: '0 0 6px ' + accent + '60' }} />
+          <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-300 flex-1">
+            Gestionar Indicadores
+          </h3>
+          <span className="text-[8px] font-mono text-slate-600">{indicadores.length} total</span>
+          <button onClick={onClose} className="p-1 rounded hover:bg-white/5 transition-colors">
+            <X className="w-3.5 h-3.5 text-slate-500" />
+          </button>
+        </div>
+
+        {/* Message banner */}
+        {msg && (
+          <div
+            className="px-4 py-1.5 text-[9px] font-mono"
+            style={{
+              color: msg.ok ? '#10b981' : '#f43f5e',
+              backgroundColor: msg.ok ? 'rgba(16,185,129,0.06)' : 'rgba(244,63,94,0.06)',
+              borderBottom: '1px solid ' + (msg.ok ? 'rgba(16,185,129,0.1)' : 'rgba(244,63,94,0.1)'),
+            }}
+          >
+            {msg.text}
+          </div>
+        )}
+
+        {mode === 'list' ? (
+          <>
+            {/* Add button */}
+            <div className="px-4 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+              <button
+                onClick={() => { setMode('add'); setForm(emptyForm); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[9px] font-bold font-mono uppercase tracking-wider transition-all"
+                style={{
+                  color: accent,
+                  backgroundColor: accent + '10',
+                  border: '1px solid ' + accent + '25',
+                }}
+              >
+                <Plus className="w-3 h-3" />
+                Nuevo indicador
+              </button>
+            </div>
+
+            {/* Indicator list */}
+            <div className="overflow-y-auto custom-scrollbar" style={{ maxHeight: '50vh' }}>
+              {sorted.map((ind) => {
+                const catCfg = CATEGORIAS[ind.categoria] || { label: ind.categoria, color: '#64748b' };
+                const isDeleting = deleteConfirm === ind.id;
+                const isBusy = busyId === ind.id;
+
+                return (
+                  <div
+                    key={ind.id}
+                    className="flex items-center gap-2 px-4 py-2 transition-colors hover:bg-white/[0.02]"
+                    style={{
+                      borderBottom: '1px solid rgba(255,255,255,0.02)',
+                      opacity: ind.activo ? 1 : 0.4,
+                    }}
+                  >
+                    {/* Status dot */}
+                    <span
+                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                      style={{
+                        backgroundColor: ind.activo ? catCfg.color : '#475569',
+                        boxShadow: ind.activo ? '0 0 4px ' + catCfg.color + '50' : 'none',
+                      }}
+                    />
+
+                    {/* Name + meta */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-mono font-bold text-slate-300 truncate">{ind.nombre}</p>
+                      <p className="text-[8px] font-mono text-slate-600">
+                        {catCfg.label} · {TIER_CONFIG[ind.tier]?.label || 'T' + ind.tier}
+                        {ind.fuente ? ' · ' + (ind.fuente.length > 25 ? ind.fuente.slice(0, 23) + '...' : ind.fuente) : ''}
+                      </p>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {/* Pause/Play */}
+                      <button
+                        onClick={() => handleToggle(ind)}
+                        disabled={isBusy}
+                        className="p-1 rounded transition-colors hover:bg-white/5 disabled:opacity-40"
+                        title={ind.activo ? 'Pausar' : 'Reactivar'}
+                      >
+                        {isBusy ? (
+                          <Loader2 className="w-3 h-3 text-slate-500 animate-spin" />
+                        ) : ind.activo ? (
+                          <Pause className="w-3 h-3 text-amber-400" />
+                        ) : (
+                          <Play className="w-3 h-3 text-emerald-400" />
+                        )}
+                      </button>
+
+                      {/* Delete */}
+                      {!isDeleting ? (
+                        <button
+                          onClick={() => setDeleteConfirm(ind.id)}
+                          className="p-1 rounded transition-colors hover:bg-red-500/10"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-3 h-3 text-slate-600 hover:text-rose-400" />
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleDelete(ind.id)}
+                            className="px-1.5 py-0.5 rounded text-[7px] font-bold font-mono uppercase bg-rose-500/20 text-rose-400 border border-rose-500/30 hover:bg-rose-500/30 transition-colors"
+                          >
+                            SI
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirm(null)}
+                            className="px-1.5 py-0.5 rounded text-[7px] font-bold font-mono uppercase text-slate-500 border border-slate-700 hover:bg-white/5 transition-colors"
+                          >
+                            no
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          /* Add form */
+          <div className="p-4 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[8px] font-mono uppercase text-slate-500 mb-1 tracking-wider">Nombre *</label>
+                <input
+                  type="text"
+                  value={form.nombre}
+                  onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+                  placeholder="Ej: Oro (por onza)"
+                  className="w-full px-2 py-1.5 rounded text-[10px] font-mono text-slate-200 bg-white/[0.03] border border-white/[0.08] focus:outline-none focus:border-violet-500/40 placeholder:text-slate-700"
+                />
+              </div>
+              <div>
+                <label className="block text-[8px] font-mono uppercase text-slate-500 mb-1 tracking-wider">Slug *</label>
+                <input
+                  type="text"
+                  value={form.slug}
+                  onChange={(e) => setForm({ ...form, slug: e.target.value })}
+                  placeholder="Ej: com-oro-onza"
+                  className="w-full px-2 py-1.5 rounded text-[10px] font-mono text-slate-200 bg-white/[0.03] border border-white/[0.08] focus:outline-none focus:border-violet-500/40 placeholder:text-slate-700"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-[8px] font-mono uppercase text-slate-500 mb-1 tracking-wider">Categoria</label>
+                <select
+                  value={form.categoria}
+                  onChange={(e) => setForm({ ...form, categoria: e.target.value })}
+                  className="w-full px-2 py-1.5 rounded text-[10px] font-mono text-slate-200 bg-white/[0.03] border border-white/[0.08] focus:outline-none focus:border-violet-500/40"
+                >
+                  {CATEGORY_OPTIONS.map((c) => (
+                    <option key={c.key} value={c.key} style={{ background: '#0a0a0a' }}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[8px] font-mono uppercase text-slate-500 mb-1 tracking-wider">Tipo</label>
+                <select
+                  value={form.tipo}
+                  onChange={(e) => setForm({ ...form, tipo: e.target.value })}
+                  className="w-full px-2 py-1.5 rounded text-[10px] font-mono text-slate-200 bg-white/[0.03] border border-white/[0.08] focus:outline-none focus:border-violet-500/40"
+                >
+                  <option value="cuantitativo" style={{ background: '#0a0a0a' }}>Cuantitativo</option>
+                  <option value="cualitativo" style={{ background: '#0a0a0a' }}>Cualitativo</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[8px] font-mono uppercase text-slate-500 mb-1 tracking-wider">Tier</label>
+                <select
+                  value={form.tier}
+                  onChange={(e) => setForm({ ...form, tier: parseInt(e.target.value) })}
+                  className="w-full px-2 py-1.5 rounded text-[10px] font-mono text-slate-200 bg-white/[0.03] border border-white/[0.08] focus:outline-none focus:border-violet-500/40"
+                >
+                  <option value={1} style={{ background: '#0a0a0a' }}>T1 AUTO</option>
+                  <option value={2} style={{ background: '#0a0a0a' }}>T2 SEMI</option>
+                  <option value={3} style={{ background: '#0a0a0a' }}>T3 MANUAL</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[8px] font-mono uppercase text-slate-500 mb-1 tracking-wider">Fuente</label>
+                <input
+                  type="text"
+                  value={form.fuente}
+                  onChange={(e) => setForm({ ...form, fuente: e.target.value })}
+                  placeholder="Ej: Yahoo Finance"
+                  className="w-full px-2 py-1.5 rounded text-[10px] font-mono text-slate-200 bg-white/[0.03] border border-white/[0.08] focus:outline-none focus:border-violet-500/40 placeholder:text-slate-700"
+                />
+              </div>
+              <div>
+                <label className="block text-[8px] font-mono uppercase text-slate-500 mb-1 tracking-wider">Unidad</label>
+                <input
+                  type="text"
+                  value={form.unidad}
+                  onChange={(e) => setForm({ ...form, unidad: e.target.value })}
+                  placeholder="Ej: USD, Bs, %"
+                  className="w-full px-2 py-1.5 rounded text-[10px] font-mono text-slate-200 bg-white/[0.03] border border-white/[0.08] focus:outline-none focus:border-violet-500/40 placeholder:text-slate-700"
+                />
+              </div>
+            </div>
+
+            {/* Form actions */}
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                onClick={handleAdd}
+                disabled={saving}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded text-[9px] font-bold font-mono uppercase tracking-wider transition-all"
+                style={{
+                  color: accent,
+                  backgroundColor: accent + '10',
+                  border: '1px solid ' + accent + '25',
+                  opacity: saving ? 0.5 : 1,
+                }}
+              >
+                {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                {saving ? 'Creando...' : 'Crear indicador'}
+              </button>
+              <button
+                onClick={() => setMode('list')}
+                className="px-3 py-1.5 rounded text-[9px] font-bold font-mono uppercase tracking-wider text-slate-500 border border-slate-700 hover:bg-white/5 transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Bottom glow */}
+        <div className="h-[1px]" style={{ background: 'linear-gradient(90deg, transparent 5%, ' + accent + '30 50%, transparent 95%)' }} />
       </div>
     </div>
   );

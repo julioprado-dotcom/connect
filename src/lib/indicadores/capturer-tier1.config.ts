@@ -140,28 +140,7 @@ export const INDICADORES_TIER1 = [
     formatoNumero: 4,
     tier: 1,
   },
-  {
-    slug: 'fx-gbp-usd',
-    nombre: 'Libra Esterlina (en Bolivianos)',
-    categoria: 'monetario',
-    fuente: 'Banco Central de Bolivia',
-    url: 'https://www.bcb.gob.bo/?q=cotizaciones_tc',
-    periodicidad: 'diaria',
-    unidad: 'Bs/GBP',
-    formatoNumero: 2,
-    tier: 1,
-  },
-  {
-    slug: 'fx-chf-usd',
-    nombre: 'Franco Suizo (en Bolivianos)',
-    categoria: 'monetario',
-    fuente: 'Banco Central de Bolivia',
-    url: 'https://www.bcb.gob.bo/?q=cotizaciones_tc',
-    periodicidad: 'diaria',
-    unidad: 'Bs/CHF',
-    formatoNumero: 2,
-    tier: 1,
-  },
+
   // ─── Datos macro adicionales del BCB ─────────────────────
   {
     slug: 'macro-sofr-bcb',

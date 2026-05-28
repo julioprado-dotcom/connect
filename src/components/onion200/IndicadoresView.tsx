@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 import { PanelShell } from './PanelShell';
 import {
@@ -13,6 +13,11 @@ import {
   XCircle,
   Zap,
   BarChart3,
+  Settings2,
+  Plus,
+  Pause,
+  Play,
+  Trash2,
 } from 'lucide-react';
 import {
   CATEGORIAS,
@@ -29,6 +34,7 @@ import {
   ProgressBar,
   IndicatorCard,
   HistoryModal,
+  ManageModal,
 } from './IndicadoresView.subcomponents';
 
 // ═══════════════════════════════════════════════════════════════
@@ -54,6 +60,9 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
 
   // Per-indicator sync
   const [syncingSlugs, setSyncingSlugs] = useState<Set<string>>(new Set());
+
+  // Manage modal
+  const [showManage, setShowManage] = useState(false);
 
   // ── Fetch indicadores ──
   const fetchIndicadores = useCallback(async () => {
@@ -217,6 +226,20 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
         </button>
 
         <button
+          onClick={() => setShowManage(true)}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[9px] font-bold font-mono uppercase tracking-wider transition-all duration-150 hover:scale-[1.01] whitespace-nowrap"
+          style={{
+            color: '#a78bfa',
+            backgroundColor: 'rgba(167,139,250,0.06)',
+            border: '1px solid rgba(167,139,250,0.2)',
+          }}
+          title="Gestionar indicadores"
+        >
+          <Settings2 className="w-3 h-3" />
+          <span className="hidden sm:inline">Gestionar</span>
+        </button>
+
+        <button
           onClick={fetchIndicadores}
           disabled={loading}
           className="p-1.5 rounded text-slate-500 hover:text-cyan-400 transition-colors disabled:opacity-40"
@@ -365,6 +388,15 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
           indicador={historyIndicator}
           catColor={historyCatColor}
           onClose={() => setHistoryIndicator(null)}
+        />
+      )}
+
+      {/* ── Manage Modal ── */}
+      {showManage && (
+        <ManageModal
+          indicadores={indicadores}
+          onClose={() => setShowManage(false)}
+          onUpdated={fetchIndicadores}
         />
       )}
     </div>
