@@ -163,7 +163,7 @@ model EjeTematico {
   activo            Boolean       @default(true)
   orden             Int           @default(0)
   tipo              String        @default("legacy")
-  EjeTematico       EjeTematico?  @relation("EjeTematicoToEjeTematico", fields: [parentId], references: [id])
+  EjeTematico       EjeTematico?  @relation("EjeTematicoToEjeTematico", fields: [parentId], references: [id], onDelete: Cascade)
   other_EjeTematico EjeTematico[] @relation("EjeTematicoToEjeTematico")
   Keyword           Keyword[]
   Mencion           Mencion[]
@@ -349,8 +349,8 @@ model Keyword {
   activo      Boolean      @default(true)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime
-  Lente       Lente?       @relation(fields: [lenteId], references: [id])
-  EjeTematico EjeTematico? @relation(fields: [ejeId], references: [id])
+  Lente       Lente?       @relation(fields: [lenteId], references: [id], onDelete: Cascade)
+  EjeTematico EjeTematico? @relation(fields: [ejeId], references: [id], onDelete: Cascade)
 }
 
 model Lente {
@@ -435,9 +435,9 @@ model Mencion {
   evidenciaUrlOriginal    String?               @default("")
   evidenciaTamanoBytes    Int?                  @default(0)
   Comentario              Comentario[]
-  Persona                 Persona?              @relation(fields: [personaId], references: [id])
-  Medio                   Medio                 @relation(fields: [medioId], references: [id])
-  EjeTematico             EjeTematico?          @relation(fields: [ejeEstructuralId], references: [id])
+  Persona                 Persona?              @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  Medio                   Medio                 @relation(fields: [medioId], references: [id], onDelete: Cascade)
+  EjeTematico             EjeTematico?          @relation(fields: [ejeEstructuralId], references: [id], onDelete: SetNull)
   MencionLente            MencionLente[]
   MencionTema             MencionTema[]
   mencion_cliente_eje     mencion_cliente_eje[]
@@ -520,7 +520,7 @@ model Reporte {
   enlacesRotos           Int       @default(0)
   contenido              String    @default("")
   clasificadores         String    @default("")
-  Persona                Persona?  @relation(fields: [personaId], references: [id])
+  Persona                Persona?  @relation(fields: [personaId], references: [id], onDelete: SetNull)
 
   @@index([fechaCreacion])
   @@index([tipo, fechaCreacion])
