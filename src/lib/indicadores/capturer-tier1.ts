@@ -19,7 +19,7 @@ export { capturarTcOficial, capturarLmeReal, capturarTodosBcb, capturarDivisaBcb
 // ─── Local imports ───────────────────────────────────────────────
 import { INDICADORES_TIER1, getEjesForIndicador } from './capturer-tier1.config'
 import type { CapturaResult } from './capturer-tier1.config'
-import { capturarTcOficial, capturarDivisaBcb, capturarMetalesBcb } from './capturer-tier1.capturers'
+import { capturarTcOficial, capturarDivisaBcb, capturarMetalesBcb, capturarTodosBcb } from './capturer-tier1.capturers'
 
 // ─── Seed de indicadores (ejecutar una vez) ──────────────────────
 
@@ -141,7 +141,7 @@ export async function capturarUno(slug: string): Promise<CapturaResult> {
           resultado = {
             slug,
             valor: Number(dato.valor.toFixed(fmt)),
-            valorTexto: `${dato.valor.toFixed(fmt)} ${indicadorDef.unidad}`,
+            valorTexto: `${dato.valor.toFixed(fmt)} ${indicadorDef.unidad}`, // .toFixed() preserva trailing zeros
             confiable: true,
             fecha,
             metadata: JSON.stringify({

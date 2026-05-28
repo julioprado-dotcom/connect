@@ -83,6 +83,8 @@ interface DatoAdicional {
   decimales: number
   buscarTexto: string          // Texto a buscar en la fila
   columnaValor: number          // Índice de la columna con el valor
+  columnaCheck?: number         // Columna donde buscar el texto (default: 1)
+  minCols?: number              // Mínimo de columnas requeridas (default: 3)
   parsearComo?: 'numero' | 'porcentaje'
 }
 
@@ -223,10 +225,10 @@ function parsearTablaBcb(html: string): Map<string, { valor: number; valorME?: n
     // Procesar ANTES del filtro cells.length < 3 porque SOFR tiene solo 2 columnas
     if (cells.length >= 2) {
       for (const dato of BCB_DATOS_ADICIONALES) {
-        const minCols = (dato as any).minCols ?? 3
+        const minCols = dato.minCols ?? 3
         if (cells.length < minCols) continue
 
-        const checkCol = ((dato as any).columnaCheck ?? 1)
+        const checkCol = dato.columnaCheck ?? 1
         const cellToCheck = cells[checkCol]?.toUpperCase().trim() ?? ''
         if (cellToCheck.includes(dato.buscarTexto)) {
           let valorTexto = cells[dato.columnaValor]?.trim() ?? ''
@@ -548,11 +550,12 @@ export async function capturarDivisaBcb(slug: string): Promise<CapturaResult> {
 
     if (dato && dato.valor > 0) {
       const valorFinal = Number(dato.valor.toFixed(config.decimales))
-      console.log(`[FX] ${slug} BCB OK: ${valorFinal} ${config.unidad}`)
+      const valorFormateado = dato.valor.toFixed(config.decimales) // preserva ceros trailing
+      console.log(`[FX] ${slug} BCB OK: ${valorFormateado} ${config.unidad}`)
       return {
         slug,
         valor: valorFinal,
-        valorTexto: `${valorFinal} ${config.unidad}`,
+        valorTexto: `${valorFormateado} ${config.unidad}`,
         confiable: true,
         fecha,
         metadata: JSON.stringify({
@@ -576,11 +579,12 @@ export async function capturarDivisaBcb(slug: string): Promise<CapturaResult> {
       const tcOficial = datosBcb.get('tc-oficial-bcb')
       const tc = tcOficial?.valor ?? 6.96 // Fallback si no hay TC
       const valorBs = Number((found.valor * tc).toFixed(config.decimales))
-      console.log(`[FX] ${slug} Yahoo fallback: ${found.valor} × ${tc} = ${valorBs} ${config.unidad}`)
+      const valorBsFormateado = (found.valor * tc).toFixed(config.decimales)
+      console.log(`[FX] ${slug} Yahoo fallback: ${found.valor} × ${tc} = ${valorBsFormateado} ${config.unidad}`)
       return {
         slug,
         valor: valorBs,
-        valorTexto: `${valorBs} ${config.unidad}`,
+        valorTexto: `${valorBsFormateado} ${config.unidad}`,
         confiable: found.confiable,
         fecha,
         metadata: JSON.stringify({
@@ -600,7 +604,7 @@ export async function capturarDivisaBcb(slug: string): Promise<CapturaResult> {
     return {
       slug,
       valor: fallback,
-      valorTexto: `${Number(fallback.toFixed(config.decimales))} ${config.unidad}`,
+      valorTexto: `${fallback.toFixed(config.decimales)} ${config.unidad}`,
       confiable: false,
       fecha,
       metadata: JSON.stringify({ error: 'BCB y Yahoo fallaron', metodo: 'fallback_estatico' }),
@@ -646,11 +650,15 @@ export async function capturarMetalesBcb(slug: string): Promise<CapturaResult> {
 
     if (dato && dato.valor > 0) {
       const valorFinal = Number(dato.valor.toFixed(config.decimales))
-      console.log(`[Metal] ${slug} BCB OK: ${valorFinal} ${config.unidad}`)
+      const valorFormateado = dato.valor.toLocaleString('es-BO', {
+        minimumFractionDigits: config.decimales,
+        maximumFractionDigits: config.decimales,
+      })
+      console.log(`[Metal] ${slug} BCB OK: ${valorFormateado} ${config.unidad}`)
       return {
         slug,
         valor: valorFinal,
-        valorTexto: `${valorFinal.toLocaleString('es-BO')} ${config.unidad}`,
+        valorTexto: `${valorFormateado} ${config.unidad}`,
         confiable: true,
         fecha,
         metadata: JSON.stringify({
@@ -668,11 +676,15 @@ export async function capturarMetalesBcb(slug: string): Promise<CapturaResult> {
     const response = await fetchIndicadores([slug as SlugIndicador])
     const found = response.indicadores.find(i => i.slug === slug)
     if (found && found.valor > 0) {
-      console.log(`[Metal] ${slug} Yahoo fallback: ${found.valor} ${config.unidad}`)
+      const valorFormateado = found.valor.toLocaleString('es-BO', {
+        minimumFractionDigits: config.decimales,
+        maximumFractionDigits: config.decimales,
+      })
+      console.log(`[Metal] ${slug} Yahoo fallback: ${valorFormateado} ${config.unidad}`)
       return {
         slug,
         valor: found.valor,
-        valorTexto: `${Math.round(found.valor).toLocaleString('es-BO')} ${config.unidad}`,
+        valorTexto: `${valorFormateado} ${config.unidad}`,
         confiable: found.confiable,
         fecha,
         metadata: JSON.stringify({ fuente: found.fuente, metodo: 'fallback_yahoo' }),
@@ -684,10 +696,14 @@ export async function capturarMetalesBcb(slug: string): Promise<CapturaResult> {
   const { knownValues } = await import('@/lib/services/indicadores.constants')
   const fallback = (knownValues as Record<string, number>)[slug]
   if (fallback && fallback > 0) {
+    const valorFormateado = fallback.toLocaleString('es-BO', {
+      minimumFractionDigits: config.decimales,
+      maximumFractionDigits: config.decimales,
+    })
     return {
       slug,
       valor: fallback,
-      valorTexto: `${Math.round(fallback).toLocaleString('es-BO')} ${config.unidad}`,
+      valorTexto: `${valorFormateado} ${config.unidad}`,
       confiable: false,
       fecha,
       metadata: JSON.stringify({ error: 'BCB y Yahoo fallaron', metodo: 'fallback_estatico' }),
@@ -717,11 +733,18 @@ export async function capturarLmeReal(
   try {
     const response = await fetchIndicadores(lmeSlugs)
 
+    // Buscar formatoNumero de cada indicador en la config
     for (const ind of response.indicadores) {
+      const indDef = (await import('./capturer-tier1.config')).INDICADORES_TIER1.find(d => d.slug === ind.slug)
+      const fmt = indDef?.formatoNumero ?? 2
+      const valorFormateado = ind.valor.toLocaleString('es-BO', {
+        minimumFractionDigits: fmt,
+        maximumFractionDigits: fmt,
+      })
       resultados.push({
         slug: ind.slug,
         valor: ind.valor,
-        valorTexto: `${Math.round(ind.valor).toLocaleString('es-BO')} ${ind.unidad}`,
+        valorTexto: `${valorFormateado} ${ind.unidad}`,
         confiable: ind.confiable,
         fecha,
         metadata: JSON.stringify({

@@ -50,9 +50,15 @@ export async function GET(request: NextRequest) {
       if (ind.tipo === 'cuantitativo') {
         const uv = valorMap.get(ind.id);
         if (uv) {
+          // Formatear solo el número (sin unidad) — el componente ya muestra la unidad por separado
+          const fmt = ind.formatoNumero ?? 2;
+          const valorNumerico = typeof uv.valor === 'number' && !isNaN(uv.valor)
+            ? uv.valor.toFixed(fmt)
+            : uv.valorTexto?.replace(/\s+.*$/, '') || '---';
           ultimoValor = {
-            valor: uv.valorTexto || uv.valor.toFixed(ind.formatoNumero),
+            valor: valorNumerico,
             valorRaw: uv.valor,
+            valorTexto: uv.valorTexto, // texto completo con unidad (para tooltips/export)
             fecha: uv.fecha.toISOString().split('T')[0],
             confiable: uv.confiable,
             fechaCaptura: uv.fechaCaptura.toISOString(),
