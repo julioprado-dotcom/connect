@@ -31,7 +31,7 @@ import {
 } from './IndicadoresView.subcomponents';
 
 // ═══════════════════════════════════════════════════════════════
-// Main Component
+// Main Component — Compact Terminal Layout
 // ═══════════════════════════════════════════════════════════════
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -100,7 +100,6 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
     setCaptureResult(null);
     setCaptureElapsed(0);
 
-    // Start elapsed timer
     captureTimerRef.current = setInterval(() => {
       setCaptureElapsed((prev) => prev + 1);
     }, 1000);
@@ -108,7 +107,7 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
     try {
       const res = await fetchWithTimeout('/api/indicadores/capture', {
         method: 'POST',
-        timeoutMs: 120000, // 2 min timeout — capture can be slow
+        timeoutMs: 120000,
       });
 
       if (!res.ok) {
@@ -122,7 +121,6 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
 
       const data: CaptureResult = await res.json();
       setCaptureResult(data);
-      // Refresh data after successful capture
       if (data.exito) {
         setTimeout(fetchIndicadores, 1000);
       }
@@ -151,10 +149,9 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
           method: 'POST',
           timeoutMs: 30000,
         });
-        // Refresh after sync
         setTimeout(fetchIndicadores, 500);
       } catch {
-        // Silent — individual sync failure shouldn't block UI
+        // Silent
       } finally {
         setSyncingSlugs((prev) => {
           const next = new Set(prev);
@@ -191,209 +188,153 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
 
   // ── Render ──
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* ── Stats Summary Row (3 mini cards, no PanelShell) ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <MiniStatCard
-          label="Total Activos"
-          value={loading ? '---' : totalActivos}
-          color="#06b6d4"
-          icon={<BarChart3 className="w-4 h-4" />}
-        />
-        <MiniStatCard
-          label="Con Datos"
-          value={loading ? '---' : conDatos}
-          color="#10b981"
-          icon={<CheckCircle2 className="w-4 h-4" />}
-        />
-        <MiniStatCard
-          label="Tier 1 (Auto)"
-          value={loading ? '---' : tier1}
-          color="#f59e0b"
-          icon={<Zap className="w-4 h-4" />}
-        />
+    <div className="space-y-3">
+      {/* ── Stats Row — inline, no cards ── */}
+      <div className="flex items-center gap-4 px-1 text-[9px] font-mono">
+        <MiniStatCard label="Activos" value={loading ? '---' : totalActivos} color="#06b6d4" icon={<BarChart3 className="w-3 h-3" />} />
+        <MiniStatCard label="Con Datos" value={loading ? '---' : conDatos} color="#10b981" icon={<CheckCircle2 className="w-3 h-3" />} />
+        <MiniStatCard label="T1 Auto" value={loading ? '---' : tier1} color="#f59e0b" icon={<Zap className="w-3 h-3" />} />
+
+        {/* Capture button — inline */}
+        <button
+          onClick={handleCapture}
+          disabled={capturing}
+          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded text-[9px] font-bold font-mono uppercase tracking-wider transition-all duration-150 hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 whitespace-nowrap"
+          style={{
+            color: capturing ? '#64748b' : '#06b6d4',
+            backgroundColor: capturing ? 'rgba(100,116,139,0.05)' : 'rgba(6,182,212,0.06)',
+            border: capturing
+              ? '1px solid rgba(100,116,139,0.15)'
+              : '1px solid rgba(6,182,212,0.2)',
+          }}
+        >
+          {capturing ? (
+            <Loader2 className="w-3 h-3 animate-spin" />
+          ) : (
+            <TrendingUp className="w-3 h-3" />
+          )}
+          {capturing ? `${formatElapsed(captureElapsed)}` : 'Capturar T1'}
+        </button>
+
+        <button
+          onClick={fetchIndicadores}
+          disabled={loading}
+          className="p-1.5 rounded text-slate-500 hover:text-cyan-400 transition-colors disabled:opacity-40"
+          title="Refrescar"
+        >
+          <RefreshCw className={'w-3 h-3' + (loading ? ' animate-spin' : '')} />
+        </button>
       </div>
 
-      {/* ── Capture Controls Panel ── */}
-      <PanelShell title="CAPTURA DE DATOS" icon={<Activity className="w-4 h-4" />}>
-        <div className="space-y-4">
-          {/* Main capture button + info */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <button
-              onClick={handleCapture}
-              disabled={capturing}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-[10px] font-bold font-mono uppercase tracking-wider transition-all duration-200 hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 whitespace-nowrap"
-              style={{
-                color: capturing ? '#64748b' : '#06b6d4',
-                backgroundColor: capturing ? 'rgba(100,116,139,0.05)' : 'rgba(6,182,212,0.06)',
-                border: capturing
-                  ? '1px solid rgba(100,116,139,0.15)'
-                  : '1px solid rgba(6,182,212,0.2)',
-              }}
-            >
-              {capturing ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <TrendingUp className="w-3.5 h-3.5" />
-              )}
-              {capturing ? 'Capturando indicadores...' : 'Capturar Tier 1'}
-            </button>
+      {/* ── Capture progress bar (inline, no panel) ── */}
+      {capturing && (
+        <ProgressBar elapsed={captureElapsed} maxDuration={90} />
+      )}
 
-            {/* Progress indicator during capture */}
-            {capturing && (
-              <div className="flex-1 flex flex-col gap-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-mono text-cyan-400/70">
-                    Obteniendo datos de Yahoo Finance, Stooq, BCB...
-                  </span>
-                  <span className="text-[9px] font-mono text-slate-500 tabular-nums">
-                    {formatElapsed(captureElapsed)}
-                  </span>
-                </div>
-                <ProgressBar elapsed={captureElapsed} maxDuration={90} />
-              </div>
-            )}
-          </div>
-
-          {/* Capture result */}
-          {captureResult && (
-            <div
-              className="flex flex-wrap items-center gap-2 px-3 py-2.5 rounded-md text-[10px] font-mono"
-              style={{
-                color: captureResult.exito ? '#06b6d4' : '#8b5cf6',
-                backgroundColor: captureResult.exito ? 'rgba(6,182,212,0.06)' : 'rgba(139,92,246,0.06)',
-                border: captureResult.exito
-                  ? '1px solid rgba(6,182,212,0.15)'
-                  : '1px solid rgba(139,92,246,0.15)',
-              }}
-            >
-              {captureResult.exito ? (
-                <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
-              ) : (
-                <XCircle className="w-3.5 h-3.5 flex-shrink-0" />
-              )}
-              {captureResult.datos ? (
-                <>
-                  <span>
-                    Exitosos: {captureResult.datos.exitosos.length} | Fallidos:{' '}
-                    {captureResult.datos.fallidos.length}
-                    <span className="ml-3 text-slate-500" style={{ borderLeft: '2px solid rgba(100,116,139,0.3)', paddingLeft: '10px' }}>
-                      en {captureResult.datos.duracionMs
-                        ? formatElapsed(Math.floor(captureResult.datos.duracionMs / 1000))
-                        : '---'}
-                    </span>
-                  </span>
-                  {captureResult.datos.fallidos.length > 0 && (
-                    <details className="ml-3">
-                      <summary className="cursor-pointer text-slate-500 hover:text-violet-400 transition-colors">Ver errores</summary>
-                      <div className="mt-1.5 space-y-0.5">
-                        {captureResult.datos.fallidos.map((f, idx) => (
-                          <div key={idx} className="text-[9px] text-slate-500">
-                            <span className="text-violet-400">{f.slug}</span>: {typeof f.error === 'string' ? (() => { try { const p = JSON.parse(f.error); return p.error || p.hint || f.error; } catch { return f.error; } })() : JSON.stringify(f.error)}
-                          </div>
-                        ))}
-                      </div>
-                    </details>
-                  )}
-                </>
-              ) : (
-                <span>{captureResult.error || 'Error desconocido'}</span>
-              )}
-            </div>
+      {/* ── Capture result (inline banner) ── */}
+      {captureResult && (
+        <div
+          className="flex flex-wrap items-center gap-2 px-3 py-1.5 rounded text-[9px] font-mono"
+          style={{
+            color: captureResult.exito ? '#06b6d4' : '#8b5cf6',
+            backgroundColor: captureResult.exito ? 'rgba(6,182,212,0.06)' : 'rgba(139,92,246,0.06)',
+            border: captureResult.exito
+              ? '1px solid rgba(6,182,212,0.15)'
+              : '1px solid rgba(139,92,246,0.15)',
+          }}
+        >
+          {captureResult.exito ? (
+            <CheckCircle2 className="w-3 h-3 flex-shrink-0" />
+          ) : (
+            <XCircle className="w-3 h-3 flex-shrink-0" />
           )}
-
-          {/* Auto-refresh footer */}
-          <div className="flex items-center justify-between text-[9px] font-mono text-slate-700">
-            <span className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#06b6d4' }} />
-              Auto-refresco cada 5 min
-            </span>
-            <button
-              onClick={fetchIndicadores}
-              disabled={loading}
-              className="flex items-center gap-1 px-2 py-1 rounded text-slate-500 hover:text-cyan-400 transition-colors disabled:opacity-40"
-              title="Refrescar datos"
-            >
-              <RefreshCw className={'w-3 h-3' + (loading ? ' animate-spin' : '')} />
-              REFRESCAR
-            </button>
-          </div>
+          {captureResult.datos ? (
+            <>
+              <span>
+                {captureResult.datos.exitosos.length} ok · {captureResult.datos.fallidos.length} fail
+                <span className="ml-2 text-slate-500">
+                  {captureResult.datos.duracionMs
+                    ? formatElapsed(Math.floor(captureResult.datos.duracionMs / 1000))
+                    : '---'}
+                </span>
+              </span>
+              {captureResult.datos.fallidos.length > 0 && (
+                <details className="ml-2">
+                  <summary className="cursor-pointer text-slate-500 hover:text-violet-400 transition-colors">errores</summary>
+                  <div className="mt-1 space-y-0.5">
+                    {captureResult.datos.fallidos.map((f, idx) => (
+                      <div key={idx} className="text-[8px] text-slate-500">
+                        <span className="text-violet-400">{f.slug}</span>: {typeof f.error === 'string' ? (() => { try { const p = JSON.parse(f.error); return p.error || p.hint || f.error; } catch { return f.error; } })() : JSON.stringify(f.error)}
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
+            </>
+          ) : (
+            <span>{captureResult.error || 'Error desconocido'}</span>
+          )}
         </div>
-      </PanelShell>
+      )}
 
       {/* ── Error banner ── */}
       {error && !loading && (
         <div
-          className="flex items-center gap-2 px-3 py-2.5 rounded-md text-[10px] font-mono"
+          className="flex items-center gap-2 px-3 py-1.5 rounded text-[9px] font-mono"
           style={{
             color: '#8b5cf6',
             backgroundColor: 'rgba(139,92,246,0.06)',
             border: '1px solid rgba(139,92,246,0.15)',
           }}
         >
-          <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-          Error al cargar indicadores: {error}
+          <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+          {error}
         </div>
       )}
 
-      {/* ── Indicators by Category ── */}
+      {/* ── Indicators Grid ── */}
       {loading ? (
-        // Skeleton loading
-        <div className="space-y-6">
-          {CATEGORIA_ORDER.slice(0, 3).map((cat) => (
-            <PanelShell
-              key={cat}
-              title={CATEGORIAS[cat]?.label || cat}
-              icon={<BarChart3 className="w-4 h-4" />}
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <SkeletonCard key={i} />
-                ))}
-              </div>
-            </PanelShell>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <SkeletonCard key={i} />
           ))}
         </div>
       ) : categoryKeys.length === 0 ? (
-        // Empty state
-        <div className="flex flex-col items-center justify-center py-16">
-          <BarChart3 className="w-10 h-10 text-slate-700 mb-4" />
-          <p className="text-sm font-mono text-slate-600 mb-1">Sin indicadores disponibles</p>
-          <p className="text-[10px] font-mono text-slate-700">
-            Los indicadores se poblaran tras la primera captura de datos.
-          </p>
+        <div className="flex flex-col items-center justify-center py-12">
+          <BarChart3 className="w-8 h-8 text-slate-700 mb-3" />
+          <p className="text-xs font-mono text-slate-600">Sin indicadores</p>
         </div>
       ) : (
-        // Category groups
-        <div className="space-y-6">
+        <div className="space-y-3">
           {categoryKeys.map((catKey) => {
             const cat = CATEGORIAS[catKey] || { label: catKey, color: '#64748b' };
             const items = grouped[catKey];
-            const catActivos = items.filter((i) => i.activo).length;
-            const catConDatos = items.filter((i) => i.ultimoValor || i.ultimaEvaluacion).length;
 
             return (
-              <PanelShell
-                key={catKey}
-                title={cat.label.toUpperCase()}
-                icon={
+              <div key={catKey}>
+                {/* Category header — thin line, not full panel */}
+                <div
+                  className="flex items-center gap-2 px-2 py-1 mb-1.5"
+                  style={{ borderBottom: '1px solid ' + cat.color + '10' }}
+                >
                   <span
-                    className="w-3 h-3 rounded-sm"
-                    style={{ backgroundColor: cat.color, boxShadow: '0 0 8px ' + cat.color + '40' }}
+                    className="w-2 h-2 rounded-sm"
+                    style={{ backgroundColor: cat.color, boxShadow: '0 0 6px ' + cat.color + '40' }}
                   />
-                }
-              >
-                {/* Category header info */}
-                <div className="flex items-center gap-3 mb-4 text-[9px] font-mono text-slate-600">
-                  <span>{catActivos} activos</span>
-                  <span className="w-1 h-1 rounded-full bg-slate-700" />
-                  <span>{catConDatos} con datos</span>
-                  <span className="w-1 h-1 rounded-full bg-slate-700" />
-                  <span>{items.length} total</span>
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.15em] font-mono" style={{ color: cat.color + 'cc' }}>
+                    {cat.label}
+                  </h3>
+                  <span className="text-[8px] font-mono text-slate-700">
+                    {items.filter(i => i.activo).length} activos · {items.filter(i => i.ultimoValor || i.ultimaEvaluacion).length} datos
+                  </span>
+                  <span className="ml-auto flex items-center gap-1">
+                    <span className="w-1 h-1 rounded-full animate-pulse" style={{ backgroundColor: cat.color + '60' }} />
+                    <span className="text-[7px] font-mono" style={{ color: cat.color + '50' }}>LIVE</span>
+                  </span>
                 </div>
 
-                {/* Indicator cards grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {/* Compact grid: 6 cols desktop, 4 tablet, 3 mobile, 2 small mobile */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-1.5">
                   {items
                     .sort((a, b) => a.orden - b.orden)
                     .map((ind) => (
@@ -406,11 +347,17 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
                       />
                     ))}
                 </div>
-              </PanelShell>
+              </div>
             );
           })}
         </div>
       )}
+
+      {/* ── Footer: auto-refresh ── */}
+      <div className="flex items-center justify-center gap-2 text-[8px] font-mono text-slate-700 py-1">
+        <span className="w-1 h-1 rounded-full animate-pulse" style={{ backgroundColor: '#06b6d4' }} />
+        Auto-refresco cada 5 min
+      </div>
     </div>
   );
 }
