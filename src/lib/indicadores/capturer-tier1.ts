@@ -870,6 +870,7 @@ export async function capturarUno(slug: string): Promise<CapturaResult> {
         indicadorDef = await db.indicador.create({
           data: {
             ...autoDef,
+            id: autoDef.slug, // Usar slug como ID (es único por definición)
             activo: true,
             orden: INDICADORES_TIER1.indexOf(autoDef),
             ejesTematicos: getEjesForIndicador(autoDef.slug),
@@ -1005,6 +1006,8 @@ export async function capturarTier1(): Promise<{
     'tc-oficial-bcb',
     'lme-cobre', 'lme-zinc', 'lme-estano', 'lme-plata', 'lme-plomo',
     'agr-cafe', 'agr-soya', 'agr-arroz', 'agr-azucar', 'agr-maiz', 'agr-trigo',
+    'fx-eur-usd', 'fx-cny-usd', 'fx-brl-usd', 'fx-pen-usd', 'fx-clp-usd',
+    'fx-ars-usd', 'fx-pyg-usd', 'fx-jpy-usd',
   ]
 
   // Procesar TODOS en paralelo — reduce tiempo de ~240s a ~20s
