@@ -645,10 +645,10 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
               {captureResult.datos ? (
                 <>
                   <span>
-                    Exitosos: {captureResult.datos.exitosos.length}, Fallidos:{' '}
+                    Exitosos: {captureResult.datos.exitosos.length} | Fallidos:{' '}
                     {captureResult.datos.fallidos.length}
                   </span>
-                  <span className="ml-auto text-slate-500">
+                  <span className="ml-2 flex-shrink-0 text-slate-500" style={{ borderLeft: '1px solid rgba(100,116,139,0.2)', paddingLeft: '8px' }}>
                     {captureResult.datos.duracionMs
                       ? formatElapsed(Math.floor(captureResult.datos.duracionMs / 1000))
                       : ''}

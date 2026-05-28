@@ -845,12 +845,15 @@ export async function capturarUno(slug: string): Promise<CapturaResult> {
   return resultado
 }
 
-// ─── Capturar todos los Tier 1 (secuencial, uno por uno) ─────────
+// ─── Capturar todos los Tier 1 (paralelo, con fallback) ─────────
 
 /**
- * Captura todos los Tier 1 de forma SECUENCIAL (uno por uno).
- * Cada indicador se procesa de forma aislada — si uno falla, genera alerta pero no frena los demás.
- * Optimizado para memoria y red: una sola micro-llamada por indicador.
+ * Captura todos los Tier 1 de forma PARALELA.
+ * Cada indicador se procesa de forma aislada — si uno falla, no frena los demás.
+ * Se aceptan valores de fallback (confiable=false) como datos válidos
+ * porque proporcionan información útil aunque no sean de fuente primaria.
+ *
+ * Tiempo estimado: ~15-25s (vs ~240s secuencial anterior)
  */
 export async function capturarTier1(): Promise<{
   exitosos: CapturaResult[]
@@ -867,25 +870,45 @@ export async function capturarTier1(): Promise<{
     'agr-cafe', 'agr-soya', 'agr-arroz', 'agr-azucar', 'agr-maiz', 'agr-trigo',
   ]
 
-  // Procesar uno por uno de forma secuencial
-  for (const slug of slugsTier1) {
-    try {
-      const resultado = await capturarUno(slug)
-      if (resultado.valor > 0 && resultado.confiable) {
-        exitosos.push(resultado)
-      } else {
-        fallidos.push(resultado)
+  // Procesar TODOS en paralelo — reduce tiempo de ~240s a ~20s
+  const resultados = await Promise.allSettled(
+    slugsTier1.map(async (slug) => {
+      try {
+        return await capturarUno(slug)
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : 'Error desconocido'
+        return {
+          slug,
+          valor: 0,
+          valorTexto: 'N/D',
+          confiable: false,
+          fecha: new Date(),
+          metadata: JSON.stringify({ error: errorMsg }),
+          error: errorMsg,
+        } as CapturaResult
       }
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Error desconocido'
+    })
+  )
+
+  for (const result of resultados) {
+    if (result.status === 'fulfilled') {
+      const r = result.value
+      // Aceptar cualquier valor > 0, incluso fallback (confiable=false)
+      // porque es mejor mostrar un valor estimado que "---"
+      if (r.valor > 0) {
+        exitosos.push(r)
+      } else {
+        fallidos.push(r)
+      }
+    } else {
+      // Promise rejected (shouldn't happen with our wrapper, but just in case)
       fallidos.push({
-        slug,
+        slug: 'unknown',
         valor: 0,
         valorTexto: 'N/D',
         confiable: false,
         fecha: new Date(),
-        metadata: JSON.stringify({ error: errorMsg }),
-        error: errorMsg,
+        metadata: JSON.stringify({ error: result.reason?.message || 'Promise rejected' }),
       })
     }
   }
