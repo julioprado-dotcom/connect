@@ -14,12 +14,12 @@ import type { SlugIndicador } from '@/lib/services/indicadores.types'
 
 // ─── Re-exports from sub-modules (backward compatibility) ────────
 export { type CapturaResult, INDICADORES_TIER1, getEjesForIndicador } from './capturer-tier1.config'
-export { capturarTcOficial, capturarLmeReal, capturarTodosBcb, capturarDivisaBcb, capturarMetalesBcb, invalidarCacheBcb } from './capturer-tier1.capturers'
+export { capturarTcOficial, capturarTcParalelo, capturarLmeReal, capturarTodosBcb, capturarDivisaBcb, capturarMetalesBcb, invalidarCacheBcb } from './capturer-tier1.capturers'
 
 // ─── Local imports ───────────────────────────────────────────────
 import { INDICADORES_TIER1, getEjesForIndicador } from './capturer-tier1.config'
 import type { CapturaResult } from './capturer-tier1.config'
-import { capturarTcOficial, capturarDivisaBcb, capturarMetalesBcb, capturarTodosBcb } from './capturer-tier1.capturers'
+import { capturarTcOficial, capturarTcParalelo, capturarDivisaBcb, capturarMetalesBcb, capturarTodosBcb } from './capturer-tier1.capturers'
 
 // ─── Seed de indicadores (ejecutar una vez) ──────────────────────
 
@@ -121,6 +121,12 @@ export async function capturarUno(slug: string): Promise<CapturaResult> {
       resultado = await capturarTcOficial('venta')
     } else if (slug === 'tc-oficial-compra') {
       resultado = await capturarTcOficial('compra')
+    }
+    // ── TC Paralelo: Valor Referencial BCB ──────────────────
+    else if (slug === 'tc-paralelo-venta') {
+      resultado = await capturarTcParalelo('venta')
+    } else if (slug === 'tc-paralelo-compra') {
+      resultado = await capturarTcParalelo('compra')
     }
     // ── Divisas FX: BCB directo (ya en Bs, sin multiplicar) ──
     else if (slug.startsWith('fx-')) {
@@ -264,8 +270,9 @@ export async function capturarTier1(): Promise<{
   // Slugs que tienen fuente automática (Tier 1)
   const slugsTier1 = [
     'tc-oficial-bcb', 'tc-oficial-compra',
+    'tc-paralelo-venta', 'tc-paralelo-compra',
     'fx-eur-usd', 'fx-cny-usd', 'fx-brl-usd', 'fx-pen-usd', 'fx-clp-usd',
-    'fx-ars-usd', 'fx-pyg-usd', 'fx-jpy-usd', 'fx-gbp-usd', 'fx-chf-usd',
+    'fx-ars-usd', 'fx-pyg-usd', 'fx-jpy-usd',
     'com-oro-bcb', 'com-plata-bcb',
     'macro-sofr-bcb', 'macro-ufv-bcb',
     'lme-cobre', 'lme-zinc', 'lme-estano', 'lme-plata', 'lme-plomo',

@@ -108,6 +108,9 @@ const BCB_DATOS_ADICIONALES: DatoAdicional[] = [
     columnaCheck: 1,       // Buscar texto en cells[1]
     parsearComo: 'numero',
   },
+  // ─── Valor Referencial USD (compra y venta) ──────────────────
+  // Aparece en la página principal BCB como sección separada del TC oficial
+  // Se captura vía capturarTcParalelo() en vez del parser de tabla
 ]
 
 // ─── Utilidades de parseo BCB ─────────────────────────────────────
@@ -773,5 +776,130 @@ export async function capturarLmeReal(
       fecha,
       metadata: JSON.stringify({ error: error instanceof Error ? error.message : 'unknown' }),
     }))
+  }
+}
+
+/**
+ * Captura el Valor Referencial del USD del BCB (compra y venta).
+ * Este valor se publica en la página principal del BCB como sección
+ * "Valor referencial del dólar estadounidense" — separada del TC oficial.
+ *
+ * Scraping: busca patrones de texto "Compra" / "Venta" cerca de números
+ * en la sección del Valor Referencial.
+ */
+export async function capturarTcParalelo(tipo: 'venta' | 'compra' = 'venta'): Promise<CapturaResult> {
+  const slug = tipo === 'compra' ? 'tc-paralelo-compra' : 'tc-paralelo-venta'
+  const fecha = new Date()
+
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'Accept': 'text/html,application/xhtml+xml',
+  }
+
+  // ── Estrategia 1: Scraping de la página principal del BCB ──
+  try {
+    const bcbUrl = 'https://www.bcb.gob.bo/?q=cotizaciones_tc'
+    const resp = await fetch(bcbUrl, {
+      headers,
+      signal: AbortSignal.timeout(15000),
+    })
+
+    if (resp.ok) {
+      const html = await resp.text()
+
+      // Buscar la sección "Valor referencial" — contiene compra y venta
+      // El BCB usa formato: "Compra 9,93" y "Venta 10,14"
+      const referencialRegex = /valor\s+referencial[^]*?(compra[^0-9]*?([\d.,]+)[^0-9]*?venta[^0-9]*?([\d.,]+)|venta[^0-9]*?([\d.,]+)[^0-9]*?compra[^0-9]*?([\d.,]+))/is
+      const m = referencialRegex.exec(html)
+
+      if (m) {
+        // Determinar compra y venta según qué grupo capturó
+        let compraStr: string | null = null
+        let ventaStr: string | null = null
+
+        if (m[1] !== undefined && m[2] !== undefined) {
+          compraStr = m[1]
+          ventaStr = m[2]
+        } else if (m[3] !== undefined && m[4] !== undefined) {
+          ventaStr = m[3]
+          compraStr = m[4]
+        }
+
+        // Buscar el valor solicitado
+        const rawStr = tipo === 'compra' ? compraStr : ventaStr
+        if (rawStr) {
+          const valor = parsearNumeroBoliviano(rawStr)
+          if (valor !== null && valor > 0) {
+            const etiqueta = tipo === 'compra' ? 'Compra' : 'Venta'
+            console.log(`[TC Paralelo ${etiqueta}] BCB OK: ${valor.toFixed(2)} Bs/USD`)
+            return {
+              slug,
+              valor: Number(valor.toFixed(2)),
+              valorTexto: `${valor.toFixed(2)} Bs/USD`,
+              confiable: true,
+              fecha,
+              metadata: JSON.stringify({
+                fuente: 'Banco Central de Bolivia',
+                metodo: 'bcb_valor_referencial',
+                compra: compraStr ? parsearNumeroBoliviano(compraStr) : undefined,
+                venta: ventaStr ? parsearNumeroBoliviano(ventaStr) : undefined,
+              }),
+            }
+          }
+        }
+      }
+
+      // Fallback: buscar patrones individuales más flexibles
+      // "Compra" seguido de un número con coma decimal
+      const compraMatch = html.match(/compra[^0-9]*?(\d{1,2}[.,]\d{2})/i)
+      const ventaMatch = html.match(/venta[^0-9]*?(\d{1,2}[.,]\d{2})/i)
+
+      // Verificar que los valores están en rango razonable (5-20 Bs/USD)
+      if (compraMatch && ventaMatch) {
+        const compra = parsearNumeroBoliviano(compraMatch[1])
+        const venta = parsearNumeroBoliviano(ventaMatch[1])
+        if (compra && venta && compra > 5 && compra < 20 && venta > 5 && venta < 20) {
+          const valor = tipo === 'compra' ? compra : venta
+          const etiqueta = tipo === 'compra' ? 'Compra' : 'Venta'
+          console.log(`[TC Paralelo ${etiqueta}] BCB fallback OK: ${valor.toFixed(2)} Bs/USD`)
+          return {
+            slug,
+            valor: Number(valor.toFixed(2)),
+            valorTexto: `${valor.toFixed(2)} Bs/USD`,
+            confiable: true,
+            fecha,
+            metadata: JSON.stringify({
+              fuente: 'Banco Central de Bolivia',
+              metodo: 'bcb_valor_referencial_fallback',
+            }),
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn(`[TC Paralelo ${tipo}] BCB error:`, err instanceof Error ? err.message : 'unknown')
+  }
+
+  // ── Fallback: knownValues ──
+  const { knownValues } = await import('@/lib/services/indicadores.constants')
+  const fallback = (knownValues as Record<string, number>)[slug]
+  if (fallback && fallback > 0) {
+    return {
+      slug,
+      valor: fallback,
+      valorTexto: `${fallback.toFixed(2)} Bs/USD`,
+      confiable: false,
+      fecha,
+      metadata: JSON.stringify({ error: 'BCB no respondió', metodo: 'fallback_estatico' }),
+    }
+  }
+
+  return {
+    slug,
+    valor: 0,
+    valorTexto: 'N/D',
+    confiable: false,
+    fecha,
+    metadata: JSON.stringify({ error: 'Sin datos disponibles' }),
   }
 }
