@@ -60,7 +60,7 @@ export const INDICADORES_TIER1 = [
     url: 'https://www.bcb.gob.bo/?q=cotizaciones_tc',
     periodicidad: 'diaria',
     unidad: 'Bs/EUR',
-    formatoNumero: 5,
+    formatoNumero: 2,
     tier: 1,
   },
   {
@@ -71,7 +71,7 @@ export const INDICADORES_TIER1 = [
     url: 'https://www.bcb.gob.bo/?q=cotizaciones_tc',
     periodicidad: 'diaria',
     unidad: 'Bs/CNY',
-    formatoNumero: 5,
+    formatoNumero: 2,
     tier: 1,
   },
   {
@@ -82,7 +82,7 @@ export const INDICADORES_TIER1 = [
     url: 'https://www.bcb.gob.bo/?q=cotizaciones_tc',
     periodicidad: 'diaria',
     unidad: 'Bs/BRL',
-    formatoNumero: 5,
+    formatoNumero: 2,
     tier: 1,
   },
   {
@@ -93,7 +93,7 @@ export const INDICADORES_TIER1 = [
     url: 'https://www.bcb.gob.bo/?q=cotizaciones_tc',
     periodicidad: 'diaria',
     unidad: 'Bs/PEN',
-    formatoNumero: 5,
+    formatoNumero: 2,
     tier: 1,
   },
   {
@@ -137,7 +137,7 @@ export const INDICADORES_TIER1 = [
     url: 'https://www.bcb.gob.bo/?q=cotizaciones_tc',
     periodicidad: 'diaria',
     unidad: 'Bs/JPY',
-    formatoNumero: 5,
+    formatoNumero: 4,
     tier: 1,
   },
   {
@@ -148,7 +148,7 @@ export const INDICADORES_TIER1 = [
     url: 'https://www.bcb.gob.bo/?q=cotizaciones_tc',
     periodicidad: 'diaria',
     unidad: 'Bs/GBP',
-    formatoNumero: 5,
+    formatoNumero: 2,
     tier: 1,
   },
   {
@@ -159,7 +159,7 @@ export const INDICADORES_TIER1 = [
     url: 'https://www.bcb.gob.bo/?q=cotizaciones_tc',
     periodicidad: 'diaria',
     unidad: 'Bs/CHF',
-    formatoNumero: 5,
+    formatoNumero: 2,
     tier: 1,
   },
   // ─── Datos macro adicionales del BCB ─────────────────────

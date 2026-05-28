@@ -42,17 +42,18 @@ const BCB_CODIGO_MAP: Record<string, {
     decimales: 2,
   },
   // ─── Divisas en Bs (directo del BCB, sin multiplicar) ──
-  'EUR':              { slug: 'fx-eur-usd',  unidad: 'Bs/EUR', decimales: 5 },
-  'JPY':              { slug: 'fx-jpy-usd',  unidad: 'Bs/JPY', decimales: 5 },
+  // decimales: 2 para divisas > 1 Bs, 4-5 para divisas pequeñas
+  'EUR':              { slug: 'fx-eur-usd',  unidad: 'Bs/EUR', decimales: 2 },
+  'JPY':              { slug: 'fx-jpy-usd',  unidad: 'Bs/JPY', decimales: 4 },
   'ARS':              { slug: 'fx-ars-usd',  unidad: 'Bs/ARS', decimales: 5 },
-  'BRL':              { slug: 'fx-brl-usd',  unidad: 'Bs/BRL', decimales: 5 },
+  'BRL':              { slug: 'fx-brl-usd',  unidad: 'Bs/BRL', decimales: 2 },
   'CLP':              { slug: 'fx-clp-usd',  unidad: 'Bs/CLP', decimales: 5 },
-  'PEN':              { slug: 'fx-pen-usd',  unidad: 'Bs/PEN', decimales: 5 },
+  'PEN':              { slug: 'fx-pen-usd',  unidad: 'Bs/PEN', decimales: 2 },
   'PYG':              { slug: 'fx-pyg-usd',  unidad: 'Bs/PYG', decimales: 5 },
-  'GBP':              { slug: 'fx-gbp-usd',  unidad: 'Bs/GBP', decimales: 5 },
-  'CNY':              { slug: 'fx-cny-usd',  unidad: 'Bs/CNY', decimales: 5 },
-  'CHF':              { slug: 'fx-chf-usd',  unidad: 'Bs/CHF', decimales: 5 },
-  'CZK':              { slug: 'fx-czk-usd',  unidad: 'Bs/CZK', decimales: 5 },
+  'GBP':              { slug: 'fx-gbp-usd',  unidad: 'Bs/GBP', decimales: 2 },
+  'CNY':              { slug: 'fx-cny-usd',  unidad: 'Bs/CNY', decimales: 2 },
+  'CHF':              { slug: 'fx-chf-usd',  unidad: 'Bs/CHF', decimales: 2 },
+  'CZK':              { slug: 'fx-czk-usd',  unidad: 'Bs/CZK', decimales: 4 },
   // ─── Metales preciosos (directo del BCB en USD) ─────────
   'USD./O.T.F.':     { slug: 'com-oro-bcb', unidad: 'USD/oz', decimales: 2 },
 }
