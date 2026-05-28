@@ -19,6 +19,9 @@ const PUBLIC_API_ROUTES = [
   '/api/auth',
   '/api/suscriptores',
   '/api/alertas/estado',
+  '/api/indicadores/sync',
+  '/api/indicadores/capture',
+  '/api/indicadores/sync/',
 ];
 
 const PUBLIC_PAGE_ROUTES = [
