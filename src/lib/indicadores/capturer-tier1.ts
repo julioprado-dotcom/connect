@@ -10,6 +10,10 @@
 import db from '@/lib/db'
 import { fetchIndicadores } from '@/lib/services/indicadores'
 import type { SlugIndicador } from '@/lib/services/indicadores.types'
+import { knownValues } from '@/lib/services/indicadores.constants'
+
+// ─── Constante de conversión USD → Bs ──────────────────────────────
+const TC_OFICIAL_FALLBACK = knownValues['tc-oficial-bcb'] // ~6.91 Bs/USD
 
 // ─── Re-exports from sub-modules (backward compatibility) ────────
 export { type CapturaResult, INDICADORES_TIER1, getEjesForIndicador } from './capturer-tier1.config'
@@ -130,16 +134,35 @@ export async function capturarUno(slug: string): Promise<CapturaResult> {
       const response = await fetchIndicadores([slug as SlugIndicador])
       const found = response.indicadores.find(i => i.slug === slug)
       if (found) {
+        // ─── Conversión a Bolivianos para divisas internacionales ───
+        let valorFinal = found.valor
+        let metodo = found.confiable ? 'api_real' : 'fallback'
+        if (slug.startsWith('fx-')) {
+          // Obtener TC oficial del BCB (desde DB o fallback)
+          let tcOficial = TC_OFICIAL_FALLBACK
+          try {
+            const tcDb = await db.indicadorValor.findFirst({
+              where: { indicadorId: 'tc-oficial-bcb' },
+              orderBy: { fecha: 'desc' },
+            })
+            if (tcDb) tcOficial = tcDb.valor
+          } catch { /* usar fallback */ }
+          // Yahoo devuelve USD por unidad extranjera → multiplicar por Bs/USD
+          valorFinal = Number((found.valor * tcOficial).toFixed(indicadorDef.formatoNumero))
+          metodo = `api_real × TC ${tcOficial.toFixed(2)} Bs/USD`
+        }
+
         resultado = {
           slug,
-          valor: found.valor,
-          valorTexto: `${Math.round(found.valor).toLocaleString('es-BO')} ${indicadorDef.unidad}`,
+          valor: valorFinal,
+          valorTexto: `${valorFinal.toLocaleString('es-BO', { minimumFractionDigits: indicadorDef.formatoNumero > 0 ? indicadorDef.formatoNumero : 0, maximumFractionDigits: indicadorDef.formatoNumero })} ${indicadorDef.unidad}`,
           confiable: found.confiable,
           fecha,
           metadata: JSON.stringify({
             fuente: found.fuente,
-            metodo: found.confiable ? 'api_real' : 'fallback',
+            metodo,
             valorRaw: found.valor,
+            valorBs: slug.startsWith('fx-') ? valorFinal : undefined,
             variacionPct: found.variacion,
             fuentesUsadas: response.fuentesUsadas,
           }),
