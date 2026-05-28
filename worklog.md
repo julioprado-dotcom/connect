@@ -291,3 +291,24 @@ Stage Summary:
 - Component: MiniCharts.tsx with ThinBars + SentimentRing
 - Integrated in ResumenView.tsx (3-col layout: VitalMonitor + SystemStatus + MiniCharts)
 - User confirmed "perfecto" after minimalist redesign
+
+---
+Task ID: https-setup
+Agent: main
+Task: Configurar HTTPS/SSL para decodex-bolivia.net
+
+Work Log:
+- Analizado estado del servidor: Nginx en puerto 80, Next.js en 3000, sin Caddy/Docker
+- Actualizado Caddyfile del proyecto para dominio (aunque no se usa, Nginx hace el proxy)
+- Actualizado middleware.ts: secureCookie condicional (detecta HTTPS via X-Forwarded-Proto)
+- Agregado redirect HTTP→HTTPS en middleware usando header Host correcto
+- Configurado Nginx reverse proxy con certbot
+- SSL obtenido via Let's Encrypt (certbot --nginx)
+- Certificado válido hasta 2026-08-25, renovación automática vía certbot.timer
+
+Stage Summary:
+- https://decodex-bolivia.net funciona con candado verde
+- Cookies de sesión ahora se marcan como Secure
+- Certbot auto-renueva el certificado en background
+- Archivos: src/middleware.ts, Caddyfile
+- Certificado: /etc/letsencrypt/live/decodex-bolivia.net/
