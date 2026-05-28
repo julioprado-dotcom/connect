@@ -32,6 +32,9 @@ import {
   Shield,
   Settings,
   Eye,
+  Cog,
+  Bot,
+  ChevronDown,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { useTheme } from '@/components/theme-provider';
@@ -508,7 +511,7 @@ export default function ONION200Dashboard() {
               En línea
             </span>
           </div>
-          {/* Gestión nav link */}
+          {/* Clientes nav link */}
           <Link
             href="/clientes"
             className="flex items-center gap-1.5 px-2 py-1 rounded text-[9px] font-mono uppercase tracking-wider transition-all hover:bg-cyan-500/10"
@@ -528,6 +531,26 @@ export default function ONION200Dashboard() {
             <Send className="w-3 h-3" />
             <span className="hidden sm:inline">Entregas</span>
           </Link>
+          {/* Configuración nav link */}
+          <Link
+            href="/configuracion/marco-conceptual"
+            className="flex items-center gap-1.5 px-2 py-1 rounded text-[9px] font-mono uppercase tracking-wider transition-all hover:bg-cyan-500/10"
+            style={{ color: colors.btnColor, border: '1px solid ' + colors.btnBorder }}
+            title="Configuración del sistema"
+          >
+            <Cog className="w-3 h-3" />
+            <span className="hidden sm:inline">Config</span>
+          </Link>
+          {/* Agente nav link */}
+          <Link
+            href="/agente"
+            className="flex items-center gap-1.5 px-2 py-1 rounded text-[9px] font-mono uppercase tracking-wider transition-all hover:bg-cyan-500/10"
+            style={{ color: colors.btnColor, border: '1px solid ' + colors.btnBorder }}
+            title="Agente IA - Asistente inteligente"
+          >
+            <Bot className="w-3 h-3" />
+            <span className="hidden sm:inline">Agente</span>
+          </Link>
           {/* Theme toggle */}
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -536,6 +559,7 @@ export default function ONION200Dashboard() {
             title={theme === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
           >
             {theme === 'dark' ? <Sun className="w-3 h-3" /> : <Moon className="w-3 h-3" />}
+            <span className="hidden md:inline">{theme === 'dark' ? 'Claro' : 'Oscuro'}</span>
           </button>
           {/* Logout */}
           <button

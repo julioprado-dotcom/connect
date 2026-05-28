@@ -273,7 +273,7 @@ export function IndicatorCard({
         </div>
 
         {/* Value + unit — single line */}
-        <div className="flex items-baseline gap-1 mb-1">
+        <div className="flex items-baseline gap-2 mb-1">
           <span
             className="text-xl sm:text-2xl font-bold font-mono tabular-nums leading-none"
             style={{ color: hasData ? '#f0f0f0' : '#334155' }}
