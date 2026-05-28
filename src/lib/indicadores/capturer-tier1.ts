@@ -965,8 +965,10 @@ export async function capturarUno(slug: string): Promise<CapturaResult> {
 
   // 3) Persistir resultado en DB (independientemente del éxito o fracaso)
   try {
+    const valorId = `${indicadorDef.id}-${resultado.fecha.toISOString().slice(0, 10)}`
     await db.indicadorValor.create({
       data: {
+        id: valorId,
         indicadorId: indicadorDef.id,
         fecha: resultado.fecha,
         valor: resultado.valor,
