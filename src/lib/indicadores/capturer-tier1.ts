@@ -117,8 +117,10 @@ export async function capturarUno(slug: string): Promise<CapturaResult> {
 
   try {
     // ── TC Oficial: scraper BCB (fuente primaria) ──────────
-    if (slug === 'tc-oficial-bcb' || slug === 'tc-oficial-compra') {
-      resultado = await capturarTcOficial()
+    if (slug === 'tc-oficial-bcb') {
+      resultado = await capturarTcOficial('venta')
+    } else if (slug === 'tc-oficial-compra') {
+      resultado = await capturarTcOficial('compra')
     }
     // ── Divisas FX: BCB directo (ya en Bs, sin multiplicar) ──
     else if (slug.startsWith('fx-')) {
@@ -127,6 +129,30 @@ export async function capturarUno(slug: string): Promise<CapturaResult> {
     // ── Metales del BCB: Oro y Plata ─────────────────────────
     else if (slug === 'com-oro-bcb' || slug === 'com-plata-bcb') {
       resultado = await capturarMetalesBcb(slug)
+    }
+    // ── Datos macro del BCB: SOFR, UFV ────────────────────────
+    else if (slug === 'macro-sofr-bcb' || slug === 'macro-ufv-bcb') {
+      // Estos se capturan via capturarTodosBcb() que ya extrae SOFR y UFV
+      try {
+        const datos = await capturarTodosBcb()
+        const dato = datos.get(slug)
+        if (dato && dato.valor > 0) {
+          const fmt = indicadorDef.formatoNumero ?? 2
+          resultado = {
+            slug,
+            valor: Number(dato.valor.toFixed(fmt)),
+            valorTexto: `${dato.valor.toFixed(fmt)} ${indicadorDef.unidad}`,
+            confiable: true,
+            fecha,
+            metadata: JSON.stringify({
+              fuente: 'Banco Central de Bolivia',
+              metodo: 'bcb_datos_adicionales',
+            }),
+          }
+        }
+      } catch (err) {
+        console.warn(`[Macro BCB] ${slug} error:`, err)
+      }
     }
     // ── LME, commodities y energéticos: Yahoo/Stooq ───────────
     else if (
@@ -229,6 +255,7 @@ export async function capturarTier1(): Promise<{
     'fx-eur-usd', 'fx-cny-usd', 'fx-brl-usd', 'fx-pen-usd', 'fx-clp-usd',
     'fx-ars-usd', 'fx-pyg-usd', 'fx-jpy-usd', 'fx-gbp-usd', 'fx-chf-usd',
     'com-oro-bcb', 'com-plata-bcb',
+    'macro-sofr-bcb', 'macro-ufv-bcb',
     'lme-cobre', 'lme-zinc', 'lme-estano', 'lme-plata', 'lme-plomo',
     'com-oro', 'com-litio', 'com-tierras-raras',
     'agr-cafe', 'agr-soya', 'agr-arroz', 'agr-azucar', 'agr-maiz', 'agr-trigo',

@@ -53,7 +53,25 @@ export const ALL_SLUGS: readonly SlugIndicador[] = [
   'salud-materna',
   'salud-esperanza-vida',
   'tc-oficial-bcb',
+  'tc-oficial-compra',
   'tc-paralelo',
+  'tc-paralelo-venta',
+  'fx-eur-usd',
+  'fx-cny-usd',
+  'fx-brl-usd',
+  'fx-pen-usd',
+  'fx-clp-usd',
+  'fx-ars-usd',
+  'fx-pyg-usd',
+  'fx-jpy-usd',
+  'fx-gbp-usd',
+  'fx-chf-usd',
+  'fx-czk-usd',
+  'com-oro-bcb',
+  'com-plata-bcb',
+  'macro-sofr-bcb',
+  'macro-ufv-bcb',
+  'rin-bcb',
   'reservas-internacionales',
   'produccion-gas',
   'produccion-petroleo',
@@ -337,6 +355,54 @@ export const INDICADOR_META: Readonly<Record<SlugIndicador, IndicadorMeta>> = {
     moneda: 'BOB',
     categoria: 'tipo_cambio',
     yahooSymbol: 'JPY=X',
+  },
+  'fx-gbp-usd': {
+    nombre: 'Libra Esterlina (en Bolivianos)',
+    unidad: 'Bs/GBP',
+    moneda: 'BOB',
+    categoria: 'tipo_cambio',
+    yahooSymbol: 'GBPUSD=X',
+  },
+  'fx-chf-usd': {
+    nombre: 'Franco Suizo (en Bolivianos)',
+    unidad: 'Bs/CHF',
+    moneda: 'BOB',
+    categoria: 'tipo_cambio',
+    yahooSymbol: 'CHFUSD=X',
+  },
+  'fx-czk-usd': {
+    nombre: 'Corona Checa (en Bolivianos)',
+    unidad: 'Bs/CZK',
+    moneda: 'BOB',
+    categoria: 'tipo_cambio',
+  },
+  'com-oro-bcb': {
+    nombre: 'Oro (BCB)',
+    unidad: 'USD/oz',
+    moneda: 'USD',
+    categoria: 'minerales',
+  },
+  'com-plata-bcb': {
+    nombre: 'Plata (BCB)',
+    unidad: 'USD/oz',
+    moneda: 'USD',
+    categoria: 'minerales',
+  },
+  'macro-sofr-bcb': {
+    nombre: 'Tasa SOFR',
+    unidad: '% anual',
+    categoria: 'macro_bcb',
+  },
+  'macro-ufv-bcb': {
+    nombre: 'Unidad de Fomento de Vivienda (UFV)',
+    unidad: 'Bs/UFV',
+    categoria: 'macro_bcb',
+  },
+  'rin-bcb': {
+    nombre: 'Reservas Internacionales Netas',
+    unidad: 'MM USD',
+    moneda: 'USD',
+    categoria: 'tipo_cambio',
   },
   'reservas-internacionales': {
     nombre: 'Reservas Internacionales Netas',
@@ -1000,16 +1066,26 @@ export const knownValues: Readonly<Record<SlugIndicador, number>> = {
   'salud-desnutricion': 11.6,
   'salud-materna': 161,
   'salud-esperanza-vida': 65.0,
-  'tc-oficial-bcb': 6.91,
+  'tc-oficial-bcb': 6.96,
+  'tc-oficial-compra': 6.86,
   'tc-paralelo': 7.12,
-  'fx-eur-usd': 7.46,      // ~1.08 USD/EUR × 6.91 Bs/USD
-  'fx-cny-usd': 0.95,      // ~0.138 USD/CNY × 6.91 Bs/USD
-  'fx-brl-usd': 3.94,      // ~0.570 USD/BRL × 6.91 Bs/USD
-  'fx-pen-usd': 2.57,      // ~0.372 USD/PEN × 6.91 Bs/USD
-  'fx-clp-usd': 0.0072,    // ~0.00104 USD/CLP × 6.91 Bs/USD
-  'fx-ars-usd': 0.0061,    // ~0.000878 USD/ARS × 6.91 Bs/USD
-  'fx-pyg-usd': 0.0009,    // ~0.000127 USD/PYG × 6.91 Bs/USD
-  'fx-jpy-usd': 0.0434,    // ~0.00629 USD/JPY × 6.91 Bs/USD
+  'tc-paralelo-venta': 10.14,
+  'fx-eur-usd': 7.97545,   // BCB: 7.97545 Bs/EUR
+  'fx-cny-usd': 1.01189,   // BCB: 1.01189 Bs/CNY
+  'fx-brl-usd': 1.35541,   // BCB: 1.35541 Bs/BRL
+  'fx-pen-usd': 2.00920,   // BCB: 2.00920 Bs/PEN
+  'fx-clp-usd': 0.00766,   // BCB: 0.00766 Bs/CLP
+  'fx-ars-usd': 0.00486,   // BCB: 0.00486 Bs/ARS
+  'fx-pyg-usd': 0.00113,   // BCB: 0.00113 Bs/PYG
+  'fx-jpy-usd': 0.04300,   // BCB: 0.04300 Bs/JPY
+  'fx-gbp-usd': 9.20682,   // BCB: 9.20682 Bs/GBP
+  'fx-chf-usd': 8.71665,   // BCB: 8.71665 Bs/CHF
+  'fx-czk-usd': 0.32832,   // BCB: 0.32832 Bs/CZK
+  'com-oro-bcb': 4451.89,  // BCB: $4,451.89/oz
+  'com-plata-bcb': 74.612, // BCB: $74.612/oz
+  'macro-sofr-bcb': 3.63,  // BCB: SOFR 3.63%
+  'macro-ufv-bcb': 3.25682, // BCB: UFV 3.25682 Bs/UFV
+  'rin-bcb': 18500,        // RIN ~18,500 MM USD
   'reservas-internacionales': 18_500,
   'produccion-gas': 42.5,
   'produccion-petroleo': 44_000,

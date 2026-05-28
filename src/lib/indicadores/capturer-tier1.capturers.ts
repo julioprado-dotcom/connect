@@ -1,58 +1,108 @@
 /**
  * Capturer Tier 1 — Capturadores individuales
- * 
+ *
  * Estrategia de datos:
- * - BCB (fuente primaria): Parsea la tabla completa de cotizaciones del BCB
- *   identificando cada moneda por NOMBRE (no por valor numérico).
+ * - BCB (fuente primaria): Parsea la tabla de cotizaciones del BCB
+ *   identificando cada moneda por CÓDIGO (ARS, CLP, EUR, etc.)
+ *   con fallback por NOMBRE si el código no coincide.
  * - Yahoo Finance / Stooq: Fallback para metales y commodities.
- * - Sin validaciones por rango numérico que puedan romperse en crisis.
+ * - SIN validaciones por rango numérico que puedan romperse en crisis.
+ *
+ * Estructura real del HTML del BCB (otras/ultimo.php):
+ *   <tr>
+ *     <td><div align="left"> ESTADOS UNIDOS </div></td>       ← PAÍS (cells[0])
+ *     <td><div align="center"> DOLAR VENTA </div></td>        ← UNIDAD MONETARIA (cells[1])
+ *     <td><div align="center"> USD.VENTA </div></td>          ← MONEDA/CÓDIGO (cells[2])
+ *     <td><div align="right"> 6.96 </div></td>                ← TC EN Bs (cells[3])
+ *     <td><div align="right"> 0.86014 </div></td>             ← TC EN M.E. (cells[4])
+ *   </tr>
  */
 
 import { fetchIndicadores, getIndicador } from '@/lib/services/indicadores'
 import type { SlugIndicador } from '@/lib/services/indicadores.types'
 import type { CapturaResult } from './capturer-tier1.config'
 
-// ─── Mapeo: Nombre BCB → Slug del indicador ───────────────────────
+// ─── Mapeo PRIMARIO: Código de moneda → Slug ───────────────────────
+// Usar el campo MONEDA (cells[2]) del BCB — 100% preciso.
 
-/**
- * Mapeo entre los nombres exactos de monedas en la tabla del BCB
- * y los slugs internos del sistema.
- * El BCB usa "DOLAR VENTA", "EURO", "YUAN RENMINBI", etc. (SIN tildes).
- */
-const BCB_MONEDA_MAP: Record<string, {
+const BCB_CODIGO_MAP: Record<string, {
   slug: string
   unidad: string
   decimales: number
-  parseAs?: 'venta' | 'compra'  // Para USD que tiene fila VENTA y COMPRA separada
 }> = {
   // ─── Tipo de Cambio Oficial USD ─────────────────────────
-  'DOLAR VENTA': {
+  'USD.VENTA': {
     slug: 'tc-oficial-bcb',
     unidad: 'Bs/USD',
     decimales: 2,
-    parseAs: 'venta',
   },
-  'DOLAR COMPRA': {
+  'USD.COMPRA': {
     slug: 'tc-oficial-compra',
     unidad: 'Bs/USD',
     decimales: 2,
-    parseAs: 'compra',
   },
   // ─── Divisas en Bs (directo del BCB, sin multiplicar) ──
-  'EURO':              { slug: 'fx-eur-usd',  unidad: 'Bs/EUR', decimales: 5 },
-  'YEN':               { slug: 'fx-jpy-usd',  unidad: 'Bs/JPY', decimales: 5 },
-  'PESO':              { slug: 'fx-ars-usd',  unidad: 'Bs/ARS', decimales: 5 },  // ARS (primera coincidencia)
-  'REAL':              { slug: 'fx-brl-usd',  unidad: 'Bs/BRL', decimales: 5 },
-  'NUEVO SOL':         { slug: 'fx-pen-usd',  unidad: 'Bs/PEN', decimales: 5 },
-  'GUARANI':           { slug: 'fx-pyg-usd',  unidad: 'Bs/PYG', decimales: 5 },
-  'LIBRA':             { slug: 'fx-gbp-usd',  unidad: 'Bs/GBP', decimales: 5 },
-  'YUAN RENMINBI':     { slug: 'fx-cny-usd',  unidad: 'Bs/CNY', decimales: 5 },
-  'FRANCO':            { slug: 'fx-chf-usd',  unidad: 'Bs/CHF', decimales: 5 },
-  'CORONA CHECA':      { slug: 'fx-czk-usd',  unidad: 'Bs/CZK', decimales: 5 },
+  'EUR':              { slug: 'fx-eur-usd',  unidad: 'Bs/EUR', decimales: 5 },
+  'JPY':              { slug: 'fx-jpy-usd',  unidad: 'Bs/JPY', decimales: 5 },
+  'ARS':              { slug: 'fx-ars-usd',  unidad: 'Bs/ARS', decimales: 5 },
+  'BRL':              { slug: 'fx-brl-usd',  unidad: 'Bs/BRL', decimales: 5 },
+  'CLP':              { slug: 'fx-clp-usd',  unidad: 'Bs/CLP', decimales: 5 },
+  'PEN':              { slug: 'fx-pen-usd',  unidad: 'Bs/PEN', decimales: 5 },
+  'PYG':              { slug: 'fx-pyg-usd',  unidad: 'Bs/PYG', decimales: 5 },
+  'GBP':              { slug: 'fx-gbp-usd',  unidad: 'Bs/GBP', decimales: 5 },
+  'CNY':              { slug: 'fx-cny-usd',  unidad: 'Bs/CNY', decimales: 5 },
+  'CHF':              { slug: 'fx-chf-usd',  unidad: 'Bs/CHF', decimales: 5 },
+  'CZK':              { slug: 'fx-czk-usd',  unidad: 'Bs/CZK', decimales: 5 },
   // ─── Metales preciosos (directo del BCB en USD) ─────────
-  'ONZA TROY ORO':     { slug: 'com-oro-bcb', unidad: 'USD/oz', decimales: 2 },
+  'USD./O.T.F.':     { slug: 'com-oro-bcb', unidad: 'USD/oz', decimales: 2 },
+}
+
+// Mapa separado para la plata (mismo código "USD./O.T.F." pero diferente fila)
+// Se resuelve con contexto de fila (ONZA TROY ORO vs ONZA TROY PLATA)
+
+// ─── Mapeo SECUNDARIO: Nombre de moneda → Slug (fallback) ──────────
+// Usado cuando el código no está en BCB_CODIGO_MAP.
+// Se identifica por la columna UNIDAD MONETARIA (cells[1]) + país (cells[0]).
+
+const BCB_NOMBRE_MAP: Record<string, {
+  slug: string
+  unidad: string
+  decimales: number
+  requierePais?: string  // Si se necesita verificar el país (cells[0])
+}> = {
   'ONZA TROY PLATA':   { slug: 'com-plata-bcb', unidad: 'USD/oz', decimales: 3 },
 }
+
+// ─── Datos adicionales del BCB que no son divisas ──────────────────
+// Estos se extraen de filas especiales del HTML.
+
+interface DatoAdicional {
+  slug: string
+  unidad: string
+  decimales: number
+  buscarTexto: string          // Texto a buscar en la fila
+  columnaValor: number          // Índice de la columna con el valor
+  parsearComo?: 'numero' | 'porcentaje'
+}
+
+const BCB_DATOS_ADICIONALES: DatoAdicional[] = [
+  {
+    slug: 'macro-sofr-bcb',
+    unidad: '% anual',
+    decimales: 2,
+    buscarTexto: 'SOFR',
+    columnaValor: 1,
+    parsearComo: 'porcentaje',
+  },
+  {
+    slug: 'macro-ufv-bcb',
+    unidad: 'Bs/UFV',
+    decimales: 5,
+    buscarTexto: 'UNIDAD DE FOMENTO DE VIVIENDA',
+    columnaValor: 1,
+    parsearComo: 'numero',
+  },
+]
 
 // ─── Utilidades de parseo BCB ─────────────────────────────────────
 
@@ -62,7 +112,7 @@ const BCB_MONEDA_MAP: Record<string, {
 function parsearNumeroBoliviano(texto: string): number | null {
   if (!texto) return null
   // Quitar espacios, &nbsp; y caracteres no numéricos excepto , .
-  const limpio = texto.replace(/[\s\u00A0]/g, '').trim()
+  const limpio = texto.replace(/[\s\u00A0]/g, '').replace(/&nbsp;/gi, '').trim()
   if (!limpio) return null
 
   // Formato boliviano: 4.451,89 (punto = miles, coma = decimal)
@@ -104,6 +154,8 @@ function parsearNumeroBoliviano(texto: string): number | null {
  */
 function extraerIframeUrl(html: string): string | null {
   const patterns = [
+    /<iframe[^>]+src=["']([^"']*ultimo\.php[^"']*)["']/i,
+    /<iframe[^>]+src=["']([^"']*otras[^"']*)["']/i,
     /<iframe[^>]+src=["']([^"']*cotizacion[^"']*)["']/i,
     /<iframe[^>]+src=["']([^"']*tipo_cambio[^"']*)["']/i,
     /<iframe[^>]+src=["']([^"']*cambio[^"']*)["']/i,
@@ -123,24 +175,34 @@ function extraerIframeUrl(html: string): string | null {
 
 /**
  * Parsea la tabla completa de cotizaciones del BCB.
- * 
- * La tabla tiene 5 columnas por fila:
- *   PAÍS | UNIDAD MONETARIA | MONEDA | TIPO DE CAMBIO EN Bs | TIPO CAMBIO EN M.E.
- * 
- * Identifica cada moneda por el campo "UNIDAD MONETARIA" (columna 2)
- * y extrae el valor de "TIPO DE CAMBIO EN Bs" (columna 4).
- * 
- * NO usa rangos numéricos — identifica por NOMBRE exacto.
- * 
- * @returns Map<string, { valor: number, valorME?: number }> con los datos parseados
+ *
+ * Estructura real (5 columnas):
+ *   cells[0] = PAÍS
+ *   cells[1] = UNIDAD MONETARIA (nombre descriptivo)
+ *   cells[2] = MONEDA (código ISO o abreviatura)
+ *   cells[3] = TIPO DE CAMBIO EN Bs
+ *   cells[4] = TIPO CAMBIO EN M.E. (opcional)
+ *
+ * Para metales (4 columnas, sin M.E.):
+ *   cells[0] = PAÍS/METAL
+ *   cells[1] = UNIDAD MONETARIA
+ *   cells[2] = MONEDA
+ *   cells[3] = TIPO DE CAMBIO EN M.E.
+ *
+ * Identificación por CÓDIGO de moneda (cells[2]) — 100% preciso.
+ * Sin validaciones por rango numérico.
+ *
+ * @returns Map<string, { valor: number, valorME?: number }>
  */
 function parsearTablaBcb(html: string): Map<string, { valor: number; valorME?: number }> {
   const resultados = new Map<string, { valor: number; valorME?: number }>()
 
   // Patrón para filas de la tabla del BCB
-  // Cada fila tiene <tr> con <td> que contienen <div align="..."> con el texto
   const rowPattern = /<tr[^>]*>([\s\S]*?)<\/tr>/gi
   let rowMatch: RegExpExecArray | null
+
+  // Track previo para la plata (misma columna código que oro)
+  let ultimaFilaEsOro = false
 
   while ((rowMatch = rowPattern.exec(html)) !== null) {
     const rowHtml = rowMatch[1]
@@ -153,23 +215,81 @@ function parsearTablaBcb(html: string): Map<string, { valor: number; valorME?: n
       cells.push(cellMatch[1].trim())
     }
 
-    // Necesitamos al menos 4 columnas: País | Unidad Monetaria | Moneda | TC en Bs | TC en ME
-    if (cells.length < 4) continue
+    if (cells.length < 3) continue
 
-    const unidadMonetaria = cells[1]?.toUpperCase().trim()
+    const pais = cells[0]?.toUpperCase().trim() ?? ''
+    const unidadMonetaria = cells[1]?.toUpperCase().trim() ?? ''
+    const codigoMoneda = cells[2]?.toUpperCase().trim() ?? ''
     const tcEnBs = cells[3]?.trim()
     const tcEnME = cells.length > 4 ? cells[4]?.trim() : undefined
 
-    if (!unidadMonetaria || !tcEnBs) continue
+    // ─── Estrategia 1: Match por código de moneda (cells[2]) ───
+    if (codigoMoneda && BCB_CODIGO_MAP[codigoMoneda]) {
+      const config = BCB_CODIGO_MAP[codigoMoneda]
 
-    // Buscar coincidencia en el mapeo
-    for (const [nombreBcb, config] of Object.entries(BCB_MONEDA_MAP)) {
-      if (unidadMonetaria.includes(nombreBcb) || nombreBcb.includes(unidadMonetaria)) {
+      // Para oro/plata: mismo código "USD./O.T.F.", resolver por contexto
+      if (codigoMoneda === 'USD./O.T.F.') {
+        if (unidadMonetaria.includes('ORO')) {
+          ultimaFilaEsOro = true
+          const valor = parsearNumeroBoliviano(tcEnBs)
+          if (valor !== null && valor > 0) {
+            resultados.set(config.slug, { valor })
+          }
+          continue
+        } else if (unidadMonetaria.includes('PLATA')) {
+          const plataConfig = BCB_NOMBRE_MAP['ONZA TROY PLATA']
+          if (plataConfig) {
+            const valor = parsearNumeroBoliviano(tcEnBs)
+            if (valor !== null && valor > 0) {
+              resultados.set(plataConfig.slug, { valor })
+            }
+          }
+          continue
+        }
+      }
+
+      // Para divisas: usar cells[3] como TC en Bs
+      if (tcEnBs) {
         const valor = parsearNumeroBoliviano(tcEnBs)
         if (valor !== null && valor > 0) {
           const valorME = tcEnME ? parsearNumeroBoliviano(tcEnME) ?? undefined : undefined
           resultados.set(config.slug, { valor, valorME })
-          break
+        }
+      }
+      continue
+    }
+
+    // ─── Estrategia 2: Match por nombre (fallback) ────────────
+    for (const [nombre, config] of Object.entries(BCB_NOMBRE_MAP)) {
+      if (unidadMonetaria.includes(nombre)) {
+        // Verificar país si es necesario
+        if (config.requierePais && !pais.includes(config.requierePais)) continue
+
+        const valor = parsearNumeroBoliviano(tcEnBs)
+        if (valor !== null && valor > 0) {
+          resultados.set(config.slug, { valor, valorME: undefined })
+        }
+        break
+      }
+    }
+
+    // ─── Estrategia 3: Datos adicionales (SOFR, UFV, etc.) ────
+    for (const dato of BCB_DATOS_ADICIONALES) {
+      if (
+        unidadMonetaria.includes(dato.buscarTexto) ||
+        (cells.length > 1 && cells[1]?.toUpperCase().includes(dato.buscarTexto))
+      ) {
+        const colIdx = dato.columnaValor
+        if (cells[colIdx]) {
+          let valorTexto = cells[colIdx]!.trim()
+          // Si es porcentaje, quitar el %
+          if (dato.parsearComo === 'porcentaje') {
+            valorTexto = valorTexto.replace('%', '')
+          }
+          const valor = parsearNumeroBoliviano(valorTexto)
+          if (valor !== null && valor > 0) {
+            resultados.set(dato.slug, { valor })
+          }
         }
       }
     }
@@ -185,7 +305,7 @@ const BCB_CACHE_TTL = 55 * 60 * 1000 // 55 minutos (se actualiza cada hora aprox
 
 /**
  * Obtiene el HTML de la tabla de cotizaciones del BCB.
- * Intenta: iframe → HTML directo → fallback.
+ * Intenta: iframe directo (otras/ultimo.php) → iframe extraído → HTML directo.
  * Cachea el resultado para evitar requests duplicados.
  */
 async function obtenerHtmlBcb(): Promise<{ html: string; fuente: string } | null> {
@@ -194,61 +314,80 @@ async function obtenerHtmlBcb(): Promise<{ html: string; fuente: string } | null
     return { html: bcbCache.html, fuente: 'cache' }
   }
 
-  const bcbUrl = 'https://www.bcb.gob.bo/?q=cotizaciones_tc'
   const headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     'Accept': 'text/html,application/xhtml+xml',
   }
 
+  // ── Intento 1: URL directa del iframe (más confiable) ──────
+  const urlsDirectas = [
+    'https://www.bcb.gob.bo/librerias/indicadores/otras/ultimo.php',
+  ]
+
+  for (const url of urlsDirectas) {
+    try {
+      const resp = await fetch(url, {
+        headers,
+        signal: AbortSignal.timeout(15000),
+      })
+      if (resp.ok) {
+        const html = await resp.text()
+        // Verificar que tiene datos de cotización
+        if (html.includes('DOLAR') && html.includes('EURO') && html.includes('TIPO DE CAMBIO')) {
+          bcbCache = { html, timestamp: Date.now() }
+          console.log(`[BCB] Datos obtenidos de URL directa: ${url}`)
+          return { html, fuente: 'url_directa' }
+        }
+      }
+    } catch (err) {
+      console.warn(`[BCB] Error accediendo a ${url}:`, err instanceof Error ? err.message : 'unknown')
+    }
+  }
+
+  // ── Intento 2: Página principal + extraer iframe ────────────
+  const bcbUrl = 'https://www.bcb.gob.bo/?q=cotizaciones_tc'
   try {
     const response = await fetch(bcbUrl, {
       headers,
       signal: AbortSignal.timeout(15000),
     })
 
-    if (!response.ok) {
-      console.warn(`[BCB] HTTP ${response.status}`)
-      return null
-    }
+    if (response.ok) {
+      const html = await response.text()
+      const iframeUrl = extraerIframeUrl(html)
 
-    const html = await response.text()
-
-    // Intentar extraer URL del iframe
-    const iframeUrl = extraerIframeUrl(html)
-    if (iframeUrl) {
-      try {
-        const iframeResp = await fetch(iframeUrl, {
-          headers,
-          signal: AbortSignal.timeout(10000),
-        })
-        if (iframeResp.ok) {
-          const iframeHtml = await iframeResp.text()
-          // Verificar que el iframe tiene datos de cotización
-          if (iframeHtml.includes('DOLAR') || iframeHtml.includes('TIPO DE CAMBIO')) {
-            bcbCache = { html: iframeHtml, timestamp: Date.now() }
-            console.log(`[BCB] Datos obtenidos del iframe: ${iframeUrl}`)
-            return { html: iframeHtml, fuente: 'iframe' }
+      if (iframeUrl) {
+        try {
+          const iframeResp = await fetch(iframeUrl, {
+            headers,
+            signal: AbortSignal.timeout(10000),
+          })
+          if (iframeResp.ok) {
+            const iframeHtml = await iframeResp.text()
+            if (iframeHtml.includes('DOLAR') && iframeHtml.includes('TIPO DE CAMBIO')) {
+              bcbCache = { html: iframeHtml, timestamp: Date.now() }
+              console.log(`[BCB] Datos obtenidos del iframe: ${iframeUrl}`)
+              return { html: iframeHtml, fuente: 'iframe' }
+            }
           }
+        } catch (iframeErr) {
+          console.warn(`[BCB] Error accediendo al iframe:`, iframeErr instanceof Error ? iframeErr.message : 'unknown')
         }
-      } catch (iframeErr) {
-        // Si falla el iframe, intentar con HTML directo
-        console.warn(`[BCB] Error accediendo al iframe:`, iframeErr instanceof Error ? iframeErr.message : 'unknown')
+      }
+
+      // Intentar parsear directamente del HTML principal
+      if (html.includes('DOLAR') && html.includes('TIPO DE CAMBIO')) {
+        bcbCache = { html, timestamp: Date.now() }
+        console.log(`[BCB] Datos obtenidos del HTML directo`)
+        return { html, fuente: 'directo' }
       }
     }
-
-    // Intentar parsear directamente del HTML principal
-    if (html.includes('DOLAR') || html.includes('TIPO DE CAMBIO')) {
-      bcbCache = { html, timestamp: Date.now() }
-      console.log(`[BCB] Datos obtenidos del HTML directo`)
-      return { html, fuente: 'directo' }
-    }
-
-    console.warn('[BCB] No se encontraron datos de cotización en la página')
-    return null
   } catch (err) {
-    console.error(`[BCB] Error obteniendo página:`, err)
-    return null
+    console.error(`[BCB] Error obteniendo página principal:`, err)
   }
+
+  console.warn('[BCB] No se encontraron datos de cotización')
+  return null
 }
 
 /**
@@ -263,14 +402,16 @@ export function invalidarCacheBcb(): void {
 /**
  * Obtiene TODOS los datos del BCB en una sola llamada.
  * Retorna un Map con slug → { valor, valorME }.
- * 
+ *
  * Datos disponibles:
  * - tc-oficial-bcb: Dólar Venta (Bs/USD)
  * - tc-oficial-compra: Dólar Compra (Bs/USD)
- * - fx-eur-usd, fx-jpy-usd, fx-brl-usd, fx-pen-usd, fx-clp-usd, 
+ * - fx-eur-usd, fx-jpy-usd, fx-brl-usd, fx-pen-usd, fx-clp-usd,
  *   fx-ars-usd, fx-pyg-usd, fx-cny-usd, fx-gbp-usd, fx-chf-usd, fx-czk-usd
  * - com-oro-bcb: Oro (USD/oz)
  * - com-plata-bcb: Plata (USD/oz)
+ * - macro-sofr-bcb: Tasa SOFR (%)
+ * - macro-ufv-bcb: UFV (Bs/UFV)
  */
 export async function capturarTodosBcb(): Promise<Map<string, { valor: number; valorME?: number }>> {
   const resultado = await obtenerHtmlBcb()
@@ -283,34 +424,38 @@ export async function capturarTodosBcb(): Promise<Map<string, { valor: number; v
 }
 
 /**
- * Captura el Tipo de Cambio Oficial (USD Venta) del BCB.
- * Usa la función genérica capturarTodosBcb() y extrae tc-oficial-bcb.
+ * Captura el Tipo de Cambio Oficial (USD Venta o Compra) del BCB.
+ * Usa la función genérica capturarTodosBcb() y extrae el slug solicitado.
+ *
+ * @param tipo - 'venta' (default) o 'compra'
  */
-export async function capturarTcOficial(): Promise<CapturaResult> {
+export async function capturarTcOficial(tipo: 'venta' | 'compra' = 'venta'): Promise<CapturaResult> {
+  const slug = tipo === 'compra' ? 'tc-oficial-compra' : 'tc-oficial-bcb'
   const fecha = new Date()
 
   // ── Estrategia 1: BCB (fuente oficial primaria) ─────────────
   try {
     const datos = await capturarTodosBcb()
-    const tcVenta = datos.get('tc-oficial-bcb')
+    const tcData = datos.get(slug)
 
-    if (tcVenta && tcVenta.valor > 0) {
-      console.log(`[TC Oficial] BCB OK: ${tcVenta.valor.toFixed(2)} Bs/USD`)
+    if (tcData && tcData.valor > 0) {
+      const etiqueta = tipo === 'compra' ? 'Compra' : 'Venta'
+      console.log(`[TC Oficial ${etiqueta}] BCB OK: ${tcData.valor.toFixed(2)} Bs/USD`)
       return {
-        slug: 'tc-oficial-bcb',
-        valor: Number(tcVenta.valor.toFixed(2)),
-        valorTexto: `${tcVenta.valor.toFixed(2)} Bs/USD`,
+        slug,
+        valor: Number(tcData.valor.toFixed(2)),
+        valorTexto: `${tcData.valor.toFixed(2)} Bs/USD`,
         confiable: true,
         fecha,
         metadata: JSON.stringify({
           fuente: 'Banco Central de Bolivia',
           metodo: 'bcb_tabla_cotizaciones',
-          valorME: tcVenta.valorME,
+          valorME: tcData.valorME,
         }),
       }
     }
   } catch (err) {
-    console.warn(`[TC Oficial] BCB error:`, err)
+    console.warn(`[TC Oficial ${tipo}] BCB error:`, err)
   }
 
   // ── Estrategia 2: Yahoo Finance BOB=X (respaldo) ────────────
@@ -324,9 +469,9 @@ export async function capturarTcOficial(): Promise<CapturaResult> {
       const data = await resp.json()
       const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice
       if (price && price > 0) {
-        console.log(`[TC Oficial] Yahoo fallback OK: ${price.toFixed(2)} Bs/USD`)
+        console.log(`[TC Oficial ${tipo}] Yahoo fallback OK: ${price.toFixed(2)} Bs/USD`)
         return {
-          slug: 'tc-oficial-bcb',
+          slug,
           valor: Number(price.toFixed(2)),
           valorTexto: `${price.toFixed(2)} Bs/USD`,
           confiable: true,
@@ -339,11 +484,11 @@ export async function capturarTcOficial(): Promise<CapturaResult> {
 
   // ── Estrategia 3: Servicio de indicadores (fallback final) ──
   try {
-    const indicador = await getIndicador('tc-oficial-bcb' as SlugIndicador)
+    const indicador = await getIndicador(slug as SlugIndicador)
     if (indicador && indicador.valor > 0) {
-      console.log(`[TC Oficial] Servicio fallback: ${indicador.valor} Bs/USD`)
+      console.log(`[TC Oficial ${tipo}] Servicio fallback: ${indicador.valor} Bs/USD`)
       return {
-        slug: 'tc-oficial-bcb',
+        slug,
         valor: Number(indicador.valor.toFixed(2)),
         valorTexto: `${indicador.valor.toFixed(2)} Bs/USD`,
         confiable: indicador.confiable,
@@ -354,9 +499,9 @@ export async function capturarTcOficial(): Promise<CapturaResult> {
   } catch { /* seguir */ }
 
   // ── Fallback: valor estático ─────────────────────────────────
-  console.warn('[TC Oficial] Todas las fuentes fallaron — usando fallback estático')
+  console.warn(`[TC Oficial ${tipo}] Todas las fuentes fallaron — usando fallback estático`)
   return {
-    slug: 'tc-oficial-bcb',
+    slug,
     valor: 6.96,
     valorTexto: '6.96 Bs/USD',
     confiable: false,
@@ -373,8 +518,11 @@ export async function capturarTcOficial(): Promise<CapturaResult> {
 export async function capturarDivisaBcb(slug: string): Promise<CapturaResult> {
   const fecha = new Date()
 
-  // Buscar configuración de la moneda
-  const config = Object.values(BCB_MONEDA_MAP).find(c => c.slug === slug)
+  // Buscar configuración de la moneda en los mapas
+  const config =
+    Object.values(BCB_CODIGO_MAP).find(c => c.slug === slug) ??
+    Object.values(BCB_NOMBRE_MAP).find(c => c.slug === slug)
+
   if (!config) {
     return {
       slug,
@@ -382,7 +530,7 @@ export async function capturarDivisaBcb(slug: string): Promise<CapturaResult> {
       valorTexto: 'N/D',
       confiable: false,
       fecha,
-      metadata: JSON.stringify({ error: 'Moneda no configurada en BCB_MONEDA_MAP' }),
+      metadata: JSON.stringify({ error: 'Moneda no configurada en BCB maps' }),
     }
   }
 
@@ -468,7 +616,10 @@ export async function capturarDivisaBcb(slug: string): Promise<CapturaResult> {
  */
 export async function capturarMetalesBcb(slug: string): Promise<CapturaResult> {
   const fecha = new Date()
-  const config = Object.values(BCB_MONEDA_MAP).find(c => c.slug === slug)
+
+  const config =
+    Object.values(BCB_CODIGO_MAP).find(c => c.slug === slug) ??
+    Object.values(BCB_NOMBRE_MAP).find(c => c.slug === slug)
 
   if (!config) {
     return {
@@ -477,7 +628,7 @@ export async function capturarMetalesBcb(slug: string): Promise<CapturaResult> {
       valorTexto: 'N/D',
       confiable: false,
       fecha,
-      metadata: JSON.stringify({ error: 'Metal no configurado en BCB_MONEDA_MAP' }),
+      metadata: JSON.stringify({ error: 'Metal no configurado en BCB maps' }),
     }
   }
 

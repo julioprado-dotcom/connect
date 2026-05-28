@@ -162,6 +162,29 @@ export const INDICADORES_TIER1 = [
     formatoNumero: 5,
     tier: 1,
   },
+  // ─── Datos macro adicionales del BCB ─────────────────────
+  {
+    slug: 'macro-sofr-bcb',
+    nombre: 'Tasa SOFR',
+    categoria: 'macro_bcb',
+    fuente: 'Banco Central de Bolivia',
+    url: 'https://www.bcb.gob.bo/?q=cotizaciones_tc',
+    periodicidad: 'diaria',
+    unidad: '% anual',
+    formatoNumero: 2,
+    tier: 1,
+  },
+  {
+    slug: 'macro-ufv-bcb',
+    nombre: 'Unidad de Fomento de Vivienda (UFV)',
+    categoria: 'macro_bcb',
+    fuente: 'Banco Central de Bolivia',
+    url: 'https://www.bcb.gob.bo/?q=cotizaciones_tc',
+    periodicidad: 'diaria',
+    unidad: 'Bs/UFV',
+    formatoNumero: 5,
+    tier: 1,
+  },
   // Minerales — Oro y Plata del BCB (fuente oficial)
   {
     slug: 'com-oro-bcb',
