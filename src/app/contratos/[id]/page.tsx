@@ -622,6 +622,7 @@ export default function DetalleContratoPage({
             <Loader2 className="w-6 h-6 animate-spin text-cyan-500" />
             <span className="text-xs font-mono text-slate-500">Cargando contrato...</span>
           </div>
+      </div>
     );
   }
 
@@ -640,6 +641,7 @@ export default function DetalleContratoPage({
               Volver a Clientes
             </Link>
           </div>
+      </div>
     );
   }
 
