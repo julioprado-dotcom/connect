@@ -12,6 +12,7 @@
 import db from '@/lib/db';
 import { type TipoBoletin, type VentanaTipo } from '@/types/bulletin';
 import { formatFechaBolivia } from '@/lib/bulletin/product-generator';
+import { SENTIMENT_SCORES, sentimentScoreLabel } from '@/constants/colors';
 
 // Re-exportar para uso por otros módulos del Equipo B
 export { formatFechaBolivia } from '@/lib/bulletin/product-generator';
@@ -206,15 +207,6 @@ export function formatVentanaLabel(
 // Calculo de estadísticas sobre menciones
 // ============================================
 
-const SENTIMENT_SCORES: Record<string, number> = {
-  positivo: 5,
-  ligeramente_positivo: 4,
-  neutral: 3,
-  ligeramente_negativo: 2,
-  negativo: 1,
-  no_clasificado: 3,
-}
-
 /** Calcula el sentimiento promedio y distribución */
 export function calculateSentimiento(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -232,25 +224,17 @@ export function calculateSentimiento(
     distribucion[m.sentimiento] = (distribucion[m.sentimiento] || 0) + 1
   }
   const promedio = total / menciones.length
-  const label =
-    promedio >= 4 ? 'POSITIVO' :
-    promedio >= 3.5 ? 'MODERADAMENTE POSITIVO' :
-    promedio >= 3 ? 'NEUTRAL' :
-    promedio >= 2 ? 'NEGATIVO' :
-    'CRITICO'
+  const label = sentimentScoreLabel(promedio)
 
   return { promedio, distribucion, label }
 }
 
 /** Obtiene el label extendido del sentimiento */
 export function getSentimientoLabelExtendido(sentimientoPromedio: number): string {
-  if (sentimientoPromedio >= 4.5) return 'MUY POSITIVO'
-  if (sentimientoPromedio >= 4) return 'POSITIVO'
-  if (sentimientoPromedio >= 3.5) return 'MODERADAMENTE POSITIVO'
-  if (sentimientoPromedio >= 3) return 'NEUTRAL'
-  if (sentimientoPromedio >= 2.5) return 'MODERADAMENTE NEGATIVO'
-  if (sentimientoPromedio >= 2) return 'NEGATIVO'
-  return 'MUY NEGATIVO'
+  if (sentimientoPromedio >= 4) return 'Positivo'
+  if (sentimientoPromedio >= 2.5) return 'Neutral'
+  if (sentimientoPromedio >= 1) return 'Negativo'
+  return 'Sin datos'
 }
 
 /** Obtiene los top N actores por menciones */

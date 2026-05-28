@@ -140,6 +140,26 @@ export function tratamientoLabel(value: string): string {
   return TRATAMIENTO[value]?.label ?? 'S/C'
 }
 
+// ─── Scoring (escala numérica para cálculo de promedios) ──────────
+// Solo los 5 valores que realmente produce tratamientoToSentimiento()
+
+export const SENTIMENT_SCORES: Record<string, number> = {
+  positivo:         5,
+  neutro:           3,
+  negativo:         1,
+  mixto:            3,   // ambiguo → neutral (no arrastra promedio)
+  no_clasificado:   3,   // sin datos → neutral
+  neutral:          3,   // alias (por si hay datos legacy con 'neutral')
+}
+
+/** Label a partir de promedio de score (escala 1-5) */
+export function sentimentScoreLabel(promedio: number): string {
+  if (promedio >= 4)    return 'Positivo'
+  if (promedio >= 2.5)  return 'Neutral'
+  if (promedio >= 1)    return 'Negativo'
+  return 'Sin datos'
+}
+
 // ─── Labels rápidos (compatibilidad con imports existentes) ────────
 
 export const SENTIMENT_LABELS: Record<string, string> = Object.fromEntries(

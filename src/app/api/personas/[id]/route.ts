@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { guardError } from '@/lib/rate-guard';
+import { SENTIMENT_SCORES } from '@/constants/colors';
 
 export async function GET(
   request: NextRequest,
@@ -40,11 +41,7 @@ export async function GET(
       where: { personaId: id, fechaCaptura: { gte: inicioMes } },
     });
 
-    // Sentimiento promedio
-    const sentimientoMap: Record<string, number> = {
-      elogioso: 5, positivo: 4, neutral: 3, negativo: 2, critico: 1, no_clasificado: 3,
-    };
-
+    // Sentimiento promedio (importado de constants/colors — fuente única)
     const allMenciones = await db.mencion.findMany({
       where: { personaId: id },
       select: { sentimiento: true },
@@ -53,7 +50,7 @@ export async function GET(
     let sentimientoSum = 0;
     const temasCount: Record<string, number> = {};
     for (const m of allMenciones) {
-      sentimientoSum += sentimientoMap[m.sentimiento] || 3;
+      sentimientoSum += SENTIMENT_SCORES[m.sentimiento] ?? 3;
       // We could also collect temas here but they're on the full mencion record
     }
     const sentimientoPromedio = allMenciones.length > 0 ? sentimientoSum / allMenciones.length : 0;
