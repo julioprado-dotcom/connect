@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 import { PanelShell } from './PanelShell';
 import {
@@ -55,9 +55,6 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
   // Per-indicator sync
   const [syncingSlugs, setSyncingSlugs] = useState<Set<string>>(new Set());
 
-  // Auto-refresh interval
-  const intervalRef = useRef<ReturnType<typeof setInterval>>(null);
-
   // ── Fetch indicadores ──
   const fetchIndicadores = useCallback(async () => {
     try {
@@ -91,10 +88,8 @@ export function IndicadoresView({ onNavigateTab }: IndicadoresViewProps) {
       }
     };
     load();
-    intervalRef.current = setInterval(load, 300000); // 5 minutes
     return () => {
       mounted = false;
-      if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);
 
