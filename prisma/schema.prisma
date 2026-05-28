@@ -88,6 +88,7 @@ model CapturaLog {
   Medio                Medio    @relation(fields: [medioId], references: [id], onDelete: Cascade)
 
   @@index([medioId])
+  @@index([fecha])
 }
 
 model Cliente {
@@ -143,6 +144,10 @@ model Contrato {
   fechaActualizacion DateTime
   Cliente            Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   Entrega            Entrega[]
+
+  @@index([estado])
+  @@index([estado, tipoProducto])
+  @@index([estado, fechaFin])
 }
 
 model EjeTematico {
@@ -163,6 +168,10 @@ model EjeTematico {
   Keyword           Keyword[]
   Mencion           Mencion[]
   MencionTema       MencionTema[]
+
+  @@index([activo])
+  @@index([tipo, activo])
+  @@index([parentId])
 }
 
 model Entrega {
@@ -183,6 +192,10 @@ model Entrega {
   @@index([tipoBoletin])
   @@index([estado])
   @@index([fechaEnvio])
+  @@index([estado, fechaEnvio])
+  @@index([estado, fechaCreacion])
+  @@index([estado, fechaProgramada])
+  @@index([contratoId, canal, estado])
 }
 
 model EnvioReporte {
@@ -239,6 +252,7 @@ model FuenteEstado {
   @@index([ultimoCheck])
   @@index([activo])
   @@index([estado])
+  @@index([activo, checksSinCambio])
 }
 
 model Indicador {
@@ -319,6 +333,12 @@ model Job {
   @@index([estado, prioridad])
   @@index([tipo])
   @@index([fechaCreacion])
+  @@index([estado, tipo])
+  @@index([tipo, estado])
+  @@index([estado, fechaFin])
+  @@index([estado, fechaInicio])
+  @@index([estado, fechaCreacion])
+  @@index([estado, proximaEjecucion])
 }
 
 model Keyword {
@@ -373,6 +393,8 @@ model Medio {
   @@index([categoria])
   @@index([nivel])
   @@index([activo])
+  @@index([nombre])
+  @@index([url])
 }
 
 model Mencion {
@@ -425,6 +447,12 @@ model Mencion {
   @@index([fechaCaptura])
   @@index([personaId])
   @@index([sentimiento])
+  @@index([fechaPublicacion])
+  @@index([personaId, medioId, url])
+  @@index([medioId, url])
+  @@index([personaId, fechaCaptura])
+  @@index([medioId, fechaCaptura])
+  @@index([enlaceActivo])
 }
 
 model MencionLente {
@@ -446,6 +474,7 @@ model MencionTema {
   EjeTematico   EjeTematico @relation(fields: [ejeTematicoId], references: [id], onDelete: Cascade)
 
   @@unique([mencionId, ejeTematicoId])
+  @@index([ejeTematicoId])
 }
 
 model Persona {
@@ -468,6 +497,8 @@ model Persona {
 
   @@index([camara])
   @@index([partidoSigla])
+  @@index([activa])
+  @@index([camara, activa])
 }
 
 model Reporte {
@@ -490,6 +521,11 @@ model Reporte {
   contenido              String    @default("")
   clasificadores         String    @default("")
   Persona                Persona?  @relation(fields: [personaId], references: [id])
+
+  @@index([fechaCreacion])
+  @@index([tipo, fechaCreacion])
+  @@index([tipo])
+  @@index([personaId, fechaCreacion])
 }
 
 model ReporteEje {
