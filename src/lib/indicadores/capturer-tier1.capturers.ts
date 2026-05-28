@@ -91,15 +91,18 @@ const BCB_DATOS_ADICIONALES: DatoAdicional[] = [
     unidad: '% anual',
     decimales: 2,
     buscarTexto: 'SOFR',
-    columnaValor: 1,
+    columnaValor: 1,       // Fila de 2 cols: cells[0]=nombre, cells[1]=valor ("3.63%")
+    columnaCheck: 0,       // Buscar texto en cells[0]
     parsearComo: 'porcentaje',
+    minCols: 2,            // Esta fila solo tiene 2 columnas
   },
   {
     slug: 'macro-ufv-bcb',
     unidad: 'Bs/UFV',
     decimales: 5,
-    buscarTexto: 'UNIDAD DE FOMENTO DE VIVIENDA',
-    columnaValor: 1,
+    buscarTexto: 'FOMENTO DE VIVIENDA',
+    columnaValor: 4,       // Valor está en cells[4] (5ta columna: "3.25682")
+    columnaCheck: 1,       // Buscar texto en cells[1]
     parsearComo: 'numero',
   },
 ]
@@ -215,6 +218,29 @@ function parsearTablaBcb(html: string): Map<string, { valor: number; valorME?: n
       cells.push(cellMatch[1].trim())
     }
 
+    // ─── Datos adicionales (SOFR, UFV) — filas con estructura diferente ───
+    // Procesar ANTES del filtro cells.length < 3 porque SOFR tiene solo 2 columnas
+    if (cells.length >= 2) {
+      for (const dato of BCB_DATOS_ADICIONALES) {
+        const minCols = (dato as any).minCols ?? 3
+        if (cells.length < minCols) continue
+
+        const checkCol = ((dato as any).columnaCheck ?? 1)
+        const cellToCheck = cells[checkCol]?.toUpperCase().trim() ?? ''
+        if (cellToCheck.includes(dato.buscarTexto)) {
+          let valorTexto = cells[dato.columnaValor]?.trim() ?? ''
+          if (dato.parsearComo === 'porcentaje') {
+            valorTexto = valorTexto.replace('%', '')
+          }
+          const valor = parsearNumeroBoliviano(valorTexto)
+          if (valor !== null && valor > 0) {
+            resultados.set(dato.slug, { valor })
+            break
+          }
+        }
+      }
+    }
+
     if (cells.length < 3) continue
 
     const pais = cells[0]?.toUpperCase().trim() ?? ''
@@ -273,26 +299,6 @@ function parsearTablaBcb(html: string): Map<string, { valor: number; valorME?: n
       }
     }
 
-    // ─── Estrategia 3: Datos adicionales (SOFR, UFV, etc.) ────
-    for (const dato of BCB_DATOS_ADICIONALES) {
-      if (
-        unidadMonetaria.includes(dato.buscarTexto) ||
-        (cells.length > 1 && cells[1]?.toUpperCase().includes(dato.buscarTexto))
-      ) {
-        const colIdx = dato.columnaValor
-        if (cells[colIdx]) {
-          let valorTexto = cells[colIdx]!.trim()
-          // Si es porcentaje, quitar el %
-          if (dato.parsearComo === 'porcentaje') {
-            valorTexto = valorTexto.replace('%', '')
-          }
-          const valor = parsearNumeroBoliviano(valorTexto)
-          if (valor !== null && valor > 0) {
-            resultados.set(dato.slug, { valor })
-          }
-        }
-      }
-    }
   }
 
   return resultados
