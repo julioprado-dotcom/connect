@@ -25,8 +25,8 @@ export function PanelShell({
       className={`rounded-lg overflow-hidden ${className}`}
       style={{
         background: 'rgba(5, 5, 5, 0.8)',
-        border: '1px solid rgba(6, 182, 212, 0.12)',
-        boxShadow: '0 0 20px rgba(6, 182, 212, 0.04), inset 0 1px 0 rgba(6, 182, 212, 0.06)',
+        border: '1px solid rgba(6, 182, 212, 0.2)',
+        boxShadow: '0 0 24px rgba(6, 182, 212, 0.08), inset 0 1px 0 rgba(6, 182, 212, 0.1)',
       }}
     >
       {/* Scan lines overlay */}
@@ -58,8 +58,8 @@ export function PanelShell({
             </button>
           ) : (
             <>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[9px] uppercase text-emerald-500/60 font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-glow-pulse" />
+              <span className="text-[9px] uppercase text-emerald-400/80 font-mono">
                 en vivo
               </span>
             </>
@@ -73,7 +73,7 @@ export function PanelShell({
         className="h-[1px]"
         style={{
           background:
-            'linear-gradient(90deg, transparent 5%, rgba(6, 182, 212, 0.2) 50%, transparent 95%)',
+            'linear-gradient(90deg, transparent 5%, rgba(6, 182, 212, 0.35) 50%, transparent 95%)',
         }}
       />
     </div>

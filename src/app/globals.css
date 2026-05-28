@@ -152,3 +152,31 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   opacity: 0.5;
 }
+
+/* ─── Sci-fi animations ─── */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes border-glow {
+  0%, 100% { box-shadow: 0 0 4px rgba(6,182,212,0.1); }
+  50% { box-shadow: 0 0 12px rgba(6,182,212,0.25); }
+}
+
+@keyframes scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+.animate-border-glow {
+  animation: border-glow 4s ease-in-out infinite;
+}
+
+.animate-scan {
+  animation: scan-line 8s linear infinite;
+}

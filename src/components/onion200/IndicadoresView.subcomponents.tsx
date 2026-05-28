@@ -41,7 +41,7 @@ export function MiniStatCard({
       style={{
         background: 'rgba(5, 5, 5, 0.8)',
         border: '1px solid ' + color + '15',
-        boxShadow: '0 0 8px ' + color + '06',
+        boxShadow: '0 0 12px ' + color + '08',
       }}
     >
       <span style={{ color: color + '80' }}>{icon}</span>
@@ -161,15 +161,18 @@ export function IndicatorCard({
       className="rounded p-3 relative overflow-hidden transition-all duration-150 group"
       style={{
         background: 'rgba(5, 5, 5, 0.8)',
-        border: '1px solid ' + catColor + '10',
+        border: '1px solid ' + catColor + '18',
+        boxShadow: '0 0 8px ' + catColor + '08',
       }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.borderColor = catColor + '30';
+        (e.currentTarget as HTMLElement).style.borderColor = catColor + '35';
         (e.currentTarget as HTMLElement).style.background = 'rgba(8, 8, 8, 0.95)';
+        (e.currentTarget as HTMLElement).style.boxShadow = '0 0 16px ' + catColor + '15';
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.borderColor = catColor + '10';
+        (e.currentTarget as HTMLElement).style.borderColor = catColor + '18';
         (e.currentTarget as HTMLElement).style.background = 'rgba(5, 5, 5, 0.8)';
+        (e.currentTarget as HTMLElement).style.boxShadow = '0 0 8px ' + catColor + '08';
       }}
     >
       <div className="relative z-10">
@@ -203,7 +206,7 @@ export function IndicatorCard({
         <div className="flex items-baseline gap-1 mb-1">
           <span
             className="text-xl sm:text-2xl font-bold font-mono tabular-nums leading-none"
-            style={{ color: hasData ? '#e5e5e5' : '#334155' }}
+            style={{ color: hasData ? '#f0f0f0' : '#334155' }}
           >
             {displayValue}
           </span>
@@ -215,7 +218,7 @@ export function IndicatorCard({
         </div>
 
         {/* Meta: source · date — single line */}
-        <div className="flex items-center gap-1.5 text-[8px] font-mono text-slate-700 leading-none">
+        <div className="flex items-center gap-1.5 text-[8px] font-mono text-slate-500 leading-none">
           {indicador.fuente && (
             <span className="truncate max-w-[90px]" title={indicador.fuente}>
               {indicador.fuente.length > 18 ? indicador.fuente.slice(0, 16) + '...' : indicador.fuente}

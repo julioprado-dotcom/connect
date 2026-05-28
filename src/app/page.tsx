@@ -19,7 +19,6 @@ import {
   BarChart3,
   FileText,
   Send,
-  ArrowUpRight,
   RefreshCw,
   Monitor,
   Database,
@@ -30,6 +29,9 @@ import {
   Moon,
   TrendingUp,
   LayoutGrid,
+  Shield,
+  Settings,
+  Eye,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { useTheme } from '@/components/theme-provider';
@@ -80,6 +82,22 @@ const TABS: TabConfig[] = [
 ];
 
 // ═══════════════════════════════════════════════════════════════
+// Profile modes
+// ═══════════════════════════════════════════════════════════════
+
+const PROFILES = [
+  { key: 'analista', label: 'ANALISTA', icon: <Shield className="w-3 h-3" />, color: '#06b6d4' },
+  { key: 'admin', label: 'ADMIN', icon: <Settings className="w-3 h-3" />, color: '#f59e0b' },
+  { key: 'periodista', label: 'PERIODISTA', icon: <Eye className="w-3 h-3" />, color: '#a78bfa' },
+] as const;
+
+const PROFILE_HIGHLIGHTS: Record<string, TabKey[]> = {
+  analista: ['resumen', 'alertas', 'fuentes', 'inteligencia'],
+  admin: ['captura', 'clasificacion', 'produccion', 'distribucion'],
+  periodista: ['indicadores', 'captura', 'inteligencia', 'resumen'],
+};
+
+// ═══════════════════════════════════════════════════════════════
 // Theme color palette
 // ═══════════════════════════════════════════════════════════════
 
@@ -109,16 +127,16 @@ interface ThemeColors {
 const DARK_COLORS: ThemeColors = {
   bg: '#020202',
   headerBg: 'linear-gradient(180deg, rgba(6,182,212,0.04) 0%, transparent 100%)',
-  border: 'rgba(6,182,212,0.08)',
-  borderSubtle: 'rgba(6,182,212,0.06)',
-  borderSubtle2: 'rgba(6,182,212,0.04)',
+  border: 'rgba(6,182,212,0.15)',
+  borderSubtle: 'rgba(6,182,212,0.1)',
+  borderSubtle2: 'rgba(6,182,212,0.08)',
   text: '#e5e5e5',
-  textMuted: '#64748b',
-  textLabel: 'rgb(71 85 105)',
+  textMuted: '#94a3b8',
+  textLabel: 'rgb(100 116 139)',
   textKpiEmpty: '#334155',
-  cyanGlow: 'rgba(6,182,212,0.06)',
+  cyanGlow: 'rgba(6,182,212,0.12)',
   footerBg: 'rgba(5,5,5,0.9)',
-  hoverBg: 'rgba(6,182,212,0.06)',
+  hoverBg: 'rgba(6,182,212,0.1)',
   kpiBase: 'rgba(5,5,5,0.9)',
   kpiActive: 'rgba(5,5,5,0.9)',
   tabHoverClass: 'hover:bg-white/[0.02]',
@@ -132,14 +150,14 @@ const DARK_COLORS: ThemeColors = {
 const LIGHT_COLORS: ThemeColors = {
   bg: '#f8fafc',
   headerBg: 'linear-gradient(180deg, rgba(6,182,212,0.08) 0%, transparent 100%)',
-  border: 'rgba(6,182,212,0.15)',
+  border: 'rgba(6,182,212,0.25)',
   borderSubtle: 'rgba(6,182,212,0.1)',
   borderSubtle2: 'rgba(6,182,212,0.06)',
   text: '#1e293b',
   textMuted: '#64748b',
   textLabel: 'rgb(100 116 139)',
   textKpiEmpty: '#cbd5e1',
-  cyanGlow: 'rgba(6,182,212,0.08)',
+  cyanGlow: 'rgba(6,182,212,0.15)',
   footerBg: 'rgba(248,250,252,0.95)',
   hoverBg: 'rgba(6,182,212,0.08)',
   kpiBase: 'rgba(255,255,255,0.9)',
@@ -260,11 +278,13 @@ function PipelineStatusBar({
   activeTab,
   onTabChange,
   colors,
+  activeProfile,
 }: {
   pipeline: PipelineKPIs;
   activeTab: TabKey;
   onTabChange: (tab: TabKey) => void;
   colors: ThemeColors;
+  activeProfile: string;
 }) {
   const colorForStatus = (s?: string) =>
     s === 'error'
@@ -275,54 +295,109 @@ function PipelineStatusBar({
           ? '#06b6d4'
           : '#334155';
 
+  const highlightedTabs = PROFILE_HIGHLIGHTS[activeProfile] || [];
+
   return (
     <div
       className="flex items-center gap-1 sm:gap-2 overflow-x-auto py-2 px-3"
       style={{ borderBottom: '1px solid ' + colors.borderSubtle }}
     >
-      {TABS.map((tab, i) => {
+      {TABS.map((tab) => {
         const isActive = activeTab === tab.key;
         const status = tab.statusKey ? pipeline[tab.statusKey]?.status : undefined;
-        const color = isActive ? '#06b6d4' : colorForStatus(status);
+        const isHighlighted = highlightedTabs.includes(tab.key);
+        const textColor = isActive
+          ? '#06b6d4'
+          : isHighlighted
+            ? '#e2e8f0'
+            : colors.textMuted;
 
         return (
-          <React.Fragment key={tab.key}>
-            <button
-              onClick={() => onTabChange(tab.key)}
-              className={'flex items-center gap-1.5 flex-shrink-0 px-2 py-1 rounded-md transition-all duration-200 cursor-pointer ' + colors.tabHoverClass}
-              style={{
-                backgroundColor: isActive ? colors.hoverBg : 'transparent',
-              }}
+          <button
+            key={tab.key}
+            onClick={() => onTabChange(tab.key)}
+            className={'flex items-center gap-1.5 flex-shrink-0 px-2 py-1 rounded-md transition-all duration-200 cursor-pointer ' + colors.tabHoverClass}
+            style={{
+              backgroundColor: isActive ? colors.hoverBg : 'transparent',
+              boxShadow: isActive ? '0 0 8px rgba(6,182,212,0.15)' : isHighlighted ? '0 0 4px rgba(6,182,212,0.06)' : 'none',
+            }}
+          >
+            <span style={{ color: textColor + '90' }}>{tab.icon}</span>
+            <span
+              className="text-[9px] font-bold tracking-wider font-mono whitespace-nowrap"
+              style={{ color: textColor }}
             >
-              <span style={{ color: color + '90' }}>{tab.icon}</span>
+              {tab.label}
+            </span>
+            {status && (
               <span
-                className="text-[9px] font-bold tracking-wider font-mono whitespace-nowrap"
-                style={{ color }}
-              >
-                {tab.label}
-              </span>
-              {status && (
-                <span
-                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                  style={{
-                    backgroundColor: color,
-                    boxShadow: '0 0 4px ' + color + '50',
-                  }}
-                />
-              )}
-            </button>
-            {i < TABS.length - 1 && (
-              <ArrowUpRight
-                className="w-3 h-3 text-slate-800 flex-shrink-0 rotate-90"
+                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                style={{
+                  backgroundColor: colorForStatus(status),
+                  boxShadow: '0 0 4px ' + colorForStatus(status) + '50',
+                }}
               />
             )}
-          </React.Fragment>
+          </button>
         );
       })}
-      {/* Refresh timestamp */}
-      <span className="ml-auto text-[9px] font-mono text-slate-700 flex-shrink-0">
-        {new Date().toLocaleTimeString('es-BO', { hour12: false })}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Live Clock Component
+// ═══════════════════════════════════════════════════════════════
+
+function LiveClock({ now }: { now: Date }) {
+  return (
+    <div className="flex flex-col items-end">
+      <span
+        className="text-xs font-mono text-cyan-400 tabular-nums"
+        style={{ textShadow: '0 0 8px rgba(6,182,212,0.4)' }}
+      >
+        {now.toLocaleTimeString('es-BO', { hour12: false })}
       </span>
+      <span className="text-[8px] font-mono text-cyan-500/60">
+        {now.toLocaleDateString('es-BO', { weekday: 'long', day: 'numeric', month: 'short' })}
+      </span>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Profile Selector Component
+// ═══════════════════════════════════════════════════════════════
+
+function ProfileSelector({
+  activeProfile,
+  onProfileChange,
+}: {
+  activeProfile: string;
+  onProfileChange: (key: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      {PROFILES.map((profile) => {
+        const isActive = activeProfile === profile.key;
+        return (
+          <button
+            key={profile.key}
+            onClick={() => onProfileChange(profile.key)}
+            className="flex items-center gap-1 px-2 py-1 rounded text-[8px] font-bold font-mono uppercase tracking-wider transition-all duration-200 cursor-pointer"
+            style={{
+              color: isActive ? profile.color : '#64748b',
+              border: '1px solid ' + (isActive ? profile.color + '40' : 'rgba(100,116,139,0.15)'),
+              backgroundColor: isActive ? profile.color + '10' : 'transparent',
+              boxShadow: isActive ? '0 0 8px ' + profile.color + '15' : 'none',
+              textShadow: isActive ? '0 0 6px ' + profile.color + '40' : 'none',
+            }}
+          >
+            {profile.icon}
+            <span className="hidden sm:inline">{profile.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -335,9 +410,17 @@ export default function ONION200Dashboard() {
   const [activeTab, setActiveTab] = useState<TabKey>('resumen');
   const [kpis, setKpis] = useState<PipelineKPIs | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string>('');
+  const [now, setNow] = useState<Date>(new Date());
+  const [activeProfile, setActiveProfile] = useState<string>('analista');
   const { theme, setTheme } = useTheme();
 
   const colors: ThemeColors = theme === 'dark' ? DARK_COLORS : LIGHT_COLORS;
+
+  // Live clock — tick every second
+  useEffect(() => {
+    const iv = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(iv);
+  }, []);
 
   const fetchKPIs = useCallback(async () => {
     try {
@@ -378,23 +461,23 @@ export default function ONION200Dashboard() {
     >
       {/* ═══ HEADER — ONION200 Branding ═══ */}
       <header
-        className="flex-shrink-0 px-4 sm:px-6 py-3 flex items-center justify-between"
+        className="flex-shrink-0 px-3 sm:px-5 py-2 flex items-center justify-between"
         style={{
           borderBottom: '1px solid ' + colors.border,
           background: colors.headerBg,
         }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           {/* Logo DECODEX */}
           <div
-            className="flex items-center justify-center w-[72px] h-[72px] rounded-xl overflow-hidden"
+            className="flex items-center justify-center w-[48px] h-[48px] rounded-xl overflow-hidden"
             style={{
               border: '1px solid ' + colors.logoBorder,
               backgroundColor: colors.logoBg,
               boxShadow: colors.logoBoxShadow,
             }}
           >
-            <Image src="/decodex-logo.png" alt="DECODEX" width={56} height={56} className="object-contain" />
+            <Image src="/decodex-logo.png" alt="DECODEX" width={36} height={36} className="object-contain" />
           </div>
           <div>
             <h1 className="text-lg font-bold tracking-[0.2em] text-cyan-300 font-mono uppercase">
@@ -406,20 +489,19 @@ export default function ONION200Dashboard() {
           </div>
         </div>
 
-        {/* Right side: status + clock + nav */}
+        {/* Profile Selector */}
+        <ProfileSelector activeProfile={activeProfile} onProfileChange={setActiveProfile} />
+
+        {/* Right side: clock + status + nav */}
         <div className="flex items-center gap-3">
-          {lastUpdate && (
-            <span className="hidden sm:flex items-center gap-1.5 text-[9px] font-mono text-slate-600">
-              <RefreshCw className="w-3 h-3" />
-              {lastUpdate}
-            </span>
-          )}
+          {/* Live Clock */}
+          <LiveClock now={now} />
+
           <div className="flex items-center gap-1.5">
             <span
-              className="w-2 h-2 rounded-full bg-emerald-500"
+              className="w-2 h-2 rounded-full bg-emerald-500 animate-glow-pulse"
               style={{
                 boxShadow: '0 0 6px rgba(16,185,129,0.5)',
-                animation: 'pulse 2s infinite',
               }}
             />
             <span className="text-[9px] font-bold uppercase text-emerald-500/60 font-mono">
@@ -473,6 +555,7 @@ export default function ONION200Dashboard() {
         activeTab={activeTab}
         onTabChange={handleTabChange}
         colors={colors}
+        activeProfile={activeProfile}
       />
 
       {/* ═══ KPI CARDS — Real data row ═══ */}
@@ -567,11 +650,11 @@ export default function ONION200Dashboard() {
           background: colors.footerBg,
         }}
       >
-        <span className="text-[9px] font-mono text-slate-700">
-          ONION200 v2.0 · Consola de Control Activa
+        <span className="text-[9px] font-mono" style={{ color: colors.textMuted }}>
+          ONION200 v2.0 · DECODEX Bolivia · {now.toLocaleDateString('es-BO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
         </span>
-        <span className="text-[9px] font-mono text-slate-700">
-          DECODEX Bolivia · Inteligencia de Senales · 2025-2030
+        <span className="text-[9px] font-mono text-cyan-500/70">
+          {now.toLocaleTimeString('es-BO', { hour12: false })} Bolivia
         </span>
       </footer>
     </div>
