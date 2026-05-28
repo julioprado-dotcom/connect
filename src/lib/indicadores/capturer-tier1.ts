@@ -119,9 +119,11 @@ export async function capturarUno(slug: string): Promise<CapturaResult> {
       resultado = await capturarTcOficial()
     } else if (
       ['lme-cobre', 'lme-zinc', 'lme-estano', 'lme-plata', 'lme-plomo',
+       'com-oro', 'com-litio', 'com-tierras-raras',
        'agr-cafe', 'agr-soya', 'agr-arroz', 'agr-azucar', 'agr-maiz', 'agr-trigo',
        'fx-eur-usd', 'fx-cny-usd', 'fx-brl-usd', 'fx-pen-usd', 'fx-clp-usd',
-       'fx-ars-usd', 'fx-pyg-usd', 'fx-jpy-usd'
+       'fx-ars-usd', 'fx-pyg-usd', 'fx-jpy-usd',
+       'nrg-petroleo', 'nrg-gas-natural', 'nrg-gasolina', 'nrg-diesel', 'nrg-glp'
       ].includes(slug)
     ) {
       // Metales LME y commodities agrícolas via fetchIndicadores (Yahoo + Stooq)
@@ -216,9 +218,11 @@ export async function capturarTier1(): Promise<{
   const slugsTier1 = [
     'tc-oficial-bcb',
     'lme-cobre', 'lme-zinc', 'lme-estano', 'lme-plata', 'lme-plomo',
+    'com-oro', 'com-litio', 'com-tierras-raras',
     'agr-cafe', 'agr-soya', 'agr-arroz', 'agr-azucar', 'agr-maiz', 'agr-trigo',
     'fx-eur-usd', 'fx-cny-usd', 'fx-brl-usd', 'fx-pen-usd', 'fx-clp-usd',
     'fx-ars-usd', 'fx-pyg-usd', 'fx-jpy-usd',
+    'nrg-petroleo', 'nrg-gas-natural', 'nrg-gasolina', 'nrg-diesel', 'nrg-glp',
   ]
 
   // Procesar TODOS en paralelo — reduce tiempo de ~240s a ~20s

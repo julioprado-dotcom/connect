@@ -29,6 +29,9 @@ export const ALL_SLUGS: readonly SlugIndicador[] = [
   'lme-estano',
   'lme-plata',
   'lme-plomo',
+  'com-oro',
+  'com-litio',
+  'com-tierras-raras',
   'agr-cafe',
   'agr-quinua',
   'agr-soya',
@@ -57,6 +60,11 @@ export const ALL_SLUGS: readonly SlugIndicador[] = [
   'produccion-petroleo',
   'exportaciones-fob',
   'ipc',
+  'nrg-petroleo',
+  'nrg-gas-natural',
+  'nrg-gasolina',
+  'nrg-diesel',
+  'nrg-glp',
 ] as const;
 
 // ─── Información descriptiva de indicadores ────────────────────────────────
@@ -114,6 +122,28 @@ export const INDICADOR_META: Readonly<Record<SlugIndicador, IndicadorMeta>> = {
     categoria: 'minerales',
     yahooSymbol: 'PB=F',
     stooqSymbol: 'LLEA.UK',
+  },
+  // Commodities mineros adicionales
+  'com-oro': {
+    nombre: 'Oro (Internacional)',
+    unidad: 'USD/oz',
+    moneda: 'USD',
+    categoria: 'minerales',
+    yahooSymbol: 'GC=F',
+  },
+  'com-litio': {
+    nombre: 'Litio (Carbonato, China)',
+    unidad: 'USD/ton',
+    moneda: 'USD',
+    categoria: 'minerales',
+    yahooSymbol: 'LTHM',
+  },
+  'com-tierras-raras': {
+    nombre: 'Tierras Raras (ETF)',
+    unidad: 'USD',
+    moneda: 'USD',
+    categoria: 'minerales',
+    yahooSymbol: 'REMX',
   },
   'agr-cafe': {
     nombre: 'Café (Internacional)',
@@ -337,6 +367,42 @@ export const INDICADOR_META: Readonly<Record<SlugIndicador, IndicadorMeta>> = {
     unidad: '% acumulado',
     categoria: 'inflacion',
   },
+  // Energéticos — precios internacionales de combustibles
+  'nrg-petroleo': {
+    nombre: 'Petróleo Crudo (WTI)',
+    unidad: 'USD/bbl',
+    moneda: 'USD',
+    categoria: 'energeticos',
+    yahooSymbol: 'CL=F',
+  },
+  'nrg-gas-natural': {
+    nombre: 'Gas Natural (Henry Hub)',
+    unidad: 'USD/MMBtu',
+    moneda: 'USD',
+    categoria: 'energeticos',
+    yahooSymbol: 'NG=F',
+  },
+  'nrg-gasolina': {
+    nombre: 'Gasolina (RBOB)',
+    unidad: 'USD/gal',
+    moneda: 'USD',
+    categoria: 'energeticos',
+    yahooSymbol: 'RB=F',
+  },
+  'nrg-diesel': {
+    nombre: 'Diésel (Heating Oil)',
+    unidad: 'USD/gal',
+    moneda: 'USD',
+    categoria: 'energeticos',
+    yahooSymbol: 'HO=F',
+  },
+  'nrg-glp': {
+    nombre: 'GLP (Propano)',
+    unidad: 'USD/gal',
+    moneda: 'USD',
+    categoria: 'energeticos',
+    yahooSymbol: 'PL=F',
+  },
 };
 
 // ─── Fuentes de datos ──────────────────────────────────────────────────────
@@ -425,6 +491,34 @@ export const FUENTES_POR_INDICADOR: Readonly<
       nombre: 'Stooq (LME Lead)',
       url: 'https://stooq.com/q/l/?s=lead.uk&i=d',
       tipo: 'stooq',
+      activa: true,
+      timeout: DEFAULT_TIMEOUT,
+    },
+  ],
+  // Commodities mineros adicionales — Yahoo Finance
+  'com-oro': [
+    {
+      nombre: 'Yahoo Finance (Gold)',
+      url: 'https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval=1d&range=2d',
+      tipo: 'api',
+      activa: true,
+      timeout: DEFAULT_TIMEOUT,
+    },
+  ],
+  'com-litio': [
+    {
+      nombre: 'Yahoo Finance (Lithium Americas)',
+      url: 'https://query1.finance.yahoo.com/v8/finance/chart/LTHM?interval=1d&range=2d',
+      tipo: 'api',
+      activa: true,
+      timeout: DEFAULT_TIMEOUT,
+    },
+  ],
+  'com-tierras-raras': [
+    {
+      nombre: 'Yahoo Finance (REMX ETF)',
+      url: 'https://query1.finance.yahoo.com/v8/finance/chart/REMX?interval=1d&range=2d',
+      tipo: 'api',
       activa: true,
       timeout: DEFAULT_TIMEOUT,
     },
@@ -754,6 +848,52 @@ export const FUENTES_POR_INDICADOR: Readonly<
       timeout: DEFAULT_TIMEOUT,
     },
   ],
+  // Energéticos — Yahoo Finance
+  'nrg-petroleo': [
+    {
+      nombre: 'Yahoo Finance (WTI Crude)',
+      url: 'https://query1.finance.yahoo.com/v8/finance/chart/CL=F?interval=1d&range=2d',
+      tipo: 'api',
+      activa: true,
+      timeout: DEFAULT_TIMEOUT,
+    },
+  ],
+  'nrg-gas-natural': [
+    {
+      nombre: 'Yahoo Finance (Natural Gas)',
+      url: 'https://query1.finance.yahoo.com/v8/finance/chart/NG=F?interval=1d&range=2d',
+      tipo: 'api',
+      activa: true,
+      timeout: DEFAULT_TIMEOUT,
+    },
+  ],
+  'nrg-gasolina': [
+    {
+      nombre: 'Yahoo Finance (RBOB Gasoline)',
+      url: 'https://query1.finance.yahoo.com/v8/finance/chart/RB=F?interval=1d&range=2d',
+      tipo: 'api',
+      activa: true,
+      timeout: DEFAULT_TIMEOUT,
+    },
+  ],
+  'nrg-diesel': [
+    {
+      nombre: 'Yahoo Finance (Heating Oil)',
+      url: 'https://query1.finance.yahoo.com/v8/finance/chart/HO=F?interval=1d&range=2d',
+      tipo: 'api',
+      activa: true,
+      timeout: DEFAULT_TIMEOUT,
+    },
+  ],
+  'nrg-glp': [
+    {
+      nombre: 'Yahoo Finance (Propane)',
+      url: 'https://query1.finance.yahoo.com/v8/finance/chart/PL=F?interval=1d&range=2d',
+      tipo: 'api',
+      activa: true,
+      timeout: DEFAULT_TIMEOUT,
+    },
+  ],
 };
 
 // ─── Categorías ────────────────────────────────────────────────────────────
@@ -762,9 +902,9 @@ export const FUENTES_POR_INDICADOR: Readonly<
 export const CATEGORIAS: Readonly<CategoriaInfo[]> = [
   {
     slug: 'minerales',
-    nombre: 'Minerales (LME)',
-    descripcion: 'Cotizaciones de minerales en el London Metal Exchange',
-    indicadores: ['lme-cobre', 'lme-zinc', 'lme-estano', 'lme-plata', 'lme-plomo'],
+    nombre: 'Minerales y Commodities',
+    descripcion: 'Cotizaciones internacionales de minerales, metales preciosos y estratégicos',
+    indicadores: ['lme-cobre', 'lme-zinc', 'lme-estano', 'lme-plata', 'lme-plomo', 'com-oro', 'com-litio', 'com-tierras-raras'],
   },
   {
     slug: 'tipo_cambio',
@@ -783,6 +923,12 @@ export const CATEGORIAS: Readonly<CategoriaInfo[]> = [
     nombre: 'Hidrocarburos',
     descripcion: 'Producción de gas natural y petróleo crudo',
     indicadores: ['produccion-gas', 'produccion-petroleo'],
+  },
+  {
+    slug: 'energeticos',
+    nombre: 'Energéticos',
+    descripcion: 'Precios internacionales de combustibles y energía',
+    indicadores: ['nrg-petroleo', 'nrg-gas-natural', 'nrg-gasolina', 'nrg-diesel', 'nrg-glp'],
   },
   {
     slug: 'comercio',
@@ -831,6 +977,9 @@ export const knownValues: Readonly<Record<SlugIndicador, number>> = {
   'lme-estano': 35_000,   // LME Tin ~$35,000/ton (est.)
   'lme-plata': 2_446_668, // COMEX Ag ~$76.1/oz = ~$2,446,668/ton (May 2026)
   'lme-plomo': 2_350,     // LME Lead ~$2,350/ton (est.)
+  'com-oro': 2330,        // Gold ~$2,330/oz (May 2026)
+  'com-litio': 8500,      // Lithium carbonate ~$8,500/ton (China spot)
+  'com-tierras-raras': 42,  // REMX ETF ~$42 (est.)
   'agr-cafe': 279.05,
   'agr-quinua': 3200,
   'agr-soya': 1203.25,
@@ -867,6 +1016,11 @@ export const knownValues: Readonly<Record<SlugIndicador, number>> = {
   'produccion-petroleo': 44_000,
   'exportaciones-fob': 7_850,
   ipc: 1.42,
+  'nrg-petroleo': 62,       // WTI Crude ~$62/bbl
+  'nrg-gas-natural': 2.50,  // Henry Hub ~$2.50/MMBtu
+  'nrg-gasolina': 2.15,     // RBOB Gasoline ~$2.15/gal
+  'nrg-diesel': 2.05,       // Heating Oil ~$2.05/gal
+  'nrg-glp': 0.85,          // Propane ~$0.85/gal
 };
 
 // ─── Constantes de conversión ──────────────────────────────────────────────
