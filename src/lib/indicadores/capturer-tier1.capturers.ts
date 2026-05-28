@@ -1,37 +1,120 @@
 /**
  * Capturer Tier 1 — Capturadores individuales
- * TC Oficial BCB: Yahoo Finance (BOB=X) + scraper BCB como respaldo.
- * LME/Yahoo/Stooq para metales y commodities.
+ * 
+ * Estrategia de datos:
+ * - BCB (fuente primaria): Parsea la tabla completa de cotizaciones del BCB
+ *   identificando cada moneda por NOMBRE (no por valor numérico).
+ * - Yahoo Finance / Stooq: Fallback para metales y commodities.
+ * - Sin validaciones por rango numérico que puedan romperse en crisis.
  */
 
 import { fetchIndicadores, getIndicador } from '@/lib/services/indicadores'
 import type { SlugIndicador } from '@/lib/services/indicadores.types'
 import type { CapturaResult } from './capturer-tier1.config'
 
-// ─── Utilidades para BCB ─────────────────────────────────────────
+// ─── Mapeo: Nombre BCB → Slug del indicador ───────────────────────
 
 /**
- * Extrae el URL del iframe de cotizaciones del HTML principal del BCB.
- * La tabla de tipos de cambio está dentro de un iframe embebido.
+ * Mapeo entre los nombres exactos de monedas en la tabla del BCB
+ * y los slugs internos del sistema.
+ * El BCB usa "DOLAR VENTA", "EURO", "YUAN RENMINBI", etc. (SIN tildes).
+ */
+const BCB_MONEDA_MAP: Record<string, {
+  slug: string
+  unidad: string
+  decimales: number
+  parseAs?: 'venta' | 'compra'  // Para USD que tiene fila VENTA y COMPRA separada
+}> = {
+  // ─── Tipo de Cambio Oficial USD ─────────────────────────
+  'DOLAR VENTA': {
+    slug: 'tc-oficial-bcb',
+    unidad: 'Bs/USD',
+    decimales: 2,
+    parseAs: 'venta',
+  },
+  'DOLAR COMPRA': {
+    slug: 'tc-oficial-compra',
+    unidad: 'Bs/USD',
+    decimales: 2,
+    parseAs: 'compra',
+  },
+  // ─── Divisas en Bs (directo del BCB, sin multiplicar) ──
+  'EURO':              { slug: 'fx-eur-usd',  unidad: 'Bs/EUR', decimales: 5 },
+  'YEN':               { slug: 'fx-jpy-usd',  unidad: 'Bs/JPY', decimales: 5 },
+  'PESO':              { slug: 'fx-ars-usd',  unidad: 'Bs/ARS', decimales: 5 },  // ARS (primera coincidencia)
+  'REAL':              { slug: 'fx-brl-usd',  unidad: 'Bs/BRL', decimales: 5 },
+  'NUEVO SOL':         { slug: 'fx-pen-usd',  unidad: 'Bs/PEN', decimales: 5 },
+  'GUARANI':           { slug: 'fx-pyg-usd',  unidad: 'Bs/PYG', decimales: 5 },
+  'LIBRA':             { slug: 'fx-gbp-usd',  unidad: 'Bs/GBP', decimales: 5 },
+  'YUAN RENMINBI':     { slug: 'fx-cny-usd',  unidad: 'Bs/CNY', decimales: 5 },
+  'FRANCO':            { slug: 'fx-chf-usd',  unidad: 'Bs/CHF', decimales: 5 },
+  'CORONA CHECA':      { slug: 'fx-czk-usd',  unidad: 'Bs/CZK', decimales: 5 },
+  // ─── Metales preciosos (directo del BCB en USD) ─────────
+  'ONZA TROY ORO':     { slug: 'com-oro-bcb', unidad: 'USD/oz', decimales: 2 },
+  'ONZA TROY PLATA':   { slug: 'com-plata-bcb', unidad: 'USD/oz', decimales: 3 },
+}
+
+// ─── Utilidades de parseo BCB ─────────────────────────────────────
+
+/**
+ * Limpia un número con formato boliviano: "4.451,89" → 4451.89, "6.96" → 6.96
+ */
+function parsearNumeroBoliviano(texto: string): number | null {
+  if (!texto) return null
+  // Quitar espacios, &nbsp; y caracteres no numéricos excepto , .
+  const limpio = texto.replace(/[\s\u00A0]/g, '').trim()
+  if (!limpio) return null
+
+  // Formato boliviano: 4.451,89 (punto = miles, coma = decimal)
+  if (limpio.includes(',') && limpio.includes('.')) {
+    const ultimaComa = limpio.lastIndexOf(',')
+    const ultimoPunto = limpio.lastIndexOf('.')
+    if (ultimaComa > ultimoPunto) {
+      // Formato boliviano: 4.451,89
+      const sinMiles = limpio.replace(/\./g, '')
+      const conPunto = sinMiles.replace(',', '.')
+      const val = parseFloat(conPunto)
+      return Number.isFinite(val) ? val : null
+    } else {
+      // Formato anglosajón: 4,451.89
+      const sinMiles = limpio.replace(/,/g, '')
+      const val = parseFloat(sinMiles)
+      return Number.isFinite(val) ? val : null
+    }
+  } else if (limpio.includes(',')) {
+    // Solo coma: podría ser decimal 0,56 o miles 1,234
+    const partes = limpio.split(',')
+    if (partes.length === 2 && partes[1]!.length <= 2) {
+      // Probablemente decimal
+      const val = parseFloat(limpio.replace(',', '.'))
+      return Number.isFinite(val) ? val : null
+    }
+    // Miles
+    const val = parseFloat(limpio.replace(',', ''))
+    return Number.isFinite(val) ? val : null
+  } else {
+    // Solo punto o solo dígitos
+    const val = parseFloat(limpio)
+    return Number.isFinite(val) ? val : null
+  }
+}
+
+/**
+ * Extrae la URL del iframe de cotizaciones del HTML principal del BCB.
  */
 function extraerIframeUrl(html: string): string | null {
-  // Buscar iframe con src que contenga cotizaciones o tipo de cambio
-  const iframePatterns = [
+  const patterns = [
     /<iframe[^>]+src=["']([^"']*cotizacion[^"']*)["']/i,
     /<iframe[^>]+src=["']([^"']*tipo_cambio[^"']*)["']/i,
     /<iframe[^>]+src=["']([^"']*cambio[^"']*)["']/i,
-    /<iframe[^>]+src=["']([^"']+)/i,  // Último recurso: cualquier iframe
+    /<iframe[^>]+src=["']([^"']+)/i,
   ]
-  for (const pattern of iframePatterns) {
-    const match = pattern.exec(html)
-    if (match?.[1]) {
-      // Resolver URL relativa a absoluta
-      let url = match[1]
-      if (url.startsWith('/')) {
-        url = `https://www.bcb.gob.bo${url}`
-      } else if (!url.startsWith('http')) {
-        url = `https://www.bcb.gob.bo/${url}`
-      }
+  for (const p of patterns) {
+    const m = p.exec(html)
+    if (m?.[1]) {
+      let url = m[1]
+      if (url.startsWith('/')) url = `https://www.bcb.gob.bo${url}`
+      else if (!url.startsWith('http')) url = `https://www.bcb.gob.bo/${url}`
       return url
     }
   }
@@ -39,50 +122,198 @@ function extraerIframeUrl(html: string): string | null {
 }
 
 /**
- * Parsea el tipo de cambio USD Venta del HTML de la tabla del BCB.
- * Busca específicamente "DOLAR VENTA" (sin tilde) seguido del valor numérico.
+ * Parsea la tabla completa de cotizaciones del BCB.
+ * 
+ * La tabla tiene 5 columnas por fila:
+ *   PAÍS | UNIDAD MONETARIA | MONEDA | TIPO DE CAMBIO EN Bs | TIPO CAMBIO EN M.E.
+ * 
+ * Identifica cada moneda por el campo "UNIDAD MONETARIA" (columna 2)
+ * y extrae el valor de "TIPO DE CAMBIO EN Bs" (columna 4).
+ * 
+ * NO usa rangos numéricos — identifica por NOMBRE exacto.
+ * 
+ * @returns Map<string, { valor: number, valorME?: number }> con los datos parseados
  */
-function parsearTcBcb(html: string): number | null {
-  // Estrategia 1: Buscar fila con "DOLAR VENTA" y extraer el valor de la 4ta columna
-  const dolarVentaPatterns = [
-    /DOLAR\s*VENTA[\s\S]*?<td[^>]*>\s*<div[^>]*>[\s\S]*?<\/div>\s*<\/td>\s*<td[^>]*>\s*<div[^>]*>[\s\S]*?<\/div>\s*<\/td>\s*<td[^>]*>\s*<div[^>]*>[\s\S]*?<\/div>\s*<\/td>\s*<td[^>]*>\s*<div[^>]*align=["']right["'][^>]*>([\d.,]+)\s*<\/div>/i,
-    /DOLAR\s*VENTA[\s\S]*?(\d{1,2}\.\d{2})/,
-    /DOLAR\s*VENTA[\s\S]*?(\d{1,2},\d{2})/,
-  ]
+function parsearTablaBcb(html: string): Map<string, { valor: number; valorME?: number }> {
+  const resultados = new Map<string, { valor: number; valorME?: number }>()
 
-  for (const pattern of dolarVentaPatterns) {
-    const match = pattern.exec(html)
-    if (match?.[1]) {
-      const rawValue = match[1].replace(',', '.')
-      const valor = parseFloat(rawValue)
-      if (valor >= 5 && valor <= 15) {
-        return valor
+  // Patrón para filas de la tabla del BCB
+  // Cada fila tiene <tr> con <td> que contienen <div align="..."> con el texto
+  const rowPattern = /<tr[^>]*>([\s\S]*?)<\/tr>/gi
+  let rowMatch: RegExpExecArray | null
+
+  while ((rowMatch = rowPattern.exec(html)) !== null) {
+    const rowHtml = rowMatch[1]
+
+    // Extraer celdas de la fila
+    const cells: string[] = []
+    const cellPattern = /<td[^>]*>\s*<div[^>]*>([\s\S]*?)<\/div>\s*<\/td>/gi
+    let cellMatch: RegExpExecArray | null
+    while ((cellMatch = cellPattern.exec(rowHtml)) !== null) {
+      cells.push(cellMatch[1].trim())
+    }
+
+    // Necesitamos al menos 4 columnas: País | Unidad Monetaria | Moneda | TC en Bs | TC en ME
+    if (cells.length < 4) continue
+
+    const unidadMonetaria = cells[1]?.toUpperCase().trim()
+    const tcEnBs = cells[3]?.trim()
+    const tcEnME = cells.length > 4 ? cells[4]?.trim() : undefined
+
+    if (!unidadMonetaria || !tcEnBs) continue
+
+    // Buscar coincidencia en el mapeo
+    for (const [nombreBcb, config] of Object.entries(BCB_MONEDA_MAP)) {
+      if (unidadMonetaria.includes(nombreBcb) || nombreBcb.includes(unidadMonetaria)) {
+        const valor = parsearNumeroBoliviano(tcEnBs)
+        if (valor !== null && valor > 0) {
+          const valorME = tcEnME ? parsearNumeroBoliviano(tcEnME) ?? undefined : undefined
+          resultados.set(config.slug, { valor, valorME })
+          break
+        }
       }
     }
   }
 
-  // Estrategia 2: Buscar cualquier número entre 6.50 y 8.00 (rango plausible para Bs/USD)
-  const allNumbers = html.match(/\b(6\.[5-9]\d|7\.\d{2}|6\.\d{2})\b/g)
-  if (allNumbers && allNumbers.length > 0) {
-    // Tomar el primero que esté en rango válido
-    for (const numStr of allNumbers) {
-      const val = parseFloat(numStr.replace(',', '.'))
-      if (val >= 6.50 && val <= 8.00) {
-        return val
-      }
-    }
+  return resultados
+}
+
+// ─── Cache del HTML del BCB (para no fetchear N veces) ──────────
+
+let bcbCache: { html: string; timestamp: number } | null = null
+const BCB_CACHE_TTL = 55 * 60 * 1000 // 55 minutos (se actualiza cada hora aprox.)
+
+/**
+ * Obtiene el HTML de la tabla de cotizaciones del BCB.
+ * Intenta: iframe → HTML directo → fallback.
+ * Cachea el resultado para evitar requests duplicados.
+ */
+async function obtenerHtmlBcb(): Promise<{ html: string; fuente: string } | null> {
+  // Verificar caché
+  if (bcbCache && Date.now() - bcbCache.timestamp < BCB_CACHE_TTL) {
+    return { html: bcbCache.html, fuente: 'cache' }
   }
 
-  return null
+  const bcbUrl = 'https://www.bcb.gob.bo/?q=cotizaciones_tc'
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'Accept': 'text/html,application/xhtml+xml',
+  }
+
+  try {
+    const response = await fetch(bcbUrl, {
+      headers,
+      signal: AbortSignal.timeout(15000),
+    })
+
+    if (!response.ok) {
+      console.warn(`[BCB] HTTP ${response.status}`)
+      return null
+    }
+
+    const html = await response.text()
+
+    // Intentar extraer URL del iframe
+    const iframeUrl = extraerIframeUrl(html)
+    if (iframeUrl) {
+      try {
+        const iframeResp = await fetch(iframeUrl, {
+          headers,
+          signal: AbortSignal.timeout(10000),
+        })
+        if (iframeResp.ok) {
+          const iframeHtml = await iframeResp.text()
+          // Verificar que el iframe tiene datos de cotización
+          if (iframeHtml.includes('DOLAR') || iframeHtml.includes('TIPO DE CAMBIO')) {
+            bcbCache = { html: iframeHtml, timestamp: Date.now() }
+            console.log(`[BCB] Datos obtenidos del iframe: ${iframeUrl}`)
+            return { html: iframeHtml, fuente: 'iframe' }
+          }
+        }
+      } catch (iframeErr) {
+        // Si falla el iframe, intentar con HTML directo
+        console.warn(`[BCB] Error accediendo al iframe:`, iframeErr instanceof Error ? iframeErr.message : 'unknown')
+      }
+    }
+
+    // Intentar parsear directamente del HTML principal
+    if (html.includes('DOLAR') || html.includes('TIPO DE CAMBIO')) {
+      bcbCache = { html, timestamp: Date.now() }
+      console.log(`[BCB] Datos obtenidos del HTML directo`)
+      return { html, fuente: 'directo' }
+    }
+
+    console.warn('[BCB] No se encontraron datos de cotización en la página')
+    return null
+  } catch (err) {
+    console.error(`[BCB] Error obteniendo página:`, err)
+    return null
+  }
+}
+
+/**
+ * Invalida el caché del BCB (para forzar re-fetch).
+ */
+export function invalidarCacheBcb(): void {
+  bcbCache = null
 }
 
 // ─── Capturadores individuales ───────────────────────────────────
 
+/**
+ * Obtiene TODOS los datos del BCB en una sola llamada.
+ * Retorna un Map con slug → { valor, valorME }.
+ * 
+ * Datos disponibles:
+ * - tc-oficial-bcb: Dólar Venta (Bs/USD)
+ * - tc-oficial-compra: Dólar Compra (Bs/USD)
+ * - fx-eur-usd, fx-jpy-usd, fx-brl-usd, fx-pen-usd, fx-clp-usd, 
+ *   fx-ars-usd, fx-pyg-usd, fx-cny-usd, fx-gbp-usd, fx-chf-usd, fx-czk-usd
+ * - com-oro-bcb: Oro (USD/oz)
+ * - com-plata-bcb: Plata (USD/oz)
+ */
+export async function capturarTodosBcb(): Promise<Map<string, { valor: number; valorME?: number }>> {
+  const resultado = await obtenerHtmlBcb()
+  if (!resultado) {
+    console.warn('[BCB] No se pudo obtener datos del BCB')
+    return new Map()
+  }
+
+  return parsearTablaBcb(resultado.html)
+}
+
+/**
+ * Captura el Tipo de Cambio Oficial (USD Venta) del BCB.
+ * Usa la función genérica capturarTodosBcb() y extrae tc-oficial-bcb.
+ */
 export async function capturarTcOficial(): Promise<CapturaResult> {
   const fecha = new Date()
-  const logs: string[] = []
 
-  // ── Estrategia 1: Yahoo Finance BOB=X (confiable, rápida) ──────
+  // ── Estrategia 1: BCB (fuente oficial primaria) ─────────────
+  try {
+    const datos = await capturarTodosBcb()
+    const tcVenta = datos.get('tc-oficial-bcb')
+
+    if (tcVenta && tcVenta.valor > 0) {
+      console.log(`[TC Oficial] BCB OK: ${tcVenta.valor.toFixed(2)} Bs/USD`)
+      return {
+        slug: 'tc-oficial-bcb',
+        valor: Number(tcVenta.valor.toFixed(2)),
+        valorTexto: `${tcVenta.valor.toFixed(2)} Bs/USD`,
+        confiable: true,
+        fecha,
+        metadata: JSON.stringify({
+          fuente: 'Banco Central de Bolivia',
+          metodo: 'bcb_tabla_cotizaciones',
+          valorME: tcVenta.valorME,
+        }),
+      }
+    }
+  } catch (err) {
+    console.warn(`[TC Oficial] BCB error:`, err)
+  }
+
+  // ── Estrategia 2: Yahoo Finance BOB=X (respaldo) ────────────
   try {
     const yahooUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/BOB=X?interval=1d&range=2d'
     const resp = await fetch(yahooUrl, {
@@ -92,130 +323,232 @@ export async function capturarTcOficial(): Promise<CapturaResult> {
     if (resp.ok) {
       const data = await resp.json()
       const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice
-      const prevClose = data?.chart?.result?.[0]?.meta?.previousClose
-      logs.push(`Yahoo BOB=X raw: ${price}, prevClose: ${prevClose}`)
-      // Validación estricta: el tipo de cambio BOB/USD debe estar entre 5 y 12
-      if (price && price > 5 && price < 12) {
-        console.log(`[TC Oficial] Yahoo Finance OK: ${price.toFixed(2)} Bs/USD`)
+      if (price && price > 0) {
+        console.log(`[TC Oficial] Yahoo fallback OK: ${price.toFixed(2)} Bs/USD`)
         return {
           slug: 'tc-oficial-bcb',
           valor: Number(price.toFixed(2)),
           valorTexto: `${price.toFixed(2)} Bs/USD`,
           confiable: true,
           fecha,
-          metadata: JSON.stringify({ fuente: 'Yahoo Finance (BOB=X)', metodo: 'api_yahoo', rawPrice: price, prevClose }),
+          metadata: JSON.stringify({ fuente: 'Yahoo Finance (BOB=X)', metodo: 'fallback_yahoo' }),
         }
-      } else {
-        logs.push(`Yahoo BOB=X valor fuera de rango: ${price}`)
       }
-    } else {
-      logs.push(`Yahoo BOB=X HTTP ${resp.status}`)
     }
-  } catch (err) {
-    logs.push(`Yahoo BOB=X error: ${err instanceof Error ? err.message : 'unknown'}`)
-  }
+  } catch { /* seguir */ }
 
-  // ── Estrategia 2: BCB — Intentar obtener iframe y parsear tabla ─
-  try {
-    const bcbUrl = 'https://www.bcb.gob.bo/?q=cotizaciones_tc'
-    const response = await fetch(bcbUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html,application/xhtml+xml',
-      },
-      signal: AbortSignal.timeout(15000),
-    })
-
-    if (response.ok) {
-      const html = await response.text()
-
-      // Intentar extraer URL del iframe
-      const iframeUrl = extraerIframeUrl(html)
-      if (iframeUrl) {
-        logs.push(`BCB iframe encontrado: ${iframeUrl}`)
-        // Fetch del iframe directamente
-        try {
-          const iframeResp = await fetch(iframeUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-            signal: AbortSignal.timeout(10000),
-          })
-          if (iframeResp.ok) {
-            const iframeHtml = await iframeResp.text()
-            const tcValor = parsearTcBcb(iframeHtml)
-            if (tcValor) {
-              console.log(`[TC Oficial] BCB iframe OK: ${tcValor.toFixed(2)} Bs/USD (desde ${iframeUrl})`)
-              return {
-                slug: 'tc-oficial-bcb',
-                valor: Number(tcValor.toFixed(2)),
-                valorTexto: `${tcValor.toFixed(2)} Bs/USD`,
-                confiable: true,
-                fecha,
-                metadata: JSON.stringify({ fuente: 'bcb.gob.bo (iframe)', metodo: 'iframe_scraping', iframeUrl }),
-              }
-            }
-            logs.push(`BCB iframe: no se pudo parsear TC del HTML`)
-          }
-        } catch (iframeErr) {
-          logs.push(`BCB iframe fetch error: ${iframeErr instanceof Error ? iframeErr.message : 'unknown'}`)
-        }
-      } else {
-        logs.push(`BCB: no se encontró iframe en la página`)
-      }
-
-      // Intentar parsear directamente del HTML principal (por si los datos están inline)
-      const tcDirecto = parsearTcBcb(html)
-      if (tcDirecto) {
-        console.log(`[TC Oficial] BCB directo OK: ${tcDirecto.toFixed(2)} Bs/USD`)
-        return {
-          slug: 'tc-oficial-bcb',
-          valor: Number(tcDirecto.toFixed(2)),
-          valorTexto: `${tcDirecto.toFixed(2)} Bs/USD`,
-          confiable: true,
-          fecha,
-          metadata: JSON.stringify({ fuente: 'bcb.gob.bo (directo)', metodo: 'html_direct' }),
-        }
-      }
-    } else {
-      logs.push(`BCB HTTP ${response.status}`)
-    }
-  } catch (err) {
-    logs.push(`BCB error: ${err instanceof Error ? err.message : 'unknown'}`)
-  }
-
-  // ── Estrategia 3: Servicio de indicadores (fallback chain completa) ─
+  // ── Estrategia 3: Servicio de indicadores (fallback final) ──
   try {
     const indicador = await getIndicador('tc-oficial-bcb' as SlugIndicador)
-    if (indicador && indicador.valor > 5 && indicador.valor < 12) {
-      console.log(`[TC Oficial] Servicio indicadores OK: ${indicador.valor} Bs/USD (fuente: ${indicador.fuente})`)
+    if (indicador && indicador.valor > 0) {
+      console.log(`[TC Oficial] Servicio fallback: ${indicador.valor} Bs/USD`)
       return {
         slug: 'tc-oficial-bcb',
         valor: Number(indicador.valor.toFixed(2)),
         valorTexto: `${indicador.valor.toFixed(2)} Bs/USD`,
         confiable: indicador.confiable,
         fecha,
-        metadata: JSON.stringify({ fuente: indicador.fuente, metodo: 'servicio_indicadores_fallback' }),
+        metadata: JSON.stringify({ fuente: indicador.fuente, metodo: 'fallback_servicio' }),
       }
     }
-    logs.push(`Servicio indicadores: valor ${indicador?.valor} fuera de rango o null`)
-  } catch (err) {
-    logs.push(`Servicio indicadores error: ${err instanceof Error ? err.message : 'unknown'}`)
-  }
+  } catch { /* seguir */ }
 
-  // ── Fallback: valor estático (señalar como no confiable) ──────
-  console.warn(`[TC Oficial] Todas las fuentes fallaron. Logs:`, logs)
+  // ── Fallback: valor estático ─────────────────────────────────
+  console.warn('[TC Oficial] Todas las fuentes fallaron — usando fallback estático')
   return {
     slug: 'tc-oficial-bcb',
-    valor: 6.91,
-    valorTexto: '6.91 Bs/USD',
+    valor: 6.96,
+    valorTexto: '6.96 Bs/USD',
     confiable: false,
     fecha,
-    metadata: JSON.stringify({ error: 'Todas las fuentes fallaron', metodo: 'fallback_estatico', logs }),
+    metadata: JSON.stringify({ error: 'Todas las fuentes fallaron', metodo: 'fallback_estatico' }),
   }
 }
 
 /**
- * Captura precios LME reales usando el servicio de indicadores (Yahoo Finance + Stooq).
- * Ya NO usa datos mock — conecta a fuentes reales con fallback chain.
+ * Captura una divisa específica del BCB.
+ * Usa los datos directos de la tabla del BCB (ya en Bs, sin multiplicar).
+ * Si el BCB falla, hace fallback a Yahoo × TC oficial.
+ */
+export async function capturarDivisaBcb(slug: string): Promise<CapturaResult> {
+  const fecha = new Date()
+
+  // Buscar configuración de la moneda
+  const config = Object.values(BCB_MONEDA_MAP).find(c => c.slug === slug)
+  if (!config) {
+    return {
+      slug,
+      valor: 0,
+      valorTexto: 'N/D',
+      confiable: false,
+      fecha,
+      metadata: JSON.stringify({ error: 'Moneda no configurada en BCB_MONEDA_MAP' }),
+    }
+  }
+
+  // ── Estrategia 1: BCB directo (datos ya en Bs) ─────────────
+  try {
+    const datos = await capturarTodosBcb()
+    const dato = datos.get(slug)
+
+    if (dato && dato.valor > 0) {
+      const valorFinal = Number(dato.valor.toFixed(config.decimales))
+      console.log(`[FX] ${slug} BCB OK: ${valorFinal} ${config.unidad}`)
+      return {
+        slug,
+        valor: valorFinal,
+        valorTexto: `${valorFinal} ${config.unidad}`,
+        confiable: true,
+        fecha,
+        metadata: JSON.stringify({
+          fuente: 'Banco Central de Bolivia',
+          metodo: 'bcb_cotizacion_directa',
+          valorME: dato.valorME,
+        }),
+      }
+    }
+  } catch (err) {
+    console.warn(`[FX] ${slug} BCB error:`, err)
+  }
+
+  // ── Estrategia 2: Yahoo Finance × TC Oficial (fallback) ────
+  try {
+    const response = await fetchIndicadores([slug as SlugIndicador])
+    const found = response.indicadores.find(i => i.slug === slug)
+    if (found && found.valor > 0) {
+      // Obtener TC oficial para convertir a Bs
+      const datosBcb = await capturarTodosBcb()
+      const tcOficial = datosBcb.get('tc-oficial-bcb')
+      const tc = tcOficial?.valor ?? 6.96 // Fallback si no hay TC
+      const valorBs = Number((found.valor * tc).toFixed(config.decimales))
+      console.log(`[FX] ${slug} Yahoo fallback: ${found.valor} × ${tc} = ${valorBs} ${config.unidad}`)
+      return {
+        slug,
+        valor: valorBs,
+        valorTexto: `${valorBs} ${config.unidad}`,
+        confiable: found.confiable,
+        fecha,
+        metadata: JSON.stringify({
+          fuente: found.fuente,
+          metodo: `yahoo × TC ${tc.toFixed(2)}`,
+          valorRaw: found.valor,
+          tcUsado: tc,
+        }),
+      }
+    }
+  } catch { /* seguir */ }
+
+  // ── Fallback: valor conocido ────────────────────────────────
+  const { knownValues } = await import('@/lib/services/indicadores.constants')
+  const fallback = (knownValues as Record<string, number>)[slug]
+  if (fallback && fallback > 0) {
+    return {
+      slug,
+      valor: fallback,
+      valorTexto: `${Number(fallback.toFixed(config.decimales))} ${config.unidad}`,
+      confiable: false,
+      fecha,
+      metadata: JSON.stringify({ error: 'BCB y Yahoo fallaron', metodo: 'fallback_estatico' }),
+    }
+  }
+
+  return {
+    slug,
+    valor: 0,
+    valorTexto: 'N/D',
+    confiable: false,
+    fecha,
+    metadata: JSON.stringify({ error: 'Sin datos disponibles' }),
+  }
+}
+
+/**
+ * Captura metales preciosos del BCB (Oro y Plata en USD/oz).
+ * Usa datos directos de la tabla de cotizaciones del BCB.
+ */
+export async function capturarMetalesBcb(slug: string): Promise<CapturaResult> {
+  const fecha = new Date()
+  const config = Object.values(BCB_MONEDA_MAP).find(c => c.slug === slug)
+
+  if (!config) {
+    return {
+      slug,
+      valor: 0,
+      valorTexto: 'N/D',
+      confiable: false,
+      fecha,
+      metadata: JSON.stringify({ error: 'Metal no configurado en BCB_MONEDA_MAP' }),
+    }
+  }
+
+  // ── Estrategia 1: BCB (fuente oficial) ─────────────────────
+  try {
+    const datos = await capturarTodosBcb()
+    const dato = datos.get(slug)
+
+    if (dato && dato.valor > 0) {
+      const valorFinal = Number(dato.valor.toFixed(config.decimales))
+      console.log(`[Metal] ${slug} BCB OK: ${valorFinal} ${config.unidad}`)
+      return {
+        slug,
+        valor: valorFinal,
+        valorTexto: `${valorFinal.toLocaleString('es-BO')} ${config.unidad}`,
+        confiable: true,
+        fecha,
+        metadata: JSON.stringify({
+          fuente: 'Banco Central de Bolivia',
+          metodo: 'bcb_cotizacion_metales',
+        }),
+      }
+    }
+  } catch (err) {
+    console.warn(`[Metal] ${slug} BCB error:`, err)
+  }
+
+  // ── Estrategia 2: Yahoo Finance (fallback) ──────────────────
+  try {
+    const response = await fetchIndicadores([slug as SlugIndicador])
+    const found = response.indicadores.find(i => i.slug === slug)
+    if (found && found.valor > 0) {
+      console.log(`[Metal] ${slug} Yahoo fallback: ${found.valor} ${config.unidad}`)
+      return {
+        slug,
+        valor: found.valor,
+        valorTexto: `${Math.round(found.valor).toLocaleString('es-BO')} ${config.unidad}`,
+        confiable: found.confiable,
+        fecha,
+        metadata: JSON.stringify({ fuente: found.fuente, metodo: 'fallback_yahoo' }),
+      }
+    }
+  } catch { /* seguir */ }
+
+  // ── Fallback ────────────────────────────────────────────────
+  const { knownValues } = await import('@/lib/services/indicadores.constants')
+  const fallback = (knownValues as Record<string, number>)[slug]
+  if (fallback && fallback > 0) {
+    return {
+      slug,
+      valor: fallback,
+      valorTexto: `${Math.round(fallback).toLocaleString('es-BO')} ${config.unidad}`,
+      confiable: false,
+      fecha,
+      metadata: JSON.stringify({ error: 'BCB y Yahoo fallaron', metodo: 'fallback_estatico' }),
+    }
+  }
+
+  return {
+    slug,
+    valor: 0,
+    valorTexto: 'N/D',
+    confiable: false,
+    fecha,
+    metadata: JSON.stringify({ error: 'Sin datos disponibles' }),
+  }
+}
+
+/**
+ * Captura precios LME y commodities via servicio de indicadores (Yahoo + Stooq).
+ * Usado para metales que NO están en la tabla del BCB (cobre, zinc, estaño, plomo).
  */
 export async function capturarLmeReal(
   lmeSlugs: SlugIndicador[]
@@ -244,7 +577,6 @@ export async function capturarLmeReal(
       })
     }
 
-    // Log errores para debugging
     if (response.errores.length > 0) {
       console.warn('[LME capturer] Errores parciales:', response.errores.map(e => e.mensaje))
     }
