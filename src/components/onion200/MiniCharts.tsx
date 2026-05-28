@@ -93,7 +93,7 @@ function SentimentRing({
   data,
   total,
 }: {
-  data: Array<{ label: string; value: number }>;
+  data: Array<{ label: string; value: number; color: string }>;
   total: number;
 }) {
   if (data.length === 0 || total === 0) {
@@ -117,7 +117,7 @@ function SentimentRing({
     const gap = circumference - dashLen;
     const offset = -accumulated * circumference;
     accumulated += pct;
-    const color = SENTIMIENTO_COLORS[d.label.toLowerCase()] || '#06b6d4';
+    const color = d.color;
     return { ...d, pct, dashLen, gap, offset, color };
   });
 
@@ -184,6 +184,7 @@ export function MiniCharts({ porNivel, porSentimiento, porTipoMencion, totalMenc
   const sentimientoData = (porSentimiento || []).map(item => ({
     label: SENTIMIENTO_LABELS[item.sentimiento] || item.sentimiento,
     value: item.total,
+    color: SENTIMIENTO_COLORS[item.sentimiento] || '#06b6d4',
   }));
   const sentimientoTotal = sentimientoData.reduce((s, d) => s + d.value, 0);
 
