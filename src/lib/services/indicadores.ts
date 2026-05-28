@@ -275,6 +275,63 @@ const INDICADOR_META: Readonly<Record<SlugIndicador, IndicadorMeta>> = {
     moneda: 'BOB',
     categoria: 'tipo_cambio',
   },
+  // Divisas internacionales relevantes para comercio exterior boliviano
+  'fx-eur-usd': {
+    nombre: 'Euro / Dólar (EUR/USD)',
+    unidad: 'USD/EUR',
+    moneda: 'EUR',
+    categoria: 'tipo_cambio',
+    yahooSymbol: 'EURUSD=X',
+  },
+  'fx-cny-usd': {
+    nombre: 'Yuan / Dólar (USD/CNY)',
+    unidad: 'CNY/USD',
+    moneda: 'CNY',
+    categoria: 'tipo_cambio',
+    yahooSymbol: 'CNY=X',
+  },
+  'fx-brl-usd': {
+    nombre: 'Real Brasileño / Dólar (USD/BRL)',
+    unidad: 'BRL/USD',
+    moneda: 'BRL',
+    categoria: 'tipo_cambio',
+    yahooSymbol: 'BRL=X',
+  },
+  'fx-pen-usd': {
+    nombre: 'Sol Peruano / Dólar (USD/PEN)',
+    unidad: 'PEN/USD',
+    moneda: 'PEN',
+    categoria: 'tipo_cambio',
+    yahooSymbol: 'PEN=X',
+  },
+  'fx-clp-usd': {
+    nombre: 'Peso Chileno / Dólar (USD/CLP)',
+    unidad: 'CLP/USD',
+    moneda: 'CLP',
+    categoria: 'tipo_cambio',
+    yahooSymbol: 'CLP=X',
+  },
+  'fx-ars-usd': {
+    nombre: 'Peso Argentino / Dólar (USD/ARS)',
+    unidad: 'ARS/USD',
+    moneda: 'ARS',
+    categoria: 'tipo_cambio',
+    yahooSymbol: 'ARS=X',
+  },
+  'fx-pyg-usd': {
+    nombre: 'Guaraní Paraguayo / Dólar (USD/PYG)',
+    unidad: 'PYG/USD',
+    moneda: 'PYG',
+    categoria: 'tipo_cambio',
+    yahooSymbol: 'PYG=X',
+  },
+  'fx-jpy-usd': {
+    nombre: 'Yen Japonés / Dólar (USD/JPY)',
+    unidad: 'JPY/USD',
+    moneda: 'JPY',
+    categoria: 'tipo_cambio',
+    yahooSymbol: 'JPY=X',
+  },
   'reservas-internacionales': {
     nombre: 'Reservas Internacionales Netas',
     unidad: 'MM USD',
@@ -598,6 +655,79 @@ const FUENTES_POR_INDICADOR: Readonly<
       timeout: DEFAULT_TIMEOUT,
     },
   ],
+  // Divisas internacionales — Yahoo Finance API
+  'fx-eur-usd': [
+    {
+      nombre: 'Yahoo Finance (EUR/USD)',
+      url: 'https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1d&range=2d',
+      tipo: 'api',
+      activa: true,
+      timeout: DEFAULT_TIMEOUT,
+    },
+  ],
+  'fx-cny-usd': [
+    {
+      nombre: 'Yahoo Finance (USD/CNY)',
+      url: 'https://query1.finance.yahoo.com/v8/finance/chart/CNY=X?interval=1d&range=2d',
+      tipo: 'api',
+      activa: true,
+      timeout: DEFAULT_TIMEOUT,
+    },
+  ],
+  'fx-brl-usd': [
+    {
+      nombre: 'Yahoo Finance (USD/BRL)',
+      url: 'https://query1.finance.yahoo.com/v8/finance/chart/BRL=X?interval=1d&range=2d',
+      tipo: 'api',
+      activa: true,
+      timeout: DEFAULT_TIMEOUT,
+    },
+  ],
+  'fx-pen-usd': [
+    {
+      nombre: 'Yahoo Finance (USD/PEN)',
+      url: 'https://query1.finance.yahoo.com/v8/finance/chart/PEN=X?interval=1d&range=2d',
+      tipo: 'api',
+      activa: true,
+      timeout: DEFAULT_TIMEOUT,
+    },
+  ],
+  'fx-clp-usd': [
+    {
+      nombre: 'Yahoo Finance (USD/CLP)',
+      url: 'https://query1.finance.yahoo.com/v8/finance/chart/CLP=X?interval=1d&range=2d',
+      tipo: 'api',
+      activa: true,
+      timeout: DEFAULT_TIMEOUT,
+    },
+  ],
+  'fx-ars-usd': [
+    {
+      nombre: 'Yahoo Finance (USD/ARS)',
+      url: 'https://query1.finance.yahoo.com/v8/finance/chart/ARS=X?interval=1d&range=2d',
+      tipo: 'api',
+      activa: true,
+      timeout: DEFAULT_TIMEOUT,
+    },
+  ],
+  'fx-pyg-usd': [
+    {
+      nombre: 'Yahoo Finance (USD/PYG)',
+      url: 'https://query1.finance.yahoo.com/v8/finance/chart/PYG=X?interval=1d&range=2d',
+      tipo: 'api',
+      activa: true,
+      timeout: DEFAULT_TIMEOUT,
+    },
+  ],
+  'fx-jpy-usd': [
+    {
+      nombre: 'Yahoo Finance (USD/JPY)',
+      url: 'https://query1.finance.yahoo.com/v8/finance/chart/JPY=X?interval=1d&range=2d',
+      tipo: 'api',
+      activa: true,
+      timeout: DEFAULT_TIMEOUT,
+    },
+  ],
   // Reservas
   'reservas-internacionales': [
     {
@@ -662,8 +792,8 @@ const CATEGORIAS: Readonly<CategoriaInfo[]> = [
   {
     slug: 'tipo_cambio',
     nombre: 'Tipo de Cambio',
-    descripcion: 'Tipos de cambio oficial y paralelo del boliviano',
-    indicadores: ['tc-oficial-bcb', 'tc-paralelo'],
+    descripcion: 'Tipos de cambio oficial y paralelo del boliviano + principales divisas internacionales',
+    indicadores: ['tc-oficial-bcb', 'tc-paralelo', 'fx-eur-usd', 'fx-cny-usd', 'fx-brl-usd', 'fx-pen-usd', 'fx-clp-usd', 'fx-ars-usd', 'fx-pyg-usd', 'fx-jpy-usd'],
   },
   {
     slug: 'reservas',
@@ -750,6 +880,14 @@ const knownValues: Readonly<Record<SlugIndicador, number>> = {
   'salud-esperanza-vida': 65.0,
   'tc-oficial-bcb': 6.91,
   'tc-paralelo': 7.12,
+  'fx-eur-usd': 0.92,
+  'fx-cny-usd': 7.25,
+  'fx-brl-usd': 5.70,
+  'fx-pen-usd': 3.72,
+  'fx-clp-usd': 960,
+  'fx-ars-usd': 1150,
+  'fx-pyg-usd': 7850,
+  'fx-jpy-usd': 149.5,
   'reservas-internacionales': 18_500,
   'produccion-gas': 42.5,
   'produccion-petroleo': 44_000,
