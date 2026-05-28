@@ -1,6 +1,7 @@
 /**
  * Capturer Tier 1 — Capturadores individuales
- * Scraper BCB para TC Oficial y fetcher LME/Yahoo/Stooq para metales y commodities.
+ * TC Oficial BCB: Yahoo Finance (BOB=X) + scraper BCB como respaldo.
+ * LME/Yahoo/Stooq para metales y commodities.
  */
 
 import { fetchIndicadores } from '@/lib/services/indicadores'
@@ -12,6 +13,30 @@ import type { CapturaResult } from './capturer-tier1.config'
 export async function capturarTcOficial(): Promise<CapturaResult> {
   const fecha = new Date()
 
+  // Estrategia 1: Yahoo Finance BOB=X (confiable, rápida)
+  try {
+    const yahooUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/BOB=X?interval=1d&range=2d'
+    const resp = await fetch(yahooUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+      signal: AbortSignal.timeout(10000),
+    })
+    if (resp.ok) {
+      const data = await resp.json()
+      const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice
+      if (price && price > 5 && price < 12) {
+        return {
+          slug: 'tc-oficial-bcb',
+          valor: Number(price.toFixed(2)),
+          valorTexto: `${price.toFixed(2)} Bs/USD`,
+          confiable: true,
+          fecha,
+          metadata: JSON.stringify({ fuente: 'Yahoo Finance (BOB=X)', metodo: 'api_yahoo' }),
+        }
+      }
+    }
+  } catch { /* seguir al respaldo */ }
+
+  // Estrategia 2: Scraper BCB (la página ahora carga datos vía JS, puede fallar)
   try {
     const response = await fetch('https://www.bcb.gob.bo/?q=cotizaciones_tc', {
       headers: {
@@ -21,67 +46,36 @@ export async function capturarTcOficial(): Promise<CapturaResult> {
       signal: AbortSignal.timeout(15000),
     })
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-    }
+    if (response.ok) {
+      const html = await response.text()
 
-    const html = await response.text()
-
-    // Parseo: buscar "Tipo de cambio Bs por 1 Dólar USA" y luego "Venta" con número
-    // La nueva página muestra: Compra 6,86 y Venta 6,96
-    let valor = 0
-
-    // Buscar patrón "Venta" seguido de un número con formato boliviano (X,XX)
-    const ventaPattern = /Venta[\s\S]*?(\d+)[,.](\d{2})/i
-    const ventaMatch = ventaPattern.exec(html)
-    if (ventaMatch) {
-      valor = parseFloat(`${ventaMatch[1]}.${ventaMatch[2]}`)
-    }
-
-    // Fallback: buscar cualquier número en rango tipo de cambio (6.50 - 10.50)
-    if (valor === 0) {
-      const tcPattern = /(\d+)[.,](\d{2})/g
-      let match = tcPattern.exec(html)
-      while (match !== null) {
-        const num = parseFloat(`${match[1]}.${match[2]}`)
-        if (num >= 6.5 && num <= 10.5) {
-          valor = num
-          break
+      // Buscar patrón "Venta" seguido de un número con formato boliviano (X,XX)
+      const ventaPattern = /Venta[\s\S]*?(\d+)[,.](\d{2})/i
+      const ventaMatch = ventaPattern.exec(html)
+      if (ventaMatch) {
+        const valor = parseFloat(`${ventaMatch[1]}.${ventaMatch[2]}`)
+        if (valor >= 6 && valor <= 10) {
+          return {
+            slug: 'tc-oficial-bcb',
+            valor,
+            valorTexto: `${valor.toFixed(2)} Bs/USD`,
+            confiable: true,
+            fecha,
+            metadata: JSON.stringify({ fuente: 'bcb.gob.bo', metodo: 'html_scraping' }),
+          }
         }
-        match = tcPattern.exec(html)
       }
     }
+  } catch { /* seguir al fallback */ }
 
-    if (valor === 0) {
-      // Fallback: valor por defecto si no se puede parsear
-      valor = 6.96
-      return {
-        slug: 'tc-oficial-bcb',
-        valor,
-        valorTexto: `${valor.toFixed(2)} Bs/USD`,
-        confiable: false,
-        fecha,
-        metadata: JSON.stringify({ error: 'No se encontró patrón TC en HTML', url: 'bcb.gob.bo' }),
-      }
-    }
-
-    return {
-      slug: 'tc-oficial-bcb',
-      valor,
-      valorTexto: `${valor.toFixed(2)} Bs/USD`,
-      confiable: true,
-      fecha,
-      metadata: JSON.stringify({ fuente: 'bcb.gob.bo', metodo: 'html_scraping' }),
-    }
-  } catch (error) {
-    return {
-      slug: 'tc-oficial-bcb',
-      valor: 0,
-      valorTexto: 'N/D',
-      confiable: false,
-      fecha,
-      metadata: JSON.stringify({ error: error instanceof Error ? error.message : 'unknown' }),
-    }
+  // Fallback: valor estático (señalar como no confiable)
+  return {
+    slug: 'tc-oficial-bcb',
+    valor: 6.91,
+    valorTexto: '6.91 Bs/USD',
+    confiable: false,
+    fecha,
+    metadata: JSON.stringify({ error: 'Yahoo y BCB fallaron', metodo: 'fallback_estatico' }),
   }
 }
 
