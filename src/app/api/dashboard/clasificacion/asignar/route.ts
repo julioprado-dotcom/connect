@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     // Validate menciones exist
     const menciones = await db.mencion.findMany({
-      where: { id: { in: mencionIds } },
+      where: { id: { in: validMencionIds } },
       select: { id: true, tratamientoPeriodistico: true },
     });
 
@@ -76,63 +76,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Batch: delete + createMany instead of N upserts (4 queries vs 2N)
+    const validMencionIds = menciones.map(m => m.id);
     let asignadas = 0;
     const mencionesToUpdate: string[] = [];
 
+    if (ejeTematicoId) {
+      try {
+        await db.mencionTema.deleteMany({
+          where: { mencionId: { in: validMencionIds }, ejeTematicoId },
+        });
+        await db.mencionTema.createMany({
+          data: menciones.map(m => ({
+            id: crypto.randomUUID(),
+            mencionId: m.id,
+            ejeTematicoId,
+          })),
+          skipDuplicates: true,
+        });
+      } catch (err) {
+        console.warn('[asignar] Error al asignar MencionTema:', err);
+      }
+    }
+
+    if (lenteId) {
+      try {
+        await db.mencionLente.deleteMany({
+          where: { mencionId: { in: validMencionIds }, lenteId },
+        });
+        await db.mencionLente.createMany({
+          data: menciones.map(m => ({
+            id: crypto.randomUUID(),
+            mencionId: m.id,
+            lenteId,
+          })),
+          skipDuplicates: true,
+        });
+      } catch (err) {
+        console.warn('[asignar] Error al asignar MencionLente:', err);
+      }
+    }
+
     for (const mencion of menciones) {
-      // Upsert MencionTema if ejeTematicoId provided
-      if (ejeTematicoId) {
-        try {
-          await db.mencionTema.upsert({
-            where: {
-              mencionId_ejeTematicoId: {
-                mencionId: mencion.id,
-                ejeTematicoId,
-              },
-            },
-            create: {
-              id: crypto.randomUUID(),
-              mencionId: mencion.id,
-              ejeTematicoId,
-            },
-            update: {
-              ejeTematicoId,
-            },
-          });
-        } catch (err) {
-          console.warn(`[asignar] Error al upsertar MencionTema para ${mencion.id}:`, err);
-        }
-      }
-
-      // Upsert MencionLente if lenteId provided
-      if (lenteId) {
-        try {
-          await db.mencionLente.upsert({
-            where: {
-              mencionId_lenteId: {
-                mencionId: mencion.id,
-                lenteId,
-              },
-            },
-            create: {
-              id: crypto.randomUUID(),
-              mencionId: mencion.id,
-              lenteId,
-            },
-            update: {
-              lenteId,
-            },
-          });
-        } catch (err) {
-          console.warn(`[asignar] Error al upsertar MencionLente para ${mencion.id}:`, err);
-        }
-      }
-
-      // Track menciones that need tratamientoPeriodistico update
       if (!mencion.tratamientoPeriodistico) {
         mencionesToUpdate.push(mencion.id);
       }
-
       asignadas++;
     }
 

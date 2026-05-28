@@ -56,17 +56,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Auto-classify: suggest naturaleza for medios with .gob.bo
+    // Auto-classify: suggest naturaleza for medios with .gob.bo (batch updateMany)
     const gobMedios = await db.medio.findMany({
       where: { 
         url: { contains: '.gob.bo' },
         naturaleza: { not: 'ESTATAL' },
       },
     });
-    for (const m of gobMedios) {
-      await db.medio.update({ where: { id: m.id }, data: { naturaleza: 'ESTATAL' } });
-      results.push({ nombre: m.nombre, action: 'CLASIFICADO', detail: 'Naturaleza sugerida: ESTATAL (dominio .gob.bo)' });
-      fixed++;
+    if (gobMedios.length > 0) {
+      await db.medio.updateMany({
+        where: { id: { in: gobMedios.map(m => m.id) } },
+        data: { naturaleza: 'ESTATAL' },
+      });
+      for (const m of gobMedios) {
+        results.push({ nombre: m.nombre, action: 'CLASIFICADO', detail: 'Naturaleza sugerida: ESTATAL (dominio .gob.bo)' });
+        fixed++;
+      }
     }
 
     return NextResponse.json({

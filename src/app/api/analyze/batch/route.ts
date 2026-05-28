@@ -67,16 +67,18 @@ export async function POST(request: NextRequest) {
               },
             });
 
-            // Vincular ejes temáticos si se detectaron
+            // Vincular ejes temáticos si se detectaron (batch createMany)
             if (extraccion.ejes_mencionados.length > 0) {
-              for (const eje of extraccion.ejes_mencionados) {
-                try {
-                  await db.mencionTema.create({
-                    data: { mencionId: mencion.id, ejeTematicoId: eje.eje_id },
-                  });
-                } catch {
-                  // Duplicado o error, ignorar
-                }
+              try {
+                await db.mencionTema.createMany({
+                  data: extraccion.ejes_mencionados.map(e => ({
+                    mencionId: mencion.id,
+                    ejeTematicoId: eje.eje_id,
+                  })),
+                  skipDuplicates: true,
+                });
+              } catch {
+                // Duplicado o error, ignorar
               }
             }
 
@@ -89,7 +91,7 @@ export async function POST(request: NextRequest) {
                     where: { personaId: leg.persona_id, medioId: mencion.medioId, url: mencion.url },
                   });
                   if (!existente) {
-                    await db.mencion.create({
+                    const nuevaMencion = await db.mencion.create({
                       data: {
                         id: crypto.randomUUID(),
                         personaId: leg.persona_id,
@@ -110,13 +112,15 @@ export async function POST(request: NextRequest) {
                     });
 
                     if (extraccion.ejes_mencionados.length > 0) {
-                      for (const eje of extraccion.ejes_mencionados) {
-                        try {
-                          await db.mencionTema.create({
-                            data: { mencionId: mencion.id, ejeTematicoId: eje.eje_id },
-                          });
-                        } catch { /* ignore */ }
-                      }
+                      try {
+                        await db.mencionTema.createMany({
+                          data: extraccion.ejes_mencionados.map(e => ({
+                            mencionId: nuevaMencion.id,
+                            ejeTematicoId: eje.eje_id,
+                          })),
+                          skipDuplicates: true,
+                        });
+                      } catch { /* ignore */ }
                     }
                   }
                 } catch { /* ignore */ }

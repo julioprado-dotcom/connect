@@ -51,17 +51,23 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}))
     const confirmed = body?.confirm === true
 
-    // Count records in tables to be deleted
-    const deleteCounts: Record<string, number> = {}
-    for (const table of TABLES_TO_DELETE) {
-      deleteCounts[table] = await countTable(table)
-    }
+    // Count records in all tables in parallel (2 Promise.all instead of 18 sequential)
+    const [deleteEntries, preserveEntries] = await Promise.all([
+      Promise.all(TABLES_TO_DELETE.map(async (table) => {
+        const count = await countTable(table);
+        return { table, count };
+      })),
+      Promise.all(TABLES_TO_PRESERVE.map(async (table) => {
+        const count = await countTable(table);
+        return { table, count };
+      })),
+    ]);
 
-    // Count records in preserved tables
-    const preserveCounts: Record<string, number> = {}
-    for (const table of TABLES_TO_PRESERVE) {
-      preserveCounts[table] = await countTable(table)
-    }
+    const deleteCounts: Record<string, number> = {};
+    for (const { table, count } of deleteEntries) deleteCounts[table] = count;
+
+    const preserveCounts: Record<string, number> = {};
+    for (const { table, count } of preserveEntries) preserveCounts[table] = count;
 
     // If not confirmed, return a preview
     if (!confirmed) {

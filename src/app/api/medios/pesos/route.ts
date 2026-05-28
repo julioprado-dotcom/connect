@@ -27,7 +27,7 @@ export async function POST() {
       },
     });
 
-    // Count menciones per medio (simple query)
+    // Count menciones per medio (single raw query)
     const mencionesCounts = new Map<string, number>()
     try {
       const counts = await db.$queryRaw<Array<{ medioId: string; count: number }>>(
@@ -40,29 +40,30 @@ export async function POST() {
       // Skip mention counts if query fails
     }
 
-    let updated = 0
-    await db.$transaction(async (tx) => {
-      for (const medio of medios) {
-        const peso = calcularPesoInformativo({
-          nombre: medio.nombre,
-          credibilidad: medio.credibilidad,
-          ambito: medio.ambito,
-          naturaleza: medio.naturaleza,
-          nivel: medio.nivel,
-          tipo: medio.tipo,
-          mencionesCount: mencionesCounts.get(medio.id) || 0,
-        })
+    // Compute all pesos in memory (no DB needed for computation)
+    const pesos = medios.map(medio => ({
+      id: medio.id,
+      peso: calcularPesoInformativo({
+        nombre: medio.nombre,
+        credibilidad: medio.credibilidad,
+        ambito: medio.ambito,
+        naturaleza: medio.naturaleza,
+        nivel: medio.nivel,
+        tipo: medio.tipo,
+        mencionesCount: mencionesCounts.get(medio.id) || 0,
+      }),
+    }));
 
-        await tx.medio.update({
-          where: { id: medio.id },
-          data: { pesoInformativo: peso },
-        })
-        updated++
-      }
-    })
+    // Batch update: use raw SQL CASE for single query instead of N individual updates
+    if (pesos.length > 0) {
+      const caseParts = pesos.map(p => `WHEN '${p.id}' THEN ${p.peso}`).join(' ');
+      await db.$executeRawUnsafe(
+        `UPDATE Medio SET pesoInformativo = CASE id ${caseParts} END WHERE id IN (${pesos.map(p => `'${p.id}'`).join(',')})`
+      );
+    }
 
     return NextResponse.json({
-      message: `${updated} medios actualizados`,
+      message: `${pesos.length} medios actualizados`,
       totalMedios: medios.length,
     })
   } catch (error: unknown) {

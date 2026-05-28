@@ -65,34 +65,39 @@ export async function POST(request: NextRequest) {
     const mencionesPorEje: Record<string, Array<Record<string, unknown>>> = {};
     const totalMencionesPorEje: Record<string, number> = {};
 
-    for (const slug of EJES_TEOMATICOS) {
-      const menciones = await db.mencion.findMany({
-        where: {
-          fechaCaptura: {
-            gte: range.fechaInicio,
-            lte: range.fechaFin,
-          },
-          MencionTema: {
-            some: {
-              EjeTematico: { slug },
+    // Parallel: fetch menciones for all 11 ejes at once (11 sequential → 1 Promise.all)
+    const ejeResults = await Promise.all(
+      EJES_TEOMATICOS.map(async (slug) => {
+        const menciones = await db.mencion.findMany({
+          where: {
+            fechaCaptura: {
+              gte: range.fechaInicio,
+              lte: range.fechaFin,
+            },
+            MencionTema: {
+              some: {
+                EjeTematico: { slug },
+              },
             },
           },
-        },
-        include: {
-          Medio: { select: { nombre: true } },
-          Persona: { select: { nombre: true } },
-        },
-        orderBy: { fechaPublicacion: 'desc' },
-        take: 10,
-      });
+          include: {
+            Medio: { select: { nombre: true } },
+            Persona: { select: { nombre: true } },
+          },
+          orderBy: { fechaPublicacion: 'desc' },
+          take: 10,
+        });
+        return { slug, menciones };
+      })
+    );
 
+    for (const { slug, menciones } of ejeResults) {
       mencionesPorEje[slug] = menciones.map((m) => ({
         titulo: m.titulo,
         medio: m.Medio?.nombre ?? null,
         persona: m.Persona?.nombre ?? null,
         sentimiento: m.sentimiento,
       }));
-
       totalMencionesPorEje[slug] = menciones.length;
     }
 

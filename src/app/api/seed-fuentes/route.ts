@@ -50,61 +50,90 @@ export async function POST(request: NextRequest) {
     })
     const existentesSet = new Set(existentes.map((e) => e.medioId))
 
-    // 3. Crear FuenteEstado para medios que no tienen
+    // 3. Crear FuenteEstado para medios que no tienen (batch: collect then createMany)
     let creados = 0
     let saltados = 0
     const detalles: Array<{ medio: string; estado: string; razon?: string }> = []
 
+    const fuentesToCreate: Array<Record<string, unknown>> = []
+    const fuentesToUpdate: Array<{ medioId: string; url: string; tipoCheck: string; frecuenciaBase: string }> = []
+    const mediosToSkip: Array<{ nombre: string; razon: string }> = []
+
     for (const medio of medios) {
-      // Ya existe
       if (existentesSet.has(medio.id) && !forzar) {
         saltados++
-        detalles.push({ medio: medio.nombre, estado: 'saltado', razon: 'ya existe' })
+        mediosToSkip.push({ nombre: medio.nombre, razon: 'ya existe' })
         continue
       }
-
-      // Sin URL — no se puede monitorear
       if (!medio.url) {
         saltados++
-        detalles.push({ medio: medio.nombre, estado: 'saltado', razon: 'sin URL' })
+        mediosToSkip.push({ nombre: medio.nombre, razon: 'sin URL' })
         continue
       }
 
       const frecuenciaBase = FRECUENCIA_POR_NIVEL[medio.nivel] || '6h'
       const tipoCheck = tipoCheckParaCategoria(medio.tipo)
 
+      if (forzar && existentesSet.has(medio.id)) {
+        fuentesToUpdate.push({ medioId: medio.id, url: medio.url, tipoCheck, frecuenciaBase })
+      } else {
+        fuentesToCreate.push({
+          id: `fe-${medio.id}`,
+          medioId: medio.id,
+          url: medio.url,
+          tipoCheck,
+          frecuenciaBase,
+          frecuenciaActual: frecuenciaBase,
+          activo: medio.nivel === '1',
+        })
+      }
+    }
+
+    // Batch create new fuentes
+    if (fuentesToCreate.length > 0) {
       try {
-        // upsert: crear o actualizar si existe y forzar=true
-        await db.fuenteEstado.upsert({
-          where: { medioId: medio.id },
-          create: {
-            id: `fe-${medio.id}`,
-            medioId: medio.id,
-            url: medio.url,
-            tipoCheck,
-            frecuenciaBase,
-            frecuenciaActual: frecuenciaBase,
-            activo: medio.nivel === '1', // Fase test: solo nivel 1 activo
-          },
-          update: forzar ? {
-            url: medio.url,
-            tipoCheck,
-            frecuenciaBase,
-            frecuenciaActual: frecuenciaBase,
-            activo: medio.nivel === '1',
-          } : {},
-        })
-        creados++
-        detalles.push({
-          medio: medio.nombre,
-          estado: 'creado',
-          razon: `nivel ${medio.nivel}, freq ${frecuenciaBase}, check ${tipoCheck}, activo ${medio.nivel === '1'}`,
-        })
+        const result = await db.fuenteEstado.createMany({ data: fuentesToCreate, skipDuplicates: true })
+        creados += result.count
+        for (const medio of medios) {
+          const found = fuentesToCreate.find(f => f.medioId === medio.id)
+          if (found) {
+            detalles.push({
+              medio: medio.nombre,
+              estado: 'creado',
+              razon: `nivel ${medio.nivel}, freq ${(found as Record<string, string>).frecuenciaBase}, check ${(found as Record<string, string>).tipoCheck}, activo ${medio.nivel === '1'}`,
+            })
+          }
+        }
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error)
-        saltados++
-        detalles.push({ medio: medio.nombre, estado: 'error', razon: msg })
+        detalles.push({ medio: 'batch', estado: 'error', razon: msg })
       }
+    }
+
+    // Batch update existing fuentes (when forzar=true)
+    if (fuentesToUpdate.length > 0) {
+      try {
+        await Promise.all(fuentesToUpdate.map(f =>
+          db.fuenteEstado.update({
+            where: { medioId: f.medioId },
+            data: { url: f.url, tipoCheck: f.tipoCheck, frecuenciaBase: f.frecuenciaBase, frecuenciaActual: f.frecuenciaBase, activo: true },
+          })
+        ))
+        creados += fuentesToUpdate.length
+        for (const f of fuentesToUpdate) {
+          const medio = medios.find(m => m.id === f.medioId)
+          if (medio) {
+            detalles.push({ medio: medio.nombre, estado: 'actualizado', razon: `freq ${f.frecuenciaBase}, check ${f.tipoCheck}` })
+          }
+        }
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error)
+        detalles.push({ medio: 'batch-update', estado: 'error', razon: msg })
+      }
+    }
+
+    for (const s of mediosToSkip) {
+      detalles.push({ medio: s.nombre, estado: 'saltado', razon: s.razon })
     }
 
     return NextResponse.json({

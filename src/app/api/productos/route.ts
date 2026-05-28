@@ -137,61 +137,130 @@ export async function POST(request: NextRequest) {
       error?: string
     }> = []
 
+    // Pre-fetch all medios by name (batch: avoid N findFirst calls)
+    const fuentesNombres = faseConfig.fuentes.map(f => f.nombre)
+    const mediosExistentes = await db.medio.findMany({
+      where: { nombre: { in: fuentesNombres } },
+      select: { id: true, nombre: true },
+    })
+    const mediosMap = new Map(mediosExistentes.map(m => [m.nombre, m.id]))
+
+    // Pre-fetch existing fuenteEstados for these medios
+    const mediosIds = mediosExistentes.map(m => m.id)
+    const fuentesExistentes = mediosIds.length > 0
+      ? await db.fuenteEstado.findMany({
+          where: { medioId: { in: mediosIds } },
+          select: { id: true, medioId: true, activo: true },
+        })
+      : []
+    const fuentesMap = new Map(fuentesExistentes.map(f => [f.medioId, f]))
+
+    // Collect medios to create and fuenteEstados to create/update
+    const mediosToCreate: Array<Record<string, unknown>> = []
+    const fuenteEstadosToCreate: Array<{ medioId: string; url: string; tipoCheck: string; frecuenciaBase: string }> = []
+    const fuenteEstadosToActivate: string[] = []
+    const fuenteErrors: Array<{ nombre: string; error: string }> = []
+
     for (const fuente of faseConfig.fuentes) {
+      const medioId = mediosMap.get(fuente.nombre)
+      if (!medioId) {
+        // Need to create medio
+        mediosToCreate.push({
+          nombre: fuente.nombre,
+          url: fuente.url,
+          tipo: 'Digital',
+          nivel: fuente.nivel,
+          departamento: fuente.departamento || null,
+        })
+        continue
+      }
+
+      const existente = fuentesMap.get(medioId)
+      if (!existente) {
+        fuenteEstadosToCreate.push({ medioId, url: fuente.rssUrl || fuente.url, tipoCheck: fuente.tipoCheck, frecuenciaBase: fuente.frecuenciaBase })
+      } else if (!existente.activo) {
+        fuenteEstadosToActivate.push(existente.id)
+      }
+    }
+
+    // Batch create new medios
+    if (mediosToCreate.length > 0) {
       try {
-        // 1. Buscar el medio en la DB
-        const medio = await db.medio.findFirst({
-          where: { nombre: fuente.nombre },
+        const createdMedios = await db.medio.createMany({ data: mediosToCreate, skipDuplicates: true })
+        // Re-fetch to get IDs
+        const newMedios = await db.medio.findMany({
+          where: { nombre: { in: mediosToCreate.map(m => m.nombre as string) } },
+          select: { id: true, nombre: true },
         })
-
-        if (!medio) {
-          // Crear medio si no existe
-          const nuevoMedio = await db.medio.create({
-            data: {
-              nombre: fuente.nombre,
-              url: fuente.url,
-              tipo: 'Digital',
-              nivel: fuente.nivel,
-              departamento: fuente.departamento || null,
-            },
-          })
-
-          // Crear FuenteEstado
-          await crearFuenteEstado(nuevoMedio.id, fuente)
-          resultados.push({ nombre: fuente.nombre, estado: 'creada', fuenteEstadoId: nuevoMedio.id })
-          continue
-        }
-
-        // 2. Verificar si ya tiene FuenteEstado
-        const existente = await db.fuenteEstado.findUnique({
-          where: { medioId: medio.id },
-        })
-
-        if (existente) {
-          // Activar si estaba inactiva
-          if (!existente.activo) {
-            await db.fuenteEstado.update({
-              where: { id: existente.id },
-              data: {
-                activo: true,
-                url: fuente.rssUrl || fuente.url,
-                tipoCheck: fuente.tipoCheck,
-                frecuenciaBase: fuente.frecuenciaBase,
-              },
-            })
-            resultados.push({ nombre: fuente.nombre, estado: 'activada', fuenteEstadoId: existente.id })
-          } else {
-            resultados.push({ nombre: fuente.nombre, estado: 'ya_existia', fuenteEstadoId: existente.id })
+        for (const nm of newMedios) {
+          const fuente = faseConfig.fuentes.find(f => f.nombre === nm.nombre)
+          if (fuente) {
+            fuenteEstadosToCreate.push({ medioId: nm.id, url: fuente.rssUrl || fuente.url, tipoCheck: fuente.tipoCheck, frecuenciaBase: fuente.frecuenciaBase })
+            resultados.push({ nombre: nm.nombre, estado: 'creada', fuenteEstadoId: nm.id })
           }
-        } else {
-          // Crear FuenteEstado para medio existente
-          await crearFuenteEstado(medio.id, fuente)
-          resultados.push({ nombre: fuente.nombre, estado: 'creada', fuenteEstadoId: medio.id })
         }
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error)
-        resultados.push({ nombre: fuente.nombre, estado: 'error', error: msg })
+        for (const m of mediosToCreate) {
+          fuenteErrors.push({ nombre: m.nombre as string, error: msg })
+        }
       }
+    }
+
+    // Batch create new fuenteEstados
+    if (fuenteEstadosToCreate.length > 0) {
+      try {
+        await db.fuenteEstado.createMany({
+          data: fuenteEstadosToCreate.map(f => ({
+            medioId: f.medioId,
+            url: f.url,
+            tipoCheck: f.tipoCheck,
+            frecuenciaBase: f.frecuenciaBase,
+            frecuenciaActual: f.frecuenciaBase,
+            activo: true,
+          })),
+          skipDuplicates: true,
+        })
+        for (const f of fuenteEstadosToCreate) {
+          const medio = mediosExistentes.find(m => m.id === f.medioId)
+          if (medio) resultados.push({ nombre: medio.nombre, estado: 'creada', fuenteEstadoId: f.medioId })
+        }
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error)
+        for (const f of fuenteEstadosToCreate) {
+          const medio = mediosExistentes.find(m => m.id === f.medioId)
+          if (medio) fuenteErrors.push({ nombre: medio.nombre, error: msg })
+        }
+      }
+    }
+
+    // Batch activate inactive fuenteEstados
+    if (fuenteEstadosToActivate.length > 0) {
+      await db.fuenteEstado.updateMany({
+        where: { id: { in: fuenteEstadosToActivate } },
+        data: { activo: true },
+      })
+      for (const fid of fuenteEstadosToActivate) {
+        const fe = fuentesExistentes.find(f => f.id === fid)
+        const medio = mediosExistentes.find(m => m.id === fe?.medioId)
+        if (medio) resultados.push({ nombre: medio.nombre, estado: 'activada', fuenteEstadoId: fid })
+      }
+    }
+
+    // Add ya_existia entries
+    for (const fuente of faseConfig.fuentes) {
+      const medioId = mediosMap.get(fuente.nombre)
+      if (medioId) {
+        const existente = fuentesMap.get(medioId)
+        if (existente && existente.activo && !resultados.find(r => r.nombre === fuente.nombre)) {
+          resultados.push({ nombre: fuente.nombre, estado: 'ya_existia', fuenteEstadoId: existente.id })
+        }
+      }
+    }
+
+    // Add errors
+    for (const e of fuenteErrors) {
+      resultados.push({ nombre: e.nombre, estado: 'error', error: e.error })
     }
 
     // 3. Intentar reschedulear el sistema de jobs

@@ -124,47 +124,46 @@ export async function POST(request: NextRequest) {
         })
       );
 
+      // Batch DB updates instead of N individual updates
+      const activeIds: string[] = [];
+      const inactiveIds: string[] = [];
+
       for (const result of results) {
         if (result.status === 'fulfilled') {
           const r = result.value;
           detalles.push(r);
           if (r.activo) {
             activos++;
+            activeIds.push(r.id);
           } else {
             rotos++;
+            inactiveIds.push(r.id);
           }
-
-          // Update DB
-          await db.mencion.update({
-            where: { id: r.id },
-            data: {
-              enlaceActivo: r.activo,
-              fechaVerificacion: new Date(),
-            },
-          });
         } else {
           rotos++;
-          // Still update DB for failed verifications
-          if (batch.length > 0) {
-            const idx = results.indexOf(result);
-            if (idx >= 0 && batch[idx]) {
-              detalles.push({
-                id: batch[idx].id,
-                url: batch[idx].url,
-                status: 'error_verificacion',
-                activo: false,
-              });
-              await db.mencion.update({
-                where: { id: batch[idx].id },
-                data: {
-                  enlaceActivo: false,
-                  fechaVerificacion: new Date(),
-                },
-              });
-            }
+          const idx = results.indexOf(result);
+          if (idx >= 0 && batch[idx]) {
+            detalles.push({
+              id: batch[idx].id,
+              url: batch[idx].url,
+              status: 'error_verificacion',
+              activo: false,
+            });
+            inactiveIds.push(batch[idx].id);
           }
         }
       }
+
+      // Batch update: active and inactive in parallel (2 queries vs N)
+      const now = new Date();
+      await Promise.all([
+        activeIds.length > 0
+          ? db.mencion.updateMany({ where: { id: { in: activeIds } }, data: { enlaceActivo: true, fechaVerificacion: now } })
+          : Promise.resolve(),
+        inactiveIds.length > 0
+          ? db.mencion.updateMany({ where: { id: { in: inactiveIds } }, data: { enlaceActivo: false, fechaVerificacion: now } })
+          : Promise.resolve(),
+      ]);
     }
 
     return NextResponse.json({

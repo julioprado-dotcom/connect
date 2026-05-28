@@ -219,19 +219,31 @@ async function handleAnadirKeywords(
     .map(k => k.trim().replace(/^['"]|['"]$/g, ''))
     .filter(k => k.length > 2);
 
+  // Batch: createMany instead of N individual creates
   const created: string[] = [];
-  for (const termino of newKeywords) {
-    try {
-      await db.keyword.create({
-        data: {
-          id: `kw_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
-          termino,
-          updatedAt: new Date(),
-        },
-      });
-      created.push(termino);
-    } catch {
-      // Keyword might already exist, skip
+  if (newKeywords.length > 0) {
+    // Check existing to avoid duplicates
+    const existing = await db.keyword.findMany({
+      where: { termino: { in: newKeywords } },
+      select: { termino: true },
+    });
+    const existingSet = new Set(existing.map(k => k.termino));
+    const toCreate = newKeywords.filter(k => !existingSet.has(k));
+
+    if (toCreate.length > 0) {
+      try {
+        await db.keyword.createMany({
+          data: toCreate.map(termino => ({
+            id: `kw_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+            termino,
+            updatedAt: new Date(),
+          })),
+          skipDuplicates: true,
+        });
+        created.push(...toCreate);
+      } catch {
+        // Keyword might already exist, skip
+      }
     }
   }
 

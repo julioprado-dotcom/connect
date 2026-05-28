@@ -23,54 +23,65 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Para cada indicador, obtener su ultimo valor o ultima evaluacion
-    const enriched = await Promise.all(
-      indicadores.map(async (ind) => {
-        let ultimoValor = null;
-        let ultimaEvaluacion = null;
+    // Para cada indicador, obtener su ultimo valor o ultima evaluacion (batched — 2 queries)
+    const cuantitativoIds = indicadores.filter(i => i.tipo === 'cuantitativo').map(i => i.id);
+    const cualitativoIds = indicadores.filter(i => i.tipo !== 'cuantitativo').map(i => i.id);
 
-        if (ind.tipo === 'cuantitativo') {
-          const uv = await db.indicadorValor.findFirst({
-            where: { indicadorId: ind.id },
-            orderBy: { fechaCaptura: 'desc' },
-          });
-          if (uv) {
-            ultimoValor = {
-              valor: uv.valorTexto || uv.valor.toFixed(ind.formatoNumero),
-              valorRaw: uv.valor,
-              fecha: uv.fecha.toISOString().split('T')[0],
-              confiable: uv.confiable,
-              fechaCaptura: uv.fechaCaptura.toISOString(),
-            };
-          }
-        } else {
-          const ue = await db.indicadorEvaluacion.findFirst({
-            where: { indicadorId: ind.id },
-            orderBy: { fechaEvaluacion: 'desc' },
-          });
-          if (ue) {
-            ultimaEvaluacion = {
-              id: ue.id,
-              valorCompuesto: ue.valorCompuesto,
-              valorTexto: ue.valorTexto,
-              escalaNivel: ue.escalaNivel,
-              puntuaciones: ue.puntuaciones,
-              fechaEvaluacion: ue.fechaEvaluacion.toISOString(),
-              evaluador: ue.evaluador,
-              confiable: ue.confiable,
-            };
-          }
+    const [ultimosValores, ultimasEvaluaciones] = await Promise.all([
+      cuantitativoIds.length > 0
+        ? db.indicadorValor.findMany({ where: { indicadorId: { in: cuantitativoIds } }, orderBy: { fechaCaptura: 'desc' } })
+        : Promise.resolve([]),
+      cualitativoIds.length > 0
+        ? db.indicadorEvaluacion.findMany({ where: { indicadorId: { in: cualitativoIds } }, orderBy: { fechaEvaluacion: 'desc' } })
+        : Promise.resolve([]),
+    ]);
+
+    // Keep only the latest record per indicadorId
+    const valorMap = new Map<string, (typeof ultimosValores)[number]>();
+    for (const v of ultimosValores) { if (!valorMap.has(v.indicadorId)) valorMap.set(v.indicadorId, v); }
+
+    const evaluacionMap = new Map<string, (typeof ultimasEvaluaciones)[number]>();
+    for (const e of ultimasEvaluaciones) { if (!evaluacionMap.has(e.indicadorId)) evaluacionMap.set(e.indicadorId, e); }
+
+    const enriched = indicadores.map((ind) => {
+      let ultimoValor = null;
+      let ultimaEvaluacion = null;
+
+      if (ind.tipo === 'cuantitativo') {
+        const uv = valorMap.get(ind.id);
+        if (uv) {
+          ultimoValor = {
+            valor: uv.valorTexto || uv.valor.toFixed(ind.formatoNumero),
+            valorRaw: uv.valor,
+            fecha: uv.fecha.toISOString().split('T')[0],
+            confiable: uv.confiable,
+            fechaCaptura: uv.fechaCaptura.toISOString(),
+          };
         }
+      } else {
+        const ue = evaluacionMap.get(ind.id);
+        if (ue) {
+          ultimaEvaluacion = {
+            id: ue.id,
+            valorCompuesto: ue.valorCompuesto,
+            valorTexto: ue.valorTexto,
+            escalaNivel: ue.escalaNivel,
+            puntuaciones: ue.puntuaciones,
+            fechaEvaluacion: ue.fechaEvaluacion.toISOString(),
+            evaluador: ue.evaluador,
+            confiable: ue.confiable,
+          };
+        }
+      }
 
-        return {
-          ...ind,
-          ultimoValor,
-          ultimaEvaluacion,
-          totalValores: ind._count.IndicadorValor,
-          totalEvaluaciones: ind._count.IndicadorEvaluacion,
-        };
-      })
-    );
+      return {
+        ...ind,
+        ultimoValor,
+        ultimaEvaluacion,
+        totalValores: ind._count.IndicadorValor,
+        totalEvaluaciones: ind._count.IndicadorEvaluacion,
+      };
+    });
 
     return NextResponse.json({ indicadores: enriched, total: enriched.length });
   } catch (error) {

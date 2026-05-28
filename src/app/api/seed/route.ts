@@ -174,17 +174,34 @@ export async function POST(request: NextRequest) {
 
     // Mode: seed only sub-clasificaciones (no wipe needed)
     if (seedOnly) {
-      let subsCreated = 0;
+      // Batch: pre-fetch all ejes and existing slugs, then createMany (3 queries vs ~60)
+      const allEjes = await db.ejeTematico.findMany({
+        where: { activo: true },
+        select: { id: true, slug: true },
+      });
+      const ejesBySlug = new Map(allEjes.map(e => [e.slug, e.id]));
+
+      const existingSlugs = new Set(
+        (await db.ejeTematico.findMany({
+          where: { slug: { in: SUBCLASIFICACIONES.map(s => s.slug) } },
+          select: { slug: true },
+        })).map(e => e.slug)
+      );
+
+      const subsToCreate: Array<Record<string, unknown>> = [];
       let subsSkipped = 0;
       for (const sub of SUBCLASIFICACIONES) {
-        const parent = await db.ejeTematico.findFirst({ where: { slug: sub.parentId, activo: true } });
-        if (parent) {
-          const alreadyExists = await db.ejeTematico.findFirst({ where: { slug: sub.slug } });
-          if (alreadyExists) { subsSkipped++; continue; }
-          const { parentId: _parentId, ...data } = sub;
-          await db.ejeTematico.create({ data: { ...data, parentId: parent.id } });
-          subsCreated++;
-        }
+        const parentId = ejesBySlug.get(sub.parentId);
+        if (!parentId) { subsSkipped++; continue; }
+        if (existingSlugs.has(sub.slug)) { subsSkipped++; continue; }
+        const { parentId: _parentId, ...data } = sub;
+        subsToCreate.push({ ...data, parentId });
+      }
+
+      let subsCreated = 0;
+      if (subsToCreate.length > 0) {
+        const result = await db.ejeTematico.createMany({ data: subsToCreate, skipDuplicates: true });
+        subsCreated = result.count;
       }
       return NextResponse.json({
         message: `Sub-clasificaciones: ${subsCreated} creadas, ${subsSkipped} ya existían`,
@@ -218,69 +235,64 @@ export async function POST(request: NextRequest) {
       await db.ejeTematico.deleteMany();
     }
 
-    // 1. Seed ejes temáticos
+    // 1. Seed ejes temáticos (batch createMany)
     console.log('Seeding ejes temáticos...');
-    const ejesResult = [];
-    for (const eje of EJES_TEMATICOS) {
-      const created = await db.ejeTematico.create({ data: eje });
-      ejesResult.push(created);
-    }
+    const ejesResult = await db.ejeTematico.createMany({
+      data: EJES_TEMATICOS,
+      skipDuplicates: true,
+    });
 
-    // 1b. Seed sub-clasificaciones
+    // 1b. Seed sub-clasificaciones (batch: pre-fetch parents once, then createMany)
     console.log('Seeding sub-clasificaciones...');
-    let subsCreated = 0;
+    const allEjes = await db.ejeTematico.findMany({ select: { id: true, slug: true } });
+    const ejesBySlug = new Map(allEjes.map(e => [e.slug, e.id]));
+
+    const subsToCreate: Array<Record<string, unknown>> = [];
     for (const sub of SUBCLASIFICACIONES) {
-      const parent = await db.ejeTematico.findFirst({ where: { slug: sub.parentId } });
-      if (parent) {
+      const parentId = ejesBySlug.get(sub.parentId);
+      if (parentId) {
         const { parentId: _parentId, ...data } = sub;
-        await db.ejeTematico.create({
-          data: {
-            ...data,
-            parentId: parent.id,
-          },
-        });
-        subsCreated++;
+        subsToCreate.push({ ...data, parentId });
       }
+    }
+    let subsCreated = 0;
+    if (subsToCreate.length > 0) {
+      const subsResult = await db.ejeTematico.createMany({ data: subsToCreate, skipDuplicates: true });
+      subsCreated = subsResult.count;
     }
     console.log(`Created ${subsCreated} sub-clasificaciones`);
 
-    // 2. Seed medios from medios.json
+    // 2. Seed medios from medios.json (batch createMany)
     console.log('Seeding medios...');
     const mediosPath = path.join(process.cwd(), 'data', 'medios.json');
     const mediosRaw = fs.readFileSync(mediosPath, 'utf-8');
     const medios: Array<Record<string, string>> = JSON.parse(mediosRaw);
 
-    const mediosResult = [];
-    for (const medio of medios) {
-      const created = await db.medio.create({
-        data: {
-          nombre: medio.nombre,
-          url: medio.url || '',
-          tipo: medio.tipo,
-          nivel: String(medio.nivel || '1'),
-          departamento: medio.departamento || null,
-          plataformas: medio.plataformas || '',
-          notas: medio.notas || '',
-        },
-      });
-      mediosResult.push(created);
-    }
+    const mediosResult = await db.medio.createMany({
+      data: medios.map(medio => ({
+        nombre: medio.nombre,
+        url: medio.url || '',
+        tipo: medio.tipo,
+        nivel: String(medio.nivel || '1'),
+        departamento: medio.departamento || null,
+        plataformas: medio.plataformas || '',
+        notas: medio.notas || '',
+      })),
+      skipDuplicates: true,
+    });
 
-    // 3. Seed senadores from senadores_completo.json (datos ricos)
+    // 3. Seed senadores from senadores_completo.json (batch createMany)
     console.log('Seeding senadores...');
     const senadoresPath = path.join(process.cwd(), 'data', 'senadores_completo.json');
     const senadoresRaw = fs.readFileSync(senadoresPath, 'utf-8');
     const senadores: Array<Record<string, unknown>> = JSON.parse(senadoresRaw);
 
-    let senadoresCount = 0;
-    for (const sen of senadores) {
-      const nombre = String(sen.nombre || '').replace(/\s+/g, ' ').trim();
-      if (!nombre) continue;
-
-      const partido = normalizarPartido(String(sen.partido_sigla || ''), String(sen.partido || ''));
-
-      await db.persona.create({
-        data: {
+    const senadoresData = senadores
+      .map(sen => {
+        const nombre = String(sen.nombre || '').replace(/\s+/g, ' ').trim();
+        if (!nombre) return null;
+        const partido = normalizarPartido(String(sen.partido_sigla || ''), String(sen.partido || ''));
+        return {
           nombre,
           camara: 'Senadores',
           departamento: normalizarDepartamento(String(sen.departamento || '')),
@@ -291,27 +303,28 @@ export async function POST(request: NextRequest) {
           email: sen.email ? String(sen.email) : null,
           fotoUrl: sen.foto_url ? String(sen.foto_url) : '',
           periodo: '2025-2030',
-        },
-      });
-      senadoresCount++;
-    }
+        };
+      })
+      .filter(Boolean) as Array<Record<string, unknown>>;
 
-    // 4. Seed diputados from diputados_2025_2030_completo.json (datos ricos)
+    const senadoresResult = senadoresData.length > 0
+      ? await db.persona.createMany({ data: senadoresData, skipDuplicates: true })
+      : { count: 0 };
+    const senadoresCount = senadoresResult.count;
+
+    // 4. Seed diputados from diputados_2025_2030_completo.json (batch createMany)
     console.log('Seeding diputados...');
     const diputadosPath = path.join(process.cwd(), 'data', 'diputados_2025_2030_completo.json');
     const diputadosRaw = fs.readFileSync(diputadosPath, 'utf-8');
-    const diputadosData = JSON.parse(diputadosRaw);
-    const diputados: Array<Record<string, unknown>> = diputadosData.diputados;
+    const diputadosDataRaw = JSON.parse(diputadosRaw);
+    const diputados: Array<Record<string, unknown>> = diputadosDataRaw.diputados;
 
-    let diputadosCount = 0;
-    for (const dip of diputados) {
-      const nombre = String(dip.nombre || '').replace(/\s+/g, ' ').trim();
-      if (!nombre) continue;
-
-      const partido = normalizarPartido(String(dip.partido_sigla || ''), String(dip.partido || ''));
-
-      await db.persona.create({
-        data: {
+    const diputadosData = diputados
+      .map(dip => {
+        const nombre = String(dip.nombre || '').replace(/\s+/g, ' ').trim();
+        if (!nombre) return null;
+        const partido = normalizarPartido(String(dip.partido_sigla || ''), String(dip.partido || ''));
+        return {
           nombre,
           camara: 'Diputados',
           departamento: normalizarDepartamento(String(dip.departamento || '')),
@@ -321,10 +334,14 @@ export async function POST(request: NextRequest) {
           email: null,
           fotoUrl: String(dip.foto_url || ''),
           periodo: '2025-2030',
-        },
-      });
-      diputadosCount++;
-    }
+        };
+      })
+      .filter(Boolean) as Array<Record<string, unknown>>;
+
+    const diputadosResult = diputadosData.length > 0
+      ? await db.persona.createMany({ data: diputadosData, skipDuplicates: true })
+      : { count: 0 };
+    const diputadosCount = diputadosResult.count;
 
     const totalPersonas = senadoresCount + diputadosCount;
 
@@ -334,9 +351,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       message: `Seed ejecutado correctamente (v0.9.0) — ${force ? 'FORCE RESET' : 'nuevo'}`,
-      ejesInsertados: ejesResult.length,
+      ejesInsertados: ejesResult.count,
       subsInsertados: subsCreated,
-      mediosInsertados: mediosResult.length,
+      mediosInsertados: mediosResult.count,
       totalPersonas,
       desglose: {
         senadores: senadoresCount,
