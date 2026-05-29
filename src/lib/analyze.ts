@@ -294,7 +294,15 @@ export async function analyzeMencion(titulo: string, texto: string): Promise<Ana
 
     const raw = (completion?.choices?.[0]?.message?.content || '').trim();
     console.log(`[analyze] LLM raw response (${raw.length} chars): ${raw.substring(0, 500)}`);
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+
+    // Strip markdown code blocks if present (glm-4.7-flash wraps in ```json ... ```)
+    let cleanRaw = raw;
+    if (cleanRaw.startsWith('```')) {
+      cleanRaw = cleanRaw.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+      console.log(`[analyze] Stripped markdown wrapper, clean length: ${cleanRaw.length} chars`);
+    }
+
+    const jsonMatch = cleanRaw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       console.warn(`[analyze] No JSON found in LLM response for: ${titulo.substring(0, 80)}`);
       return defaultResult;

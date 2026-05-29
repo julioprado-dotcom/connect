@@ -272,7 +272,14 @@ export async function extraerMencionesDeTexto(
     // FIX: Log de respuesta cruda en consola para debuggear sin activar DECODEX_DEBUG
     console.warn(`[EXTRACTOR] LLM raw (${llmElapsed}ms, ${raw.length} chars): ${raw.substring(0, 500)}`);
 
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    // Strip markdown code blocks if present (glm-4.7-flash wraps in ```json ... ```)
+    let cleanRaw = raw;
+    if (cleanRaw.startsWith('```')) {
+      cleanRaw = cleanRaw.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+      debugWrite(`Stripped markdown wrapper, clean length: ${cleanRaw.length} chars`);
+    }
+
+    const jsonMatch = cleanRaw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       debugWrite('FALLO: No se encontró JSON en la respuesta del LLM');
       await persistDebugLog(debugLog);
