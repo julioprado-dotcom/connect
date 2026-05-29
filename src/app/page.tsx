@@ -23,6 +23,7 @@ import {
   Monitor,
   Database,
   Sparkles,
+  Cpu,
   Bell,
   LogOut,
   Sun,
@@ -453,6 +454,23 @@ export default function ONION200Dashboard() {
   const prod = kpis?.produccion;
   const dist = kpis?.distribucion;
 
+  // AI Usage KPI data
+  const [aiUsageKPI, setAiUsageKPI] = useState<{ llamadas: number; totalTokens: number; costoUSD: number } | null>(null);
+  useEffect(() => {
+    const fetchAI = async () => {
+      try {
+        const res = await fetchWithTimeout('/api/dashboard/ai/usage?dias=1', { timeoutMs: 8000 });
+        if (res.ok) {
+          const data = await res.json();
+          setAiUsageKPI(data.hoy);
+        }
+      } catch {}
+    };
+    fetchAI();
+    const interval = setInterval(fetchAI, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleTabChange = (tab: TabKey) => {
     setActiveTab(tab);
   };
@@ -584,7 +602,7 @@ export default function ONION200Dashboard() {
 
       {/* ═══ KPI CARDS — Real data row ═══ */}
       <div
-        className="flex-shrink-0 px-4 sm:px-6 py-3 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3"
+        className="flex-shrink-0 px-4 sm:px-6 py-3 grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3"
         style={{ borderBottom: '1px solid ' + colors.borderSubtle2 }}
       >
         <KPICard
@@ -647,6 +665,16 @@ export default function ONION200Dashboard() {
           status={dist?.status}
           onClick={() => handleTabChange('distribucion')}
           active={activeTab === 'distribucion'}
+          colors={colors}
+        />
+        <KPICard
+          icon={<Cpu className="w-4 h-4" />}
+          label="IA Tokens"
+          value={aiUsageKPI ? (aiUsageKPI.totalTokens >= 1000 ? (aiUsageKPI.totalTokens / 1000).toFixed(1) + 'K' : String(aiUsageKPI.totalTokens)) : null}
+          sub={aiUsageKPI ? aiUsageKPI.llamadas + ' llamadas · $' + aiUsageKPI.costoUSD.toFixed(2) : undefined}
+          color="#f43f5e"
+          onClick={() => handleTabChange('resumen')}
+          active={activeTab === 'resumen'}
           colors={colors}
         />
       </div>
