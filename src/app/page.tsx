@@ -354,15 +354,17 @@ function PipelineStatusBar({
 // ═══════════════════════════════════════════════════════════════
 
 function LiveClock({ now }: { now: Date }) {
+  // suppressHydrationWarning: los timestamps difieren entre SSR y client hydration
   return (
     <div className="flex flex-col items-end">
       <span
         className="text-xs font-mono text-cyan-400 tabular-nums"
         style={{ textShadow: '0 0 8px rgba(6,182,212,0.4)' }}
+        suppressHydrationWarning
       >
         {now.toLocaleTimeString('es-BO', { hour12: false })}
       </span>
-      <span className="text-[8px] font-mono text-cyan-500/60">
+      <span className="text-[8px] font-mono text-cyan-500/60" suppressHydrationWarning>
         {now.toLocaleDateString('es-BO', { weekday: 'long', day: 'numeric', month: 'short' })}
       </span>
     </div>
@@ -702,10 +704,10 @@ export default function ONION200Dashboard() {
           background: colors.footerBg,
         }}
       >
-        <span className="text-[9px] font-mono" style={{ color: colors.textMuted }}>
+        <span className="text-[9px] font-mono" style={{ color: colors.textMuted }} suppressHydrationWarning>
           ONION200 v2.0 · DECODEX Bolivia · {now.toLocaleDateString('es-BO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
         </span>
-        <span className="text-[9px] font-mono text-cyan-500/70">
+        <span className="text-[9px] font-mono text-cyan-500/70" suppressHydrationWarning>
           {now.toLocaleTimeString('es-BO', { hour12: false })} Bolivia
         </span>
       </footer>

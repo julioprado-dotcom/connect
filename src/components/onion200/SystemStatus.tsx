@@ -253,6 +253,8 @@ function PipelineOrb({
 interface SchedulerStatus {
   running: boolean;
   totalTasks: number;
+  totalScheduled?: number;
+  mode?: string;
   tasks: Array<{ name: string; expression: string; nextRun: string | null; active: boolean }>;
 }
 
@@ -478,9 +480,25 @@ export function SystemStatus({ onNavigateTab }: SystemStatusProps) {
                   </span>
                 </span>
                 <span className="text-[9px] font-mono text-slate-700">
-                  {schedulerStatus?.totalTasks ?? 0} tareas programadas
+                  {schedulerStatus?.totalTasks ?? schedulerInfo?.totalTasks ?? 0} tareas programadas
+                  {schedulerStatus?.totalScheduled ? ` · ${schedulerStatus.totalScheduled} ejecutadas` : ''}
                 </span>
               </div>
+
+              {/* PM2 mode badge */}
+              {schedulerStatus?.mode === 'pm2' && (
+                <div className="flex items-center gap-1.5 py-1">
+                  <span className="text-[8px] font-mono text-slate-600 px-1.5 py-0.5 rounded" style={{
+                    backgroundColor: 'rgba(6,182,212,0.06)',
+                    border: '1px solid rgba(6,182,212,0.12)',
+                  }}>
+                    Multi-Proceso PM2
+                  </span>
+                  <span className="text-[8px] font-mono text-slate-700">
+                    {schedulerInfo?.uptime ? `${Math.floor(schedulerInfo.uptime / 60)}min activo` : ''}
+                  </span>
+                </div>
+              )}
 
               {/* Action buttons */}
               <div className="grid grid-cols-3 gap-1.5">
@@ -526,8 +544,8 @@ export function SystemStatus({ onNavigateTab }: SystemStatusProps) {
                 </button>
               </div>
 
-              {/* Task list */}
-              {schedulerStatus?.tasks && schedulerStatus.tasks.length > 0 && (
+              {/* Task list (solo en modo in-process) */}
+              {schedulerStatus?.tasks && schedulerStatus.tasks.length > 0 ? (
                 <div className="space-y-1 max-h-[200px] overflow-y-auto custom-scrollbar">
                   {schedulerStatus.tasks.map((task, i) => (
                     <div key={i} className="flex items-center gap-2 px-2 py-1 rounded" style={{
@@ -548,7 +566,15 @@ export function SystemStatus({ onNavigateTab }: SystemStatusProps) {
                     </div>
                   ))}
                 </div>
-              )}
+              ) : schedulerStatus?.mode === 'pm2' ? (
+                <div className="py-2 text-center">
+                  <p className="text-[8px] font-mono text-slate-600">
+                    El scheduler corre como proceso PM2 independiente.
+                    Las {schedulerStatus.totalTasks} tareas están activas.
+                    Usa el toggle de Procesos arriba para detener/reiniciar.
+                  </p>
+                </div>
+              ) : null}
 
               {/* Info */}
               <p className="text-[8px] font-mono text-slate-700 leading-relaxed">
