@@ -19,7 +19,7 @@
 import 'dotenv/config';
 import os from 'os';
 import { dequeue, complete, fail, reclaimOrphanJobs } from './src/lib/jobs/queue';
-import { WORKER_CONFIG, FLOW_CONTROL, QUEUE_LIMITS } from './src/lib/jobs/constants';
+import { WORKER_CONFIG, FLOW_CONTROL } from './src/lib/jobs/constants';
 import { registerDefaultRunners } from './src/lib/jobs/worker';
 import { run as runCheckFuente } from './src/lib/jobs/runners/check-fuente';
 import { run as runCheckIndicador } from './src/lib/jobs/runners/check-indicador';
@@ -121,11 +121,6 @@ function measureEventLoopLag(): Promise<number> {
   });
 }
 
-async function heavyJobPressure(): Promise<number> {
-  try {
-    return await db.job.count({ where: { estado: 'pendiente', tipo: 'scrape_fuente' } });
-  } catch { return 0; }
-}
 
 // ═══════════════════════════════════════════════════════════════
 // Main Loop
@@ -175,15 +170,9 @@ async function main(): Promise<void> {
         }
       }
 
-      // Flow control: presión de heavy jobs
-      const heavyCount = await heavyJobPressure();
-      if (heavyCount >= QUEUE_LIMITS.maxHeavyPending) {
-        console.log(`[Worker-Service] ${heavyCount} scrape_fuente pendientes — esperando`);
-        await sleep(WORKER_CONFIG.pollIntervalMs);
-        continue;
-      }
-
-      // Dequeue
+      // Dequeue (el flow control de heavy jobs se evalúa DESPUÉS
+      // de marcar el job como en_progreso para evitar deadlock:
+      // si contamos pendientes y skippeamos dequeue(), nunca se ejecutan)
       const job = await dequeue();
       if (!job) {
         await sleep(WORKER_CONFIG.pollIntervalMs);
