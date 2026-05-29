@@ -360,3 +360,25 @@ Stage Summary:
 - 8 indicadores huérfanos se eliminarán automáticamente al próximo sync: mineria-precios-lme-{zinc,estano,plata,plomo}, macro-ipc-bcb, macro-tasa-interes, macro-reservas-internacionales, rin-bcb
 - tc-paralelo-venta y tc-paralelo-compra ahora capturan datos reales del BCB (Valor Referencial USD)
 - Pendiente: desplegar en VPS con git push
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Fix etiqueta DESCONECTADO engañosa + scheduler totalScheduled
+
+Work Log:
+- Diagnosticado: `diagnoseUptime()` retornaba severity 'critical' para uptime < 300s
+- `getDiagStatus('uptime')` mapeaba 'critical' → 'error' → PipelineOrb mostraba "Desconectado"
+- Fix backend: severity cambiada de 'critical' a 'warning' con mensaje "Inicializando"
+- Fix frontend PipelineOrb: agregado estado 'starting' con label "Inicializando" y color #3b82f6
+- Fix frontend ProcessOrb: agregada prop `initializing` para Worker/Scheduler cuando sistema < 5min
+- Fix frontend SystemStatus: detecta `systemInitializing` y pasa prop a ProcessOrbs
+- Diagnosticado `totalScheduled: 0`: era contador de jobs encolados por scheduler, no tareas programadas
+- Fix UI: eliminado "0 encolados" del detail del Planificador, ahora solo muestra "X tareas programadas"
+- Commit ffaeb75, push exitoso
+
+Stage Summary:
+- "Tiempo Activo" ahora muestra "Inicializando" (azul) en vez de "Desconectado" (violeta) durante primeros 5 min
+- Worker/Scheduler muestran "Inicializando" si están offline pero el sistema arrancó hace < 5 min
+- Planificador muestra "X tareas programadas" en vez de "X tareas · 0 encolados"
+- Build exitoso, necesita deploy en VPS
