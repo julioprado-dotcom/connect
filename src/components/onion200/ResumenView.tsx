@@ -30,8 +30,13 @@ interface ChartData {
 
 /**
  * ResumenView — Vista por defecto del puente de mando.
- * Muestra los 4 paneles principales: VitalMonitor, SystemStatus, CommandCenter, LiveFeed.
- * Incluye MiniCharts para analisis grafico de menciones.
+ *
+ * Layout (12-column grid):
+ *   Row 1 — System Overview : VitalMonitor(3) | SystemStatus(3) | AiUsagePanel(3) | MiniCharts(3)
+ *   Row 2 — Operations      : CommandCenter(8) | LiveFeed(4)
+ *   Row 3 — Quick Access     : Acceso Rapido(12)
+ *
+ * Visual flow: overview metrics → operational controls + live content → navigation
  */
 export function ResumenView({ onNavigateTab }: ResumenViewProps) {
   const [chartData, setChartData] = useState<ChartData | null>(null);
@@ -96,18 +101,30 @@ export function ResumenView({ onNavigateTab }: ResumenViewProps) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
-      {/* Vital Monitor (4 cols) */}
-      <div className="lg:col-span-4">
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          ROW 1 — SYSTEM OVERVIEW (4 × 3 cols)
+          All metrics at equal width for balanced visual weight.
+          Top-to-bottom: hardware → health → AI cost → analytics
+          ═══════════════════════════════════════════════════════════════════ */}
+
+      {/* Vital Monitor — Hardware telemetry: CPU, RAM, Heap sparklines */}
+      <div className="lg:col-span-3">
         <VitalMonitor />
       </div>
 
-      {/* System Status (4 cols) */}
-      <div className="lg:col-span-4">
+      {/* System Status — Health score, PM2 processes, pipeline, infrastructure */}
+      <div className="lg:col-span-3">
         <SystemStatus onNavigateTab={onNavigateTab} />
       </div>
 
-      {/* MiniCharts (4 cols) */}
-      <div className="lg:col-span-4">
+      {/* AI Usage — LLM consumption, cost tracking, source breakdown */}
+      <div className="lg:col-span-3">
+        <AiUsagePanel />
+      </div>
+
+      {/* Mini Charts — Capture analytics: sentiment ring, level bars */}
+      <div className="lg:col-span-3">
         <MiniCharts
           porNivel={chartData?.captura?.porNivel}
           porSentimiento={chartData?.captura?.porSentimiento}
@@ -116,20 +133,26 @@ export function ResumenView({ onNavigateTab }: ResumenViewProps) {
         />
       </div>
 
-      {/* AI Usage (6 cols) */}
-      <div className="lg:col-span-6">
-        <AiUsagePanel />
+      {/* ═══════════════════════════════════════════════════════════════════
+          ROW 2 — OPERATIONS & INTELLIGENCE (8 + 4 cols)
+          Command Center needs dominant width for capture controls & progress.
+          Live Feed provides real-time mention context alongside operations.
+          ═══════════════════════════════════════════════════════════════════ */}
+
+      {/* Command Center — Pipeline controls, capture operations, queue status */}
+      <div className="lg:col-span-8">
+        <CommandCenter />
       </div>
 
-      {/* Live Feed (3 cols) */}
-      <div className="lg:col-span-3">
+      {/* Live Feed — Real-time mention stream with clickable detail */}
+      <div className="lg:col-span-4">
         <LiveFeed onNavigateTab={onNavigateTab} />
       </div>
 
-      {/* Command Center (3 cols) */}
-      <div className="lg:col-span-3">
-        <CommandCenter />
-      </div>
+      {/* ═══════════════════════════════════════════════════════════════════
+          ROW 3 — QUICK ACCESS / NAVIGATION (12 cols)
+          Full-width shortcuts to external modules.
+          ═══════════════════════════════════════════════════════════════════ */}
 
       {/* Acceso Rapido — Gestion Comercial (full width) */}
       <div className="lg:col-span-12">
