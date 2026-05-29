@@ -112,7 +112,16 @@ export async function dequeue(): Promise<Record<string, unknown> | null> {
     ],
   })
 
-  if (!job) return null
+  if (!job) {
+    // Debug: por qué no hay jobs? Verificar si hay pendientes con fecha futura
+    const futureJobs = await db.job.count({
+      where: { estado: 'pendiente', proximaEjecucion: { gt: new Date() } },
+    })
+    if (futureJobs > 0) {
+      console.log(`[Queue] No jobs disponibles: ${pendingCount} pendientes pero ${futureJobs} tienen proximaEjecucion en el futuro`)
+    }
+    return null
+  }
 
   // Marcar como en_progreso
   const updated = await db.job.update({

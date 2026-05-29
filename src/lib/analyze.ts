@@ -293,12 +293,21 @@ export async function analyzeMencion(titulo: string, texto: string): Promise<Ana
     });
 
     const raw = (completion?.choices?.[0]?.message?.content || '').trim();
+    console.log(`[analyze] LLM raw response (${raw.length} chars): ${raw.substring(0, 500)}`);
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
+      console.warn(`[analyze] No JSON found in LLM response for: ${titulo.substring(0, 80)}`);
       return defaultResult;
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(jsonMatch[0]);
+    } catch (parseErr) {
+      console.warn(`[analyze] JSON parse failed for: ${titulo.substring(0, 80)}. Raw: ${raw.substring(0, 300)}`);
+      return defaultResult;
+    }
+    console.log(`[analyze] Parsed OK: tipoMencion=${parsed.tipoMencion}, tratamiento=${parsed.tratamiento_periodistico}, ejes=${JSON.stringify(parsed.ejesTematicos)}`);
 
     // ── Validate tratamiento_periodistico ──────────────────────
     let tratamientoRaw = String(
@@ -378,7 +387,7 @@ export async function analyzeMencion(titulo: string, texto: string): Promise<Ana
       preguntasFundamentales,
     };
   } catch (err) {
-    console.error('[analyze] Error in analyzeMencion:', err);
+    console.error('[analyze] Error in analyzeMencion:', err instanceof Error ? err.message : String(err));
     return defaultResult;
   }
 }

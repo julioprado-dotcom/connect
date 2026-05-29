@@ -69,6 +69,7 @@ interface WorkerServiceState {
   jobsFailed: number;
   lastJobTime: Date | null;
   currentJobId: string | null;
+  lastPollLog?: number;
 }
 
 const state: WorkerServiceState = {
@@ -175,6 +176,12 @@ async function main(): Promise<void> {
       // si contamos pendientes y skippeamos dequeue(), nunca se ejecutan)
       const job = await dequeue();
       if (!job) {
+        // Log cada 60s para confirmar que el worker está haciendo polling
+        const now = Date.now();
+        if (!state.lastPollLog || now - state.lastPollLog > 60_000) {
+          console.log(`[Worker-Service] Polling... sin jobs pendientes (mem: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB)`);
+          state.lastPollLog = now;
+        }
         await sleep(WORKER_CONFIG.pollIntervalMs);
         continue;
       }
