@@ -8,6 +8,7 @@
 export const runtime = 'nodejs'
 
 import { NextRequest, NextResponse } from 'next/server'
+import { execSync } from 'child_process'
 import fs from 'fs'
 import os from 'os'
 import { rescheduleAll, startScheduler, stopScheduler, getSchedulerStatus } from '@/lib/jobs/scheduler'
@@ -98,6 +99,65 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Detectar si estamos en modo PM2 (scheduler standalone)
+    const hb = readSchedulerHeartbeat()
+    const isPm2Mode = hb.online
+
+    if (isPm2Mode) {
+      // Modo PM2: usar pm2 CLI para controlar el proceso scheduler standalone
+      if (accion === 'recalcular') {
+        // Restart = equivale a recalcular (relee DB y reprograma tareas)
+        try {
+          execSync('pm2 restart decodex-scheduler', { timeout: 15000 })
+          return NextResponse.json({
+            exito: true,
+            estado: 'running',
+            modo: 'pm2',
+            mensaje: 'Scheduler recalculado via PM2 restart',
+          })
+        } catch {
+          return NextResponse.json({
+            exito: false,
+            error: 'No se pudo reiniciar el scheduler via PM2',
+          }, { status: 500 })
+        }
+      }
+
+      if (accion === 'pause') {
+        try {
+          execSync('pm2 stop decodex-scheduler', { timeout: 10000 })
+          return NextResponse.json({
+            exito: true,
+            estado: 'paused',
+            modo: 'pm2',
+            mensaje: 'Scheduler pausado via PM2 stop',
+          })
+        } catch {
+          return NextResponse.json({
+            exito: false,
+            error: 'No se pudo pausar el scheduler via PM2',
+          }, { status: 500 })
+        }
+      }
+
+      // resume
+      try {
+        execSync('pm2 start ecosystem.config.js --only decodex-scheduler', { timeout: 15000 })
+        return NextResponse.json({
+          exito: true,
+          estado: 'running',
+          modo: 'pm2',
+          mensaje: 'Scheduler reanudado via PM2 start',
+        })
+      } catch {
+        return NextResponse.json({
+          exito: false,
+          error: 'No se pudo reanudar el scheduler via PM2',
+        }, { status: 500 })
+      }
+    }
+
+    // Modo in-process: usar funciones directas del scheduler
     if (accion === 'pause') {
       stopScheduler()
       return NextResponse.json({ exito: true, estado: 'paused', mensaje: 'Scheduler pausado' })
