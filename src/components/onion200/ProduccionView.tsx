@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 import { PanelShell } from './PanelShell';
+import { ExportMenu } from './ExportMenu';
 import {
   FileText, TrendingUp, Clock, Loader2, Play, ChevronDown, ChevronUp,
   Eye, Zap, Package,
@@ -38,6 +39,7 @@ export function ProduccionView() {
   const [data, setData] = useState<ProduccionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const recientesRef = useRef<HTMLDivElement>(null);
 
   // ── Catalog state ──
   const [catalogProducts, setCatalogProducts] = useState<CatalogProduct[]>([]);
@@ -489,7 +491,12 @@ export function ProduccionView() {
       </div>
 
       {/* ── Bottom: Recent Products with Content Preview ── */}
-      <PanelShell title="Productos Recientes" icon={<TrendingUp className="w-4 h-4" />}>
+      <PanelShell
+        title="Productos Recientes"
+        icon={<TrendingUp className="w-4 h-4" />}
+        extra={<ExportMenu targetRef={recientesRef} filename={`productos-decodex-${new Date().toISOString().slice(0, 10)}`} title="Productos Recientes" />}
+      >
+        <div ref={recientesRef} className="min-h-[60px]">
         {loading ? (
           <div className="flex items-center gap-2 py-8 text-slate-600 text-xs font-mono justify-center">
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -594,6 +601,7 @@ export function ProduccionView() {
             })}
           </div>
         )}
+        </div>
       </PanelShell>
 
       {/* ── Param Modal ── */}

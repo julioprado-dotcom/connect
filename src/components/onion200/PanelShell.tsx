@@ -13,12 +13,14 @@ export function PanelShell({
   children,
   className = '',
   onClose,
+  extra,
 }: {
   title: string;
   icon: React.ReactNode;
   children: React.ReactNode;
   className?: string;
   onClose?: () => void;
+  extra?: React.ReactNode;
 }) {
   return (
     <div
@@ -46,8 +48,9 @@ export function PanelShell({
         <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-cyan-400/90 font-mono">
           {title}
         </h3>
-        {/* Right side: close button or live indicator */}
+        {/* Right side: extra content + close/live indicator */}
         <span className="ml-auto flex items-center gap-1.5">
+          {extra}
           {onClose ? (
             <button
               onClick={onClose}

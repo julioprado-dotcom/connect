@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Bell, Crosshair, Terminal, Radio, Activity } from 'lucide-react';
 import { PanelShell } from '@/components/onion200/PanelShell';
+import { ExportMenu } from '@/components/onion200/ExportMenu';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 // ═══════════════════════════════════════════════════════════
@@ -313,6 +314,7 @@ export function AlertasPanel({ onClose }: { onClose?: () => void }) {
   const [data, setData] = useState<AlertasData | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastPoll, setLastPoll] = useState<string>('--:--:--');
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -351,8 +353,9 @@ export function AlertasPanel({ onClose }: { onClose?: () => void }) {
       title="ALERTAS OPERATIVAS"
       icon={<Crosshair className="w-4 h-4" />}
       onClose={onClose}
+      extra={<ExportMenu targetRef={contentRef} filename={`alertas-decodex-${new Date().toISOString().slice(0, 10)}`} title="Alertas Operativas" />}
     >
-      <div className="p-4 space-y-4" style={{ background: THEME.bg }}>
+      <div ref={contentRef} className="p-4 space-y-4" style={{ background: THEME.bg }}>
         {/* ── Header: Status Ring + Summary ── */}
         <div className="flex items-center gap-5">
           <StatusRing estado={estadoGlobal} count={alertCount} />
