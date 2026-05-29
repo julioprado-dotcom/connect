@@ -15,6 +15,7 @@ export const RECHAZO_MOTIVO = {
   CIRCUIT_BREAKER: 'circuit_breaker',             // Circuit breaker abierto, LLM no disponible
   PARSE_ERROR: 'parse_error',                     // JSON del LLM no se pudo parsear
   DUPLICADO: 'duplicado',                         // Mención duplicada (ya existe)
+  GEO_FILTRADO: 'geo_filtrado',                   // Filtro geográfico: noticia no boliviana
   ERROR_DESCONOCIDO: 'error_desconocido',         // Error inesperado
 } as const;
 

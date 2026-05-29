@@ -118,7 +118,24 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
     }
 
     // FASE 2: Triaje por keywords (SIN IA, SIN descargas extra)
-    const seleccionadas = await trijarNotas(notas)
+    const triajeResult = await trijarNotas(notas)
+
+    // Registrar rechazos geográficos (fire-and-forget)
+    const geoFiltrados = triajeResult.filter(r => r.geoFiltrado)
+    if (geoFiltrados.length > 0) {
+      console.log(`[scrape-fuente] FASE 2: ${geoFiltrados.length} notas filtradas por geografía para ${fuente.Medio.nombre}`)
+      for (const gf of geoFiltrados) {
+        registrarRechazo({
+          medioId,
+          url: gf.url,
+          titulo: gf.titulo,
+          motivo: 'geo_filtrado',
+        }).catch(() => {})
+      }
+    }
+
+    // Solo las notas que realmente pasaron (no geo-filtradas)
+    const seleccionadas = triajeResult.filter(r => !r.geoFiltrado && r.match)
     console.log(`[scrape-fuente] FASE 2: ${seleccionadas.length} de ${notas.length} notas pasaron el triaje para ${fuente.Medio.nombre}`)
 
     if (seleccionadas.length === 0) {
