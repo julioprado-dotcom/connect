@@ -136,8 +136,8 @@ export function calculateWindow(
   fechaStr?: string
 ): { fechaInicio: Date; fechaFin: Date; ventanaLabel: string } {
   const fechaBase = fechaStr ? new Date(fechaStr + 'T12:00:00') : boliviaNow();
-  const fechaFin = new Date(fechaBase);
-  const fechaInicio = new Date(fechaBase);
+  let fechaFin = new Date(fechaBase);
+  let fechaInicio = new Date(fechaBase);
 
   switch (ventana) {
     case 'nocturna':
