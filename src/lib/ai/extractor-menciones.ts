@@ -274,7 +274,7 @@ export async function extraerMencionesDeTexto(
       completion,
       fuente: USO_FUENTE.CAPTURA,
       medioId: medioId,
-      detalles: `titulo=${(titulo || '').substring(0, 60)}`,
+      detalles: `texto=${texto.substring(0, 60)}`,
     }).catch(() => {});
 
     debugWrite(`LLM respondió en ${llmElapsed}ms, longitud: ${raw.length} chars`);
