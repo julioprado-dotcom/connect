@@ -5,15 +5,15 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { guardError } from '@/lib/rate-guard';
+import { boliviaStartOfDay } from '@/lib/date-bolivia';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET() {
   try {
-    // Start of today (local)
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    // Start of today (Bolivia timezone)
+    const todayStart = boliviaStartOfDay();
 
     // Root-level active ejes
     const ejes = await db.ejeTematico.findMany({

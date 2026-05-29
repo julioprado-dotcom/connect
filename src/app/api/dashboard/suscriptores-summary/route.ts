@@ -5,15 +5,14 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { guardError } from '@/lib/rate-guard';
+import { boliviaStartOfWeek } from '@/lib/date-bolivia';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET() {
   try {
-    const startOfWeek = new Date();
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
+    const startOfWeek = boliviaStartOfWeek();
 
     const [totalGratuitos, activosGratuito, registradosSemanaGratuito, ultimos] =
       await Promise.all([

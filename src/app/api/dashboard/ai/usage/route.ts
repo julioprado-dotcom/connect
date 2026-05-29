@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { boliviaStartOfDay } from '@/lib/date-bolivia';
 
 /**
  * GET /api/dashboard/ai/usage
@@ -80,9 +81,8 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // ─── Llamadas hoy ──────────────────────────
-    const hoyInicio = new Date();
-    hoyInicio.setHours(0, 0, 0, 0);
+    // ─── Llamadas hoy (Bolivia timezone) ──────────────────────────
+    const hoyInicio = boliviaStartOfDay();
 
     const hoy = await db.usoIA.aggregate({
       where: { createdAt: { gte: hoyInicio } },

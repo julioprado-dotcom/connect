@@ -5,6 +5,7 @@ import { HEALTH_CONFIG } from './constants'
 import { getWorkerStats } from './worker'
 import { reclaimOrphanJobs } from './queue'
 import type { QueueStats, CheckFirstStats, FuentesStats } from './types'
+import { boliviaStartOfDay } from '@/lib/date-bolivia'
 
 let intervalId: ReturnType<typeof setInterval> | null = null
 
@@ -135,8 +136,8 @@ export async function getFullStats(): Promise<{
   // Worker stats
   const workerStats = getWorkerStats()
 
-  // Check-First stats (hoy)
-  const hoyInicio = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  // Check-First stats (hoy en Bolivia)
+  const hoyInicio = boliviaStartOfDay()
 
   const fuentesCheckeadas = await db.fuenteEstado.findMany({
     where: {

@@ -1,24 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { guardError } from '@/lib/rate-guard';
+import { boliviaStartOfDay, boliviaStartOfWeek, boliviaStartOfMonth, boliviaDaysAgo } from '@/lib/date-bolivia';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const periodo = searchParams.get('periodo') || 'hoy';
 
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const manana = new Date(hoy);
-    manana.setDate(manana.getDate() + 1);
+    const hoy = boliviaStartOfDay();
+    const manana = new Date(hoy.getTime() + 24 * 60 * 60 * 1000);
 
-    const inicioSemana = new Date();
-    inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay() + 1);
-    inicioSemana.setHours(0, 0, 0, 0);
+    const inicioSemana = boliviaStartOfWeek();
 
-    const inicioMes = new Date();
-    inicioMes.setDate(1);
-    inicioMes.setHours(0, 0, 0, 0);
+    const inicioMes = boliviaStartOfMonth();
 
     // Rango de fecha según periodo
     const rangoFecha = periodo === 'hoy'
@@ -92,14 +87,11 @@ export async function GET(request: NextRequest) {
       totalGenerados: countMap.get(tipo) || 0,
     }));
 
-    // Tendencia: 7 daily counts in parallel
+    // Tendencia: 7 daily counts in parallel (Bolivia timezone)
     const tendencias = await Promise.all(
       Array.from({ length: 7 }, (_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - (6 - i));
-        d.setHours(0, 0, 0, 0);
-        const dFin = new Date(d);
-        dFin.setDate(dFin.getDate() + 1);
+        const d = boliviaDaysAgo(6 - i);
+        const dFin = new Date(d.getTime() + 24 * 60 * 60 * 1000);
         return db.reporte
           .count({ where: { fechaCreacion: { gte: d, lt: dFin } } })
           .then((total) => ({ fecha: d.toISOString().slice(0, 10), total }));

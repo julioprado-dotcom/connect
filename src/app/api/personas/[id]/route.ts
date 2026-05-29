@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { guardError } from '@/lib/rate-guard';
 import { SENTIMENT_SCORES } from '@/constants/colors';
+import { boliviaStartOfWeek, boliviaStartOfMonth } from '@/lib/date-bolivia';
 
 export async function GET(
   request: NextRequest,
@@ -25,13 +26,9 @@ export async function GET(
     // Stats
     const totalMenciones = await db.mencion.count({ where: { personaId: id } });
 
-    const inicioSemana = new Date();
-    inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay() + 1);
-    inicioSemana.setHours(0, 0, 0, 0);
+    const inicioSemana = boliviaStartOfWeek();
 
-    const inicioMes = new Date();
-    inicioMes.setDate(1);
-    inicioMes.setHours(0, 0, 0, 0);
+    const inicioMes = boliviaStartOfMonth();
 
     const mencionesSemana = await db.mencion.count({
       where: { personaId: id, fechaCaptura: { gte: inicioSemana } },

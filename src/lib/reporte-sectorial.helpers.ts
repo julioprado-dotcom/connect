@@ -38,6 +38,8 @@ export const FACTORES_EXTERNOS_KEYWORDS = [
   'devaluación',
 ] as const;
 
+import { boliviaStartOfWeek, boliviaNow as _boliviaNow } from '@/lib/date-bolivia';
+
 /** Offset de Bolivia en horas (UTC-4) */
 export const BOLIVIA_OFFSET_HOURS = -4;
 
@@ -45,38 +47,28 @@ export const BOLIVIA_OFFSET_HOURS = -4;
 
 /**
  * Obtiene la fecha/hora actual en zona horaria de Bolivia (UTC-4).
- * No usa Intl para evitar dependencias de runtime, usa aritmética simple.
+ * Delegated to the centralized date-bolivia utility.
  */
 export function getNowBolivia(): Date {
-  const now = new Date();
-  const utc = now.getTime() + now.getTimezoneOffset() * 60_000;
-  return new Date(utc + BOLIVIA_OFFSET_HOURS * 60 * 60_000);
+  return _boliviaNow();
 }
 
 /**
  * Obtiene el lunes anterior (00:00 America/La_Paz).
  * Si hoy es lunes, retorna el lunes de la semana pasada.
  */
-export function getPreviousMonday(now: Date): Date {
-  const d = new Date(now);
-  const day = d.getDay(); // 0=dom, 1=lun, ...
-  const diff = day === 0 ? 6 : day - 1; // días hasta el lunes más cercano
-  d.setDate(d.getDate() - diff - 7); // lunes de la semana pasada
-  d.setHours(0, 0, 0, 0);
-  return d;
+export function getPreviousMonday(_now?: Date): Date {
+  const lunesActual = boliviaStartOfWeek();
+  return new Date(lunesActual.getTime() - 7 * 24 * 60 * 60 * 1000);
 }
 
 /**
  * Obtiene el lunes actual (09:30 America/La_Paz).
  * Si hoy es lunes, retorna hoy a las 09:30.
  */
-export function getCurrentMonday(now: Date): Date {
-  const d = new Date(now);
-  const day = d.getDay();
-  const diff = day === 0 ? 6 : day - 1;
-  d.setDate(d.getDate() - diff);
-  d.setHours(9, 30, 0, 0);
-  return d;
+export function getCurrentMonday(_now?: Date): Date {
+  const lunes = boliviaStartOfWeek();
+  return new Date(lunes.getTime() + 9 * 60 * 60 * 1000 + 30 * 60 * 1000);
 }
 
 /** Formatea una fecha para label legible en español (dd de mes de yyyy) */

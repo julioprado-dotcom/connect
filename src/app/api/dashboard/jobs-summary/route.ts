@@ -5,6 +5,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { guardError } from '@/lib/rate-guard';
+import { boliviaStartOfDay } from '@/lib/date-bolivia';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -12,7 +13,7 @@ export const revalidate = 0;
 export async function GET() {
   try {
     const now = new Date();
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfDay = boliviaStartOfDay();
     const last24h = new Date(now.getTime() - 24 * 3600000);
 
     const [completadosHoy, fallidosHoy, enProgreso, pendientes, cancelados, recentJobs] = await Promise.all([

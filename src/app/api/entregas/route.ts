@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { entregaCreateSchema } from '@/lib/validations';
 import { guardedParse, RATE, guardError } from '@/lib/rate-guard';
+import { boliviaStartOfDay } from '@/lib/date-bolivia';
 
 // GET /api/entregas — Listar entregas con filtros
 export async function GET(req: NextRequest) {
@@ -44,10 +45,8 @@ export async function GET(req: NextRequest) {
     ]);
 
     // Stats rápidos
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const manana = new Date(hoy);
-    manana.setDate(manana.getDate() + 1);
+    const hoy = boliviaStartOfDay();
+    const manana = new Date(hoy.getTime() + 24 * 60 * 60 * 1000);
 
     const [enviadasHoy, fallidasHoy, pendientes] = await Promise.all([
       db.entrega.count({ where: { estado: 'enviado', fechaEnvio: { gte: hoy, lt: manana } } }),

@@ -6,6 +6,7 @@ import db from '@/lib/db'
 import { Prisma } from '@prisma/client'
 import type { TipoBoletin, ProductoConfig } from '@/types/bulletin'
 import { PRODUCTOS } from '@/constants/products'
+import { boliviaStartOfDay, boliviaStartOfWeek } from '@/lib/date-bolivia'
 
 // Obtener config de un producto por tipo
 export function getProductConfig(tipo: TipoBoletin): ProductoConfig | null {
@@ -123,18 +124,15 @@ export function formatFechaBolivia(date: Date): string {
 
 // Obtener rango de fechas por tipo de producto
 export function getDateRange(tipo: string): { fechaInicio: Date; fechaFin: Date } {
-  const ahora = new Date()
-  const hoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate())
+  const hoy = boliviaStartOfDay();
 
   switch (tipo) {
     case 'EL_RADAR':
     case 'BOLETIN_DEL_GRANO': {
-      // Semana pasada (lunes a domingo)
-      const diaSemana = hoy.getDay()
-      const lunesPasado = new Date(hoy)
-      lunesPasado.setDate(hoy.getDate() - ((diaSemana === 0 ? 6 : diaSemana - 1) + 7))
-      const domingoPasado = new Date(lunesPasado)
-      domingoPasado.setDate(lunesPasado.getDate() + 6)
+      // Semana pasada (lunes a domingo) en Bolivia timezone
+      const lunesActual = boliviaStartOfWeek()
+      const lunesPasado = new Date(lunesActual.getTime() - 7 * 24 * 60 * 60 * 1000)
+      const domingoPasado = new Date(lunesPasado.getTime() + 6 * 24 * 60 * 60 * 1000)
       return { fechaInicio: lunesPasado, fechaFin: domingoPasado }
     }
 

@@ -11,6 +11,9 @@ import { buildCronEntries, getBoletinCronEntries, getMantenimientoCronEntry, for
 import { CHECK_FIRST_CONFIG, QUEUE_LIMITS } from './constants'
 import { determinarCapa, descripcionCapa, evaluarDegradacionMasiva } from './source-lifecycle'
 
+// ─── Timezone: todos los cron jobs usan hora de Bolivia ──────────────
+const CRON_OPTS = { scheduled: true, timezone: 'America/La_Paz' }
+
 // ─── Estado compartido via globalThis ──────────────────────────────
 // IMPORTANTE: En Next.js con Turbopack, instrumentation.ts y los API routes
 // corren en contextos de modulo diferentes. Por eso usamos globalThis
@@ -247,7 +250,7 @@ function scheduleSingleCheck(
       const msg = error instanceof Error ? error.message : String(error)
       console.error(`[Scheduler] Error en tarea ${fuente.Medio.nombre}: ${msg}`)
     }
-  })
+  }, CRON_OPTS)
 
   getState().tasks.push(task)
 }
@@ -279,7 +282,7 @@ function scheduleBoletinJobs(): void {
         const msg = error instanceof Error ? error.message : String(error)
         console.error(`[Scheduler] Error en boletin ${entry.tipo}: ${msg}`)
       }
-    })
+    }, CRON_OPTS)
 
     getState().tasks.push(task)
   }
@@ -299,8 +302,8 @@ async function scheduleIndicatorJobs(): Promise<void> {
     return
   }
 
-  // Captura batch Tier 1: una vez al día (08:00 AM Bolivia = 12:00 UTC)
-  const expresion = '0 12 * * *'
+  // Captura batch Tier 1: una vez al día (08:00 AM Bolivia)
+  const expresion = '0 8 * * *'
 
   if (!cron.validate(expresion)) return
 
@@ -347,7 +350,7 @@ async function scheduleIndicatorJobs(): Promise<void> {
       const msg = error instanceof Error ? error.message : String(error)
       console.error(`[Scheduler] Error en captura indicadores: ${msg}`)
     }
-  })
+  }, CRON_OPTS)
 
   getState().tasks.push(task)
   console.log(`[Scheduler] Captura indicadores Tier 1 programada diaria 08:00 Bolivia (${formatCronHuman(expresion)}) — ${indicadoresTier1} indicadores activos`)
@@ -377,10 +380,10 @@ function scheduleMaintenanceJob(): void {
       const msg = error instanceof Error ? error.message : String(error)
       console.error(`[Scheduler] Error en mantenimiento: ${msg}`)
     }
-  })
+  }, CRON_OPTS)
 
   getState().tasks.push(task)
-  console.log('[Scheduler] Mantenimiento nocturno programado (04:00 AM)')
+  console.log('[Scheduler] Mantenimiento nocturno programado (04:00 AM Bolivia)')
 }
 
 // Obtener resumen de tareas programadas (para dashboard)

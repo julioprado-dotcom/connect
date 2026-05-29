@@ -5,6 +5,7 @@
 import db from '@/lib/db'
 import { CHECK_FIRST_CONFIG } from '../constants'
 import type { JobPayload, RunnerResult } from '../types'
+import { boliviaStartOfDay } from '@/lib/date-bolivia'
 
 export async function run(payload: JobPayload): Promise<RunnerResult> {
   const indicadorId = payload.indicadorId as string
@@ -48,9 +49,8 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       }
     }
 
-    // Obtener ultimo valor guardado (hoy)
-    const hoyInicio = new Date()
-    hoyInicio.setHours(0, 0, 0, 0)
+    // Obtener ultimo valor guardado (hoy en Bolivia)
+    const hoyInicio = boliviaStartOfDay()
 
     const ultimoValor = await db.indicadorValor.findFirst({
       where: {

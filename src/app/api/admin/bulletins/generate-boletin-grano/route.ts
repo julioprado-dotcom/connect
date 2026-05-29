@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import type { BoletinGranoData, BoletinGranoNoticia, BoletinGranoEje } from '@/lib/services/boletin-del-grano';
 import { generarHTMLBoletinDelGrano, generarPDFBoletinDelGrano } from '@/lib/services/boletin-del-grano';
+import { boliviaStartOfWeek } from '@/lib/date-bolivia';
 
 // 7 ejes internos del boletín
 const EJES_INTERNOS = [
@@ -80,13 +81,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const modoPrueba = body.modoPrueba === true;
 
-    // Calcular rango de fechas: semana pasada (lunes a domingo)
-    const hoy = new Date();
-    const diaSemana = hoy.getDay();
-    const lunesPasado = new Date(hoy);
-    lunesPasado.setDate(hoy.getDate() - ((diaSemana === 0 ? 6 : diaSemana - 1) + 7));
-    const domingoPasado = new Date(lunesPasado);
-    domingoPasado.setDate(lunesPasado.getDate() + 6);
+    // Calcular rango de fechas: semana pasada (lunes a domingo) en Bolivia timezone
+    const lunesActual = boliviaStartOfWeek();
+    const lunesPasado = new Date(lunesActual.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const domingoPasado = new Date(lunesPasado.getTime() + 6 * 24 * 60 * 60 * 1000);
 
     // Buscar menciones con keywords de café (via Lente 9 en MencionLente)
     const lente9 = await db.lente.findFirst({ where: { slug: 'cafe-economicas-regionales' } });
@@ -103,14 +101,15 @@ export async function POST(request: NextRequest) {
         })
       : [];
 
-    // Filtrar por fecha
-    const inicioSemana = new Date(lunesPasado.getFullYear(), lunesPasado.getMonth(), lunesPasado.getDate());
-    const finSemana = new Date(domingoPasado.getFullYear(), domingoPasado.getMonth(), domingoPasado.getDate(), 23, 59, 59);
+    // Filtrar por fecha (Bolivia timezone)
+    const inicioSemana = boliviaStartOfWeek();
+    const lunesPasadoInicio = new Date(inicioSemana.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const finSemana = new Date(inicioSemana.getTime() - 1);
 
     const mencionesSemana = mencionesRelacionadas.filter((mr) => {
       const fechaPub = mr.Mencion.fechaPublicacion || mr.Mencion.fechaCaptura;
       const fecha = new Date(fechaPub);
-      return fecha >= inicioSemana && fecha <= finSemana;
+      return fecha >= lunesPasadoInicio && fecha <= finSemana;
     });
 
     // Si no hay suficientes menciones reales, intentar modo prueba
@@ -168,7 +167,7 @@ export async function POST(request: NextRequest) {
         // Sin datos suficientes — no generar
         return NextResponse.json({
           success: false,
-          error: `BOLETIN_DEL_GRANO — Semana ${getSemanaNumero(hoy)}: Solo ${totalNoticias} noticias relevantes. Mínimo requerido: 3. Usar modoPrueba=true para generar con datos de ejemplo.`,
+          error: `BOLETIN_DEL_GRANO — Semana ${getSemanaNumero(domingoPasado)}: Solo ${totalNoticias} noticias relevantes. Mínimo requerido: 3. Usar modoPrueba=true para generar con datos de ejemplo.`,
           totalNoticias,
           periodo: { inicio: lunesPasado.toISOString(), fin: domingoPasado.toISOString() },
         });
@@ -248,7 +247,7 @@ export async function POST(request: NextRequest) {
     const data: BoletinGranoData = {
       periodoInicio: fmtFecha(lunesPasado),
       periodoFin: fmtFecha(domingoPasado),
-      semanaNumero: getSemanaNumero(hoy),
+      semanaNumero: getSemanaNumero(domingoPasado),
       version: 'DECODEX v0.16.0',
       tensionGeneral,
       resumenEjecutivo: coberturaLimitada && !modoPrueba

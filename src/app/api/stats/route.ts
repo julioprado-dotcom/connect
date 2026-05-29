@@ -2,18 +2,15 @@ import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { guardError } from '@/lib/rate-guard';
 import { scrapingState } from '@/lib/scraping-state';
+import { boliviaStartOfDay, boliviaStartOfWeek } from '@/lib/date-bolivia';
 
 export async function GET() {
   try {
     // ─── Parallel Phase 1: Counts independientes ───
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const manana = new Date(hoy);
-    manana.setDate(manana.getDate() + 1);
+    const hoy = boliviaStartOfDay();
+    const manana = new Date(hoy.getTime() + 24 * 60 * 60 * 1000);
 
-    const inicioSemana = new Date();
-    inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay() + 1);
-    inicioSemana.setHours(0, 0, 0, 0);
+    const inicioSemana = boliviaStartOfWeek();
 
     const [
       totalPersonas,

@@ -6,22 +6,19 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { guardError } from '@/lib/rate-guard';
+import { boliviaStartOfDay, boliviaStartOfYesterday, boliviaStartOfWeek } from '@/lib/date-bolivia';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET() {
   try {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const manana = new Date(hoy);
-    manana.setDate(manana.getDate() + 1);
+    const hoy = boliviaStartOfDay();
+    const manana = new Date(hoy.getTime() + 24 * 60 * 60 * 1000);
 
-    const ayer = new Date(hoy);
-    ayer.setDate(ayer.getDate() - 1);
+    const ayer = boliviaStartOfYesterday();
 
-    const inicioSemana = new Date(hoy);
-    inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay() + 1); // Monday
+    const inicioSemana = boliviaStartOfWeek();
 
     const hoyISO = hoy.toISOString();
     const mananaISO = manana.toISOString();

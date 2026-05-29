@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { guardError } from '@/lib/rate-guard';
+import { boliviaStartOfDay } from '@/lib/date-bolivia';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -91,11 +92,9 @@ function parseCompositeQuery(q: string): { terms: string[]; isComposite: boolean
   return { terms: [trimmed], isComposite: false };
 }
 
-/** Inicio del día (Bolivia UTC-4 aproximado) */
+/** Inicio del día en zona horaria de Bolivia (UTC-4) */
 function todayStart(): Date {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return start;
+  return boliviaStartOfDay();
 }
 
 // ─── GET Handler ───────────────────────────────────────────

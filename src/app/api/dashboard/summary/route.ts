@@ -7,19 +7,16 @@ import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { guardError } from '@/lib/rate-guard';
 import { ALL_PRODUCTS } from '@/constants/nav';
+import { boliviaStartOfDay, boliviaStartOfWeek } from '@/lib/date-bolivia';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET() {
   try {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const manana = new Date(hoy);
-    manana.setDate(manana.getDate() + 1);
-    const inicioSemana = new Date();
-    inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay() + 1);
-    inicioSemana.setHours(0, 0, 0, 0);
+    const hoy = boliviaStartOfDay();
+    const manana = new Date(hoy.getTime() + 24 * 60 * 60 * 1000);
+    const inicioSemana = boliviaStartOfWeek();
     const hace24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const en15d = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000);
 

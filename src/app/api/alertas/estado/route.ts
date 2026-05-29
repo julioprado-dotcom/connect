@@ -11,6 +11,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { guardError } from '@/lib/rate-guard';
+import { boliviaStartOfDay, boliviaStartOfYesterday } from '@/lib/date-bolivia';
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -241,18 +242,16 @@ async function alertasMenciones(): Promise<AlertaOperativa[]> {
   const alertas: AlertaOperativa[] = [];
 
   try {
-    // Menciones capturadas hoy
-    const hoyInicio = new Date();
-    hoyInicio.setHours(0, 0, 0, 0);
+    // Menciones capturadas hoy (Bolivia timezone)
+    const hoyInicio = boliviaStartOfDay();
 
     const mencionesHoy = await db.mencion.count({
       where: { fechaCaptura: { gte: hoyInicio } },
     });
 
-    // Menciones ayer
-    const ayerInicio = new Date(hoyInicio);
-    ayerInicio.setDate(ayerInicio.getDate() - 1);
-    const ayerFin = new Date(hoyInicio);
+    // Menciones ayer (Bolivia timezone)
+    const ayerInicio = boliviaStartOfYesterday();
+    const ayerFin = boliviaStartOfDay();
 
     const mencionesAyer = await db.mencion.count({
       where: {

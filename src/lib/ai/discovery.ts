@@ -17,6 +17,7 @@
 import db from '@/lib/db';
 import ZAI from 'z-ai-web-dev-sdk';
 import { registrarLlamadaLLM, USO_FUENTE } from '@/lib/registrar-uso-ia';
+import { boliviaStartOfDay } from '@/lib/date-bolivia';
 
 // ─── Interfaces ──────────────────────────────────────────────────
 
@@ -102,8 +103,7 @@ async function getMencionesHuerfanasDelDia(): Promise<Array<{
   medioNombre: string;
   url: string;
 }>> {
-  const hoyInicio = new Date();
-  hoyInicio.setHours(0, 0, 0, 0);
+  const hoyInicio = boliviaStartOfDay();
 
   const menciones = await db.mencion.findMany({
     where: {

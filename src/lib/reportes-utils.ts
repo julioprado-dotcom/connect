@@ -13,6 +13,7 @@ import db from '@/lib/db';
 import { type TipoBoletin, type VentanaTipo } from '@/types/bulletin';
 import { formatFechaBolivia } from '@/lib/bulletin/product-generator';
 import { SENTIMENT_SCORES, sentimentScoreLabel } from '@/constants/colors';
+import { boliviaNow, boliviaStartOfDay, boliviaStartOfWeek, boliviaEndOfDay, boliviaDaysAgo } from '@/lib/date-bolivia';
 
 // Re-exportar para uso por otros módulos del Equipo B
 export { formatFechaBolivia } from '@/lib/bulletin/product-generator';
@@ -130,64 +131,77 @@ export function getNowBolivia(): Date {
 // Calculo de ventana de tiempo
 // ============================================
 
-/** Calcula fecha inicio y fin segun el tipo de ventana */
+/** Calcula fecha inicio y fin segun el tipo de ventana (Bolivia timezone) */
 export function calculateWindow(
   ventana: VentanaTipo,
   fechaStr?: string
 ): { fechaInicio: Date; fechaFin: Date; ventanaLabel: string } {
-  const fechaBase = fechaStr ? new Date(fechaStr + 'T12:00:00') : new Date()
-  const fechaFin = new Date(fechaBase)
-  const fechaInicio = new Date(fechaBase)
+  const fechaBase = fechaStr ? new Date(fechaStr + 'T12:00:00') : boliviaNow();
+  const fechaFin = new Date(fechaBase);
+  const fechaInicio = new Date(fechaBase);
 
   switch (ventana) {
     case 'nocturna':
-      // Ayer 19:00 → hoy 07:00
-      fechaInicio.setDate(fechaInicio.getDate() - 1)
-      fechaInicio.setHours(19, 0, 0, 0)
-      fechaFin.setHours(7, 0, 0, 0)
+      // Ayer 19:00 → hoy 07:00 (Bolivia timezone)
+      fechaInicio.setDate(fechaInicio.getDate() - 1);
+      const nocturnaBase = boliviaStartOfDay();
+      fechaInicio.setTime(nocturnaBase.getTime() + 19 * 60 * 60 * 1000);
+      fechaInicio.setDate(fechaInicio.getDate() - 1);
+      fechaFin.setTime(nocturnaBase.getTime() + 7 * 60 * 60 * 1000);
       return { fechaInicio, fechaFin, ventanaLabel: `${formatFechaBolivia(fechaInicio)} — ${formatFechaBolivia(fechaFin)}` }
 
     case 'diurna':
-      // Hoy 07:00 → 19:00
-      fechaInicio.setHours(7, 0, 0, 0)
-      fechaFin.setHours(19, 0, 0, 0)
+      // Hoy 07:00 → 19:00 (Bolivia timezone)
+      {
+        const diurnaBase = boliviaStartOfDay();
+        fechaInicio.setTime(diurnaBase.getTime() + 7 * 60 * 60 * 1000);
+        fechaFin.setTime(diurnaBase.getTime() + 19 * 60 * 60 * 1000);
+      }
       return { fechaInicio, fechaFin, ventanaLabel: `${formatFechaBolivia(fechaInicio)} — ${formatFechaBolivia(fechaFin)}` }
 
     case 'dia_completo':
-      // 00:00 → 23:59 del día
-      fechaInicio.setHours(0, 0, 0, 0)
-      fechaFin.setHours(23, 59, 59, 999)
+      // 00:00 → 23:59 del día (Bolivia timezone)
+      {
+        const diaBase = boliviaStartOfDay();
+        fechaInicio.setTime(diaBase.getTime());
+        fechaFin.setTime(diaBase.getTime() + 24 * 60 * 60 * 1000 - 1);
+      }
       return { fechaInicio, fechaFin, ventanaLabel: formatFechaBolivia(fechaInicio) }
 
     case 'semanal':
-      // Lunes 00:00 → domingo 23:59
-      const dayOfWeek = fechaInicio.getDay()
-      const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-      fechaInicio.setDate(fechaInicio.getDate() - daysToMonday)
-      fechaInicio.setHours(0, 0, 0, 0)
-      fechaFin.setDate(fechaInicio.getDate() + 6)
-      fechaFin.setHours(23, 59, 59, 999)
+      // Lunes 00:00 → domingo 23:59 (Bolivia timezone)
+      {
+        const lunesBase = boliviaStartOfWeek();
+        fechaInicio.setTime(lunesBase.getTime());
+        fechaFin.setTime(lunesBase.getTime() + 7 * 24 * 60 * 60 * 1000 - 1);
+      }
       return { fechaInicio, fechaFin, ventanaLabel: `${formatFechaBolivia(fechaInicio)} al ${formatFechaBolivia(fechaFin)}` }
 
     case 'quincenal':
-      fechaInicio.setDate(fechaInicio.getDate() - 14)
-      fechaInicio.setHours(0, 0, 0, 0)
-      fechaFin.setHours(23, 59, 59, 999)
+      {
+        const quinBase = boliviaDaysAgo(14);
+        fechaInicio.setTime(quinBase.getTime());
+        fechaFin.setTime(boliviaEndOfDay().getTime());
+      }
       return { fechaInicio, fechaFin, ventanaLabel: `${formatFechaBolivia(fechaInicio)} al ${formatFechaBolivia(fechaFin)}` }
 
     case 'mensual':
-      fechaInicio.setMonth(fechaInicio.getMonth() - 1, 1)
-      fechaInicio.setHours(0, 0, 0, 0)
-      fechaFin.setDate(0)
-      fechaFin.setHours(23, 59, 59, 999)
+      {
+        const boNow = boliviaNow();
+        fechaInicio = new Date(boNow.getFullYear(), boNow.getMonth() - 1, 1);
+        const lastDay = new Date(boNow.getFullYear(), boNow.getMonth(), 0);
+        fechaFin = new Date(lastDay.getTime() + 24 * 60 * 60 * 1000 - 1);
+      }
       return { fechaInicio, fechaFin, ventanaLabel: `${formatFechaBolivia(fechaInicio)} al ${formatFechaBolivia(fechaFin)}` }
 
     case 'estandar':
     default:
-      // 7 días por defecto
-      fechaInicio.setDate(fechaInicio.getDate() - 7)
-      fechaInicio.setHours(0, 0, 0, 0)
-      fechaFin.setHours(23, 59, 59, 999)
+      // 7 días por defecto (Bolivia timezone)
+      {
+        const estBase = boliviaDaysAgo(7);
+        fechaInicio.setTime(estBase.getTime());
+        fechaFin.setTime(boliviaEndOfDay().getTime());
+      }
       return { fechaInicio, fechaFin, ventanaLabel: `${formatFechaBolivia(fechaInicio)} al ${formatFechaBolivia(fechaFin)}` }
   }
 }

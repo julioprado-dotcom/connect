@@ -8,22 +8,19 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { guardError } from '@/lib/rate-guard';
+import { boliviaStartOfDay, boliviaDaysAgo } from '@/lib/date-bolivia';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const ahora = new Date();
-    const hoy = new Date(ahora);
-    hoy.setHours(0, 0, 0, 0);
+    const hoy = boliviaStartOfDay();
 
     // ─── Fechas para comparacion de variaciones ───
-    const hace7 = new Date(hoy);
-    hace7.setDate(hace7.getDate() - 7);
+    const hace7 = boliviaDaysAgo(7);
 
-    const hace14 = new Date(hoy);
-    hace14.setDate(hace14.getDate() - 14);
+    const hace14 = boliviaDaysAgo(14);
 
     // ─── Fechas para contratos por vencer ───
     const en30Dias = new Date(hoy);
