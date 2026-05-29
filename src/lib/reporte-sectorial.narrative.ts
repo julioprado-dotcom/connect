@@ -129,7 +129,7 @@ REGLAS ESTRICTAS:
 
     const zai = await ZAI.create();
     const completion = await zai.chat.completions.create({
-      model: 'glm-4-air',
+      model: 'glm-4.7-flash',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },

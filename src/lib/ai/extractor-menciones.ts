@@ -248,7 +248,7 @@ export async function extraerMencionesDeTexto(
     let completion;
     try {
       completion = await zai.chat.completions.create({
-        model: 'glm-4-air',
+        model: 'glm-4.7-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userContent },

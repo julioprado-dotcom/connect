@@ -189,7 +189,7 @@ async function extractEntidades(textos: Array<{ texto: string; titulo: string; m
 
   try {
     const completion = await zai.chat.completions.create({
-      model: 'glm-4-air',
+      model: 'glm-4.7-flash',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `Analiza estas notas periodísticas bolivianas y detecta actores/temas emergentes:\n\n${contenido}` },
