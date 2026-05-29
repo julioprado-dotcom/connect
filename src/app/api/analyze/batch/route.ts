@@ -6,6 +6,10 @@ import { analyzeMencion, applyAnalysisToMencion, EJES_TEMATICOS } from '@/lib/an
 import { extraerMencionesDeTexto, crearMencionesExtraidas, type ExtractionResult } from '@/lib/ai/extractor-menciones';
 import { safeError } from '@/lib/safe-error';
 
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+// Rate limit del modelo gratis glm-4.7-flash: ~3 req/s
+const LLM_DELAY_MS = 3000;
+
 export async function POST(request: NextRequest) {
   try {
     const parsed = await guardedParse(request, analyzeBatchSchema, RATE.AI);
@@ -162,6 +166,10 @@ export async function POST(request: NextRequest) {
         const personaLabel2 = mencion.Persona?.nombre || 'Referencia tematica';
         detalles.push(`✗ ${personaLabel2}: ERROR — ${errMsg}`);
         console.error(`[batch-analyze] Error procesando mención #${mencion.id}:`, err);
+      }
+      // Pausa entre llamadas LLM para evitar rate limit 429
+      if (menciones.indexOf(mencion) < menciones.length - 1) {
+        await sleep(LLM_DELAY_MS);
       }
     }
 
