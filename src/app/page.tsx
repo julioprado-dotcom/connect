@@ -356,7 +356,7 @@ function PipelineStatusBar({
 function LiveClock({ now }: { now: Date }) {
   // suppressHydrationWarning: los timestamps difieren entre SSR y client hydration
   return (
-    <div className="flex flex-col items-end">
+    <div className="flex flex-col items-end" suppressHydrationWarning>
       <span
         className="text-xs font-mono text-cyan-400 tabular-nums"
         style={{ textShadow: '0 0 8px rgba(6,182,212,0.4)' }}

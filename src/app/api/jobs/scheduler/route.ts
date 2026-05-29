@@ -8,12 +8,12 @@
 export const runtime = 'nodejs'
 
 import { NextRequest, NextResponse } from 'next/server'
+import fs from 'fs'
+import os from 'os'
 import { rescheduleAll, startScheduler, stopScheduler, getSchedulerStatus } from '@/lib/jobs/scheduler'
 import { getBackupSchedulerStatus } from '@/lib/jobs/backup-scheduler'
 import { guardError } from '@/lib/rate-guard'
 import { withAuth } from '@/lib/auth-helpers'
-import fs from 'fs'
-import os from 'os'
 
 const SCHEDULER_HB = os.tmpdir() + '/decodex-scheduler-heartbeat'
 
@@ -60,12 +60,18 @@ export async function GET() {
         }))
 
     const backupStatus = getBackupSchedulerStatus()
+
     return NextResponse.json({
       running,
       totalTasks,
       totalScheduled,
       tasks,
       mode: isPm2Mode ? 'pm2' : 'in-process',
+      heartbeat: isPm2Mode ? {
+        uptime: hb.data.uptime,
+        lastReschedule: hb.data.lastReschedule,
+        pid: hb.data.pid,
+      } : undefined,
       backup: {
         ...backupStatus,
         politica: '4x/día — NUNCA se borran — GitHub',
