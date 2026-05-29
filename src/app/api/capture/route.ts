@@ -509,7 +509,7 @@ export async function GET() {
           : 0,
         version: 'v2-scraping-directo',
       },
-      recentLogs: queueState.log.slice(-30),
+      recentLogs: queueState.log.slice(-30).reverse(),
     };
 
     const lastLog = await db.capturaLog.findFirst({
