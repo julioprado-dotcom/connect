@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { withAuth } from '@/lib/auth-helpers';
 import ZAI from 'z-ai-web-dev-sdk';
+import { registrarLlamadaLLM, USO_FUENTE } from '@/lib/registrar-uso-ia';
 
 interface SignalAnalysis {
   contexto: string;
@@ -96,6 +97,13 @@ Responde SOLO en español. Sé conciso pero preciso. Si la información es insuf
     });
 
     const aiContent = completion.choices[0]?.message?.content || '';
+
+    // Registrar uso IA
+    registrarLlamadaLLM({
+      completion,
+      fuente: USO_FUENTE.SIGNAL,
+      detalles: `mencionId=${mencionId}`,
+    }).catch(() => {});
 
     // Parse AI response
     let analysis: SignalAnalysis;

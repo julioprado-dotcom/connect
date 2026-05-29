@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import ZAI from 'z-ai-web-dev-sdk';
+import { registrarLlamadaLLM, USO_FUENTE } from '@/lib/registrar-uso-ia';
 
 /* ─── Prompt del sistema para detectar tipo de instrucción ─── */
 const SYSTEM_PROMPT = `Eres un asistente del sistema DECODEX Bolivia, una plataforma de inteligencia de medios que monitorea señales políticas en Bolivia.
@@ -74,6 +75,9 @@ export async function POST(request: NextRequest) {
       });
 
       const raw = completion.choices?.[0]?.message?.content || '';
+
+      // Registrar uso IA
+      registrarLlamadaLLM({ completion, fuente: USO_FUENTE.INSTRUCCION, detalles: 'parse-tipo' }).catch(() => {});
       // Extract JSON from response
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error('No se pudo extraer JSON de la respuesta del LLM');
@@ -358,6 +362,9 @@ async function handleResumirPeriodo(
       });
 
       summary = completion.choices?.[0]?.message?.content || '';
+
+      // Registrar uso IA (segunda llamada)
+      registrarLlamadaLLM({ completion, fuente: USO_FUENTE.INSTRUCCION, detalles: 'resumen-periodo' }).catch(() => {});
     } catch {
       summary = `${menciones.length} menciones encontradas en las últimas ${horas} horas.`;
     }

@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { withAuth } from '@/lib/auth-helpers';
 import ZAI from 'z-ai-web-dev-sdk';
+import { registrarLlamadaLLM, USO_FUENTE } from '@/lib/registrar-uso-ia';
 
 export async function POST(
   _request: NextRequest,
@@ -62,6 +63,14 @@ export async function POST(
     });
 
     const content = completion.choices[0]?.message?.content || '';
+
+    // Registrar uso IA
+    registrarLlamadaLLM({
+      completion,
+      fuente: USO_FUENTE.MEDIO_ANALYZE,
+      medioId: medioId,
+      detalles: 'medio-intelligence-report',
+    }).catch(() => {});
     // Parse JSON from response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {

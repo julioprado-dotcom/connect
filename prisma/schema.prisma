@@ -390,6 +390,7 @@ model Medio {
   FuenteEstado         FuenteEstado?
   Mencion              Mencion[]
   RechazoCaptura       RechazoCaptura[]
+  UsoIA                UsoIA[]
 
   @@index([categoria])
   @@index([nivel])
@@ -708,4 +709,27 @@ model mencion_cliente_eje {
   eje_tematico_cliente eje_tematico_cliente @relation(fields: [ejeClienteId], references: [id], onDelete: Cascade)
 
   @@unique([mencionId, ejeClienteId])
+}
+
+/* ──── Registro de uso de IA (tokens y costo) ──── */
+model UsoIA {
+  id             String   @id @default(uuid())
+  modelo         String   @default("glm-4.7-flash")
+  fuente         String   // captura, clasificacion, deduplicacion, discovery, generacion, instruccion, signal, medio_analyze
+  promptTokens   Int      @default(0)
+  completionTokens Int    @default(0)
+  totalTokens    Int      @default(0)
+  costoUSD       Float    @default(0)
+  medioId        String?
+  mencionId     String?
+  detalles       String   @default("")
+  createdAt      DateTime @default(now())
+
+  Medio          Medio?   @relation(fields: [medioId], references: [id], onDelete: SetNull)
+
+  @@index([fuente])
+  @@index([modelo])
+  @@index([createdAt])
+  @@index([medioId])
+  @@index([fuente, createdAt])
 }

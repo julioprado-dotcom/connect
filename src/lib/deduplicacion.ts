@@ -3,6 +3,7 @@
 
 import db from '@/lib/db';
 import ZAI from 'z-ai-web-dev-sdk';
+import { registrarLlamadaLLM, USO_FUENTE } from '@/lib/registrar-uso-ia';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -255,6 +256,14 @@ CONTEXTO BOLIVIANO: En Bolivia, multiples medios reproducen cables de agencia (A
     });
 
     const raw = (completion?.choices?.[0]?.message?.content || '').trim().toUpperCase();
+
+    // Registrar uso IA
+    registrarLlamadaLLM({
+      completion,
+      fuente: USO_FUENTE.DEDUPLICACION,
+      detalles: `candidato=${candidato.resumen?.substring(0, 60)}`,
+    }).catch(() => {});
+
     if (raw.includes('MISMO_EVENTO')) return 'MISMO_EVENTO';
     if (raw.includes('EVENTO_EVOLUTIVO')) return 'EVENTO_EVOLUTIVO';
     if (raw.includes('RELACIONADOS_PERO_DISTINTOS')) return 'RELACIONADOS_PERO_DISTINTOS';

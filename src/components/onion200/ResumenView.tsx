@@ -8,6 +8,7 @@ import { LiveFeed } from '@/components/onion200/LiveFeed';
 import { SystemStatus } from '@/components/onion200/SystemStatus';
 import { CommandCenter } from '@/components/onion200/CommandCenter';
 import { MiniCharts } from '@/components/onion200/MiniCharts';
+import { AiUsagePanel } from '@/components/onion200/AiUsagePanel';
 import { PanelShell } from '@/components/onion200/PanelShell';
 import { UserCircle, Send, Users, ChevronRight, LayoutGrid } from 'lucide-react';
 
@@ -115,13 +116,18 @@ export function ResumenView({ onNavigateTab }: ResumenViewProps) {
         />
       </div>
 
+      {/* AI Usage (6 cols) */}
+      <div className="lg:col-span-6">
+        <AiUsagePanel />
+      </div>
+
       {/* Live Feed (3 cols) */}
       <div className="lg:col-span-3">
         <LiveFeed onNavigateTab={onNavigateTab} />
       </div>
 
-      {/* Command Center (9 cols, next to LiveFeed) */}
-      <div className="lg:col-span-9">
+      {/* Command Center (3 cols) */}
+      <div className="lg:col-span-3">
         <CommandCenter />
       </div>
 

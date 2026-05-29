@@ -13,6 +13,7 @@
 
 import ZAI from 'z-ai-web-dev-sdk';
 import { PRODUCTOS } from '@/constants/products';
+import { registrarLlamadaLLM, USO_FUENTE } from '@/lib/registrar-uso-ia';
 import { type TipoBoletin, type GenerationResult, type ValidationResult } from '@/types/bulletin';
 import { validateContent } from './validator';
 
@@ -88,6 +89,13 @@ export async function regenerateWithRetry(params: {
 
       const contenido = completion.choices[0]?.message?.content ?? '';
       const tokensUsados = completion.usage?.total_tokens;
+
+      // Registrar uso IA
+      registrarLlamadaLLM({
+        completion,
+        fuente: USO_FUENTE.GENERACION,
+        detalles: `tipo=${params.tipo}, intento=${intento + 1}`,
+      }).catch(() => {});
 
       if (!contenido) {
         lastResult = {

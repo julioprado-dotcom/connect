@@ -16,6 +16,7 @@
 
 import db from '@/lib/db';
 import ZAI from 'z-ai-web-dev-sdk';
+import { registrarLlamadaLLM, USO_FUENTE } from '@/lib/registrar-uso-ia';
 
 // ─── Interfaces ──────────────────────────────────────────────────
 
@@ -199,6 +200,14 @@ async function extractEntidades(textos: Array<{ texto: string; titulo: string; m
     });
 
     const raw = (completion?.choices?.[0]?.message?.content || '').trim();
+
+    // Registrar uso IA
+    registrarLlamadaLLM({
+      completion,
+      fuente: USO_FUENTE.DISCOVERY,
+      detalles: `notas=${textos.length}`,
+    }).catch(() => {});
+
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       console.log('[discovery] LLM no devolvió JSON válido');

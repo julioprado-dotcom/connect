@@ -8,6 +8,7 @@ import type { PrecioMetal } from '@/lib/yahoo-finance';
 import type { EjeAgregado, ActorAgregado, FactorExterno } from './reporte-sectorial.queries';
 import type { AlertaSectorial, MarcoPrinciples } from './reporte-sectorial.alerts';
 import { formatMarcoForPrompt } from './reporte-sectorial.alerts';
+import { registrarLlamadaLLM, USO_FUENTE } from '@/lib/registrar-uso-ia';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -139,6 +140,14 @@ REGLAS ESTRICTAS:
     });
 
     const raw = (completion?.choices?.[0]?.message?.content || '').trim();
+
+    // Registrar uso IA
+    registrarLlamadaLLM({
+      completion,
+      fuente: USO_FUENTE.GENERACION,
+      detalles: 'reporte-sectorial-narrative',
+    }).catch(() => {});
+
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       console.warn('[reporte-sectorial] LLM no retornó JSON válido. Usando narrativa por defecto.');

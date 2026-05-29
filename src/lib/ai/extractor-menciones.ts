@@ -7,6 +7,7 @@
 
 import db from '@/lib/db';
 import ZAI from 'z-ai-web-dev-sdk';
+import { registrarLlamadaLLM, USO_FUENTE } from '@/lib/registrar-uso-ia';
 import { deduplicarMencion, actualizarCoberturaDuplicado } from '@/lib/deduplicacion';
 import { reclasificarMencion } from '@/lib/clasificador-v2';
 import { canCallLLM, recordSuccess, recordFailure, recordSkipped } from '@/lib/ai/circuit-breaker';
@@ -267,6 +268,14 @@ export async function extraerMencionesDeTexto(
 
     const llmElapsed = Date.now() - llmStart;
     const raw = (completion?.choices?.[0]?.message?.content || '').trim();
+
+    // Registrar uso IA (tokens y costo)
+    registrarLlamadaLLM({
+      completion,
+      fuente: USO_FUENTE.CAPTURA,
+      medioId: medioId,
+      detalles: `titulo=${(titulo || '').substring(0, 60)}`,
+    }).catch(() => {});
 
     debugWrite(`LLM respondió en ${llmElapsed}ms, longitud: ${raw.length} chars`);
     debugWrite(`RESPUESTA CRUDA (primeros 2000 chars):\n${raw.substring(0, 2000)}`);

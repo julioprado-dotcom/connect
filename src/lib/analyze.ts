@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import ZAI from 'z-ai-web-dev-sdk';
 import db from '@/lib/db';
+import { registrarLlamadaLLM, USO_FUENTE } from '@/lib/registrar-uso-ia';
 
 // ─── Helpers ──────────────────────────────────────────────────
 
@@ -313,6 +314,13 @@ export async function analyzeMencion(titulo: string, texto: string): Promise<Ana
 
     const raw = (completion?.choices?.[0]?.message?.content || '').trim();
     console.log(`[analyze] LLM raw response (${raw.length} chars): ${raw.substring(0, 500)}`);
+
+    // Registrar uso IA
+    registrarLlamadaLLM({
+      completion,
+      fuente: USO_FUENTE.CLASIFICACION,
+      detalles: `mencionId=${mencionId || 'batch'}`,
+    }).catch(() => {});
 
     // Strip markdown code blocks if present (glm-4.7-flash wraps in ```json ... ```)
     let cleanRaw = raw;
