@@ -18,6 +18,21 @@
 
 import 'dotenv/config';
 import os from 'os';
+import fs from 'fs';
+import path from 'path';
+
+// ── Auto-fix permisos DB (git stash/pop puede quitar write) ──
+try {
+  const dbPath = path.join(__dirname, 'prisma', 'db', 'custom.db');
+  if (fs.existsSync(dbPath)) {
+    const stat = fs.statSync(dbPath);
+    if ((stat.mode & 0o777) !== 0o666) {
+      fs.chmodSync(dbPath, 0o666);
+      console.log('[Worker-Service] DB chmod corregido a 666');
+    }
+  }
+} catch { /* ignore */ }
+
 import { dequeue, complete, fail, reclaimOrphanJobs } from './src/lib/jobs/queue';
 import { WORKER_CONFIG, FLOW_CONTROL } from './src/lib/jobs/constants';
 import { registerDefaultRunners } from './src/lib/jobs/worker';
@@ -31,8 +46,6 @@ import { run as runVerificarEnlaces } from './src/lib/jobs/runners/verificar-enl
 import { run as runMantenimiento } from './src/lib/jobs/runners/mantenimiento';
 import { run as runConnectivityTest } from './src/lib/jobs/runners/connectivity-test';
 import type { JobPayload, JobTipo, RunnerResult, RunnerFn } from './src/lib/jobs/types';
-import fs from 'fs';
-import path from 'path';
 import db from './src/lib/db';
 
 // ═══════════════════════════════════════════════════════════════

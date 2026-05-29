@@ -24,6 +24,19 @@ import fs from 'fs';
 import path from 'path';
 import cron from 'node-cron';
 import type { ScheduledTask } from 'node-cron';
+
+// ── Auto-fix permisos DB (git stash/pop puede quitar write) ──
+try {
+  const dbPath = path.join(__dirname, 'prisma', 'db', 'custom.db');
+  if (fs.existsSync(dbPath)) {
+    const stat = fs.statSync(dbPath);
+    if ((stat.mode & 0o777) !== 0o666) {
+      fs.chmodSync(dbPath, 0o666);
+      console.log('[Scheduler-Service] DB chmod corregido a 666');
+    }
+  }
+} catch { /* ignore */ }
+
 import db from './src/lib/db';
 import { enqueue } from './src/lib/jobs/queue';
 import { getFrecuenciaEfectiva, frecuenciaToChecksDia } from './src/lib/jobs/frequency/calculator';
