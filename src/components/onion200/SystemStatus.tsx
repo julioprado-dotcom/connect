@@ -75,6 +75,7 @@ function ProcessOrb({
   toggleEndpoint,
   onToggle,
   loading,
+  initializing,
 }: {
   online: boolean;
   label: string;
@@ -83,11 +84,13 @@ function ProcessOrb({
   toggleEndpoint?: string;
   onToggle?: () => void;
   loading?: boolean;
+  /** true cuando el sistema acaba de iniciar y el proceso aún no envió heartbeat */
+  initializing?: boolean;
 }) {
   const status = online ? 'ok' : 'error';
-  const color = online ? '#06b6d4' : '#8b5cf6';
-  const statusLabel = online ? 'En línea' : 'Desconectado';
-  const glowSize = online ? 6 : 12;
+  const color = online ? '#06b6d4' : (initializing ? '#3b82f6' : '#8b5cf6');
+  const statusLabel = online ? 'En línea' : (initializing ? 'Inicializando' : 'Desconectado');
+  const glowSize = online ? 6 : (initializing ? 4 : 12);
 
   return (
     <div className="flex items-center gap-3 py-1.5">
@@ -206,9 +209,9 @@ function PipelineOrb({
   label: string;
   onClick?: () => void;
 }) {
-  const statusKey = status === 'warn' ? 'warning' : (status as 'ok' | 'warning' | 'error' | 'idle') || 'idle';
-  const colorMap = { ok: '#06b6d4', warning: '#f59e0b', error: '#8b5cf6', idle: '#64748b', pending: '#3b82f6' };
-  const labelMap = { ok: 'En línea', warning: 'Degradado', error: 'Desconectado', idle: 'Inactivo', pending: 'Pendiente' };
+  const statusKey = status === 'warn' ? 'warning' : (status as 'ok' | 'warning' | 'error' | 'idle' | 'starting') || 'idle';
+  const colorMap = { ok: '#06b6d4', warning: '#f59e0b', error: '#8b5cf6', idle: '#64748b', pending: '#3b82f6', starting: '#3b82f6' };
+  const labelMap = { ok: 'En línea', warning: 'Degradado', error: 'Desconectado', idle: 'Inactivo', pending: 'Pendiente', starting: 'Inicializando' };
   const color = colorMap[statusKey] || colorMap.idle;
   const glowSize = statusKey === 'error' ? 12 : statusKey === 'warning' ? 8 : 6;
 
@@ -349,6 +352,9 @@ export function SystemStatus({ onNavigateTab }: SystemStatusProps) {
   const workerHealth = health?.backendVitals?.worker;
   const schedulerHealth = health?.backendVitals?.scheduler;
 
+  // Sistema recién iniciado (< 5 min) — procesos pueden no haber enviado primer heartbeat aún
+  const systemInitializing = (health?.uptime ?? 0) < 300;
+
   // Calculate Health Score from real process states
   const score = (() => {
     if (!processes) return health?.healthScore ?? 0;
@@ -363,12 +369,16 @@ export function SystemStatus({ onNavigateTab }: SystemStatusProps) {
     return Math.max(0, s);
   })();
 
-  const getDiagStatus = (id: string): 'ok' | 'warning' | 'error' | 'idle' => {
+  const getDiagStatus = (id: string): 'ok' | 'warning' | 'error' | 'idle' | 'starting' => {
     if (!health) return 'idle';
     const diag = health.diagnoses.find(d => d.id === id);
     if (!diag) return 'ok';
     if (diag.severity === 'critical') return 'error';
-    if (diag.severity === 'warning') return 'warning';
+    if (diag.severity === 'warning') {
+      // Uptime < 5 min → "Inicializando" en vez de "Degradado"
+      if (id === 'uptime' && diag.message === 'Inicializando') return 'starting';
+      return 'warning';
+    }
     return 'ok';
   };
 
@@ -414,6 +424,7 @@ export function SystemStatus({ onNavigateTab }: SystemStatusProps) {
           <ProcessOrb
             online={workerOnline}
             label="Trabajador"
+            initializing={!workerOnline && systemInitializing}
             detail={workerInfo
               ? `${workerInfo.jobsCompleted ?? 0} completados · ${workerInfo.jobsFailed ?? 0} fallidos${workerInfo.heartbeatAge != null ? ` · HB ${workerInfo.heartbeatAge}s` : ''}`
               : workerHealth
@@ -429,8 +440,9 @@ export function SystemStatus({ onNavigateTab }: SystemStatusProps) {
           <ProcessOrb
             online={schedulerOnline}
             label="Planificador"
+            initializing={!schedulerOnline && systemInitializing}
             detail={schedulerInfo
-              ? `${schedulerInfo.totalTasks ?? 0} tareas · ${schedulerInfo.totalScheduled ?? 0} encolados${schedulerInfo.heartbeatAge != null ? ` · HB ${schedulerInfo.heartbeatAge}s` : ''}`
+              ? `${schedulerInfo.totalTasks ?? 0} tareas programadas${schedulerInfo.heartbeatAge != null ? ` · HB ${schedulerInfo.heartbeatAge}s` : ''}`
               : schedulerHealth
                 ? schedulerHealth.running ? `${schedulerHealth.totalTasks} tareas` : 'Detenido'
                 : 'Sin datos'}

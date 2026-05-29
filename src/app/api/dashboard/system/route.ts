@@ -148,7 +148,7 @@ function diagnoseDatabase(dbSizeMB: number): Diagnosis {
 function diagnoseUptime(uptimeSeconds: number): Diagnosis {
   try {
     if (uptimeSeconds < 300) {
-      return { id: 'uptime', severity: 'critical', message: 'Servidor reinicio recientemente', detail: `Arriba hace ${formatUptime(uptimeSeconds)}.` };
+      return { id: 'uptime', severity: 'warning', message: 'Inicializando', detail: `Arriba hace ${formatUptime(uptimeSeconds)}.` };
     }
     if (uptimeSeconds < 600) {
       return { id: 'uptime', severity: 'warning', message: 'Estabilizando', detail: `Arriba hace ${formatUptime(uptimeSeconds)}.` };
