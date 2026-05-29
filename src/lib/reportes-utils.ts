@@ -11,12 +11,11 @@
 
 import db from '@/lib/db';
 import { type TipoBoletin, type VentanaTipo } from '@/types/bulletin';
-import { formatFechaBolivia } from '@/lib/bulletin/product-generator';
 import { SENTIMENT_SCORES, sentimentScoreLabel } from '@/constants/colors';
-import { boliviaNow, boliviaStartOfDay, boliviaStartOfWeek, boliviaEndOfDay, boliviaDaysAgo } from '@/lib/date-bolivia';
+import { boliviaNow, boliviaStartOfDay, boliviaStartOfWeek, boliviaEndOfDay, boliviaDaysAgo, formatFechaBolivia } from '@/lib/date-bolivia';
 
-// Re-exportar para uso por otros módulos del Equipo B
-export { formatFechaBolivia } from '@/lib/bulletin/product-generator';
+// Re-exportar para uso por otros módulos
+export { formatFechaBolivia } from '@/lib/date-bolivia';
 import { getIndicadoresParaEje, getIndicadoresParaEjes, formatearIndicadoresPrompt } from '@/lib/indicadores/injector';
 
 // ============================================

@@ -97,3 +97,16 @@ export function boliviaHourToUTC(boHour: number): number {
 export function boliviaSQLDate(): string {
   return boliviaDateStr();
 }
+
+/**
+ * Formatear fecha en zona horaria de Bolivia (America/La_Paz, UTC-4)
+ */
+export function formatFechaBolivia(date: Date): string {
+  const opciones: Intl.DateTimeFormatOptions = {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'America/La_Paz',
+  }
+  return date.toLocaleDateString('es-BO', opciones)
+}
