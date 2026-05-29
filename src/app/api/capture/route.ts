@@ -23,6 +23,7 @@ import { extraerTextoDeHtml, extraerMencionesDeTexto, crearMencionesExtraidas } 
 import { extraerLinksDeNoticias, extraerLeadDeBloque, type NotaLink } from '@/lib/jobs/link-extractor';
 import { trijarNotas } from '@/lib/jobs/keyword-triaje';
 import { fetchPage, fetchArticle } from '@/lib/jobs/fetch/fetcher';
+import { registrarRechazo, RECHAZO_MOTIVO } from '@/lib/registrar-rechazo';
 
 // ─── Configuración de la Cola ──────────────────────────────────
 const QUEUE_CONFIG = {
@@ -222,6 +223,12 @@ async function processMedio(
     if (!notaHtml || notaHtml.length < 200) {
       queueLog(`    ❌ No se pudo descargar`);
       errores++;
+      registrarRechazo({
+        medioId: medio.id,
+        url: nota.url,
+        titulo: nota.titulo,
+        motivo: RECHAZO_MOTIVO.DESCARGA_FALLO,
+      });
       continue;
     }
 
@@ -239,6 +246,13 @@ async function processMedio(
 
     if (textoCompleto.length < 100) {
       queueLog(`    ⚠️  Texto muy corto (${textoCompleto.length} chars) — saltando`);
+      registrarRechazo({
+        medioId: medio.id,
+        url: nota.url,
+        titulo: nota.titulo,
+        texto: textoCompleto,
+        motivo: RECHAZO_MOTIVO.TEXTO_CORTO,
+      });
       continue;
     }
 

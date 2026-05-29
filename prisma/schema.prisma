@@ -389,6 +389,7 @@ model Medio {
   CapturaLog           CapturaLog[]
   FuenteEstado         FuenteEstado?
   Mencion              Mencion[]
+  RechazoCaptura       RechazoCaptura[]
 
   @@index([categoria])
   @@index([nivel])
@@ -673,6 +674,29 @@ model marco_conceptual {
   editadoPor              String?
   editadoEn               DateTime?
   cambio_marco_conceptual cambio_marco_conceptual[]
+}
+
+model RechazoCaptura {
+  id            String   @id @default(uuid())
+  medioId       String
+  url           String   @default("")
+  titulo        String   @default("")
+  texto         String   @default("")
+  motivo        String
+  respuestaLLM   String   @default("")
+  es_relevante  String   @default("false")
+  tratamiento   String?
+  sentimiento   String?
+  confianza     String?
+  textoLen      Int      @default(0)
+  createdAt     DateTime @default(now())
+  Medio         Medio    @relation(fields: [medioId], references: [id], onDelete: Cascade)
+
+  @@index([medioId])
+  @@index([createdAt])
+  @@index([motivo])
+  @@index([url])
+  @@index([medioId, createdAt])
 }
 
 model mencion_cliente_eje {

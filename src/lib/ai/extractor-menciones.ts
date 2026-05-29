@@ -10,6 +10,7 @@ import ZAI from 'z-ai-web-dev-sdk';
 import { deduplicarMencion, actualizarCoberturaDuplicado } from '@/lib/deduplicacion';
 import { reclasificarMencion } from '@/lib/clasificador-v2';
 import { canCallLLM, recordSuccess, recordFailure, recordSkipped } from '@/lib/ai/circuit-breaker';
+import { registrarRechazo, RECHAZO_MOTIVO } from '@/lib/registrar-rechazo';
 
 // ─── Imports from sub-files ──────────────────────────────────
 
@@ -283,6 +284,13 @@ export async function extraerMencionesDeTexto(
     if (!jsonMatch) {
       debugWrite('FALLO: No se encontró JSON en la respuesta del LLM');
       await persistDebugLog(debugLog);
+      // Registrar rechazo por parse error
+      registrarRechazo({
+        medioId,
+        texto,
+        motivo: RECHAZO_MOTIVO.PARSE_ERROR,
+        respuestaLLM: raw,
+      });
       return emptyResult;
     }
 
@@ -292,6 +300,13 @@ export async function extraerMencionesDeTexto(
     } catch (parseErr) {
       debugWrite(`FALLO: JSON parse falló. Primeros 500 chars: ${raw.substring(0, 500)}`);
       await persistDebugLog(debugLog);
+      // Registrar rechazo por parse error
+      registrarRechazo({
+        medioId,
+        texto,
+        motivo: RECHAZO_MOTIVO.PARSE_ERROR,
+        respuestaLLM: raw,
+      });
       return emptyResult;
     }
 
@@ -432,7 +447,24 @@ export async function extraerMencionesDeTexto(
     // Backward-compatible sentimiento
     const sentimiento = tratamientoToSentimiento(tratamiento);
 
-    debugWrite(`RESULTADO FINAL: relevante=${(parsed.es_relevante === true || legisladores.length > 0 || ejesMencionados.length > 0)}, legislators=${legisladores.length}, ejes=${ejesMencionados.length}`);
+    const esRelevanteFinal = parsed.es_relevante === true || legisladores.length > 0 || ejesMencionados.length > 0;
+    debugWrite(`RESULTADO FINAL: relevante=${esRelevanteFinal}, legislators=${legisladores.length}, ejes=${ejesMencionados.length}`);
+
+    // ─── Registrar rechazo si no es relevante ───────────────────
+    if (!esRelevanteFinal) {
+      registrarRechazo({
+        medioId,
+        texto,
+        motivo: RECHAZO_MOTIVO.ES_RELEVANTE_FALSE,
+        respuestaLLM: raw,
+        resultado: {
+          es_relevante: false,
+          tratamientoPeriodistico: tratamiento,
+          sentimiento_general: sentimiento,
+          confianzaClasificacion: confianza,
+        },
+      });
+    }
 
     await persistDebugLog(debugLog);
 

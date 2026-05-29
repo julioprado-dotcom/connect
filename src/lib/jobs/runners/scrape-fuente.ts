@@ -14,6 +14,7 @@ import { evaluarFrecuencia } from '../frequency/adapter'
 import type { JobPayload, RunnerResult } from '../types'
 import { extraerTextoDeHtml, extraerMencionesDeTexto, crearMencionesExtraidas } from '@/lib/ai/extractor-menciones'
 import { getCircuitBreakerState } from '@/lib/ai/circuit-breaker'
+import { registrarRechazo, RECHAZO_MOTIVO } from '@/lib/registrar-rechazo'
 import { fetchPage } from '../fetch/fetcher'
 import { safeFetch } from '../check-first/safe-fetch'
 import { extraerLinksDeNoticias, extraerLeadDeBloque, type NotaLink } from '../link-extractor'
@@ -229,6 +230,12 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
           descargada: false,
           menciones: 0,
         })
+        registrarRechazo({
+          medioId,
+          url: nota.url,
+          titulo: nota.titulo,
+          motivo: RECHAZO_MOTIVO.DESCARGA_FALLO,
+        })
         continue
       }
 
@@ -252,6 +259,13 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
           razon: nota.razon,
           descargada: true,
           menciones: 0,
+        })
+        registrarRechazo({
+          medioId,
+          url: nota.url,
+          titulo: nota.titulo,
+          texto: textoCompleto,
+          motivo: RECHAZO_MOTIVO.TEXTO_CORTO,
         })
         continue
       }
