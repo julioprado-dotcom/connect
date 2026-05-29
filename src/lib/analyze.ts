@@ -276,23 +276,40 @@ export async function analyzeMencion(titulo: string, texto: string): Promise<Ana
       console.warn('[MC] Error loading Marco Conceptual from DB. Using DEFAULT_ESCALA.', err);
     }
 
-    // ── Build prompt and call LLM ─────────────────────────────
+    // ── Build prompt and call LLM (with 1 retry on transient failure) ──
     const systemPrompt = buildSystemPrompt(escala);
     const fullText = `${titulo}\n${texto}`.trim();
 
-    const zai = await ZAI.create();
-    const completion = await zai.chat.completions.create({
-      model: 'glm-4.7-flash',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        {
-          role: 'user',
-          content: `Analiza esta mención:\n\nTítulo: ${titulo}\nTexto: ${texto}`,
-        },
-      ],
-      temperature: 0.2,
-      signal: AbortSignal.timeout(60000), // 60s timeout
-    });
+    let completion;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        if (attempt > 0) {
+          console.log(`[analyze] Retry ${attempt} after 5s delay...`);
+          await new Promise(r => setTimeout(r, 5000));
+        }
+        const zai = await ZAI.create();
+        completion = await zai.chat.completions.create({
+          model: 'glm-4.7-flash',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            {
+              role: 'user',
+              content: `Analiza esta mención:\n\nTítulo: ${titulo}\nTexto: ${texto}`,
+            },
+          ],
+          temperature: 0.2,
+          signal: AbortSignal.timeout(60000), // 60s timeout
+        });
+        // Si llegamos aquí, la llamada fue exitosa
+        break;
+      } catch (llmErr) {
+        if (attempt === 0) {
+          console.warn(`[analyze] LLM call failed (attempt 1): ${llmErr instanceof Error ? llmErr.message : String(llmErr)}`);
+          continue; // retry
+        }
+        throw llmErr; // re-throw on second failure
+      }
+    }
 
     const raw = (completion?.choices?.[0]?.message?.content || '').trim();
     console.log(`[analyze] LLM raw response (${raw.length} chars): ${raw.substring(0, 500)}`);
