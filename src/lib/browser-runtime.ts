@@ -6,9 +6,11 @@
 // lógica de control (guardian decide cuándo ejecutarla). Esta capa expone
 // solo lectura de métricas y purga de directorios de cache.
 
-import fs from 'fs'
-import path from 'path'
-import os from 'os'
+// CRÍTICO: No usar static imports de Node.js (fs, path, os).
+// Este archivo es importado desde container-guardian.ts (via require),
+// que a su vez viene de instrumentation.ts. Turbopack tracea todas las
+// importaciones estáticas de Node.js y lanza warnings de Edge Runtime.
+// Usamos dynamic imports dentro de funciones.
 
 // ── Métricas de Memoria ──────────────────────────────────────────────
 
@@ -49,8 +51,9 @@ export interface ContainerMetrics {
   availableMB: number
 }
 
-export function getContainerMetrics(): ContainerMetrics {
+export async function getContainerMetrics(): Promise<ContainerMetrics> {
   try {
+    const fs = await import('fs')
     const limit = parseInt(fs.readFileSync('/sys/fs/cgroup/memory/memory.limit_in_bytes', 'utf-8').trim(), 10)
     const usage = parseInt(fs.readFileSync('/sys/fs/cgroup/memory/memory.usage_in_bytes', 'utf-8').trim(), 10)
     if (limit > 0) {
@@ -62,6 +65,7 @@ export function getContainerMetrics(): ContainerMetrics {
       }
     }
   } catch { /* fallback */ }
+  const os = await import('os')
   const total = os.totalmem()
   const free = os.freemem()
   return {
@@ -84,21 +88,23 @@ export interface CacheMetrics {
   backupTotalMB: number
 }
 
-export function getCacheMetrics(): CacheMetrics {
+export async function getCacheMetrics(): Promise<CacheMetrics> {
+  const fs = await import('fs')
+  const path = await import('path')
   const cwd = process.cwd()
 
   const nextCacheDir = path.join(cwd, '.next')
-  const nextCacheSizeMB = dirSizeMB(nextCacheDir)
+  const nextCacheSizeMB = await dirSizeMB(nextCacheDir, fs, path)
 
   const turbopackDir = path.join(nextCacheDir, 'dev')
-  const turbopackCacheSizeMB = dirSizeMB(turbopackDir)
+  const turbopackCacheSizeMB = await dirSizeMB(turbopackDir, fs, path)
 
   const nodeModulesDir = path.join(cwd, 'node_modules')
-  const nodeModulesSizeMB = dirSizeMB(nodeModulesDir)
+  const nodeModulesSizeMB = await dirSizeMB(nodeModulesDir, fs, path)
 
-  const dbSizeMB = getDbSizeMB()
+  const dbSizeMB = await getDbSizeMB(fs, path)
 
-  const { backupCount, backupTotalMB } = getBackupMetrics()
+  const { backupCount, backupTotalMB } = await getBackupMetrics(fs, path)
 
   return {
     nextCacheDir,
@@ -111,14 +117,14 @@ export function getCacheMetrics(): CacheMetrics {
   }
 }
 
-function dirSizeMB(dirPath: string): number {
+async function dirSizeMB(dirPath: string, fs: any, pathMod: any): Promise<number> {
   try {
     let totalSize = 0
     const entries = fs.readdirSync(dirPath, { recursive: true, withFileTypes: true })
     for (const entry of entries) {
       if (entry.isFile()) {
         try {
-          totalSize += fs.statSync(path.join(dirPath, entry.name)).size
+          totalSize += fs.statSync(pathMod.join(dirPath, entry.name)).size
         } catch { /* skip */ }
       }
     }
@@ -128,7 +134,7 @@ function dirSizeMB(dirPath: string): number {
   }
 }
 
-function getDbSizeMB(): number {
+async function getDbSizeMB(fs: any, pathMod: any): Promise<number> {
   const dbUrl = process.env.DATABASE_URL || ''
   const match = dbUrl.match(/file:(.+)/)
   if (match) {
@@ -138,8 +144,8 @@ function getDbSizeMB(): number {
   }
   // Fallback paths
   for (const p of [
-    path.join(process.cwd(), 'prisma', 'db', 'custom.db'),
-    path.join(process.cwd(), 'db', 'custom.db'),
+    pathMod.join(process.cwd(), 'prisma', 'db', 'custom.db'),
+    pathMod.join(process.cwd(), 'db', 'custom.db'),
   ]) {
     try {
       return Math.round(fs.statSync(p).size / (1024 * 1024) * 100) / 100
@@ -148,14 +154,14 @@ function getDbSizeMB(): number {
   return 0
 }
 
-function getBackupMetrics(): { backupCount: number; backupTotalMB: number } {
-  const backupDir = path.join(process.cwd(), 'backups')
+async function getBackupMetrics(fs: any, pathMod: any): Promise<{ backupCount: number; backupTotalMB: number }> {
+  const backupDir = pathMod.join(process.cwd(), 'backups')
   try {
     const files = fs.readdirSync(backupDir).filter(f => f.startsWith('snapshot-') && f.endsWith('.db'))
     let totalSize = 0
     for (const f of files) {
       try {
-        totalSize += fs.statSync(path.join(backupDir, f)).size
+        totalSize += fs.statSync(pathMod.join(backupDir, f)).size
       } catch { /* skip */ }
     }
     return {
@@ -180,14 +186,16 @@ export interface PurgeResult {
  * Limpia la cache de Next.js (.next/dev).
  * DEBE llamarse solo desde API admin con confirmación.
  */
-export function purgeNextCache(): PurgeResult {
+export async function purgeNextCache(): Promise<PurgeResult> {
+  const fs = await import('fs')
+  const path = await import('path')
   const devDir = path.join(process.cwd(), '.next', 'dev')
   try {
-    const sizeBefore = dirSizeMB(devDir)
+    const sizeBefore = await dirSizeMB(devDir, fs, path)
     if (fs.existsSync(devDir)) {
       fs.rmSync(devDir, { recursive: true, force: true })
     }
-    const sizeAfter = dirSizeMB(devDir)
+    const sizeAfter = await dirSizeMB(devDir, fs, path)
     return {
       success: true,
       target: '.next/dev',
@@ -202,10 +210,12 @@ export function purgeNextCache(): PurgeResult {
 /**
  * Limpia la cache de Turbopack (.next/cache).
  */
-export function purgeTurbopackCache(): PurgeResult {
+export async function purgeTurbopackCache(): Promise<PurgeResult> {
+  const fs = await import('fs')
+  const path = await import('path')
   const cacheDir = path.join(process.cwd(), '.next', 'cache')
   try {
-    const sizeBefore = dirSizeMB(cacheDir)
+    const sizeBefore = await dirSizeMB(cacheDir, fs, path)
     if (fs.existsSync(cacheDir)) {
       fs.rmSync(cacheDir, { recursive: true, force: true })
     }
@@ -223,7 +233,9 @@ export function purgeTurbopackCache(): PurgeResult {
 /**
  * Limpia backups antiguos (mantiene los últimos 3).
  */
-export function purgeOldBackups(): PurgeResult {
+export async function purgeOldBackups(): Promise<PurgeResult> {
+  const fs = await import('fs')
+  const path = await import('path')
   const backupDir = path.join(process.cwd(), 'backups')
   try {
     const files = fs.readdirSync(backupDir)

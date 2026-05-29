@@ -9,8 +9,8 @@
 export async function persistDebugLog(entries: string[]): Promise<void> {
   if (entries.length === 0) return;
   try {
-    const fs = await import('fs');
-    const path = await import('path');
+    const fs = await import(/* webpackIgnore: true */ 'fs');
+    const path = await import(/* webpackIgnore: true */ 'path');
     const logDir = path.join(process.cwd(), 'logs', 'extractor-debug');
     if (!fs.existsSync(logDir)) {
       fs.mkdirSync(logDir, { recursive: true });

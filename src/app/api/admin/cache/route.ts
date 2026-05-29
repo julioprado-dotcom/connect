@@ -20,8 +20,8 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     const memory = getMemoryMetrics()
-    const container = getContainerMetrics()
-    const cache = getCacheMetrics()
+    const container = await getContainerMetrics()
+    const cache = await getCacheMetrics()
     const uptime = process.uptime()
     // Guardian: dynamic import para evitar Edge analysis
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -125,24 +125,24 @@ export async function POST(request: NextRequest) {
         break
       }
       case 'purge_next': {
-        const r = purgeNextCache()
+        const r = await purgeNextCache()
         resultados.push(r)
         break
       }
       case 'purge_turbopack': {
-        const r = purgeTurbopackCache()
+        const r = await purgeTurbopackCache()
         resultados.push(r)
         break
       }
       case 'purge_backups': {
-        const r = purgeOldBackups()
+        const r = await purgeOldBackups()
         resultados.push(r)
         break
       }
       case 'purge_all': {
-        resultados.push(purgeNextCache())
-        resultados.push(purgeTurbopackCache())
-        resultados.push(purgeOldBackups())
+        resultados.push(await purgeNextCache())
+        resultados.push(await purgeTurbopackCache())
+        resultados.push(await purgeOldBackups())
         break
       }
       default:

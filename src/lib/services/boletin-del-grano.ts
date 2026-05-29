@@ -102,7 +102,7 @@ let _puppeteerAvailable: boolean | null = null;
 const isPuppeteerAvailable = async (): Promise<boolean> => {
   if (_puppeteerAvailable !== null) return _puppeteerAvailable;
   try {
-    await import('puppeteer');
+    await import(/* webpackIgnore: true */ 'puppeteer');
     _puppeteerAvailable = true;
     return true;
   } catch {
@@ -192,7 +192,7 @@ export async function generarPDFBoletinDelGrano(data: BoletinGranoData): Promise
   // Modo producción con Puppeteer (si está disponible)
   let puppeteer: any;
   try {
-    puppeteer = (await import('puppeteer')).default || (await import('puppeteer'));
+    puppeteer = (await import(/* webpackIgnore: true */ 'puppeteer')).default || (await import(/* webpackIgnore: true */ 'puppeteer'));
   } catch {
     console.warn('[BoletinDelGrano] puppeteer no instalado, usando modo mock');
     return Buffer.alloc(0);

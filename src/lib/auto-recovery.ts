@@ -2,16 +2,19 @@
 // Detecta DB vacía o degradada y ejecuta seed automático.
 // Se ejecuta desde instrumentation.ts en el arranque del servidor.
 // Solución integral: no parches — recovery completo en un solo punto.
+//
+// CRÍTICO: No usar static imports de Node.js (fs, path, crypto).
+// Este archivo es importado desde instrumentation.ts vía jobs/index.ts.
+// Turbopack tracea importaciones estáticas de Node.js y lanza warnings de Edge Runtime.
 
 import db from '@/lib/db'
-import { readFileSync, copyFileSync, existsSync, mkdirSync, readdirSync, statSync, unlinkSync } from 'fs'
-import { join } from 'path'
-import { randomBytes } from 'crypto'
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
 function generatePersonaId(): string {
-  return 'per_' + randomBytes(12).toString('hex')
+  // Lazy crypto import — solo se llama en Node.js runtime
+  const crypto = require('crypto') as { randomBytes: (n: number) => Buffer }
+  return 'per_' + crypto.randomBytes(12).toString('hex')
 }
 
 // ── Configuración ──────────────────────────────────────────────────────
@@ -439,6 +442,12 @@ export async function seedPersonas(): Promise<{ senadores: number; diputados: nu
   }
 
   console.log(`[AutoRecovery] Personas insuficientes: ${existentes}/${SALUD_THRESHOLDS.personas}. Ejecutando seed...`)
+
+  // Dynamic imports — solo se resuelven en Node.js runtime
+  const fsMod = await import('fs')
+  const pathMod = await import('path')
+  const { readFileSync } = fsMod
+  const { join } = pathMod
 
   let senadores = 0
   let diputados = 0

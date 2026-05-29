@@ -54,9 +54,9 @@ export async function startBackupScheduler(): Promise<void> {
   }
 
   // Dynamic imports — solo se resuelven en Node.js runtime
-  const cron = await import('node-cron')
-  const path = await import('path')
-  const fs = await import('fs')
+  const cron = await import(/* webpackIgnore: true */ 'node-cron')
+  const path = await import(/* webpackIgnore: true */ 'path')
+  const fs = await import(/* webpackIgnore: true */ 'fs')
 
   const PROJECT_ROOT = process.cwd()
   const SCRIPT_PATH = path.join(PROJECT_ROOT, 'scripts', 'backup-db-github.sh')

@@ -104,8 +104,11 @@ async function dropPageCache(): Promise<boolean> {
 
 function purgeNextDevCache(): number {
   try {
-    const { purgeTurbopackCache } = require('@/lib/browser-runtime') as { purgeTurbopackCache: () => { freedMB: number } }
-    return purgeTurbopackCache().freedMB
+    const { purgeTurbopackCache } = require('@/lib/browser-runtime') as { purgeTurbopackCache: () => Promise<{ freedMB: number }> }
+    // sync wrapper — called from sync context but purgeTurbopackCache is now async
+    let freedMB = 0
+    purgeTurbopackCache().then(r => { freedMB = r.freedMB }).catch(() => {})
+    return freedMB
   } catch { return 0 }
 }
 

@@ -6,17 +6,29 @@
 //   3. Rotación automática: 7 diarios + 4 semanales
 //   4. API para backup manual y listado
 
-import { promises as fs } from 'fs'
-import path from 'path'
+// CRÍTICO: No usar static imports de Node.js (fs, path).
+// Este archivo es importado desde container-guardian.ts y API routes.
+// Turbopack tracea todas las importaciones estáticas de Node.js y lanza
+// warnings de Edge Runtime. Todas las funciones usan dynamic imports.
+
 import db from '@/lib/db'
 
 // ── Configuración ────────────────────────────────────────────────────
 
-// Use __dirname-based resolution instead of process.cwd() (Edge Runtime compatible)
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const _PROJECT_ROOT = path.resolve(process.env.PROJECT_ROOT || path.dirname(require.main?.filename ?? __dirname))
-const BACKUP_DIR = path.join(_PROJECT_ROOT, 'backups')
-const ARCHIVE_DIR = path.join(_PROJECT_ROOT, 'backups', 'archives')
+// Lazy-resolved paths (solo se calculan en Node.js runtime)
+let _PROJECT_ROOT: string | undefined
+let _BACKUP_DIR: string | undefined
+let _ARCHIVE_DIR: string | undefined
+
+async function getPaths() {
+  if (!_PROJECT_ROOT) {
+    const path = await import('path')
+    _PROJECT_ROOT = process.env.PROJECT_ROOT || process.cwd()
+    _BACKUP_DIR = path.join(_PROJECT_ROOT, 'backups')
+    _ARCHIVE_DIR = path.join(_PROJECT_ROOT, 'backups', 'archives')
+  }
+  return { BACKUP_DIR: _BACKUP_DIR!, ARCHIVE_DIR: _ARCHIVE_DIR! }
+}
 
 // Tablas críticas a exportar antes de cualquier purge
 const CRITICAL_TABLES = [
@@ -90,12 +102,16 @@ function timestampLaPaz(): string {
 
 // Asegurar que los directorios existen
 async function ensureDirs(): Promise<void> {
+  const fs = await import('fs')
+  const { BACKUP_DIR, ARCHIVE_DIR } = await getPaths()
   await fs.mkdir(BACKUP_DIR, { recursive: true })
   await fs.mkdir(ARCHIVE_DIR, { recursive: true })
 }
 
 // Obtener la ruta del archivo de DB SQLite activo
-function getDbPath(): string {
+async function getDbPath(): Promise<string> {
+  const path = await import('path')
+  const { _PROJECT_ROOT: root } = await getProjectRoot()
   // DATABASE_URL tiene formato: "file:/ruta/a/custom.db"
   const dbUrl = process.env.DATABASE_URL || ''
   const match = dbUrl.match(/file:(.+)/)
@@ -105,9 +121,17 @@ function getDbPath(): string {
   let dbPath = match[1]
   // Si es ruta relativa, resolver desde prisma/
   if (!path.isAbsolute(dbPath)) {
-    dbPath = path.join(_PROJECT_ROOT, 'prisma', dbPath)
+    dbPath = path.join(root, 'prisma', dbPath)
   }
   return dbPath
+}
+
+async function getProjectRoot(): Promise<{ _PROJECT_ROOT: string }> {
+  if (!_PROJECT_ROOT) {
+    const path = await import('path')
+    _PROJECT_ROOT = process.env.PROJECT_ROOT || process.cwd()
+  }
+  return { _PROJECT_ROOT: _PROJECT_ROOT }
 }
 
 // Tamaño legible de archivo
@@ -134,7 +158,10 @@ export interface SnapshotResult {
  */
 export async function createSnapshot(razon: string = 'manual'): Promise<SnapshotResult> {
   const ts = timestampLaPaz()
-  const dbPath = getDbPath()
+  const dbPath = await getDbPath()
+  const fs = await import('fs')
+  const path = await import('path')
+  const { BACKUP_DIR } = await getPaths()
   const backupPath = path.join(BACKUP_DIR, `snapshot-${ts}.db`)
 
   await ensureDirs()
@@ -196,6 +223,9 @@ export async function archiveBeforePurge(
   tablas: readonly string[] = CRITICAL_TABLES
 ): Promise<ArchiveResult> {
   const ts = timestampLaPaz()
+  const fs = await import('fs')
+  const path = await import('path')
+  const { ARCHIVE_DIR } = await getPaths()
   await ensureDirs()
 
   const registros: Record<string, number> = {}
@@ -280,6 +310,9 @@ export async function archiveBeforePurge(
  *   - El resto se elimina
  */
 export async function rotateSnapshots(): Promise<{ eliminados: number; conservados: number }> {
+  const fs = await import('fs')
+  const path = await import('path')
+  const { BACKUP_DIR } = await getPaths()
   await ensureDirs()
 
   try {
@@ -326,6 +359,9 @@ export async function rotateSnapshots(): Promise<{ eliminados: number; conservad
  * Elimina archivos JSON de archive más antiguos que RETENTION.archiveDays.
  */
 export async function rotateArchives(): Promise<number> {
+  const fs = await import('fs')
+  const path = await import('path')
+  const { ARCHIVE_DIR } = await getPaths()
   await ensureDirs()
   const cutoff = Date.now() - RETENTION.archiveDays * 24 * 60 * 60 * 1000
 
@@ -368,6 +404,9 @@ export interface BackupInfo {
  * Lista todos los backups disponibles (snapshots + archives).
  */
 export async function listBackups(): Promise<BackupInfo[]> {
+  const fs = await import('fs')
+  const path = await import('path')
+  const { BACKUP_DIR, ARCHIVE_DIR } = await getPaths()
   await ensureDirs()
   const backups: BackupInfo[] = []
 
@@ -423,8 +462,11 @@ export interface RestoreResult {
  * Debe llamarse solo desde API endpoint con confirmación explícita.
  */
 export async function restoreFromSnapshot(snapshotFile: string): Promise<RestoreResult> {
+  const fs = await import('fs')
+  const path = await import('path')
+  const { BACKUP_DIR } = await getPaths()
   const snapshotPath = path.join(BACKUP_DIR, snapshotFile)
-  const dbPath = getDbPath()
+  const dbPath = await getDbPath()
 
   try {
     // Verificar que el snapshot existe
@@ -471,6 +513,9 @@ export interface BackupSummary {
 }
 
 export async function getBackupSummary(): Promise<BackupSummary> {
+  const fs = await import('fs')
+  const path = await import('path')
+  const { BACKUP_DIR, ARCHIVE_DIR } = await getPaths()
   await ensureDirs()
 
   let snapshotsCount = 0
@@ -504,7 +549,7 @@ export async function getBackupSummary(): Promise<BackupSummary> {
 
   let dbSize = '0 B'
   try {
-    const dbPath = getDbPath()
+    const dbPath = await getDbPath()
     const stat = await fs.stat(dbPath)
     dbSize = formatBytes(stat.size)
   } catch { /* ok */ }
@@ -542,6 +587,9 @@ export interface DomainBackupResult {
 export async function createDomainBackup(
   domain: 'config' | 'operacional'
 ): Promise<DomainBackupResult> {
+  const fs = await import('fs')
+  const path = await import('path')
+  const { ARCHIVE_DIR } = await getPaths()
   const tables = domain === 'config' ? CONFIG_TABLES : OPERACIONAL_TABLES
   const ts = timestampLaPaz()
   const fileName = `${domain}-${ts}.json`
@@ -626,6 +674,9 @@ export async function shouldBackupDomain(
   intervalHours: number
 ): Promise<boolean> {
   try {
+    const fs = await import('fs')
+    const path = await import('path')
+    const { ARCHIVE_DIR } = await getPaths()
     await ensureDirs()
     const files = await fs.readdir(ARCHIVE_DIR)
     const prefix = `${domain}-`
