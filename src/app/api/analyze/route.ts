@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
 
     const result = await analyzeMencion(tituloText, textoText);
 
-    // Actualizar la mención en la DB
-    if (mencionId) {
+    // Actualizar la mención en la DB solo si el LLM respondió correctamente
+    if (mencionId && result.success) {
       await applyAnalysisToMencion(mencionId, result);
     }
 

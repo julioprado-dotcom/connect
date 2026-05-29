@@ -79,6 +79,7 @@ const VALID_TRATAMIENTOS = new Set(DEFAULT_ESCALA.map(e => e.codigo));
 // ─── Tipo de retorno ──────────────────────────────────────────
 
 export interface AnalyzeResult {
+  success: boolean;                        // true = LLM responded with valid data, false = failed (default)
   tipoMencion: string;
   sentimiento: string;                    // backward compat — mapped from tratamiento
   tratamientoPeriodistico: string;        // the actual classification
@@ -238,6 +239,7 @@ Si la mención no encaja en ningún eje, devuelve un array vacío.`;
 
 export async function analyzeMencion(titulo: string, texto: string): Promise<AnalyzeResult> {
   const defaultResult: AnalyzeResult = {
+    success: false,
     tipoMencion: 'contexto',
     sentimiento: 'sin_tratamiento',
     tratamientoPeriodistico: 'sin_tratamiento',
@@ -386,6 +388,7 @@ export async function analyzeMencion(titulo: string, texto: string): Promise<Ana
     }
 
     return {
+      success: true,
       tipoMencion: parsed.tipoMencion || 'contexto',
       sentimiento: tratamientoToSentimiento(tratamientoRaw),
       tratamientoPeriodistico: tratamientoRaw,

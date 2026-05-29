@@ -133,18 +133,28 @@ export async function POST(request: NextRequest) {
           } else {
             // La IA no encontró personas — clasificar solo tratamiento (mención temática)
             const result = await analyzeMencion(titulo, texto);
-            await applyAnalysisToMencion(mencion.id, result);
-            analizadas++;
-            detalles.push(`  Referencia tematica: ${result.tipoMencion} / ${result.sentimiento} / [${result.ejesTematicos.join(',')}]`);
+            if (result.success) {
+              await applyAnalysisToMencion(mencion.id, result);
+              analizadas++;
+              detalles.push(`  Referencia tematica: ${result.tipoMencion} / ${result.sentimiento} / [${result.ejesTematicos.join(',')}]`);
+            } else {
+              errores++;
+              detalles.push(`  Referencia tematica: SIN RESPUESTA LLM — se reintentará`);
+            }
           }
         } else {
           // ── CASO B: Mención ya tiene personaId — solo clasificar tratamiento ──
           const result = await analyzeMencion(titulo, texto);
-          await applyAnalysisToMencion(mencion.id, result);
-
-          const personaLabel = mencion.Persona?.nombre || 'Referencia tematica';
-          analizadas++;
-          detalles.push(`${personaLabel}: ${result.tipoMencion} / ${result.sentimiento} / [${result.ejesTematicos.join(',')}]`);
+          if (result.success) {
+            await applyAnalysisToMencion(mencion.id, result);
+            const personaLabel = mencion.Persona?.nombre || 'Referencia tematica';
+            analizadas++;
+            detalles.push(`${personaLabel}: ${result.tipoMencion} / ${result.sentimiento} / [${result.ejesTematicos.join(',')}]`);
+          } else {
+            errores++;
+            const personaLabel = mencion.Persona?.nombre || 'Referencia tematica';
+            detalles.push(`✗ ${personaLabel}: SIN RESPUESTA LLM — se reintentará`);
+          }
         }
       } catch (err) {
         errores++;
