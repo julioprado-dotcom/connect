@@ -9,6 +9,7 @@ import db from '@/lib/db';
 import ZAI from 'z-ai-web-dev-sdk';
 import { deduplicarMencion, actualizarCoberturaDuplicado } from '@/lib/deduplicacion';
 import { reclasificarMencion } from '@/lib/clasificador-v2';
+import { canCallLLM, recordSuccess, recordFailure, recordSkipped } from '@/lib/ai/circuit-breaker';
 
 // ─── Imports from sub-files ──────────────────────────────────
 
@@ -231,20 +232,37 @@ export async function extraerMencionesDeTexto(
     debugWrite(`Prompt usuario longitud: ${userContent.length} chars, texto truncado: ${textoTruncado.length} chars`);
     debugWrite(`System prompt longitud: ${systemPrompt.length} chars`);
 
-    // 9. Llamada al LLM
+    // 9. Circuit Breaker: verificar si LLM está disponible
+    if (!canCallLLM()) {
+      debugWrite('CIRCUIT BREAKER OPEN: llamada LLM skipeada');
+      recordSkipped();
+      await persistDebugLog(debugLog);
+      return emptyResult;
+    }
+
+    // 10. Llamada al LLM
     const zai = await ZAI.create();
     debugWrite('Llamando a LLM (glm-4-air)...');
     const llmStart = Date.now();
 
-    const completion = await zai.chat.completions.create({
-      model: 'glm-4-air',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userContent },
-      ],
-      temperature: 0.1,
-      signal: AbortSignal.timeout(60000), // 60s timeout
-    });
+    let completion;
+    try {
+      completion = await zai.chat.completions.create({
+        model: 'glm-4-air',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userContent },
+        ],
+        temperature: 0.1,
+        signal: AbortSignal.timeout(60000), // 60s timeout
+      });
+    } catch (llmErr) {
+      recordFailure(llmErr);
+      throw llmErr; // Propagar para que el catch exterior lo maneje
+    }
+
+    // Registrar éxito ANTES de procesar respuesta
+    recordSuccess();
 
     const llmElapsed = Date.now() - llmStart;
     const raw = (completion?.choices?.[0]?.message?.content || '').trim();

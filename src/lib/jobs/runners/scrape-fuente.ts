@@ -13,6 +13,7 @@ import { registrarCambio } from '../histogram/tracker'
 import { evaluarFrecuencia } from '../frequency/adapter'
 import type { JobPayload, RunnerResult } from '../types'
 import { extraerTextoDeHtml, extraerMencionesDeTexto, crearMencionesExtraidas } from '@/lib/ai/extractor-menciones'
+import { getCircuitBreakerState } from '@/lib/ai/circuit-breaker'
 import { fetchPage } from '../fetch/fetcher'
 import { safeFetch } from '../check-first/safe-fetch'
 import { extraerLinksDeNoticias, extraerLeadDeBloque, type NotaLink } from '../link-extractor'
@@ -152,6 +153,45 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
 
     // FASE 3: Clasificar notas relevantes con LLM (secuencial, una por una)
     const aClasificar = seleccionadas.slice(0, MAX_NOTAS_A_CLASIFICAR)
+    const circuitState = getCircuitBreakerState()
+    const llmAvailable = circuitState.state === 'CLOSED' || circuitState.state === 'HALF'
+
+    if (!llmAvailable) {
+      // Circuit breaker abierto: registrar Fases 1-2 sin Fase 3
+      console.log(`[scrape-fuente] FASE 3 SKIPEADA: Circuit Breaker ${circuitState.state} (${circuitState.lastError})`)
+      console.log(`[scrape-fuente] Pipeline completó Fases 1-2 sin gastar recursos. Reintentará en ${Math.round((Date.now() - circuitState.lastFailureTime) / 60000)}min.`)
+
+      await registrarCambio(fuenteId).catch(() => {})
+      await evaluarFrecuencia(fuenteId, true).catch(() => {})
+
+      await db.capturaLog.create({
+        data: {
+          medioId,
+          nivel: fuente.Medio.nivel,
+          exitosa: true,
+          totalArticulos: notas.length,
+          mencionesEncontradas: 0,
+          errores: `Circuit Breaker ${circuitState.state}: Fase 3 pausada (${circuitState.lastError})`,
+        },
+      })
+
+      return {
+        success: true,
+        data: {
+          fuenteId,
+          medioId,
+          medioNombre: fuente.Medio.nombre,
+          fase1_links: notas.length,
+          fase2_seleccionadas: seleccionadas.length,
+          fase3_clasificadas: 0,
+          fase3_skipped: true,
+          circuitBreaker: circuitState.state,
+          totalMencionesCreadas: 0,
+          responseTime: Date.now() - startTime,
+        },
+      }
+    }
+
     console.log(`[scrape-fuente] FASE 3: clasificando ${aClasificar.length} notas con LLM...`)
 
     let totalMencionesCreadas = 0
