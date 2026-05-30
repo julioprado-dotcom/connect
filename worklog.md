@@ -406,3 +406,23 @@ Stage Summary:
 - Ventana 06:00-23:00: último scrape después de noticieros nocturnos
 - Tablas NotaRaw + SystemLog creadas y Prisma Client regenerado
 - PRÓXIMO: usuario debe hacer deploy en VPS (build + pm2 restart)
+
+---
+Task ID: arch-e-v2-activation
+Agent: main
+Task: Activar pipeline E v2 — verificar estado post-deploy y fix gap
+
+Work Log:
+- Verificado que check-fuente.ts YA encola scrape_fuente_light (línea 36) — pipeline E v2 estaba activo en código
+- Worker muestra 11 runners registrados ✅
+- prisma db push "in sync" — UsoIA tabla debería existir ahora
+- Los logs mostrando scrape_fuente viejo eran jobs residuales en la cola Job table
+- ENCONTRADO GAP: scrape-fuente-light.ts NO actualizaba fuenteEstado.ultimoHeadline/totalHeadlines/strategyScrape como el viejo scrape_fuente
+- FIX: Agregado fuenteEstado.update en scrape-fuente-light.ts después de extraer links
+- Commit 1731a33 pushed a origin/main
+- NOTA: batch-llm.ts no actualiza fuenteEstado.ultimoMencion — gap secundario, pendiente para siguiente ciclo
+
+Stage Summary:
+- Pipeline E v2 activo: check_fuente → scrape_fuente_light(sin LLM) → NotaRaw → batch_llm → Menciones
+- Fix scrape-fuente-light: ahora actualiza métricas de capacidad (ultimoHeadline, totalHeadlines)
+- Commit: 1731a33 — "fix: scrape-fuente-light actualiza fuenteEstado.ultimoHeadline"
