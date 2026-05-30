@@ -29,6 +29,7 @@ const MAX_LINKS = 40          // Máximo de links a extraer de la homepage
 const MAX_NOTAS_A_CLASIFICAR = 15 // Límite de notas a clasificar con LLM por fuente
 const MAX_NOTAS_A_DESCARGAR = 20  // Límite de notas a descargar por fuente
 const DELAY_ENTRE_NOTAS = 2000    // 2s entre descargas para no saturar
+const DELAY_ENTRE_LLM = 3000      // 3s entre llamadas al LLM para evitar rate limit 429
 
 // ─── Runner principal ────────────────────────────────────────
 
@@ -290,6 +291,11 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       }
 
       console.log(`[scrape-fuente] Texto al LLM: ${textoCompleto.length} chars (título: ${nota.titulo ? 'sí' : 'no'}, lead: ${nota.lead ? 'sí' : 'no'})`)
+
+      // Delay entre llamadas al LLM para evitar rate limit 429 de la API
+      if (i > 0) {
+        await sleep(DELAY_ENTRE_LLM)
+      }
 
       // Clasificar con LLM (1 llamada por nota)
       try {
