@@ -12,7 +12,8 @@ import { registrarCambio } from '../histogram/tracker'
 import { evaluarFrecuencia } from '../frequency/adapter'
 import type { JobPayload, RunnerResult } from '../types'
 import { extraerTextoDeHtml } from '@/lib/ai/extractor-menciones'
-import { fetchPage } from '../fetch/fetcher'
+import { safeFetch } from '../check-first/safe-fetch'
+import { CHECK_FIRST_CONFIG } from '../constants'
 import { extraerLinksDeNoticias, type NotaLink } from '../link-extractor'
 import { trijarNotas, type TriajeResult } from '../keyword-triaje'
 import { getHtml, clearHtml } from '../html-cache'
@@ -29,21 +30,50 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-async function descargarHomepage(url: string): Promise<string> {
-  try {
-    return await fetchPage(url, { timeoutMs: 15000 })
-  } catch {
-    return ''
-  }
+const FETCH_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'es-BO,es;q=0.9,en;q=0.8',
 }
 
+/**
+ * Descargar homepage usando safeFetch (maneja TLS roto + headers proper)
+ */
+async function descargarHomepage(url: string): Promise<string> {
+  try {
+    await domainRateLimiter.waitIfNecessary(url)
+    const response = await safeFetch(url, {
+      headers: FETCH_HEADERS,
+      signal: AbortSignal.timeout(CHECK_FIRST_CONFIG.timeoutMs),
+    })
+    if (response.ok) {
+      const html = await response.text()
+      if (html.length > 500) return html
+    }
+  } catch (e) {
+    console.warn(`[scrape-light] safeFetch homepage falló: ${e instanceof Error ? e.message : e}`)
+  }
+  return ''
+}
+
+/**
+ * Descargar nota individual usando safeFetch
+ */
 async function descargarNota(url: string): Promise<string> {
   try {
-    const html = await fetchPage(url, { timeoutMs: 15000 })
-    return html || ''
-  } catch {
-    return ''
+    await domainRateLimiter.waitIfNecessary(url)
+    const response = await safeFetch(url, {
+      headers: FETCH_HEADERS,
+      signal: AbortSignal.timeout(15000),
+    })
+    if (response.ok) {
+      const html = await response.text()
+      if (html.length > 200) return html
+    }
+  } catch (e) {
+    console.warn(`[scrape-light] safeFetch nota falló: ${url} — ${e instanceof Error ? e.message : e}`)
   }
+  return ''
 }
 
 // ─── Runner principal ────────────────────────────────────────
@@ -276,7 +306,7 @@ async function procesarUrlsDirectas(
 
   for (const url of urls) {
     try {
-      const html = await fetchPage(url, { timeoutMs: 15000 })
+      const html = await descargarNota(url)
       if (!html) continue
 
       const texto = extraerTextoDeHtml(html)
