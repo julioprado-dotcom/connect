@@ -391,6 +391,7 @@ model Medio {
   Mencion              Mencion[]
   RechazoCaptura       RechazoCaptura[]
   UsoIA                UsoIA[]
+  NotaRaw              NotaRaw[]
 
   @@index([categoria])
   @@index([nivel])
@@ -732,4 +733,48 @@ model UsoIA {
   @@index([createdAt])
   @@index([medioId])
   @@index([fuente, createdAt])
+}
+
+/* ──── Notas pre-LLM: almacen intermedio para batch processing ────
+ * FASE 1 (scraping) escribe aquí. FASE 2 (batch LLM) lee y procesa.
+ * Evita ráfagas de LLM: scraping y clasificación están desacoplados. */
+model NotaRaw {
+  id                String    @id @default(uuid())
+  medioId           String
+  fuenteId          String
+  url               String    @default("")
+  titulo            String    @default("")
+  lead              String    @default("")
+  texto             String    @default("")
+  puntajeTriaje     Int       @default(0)
+  razonTriaje       String    @default("")
+  procesada         Boolean   @default(false)
+  descartada        Boolean   @default(false)
+  mencionesCreadas  Int       @default(0)
+  fechaCaptura      DateTime  @default(now())
+  fechaProcesada    DateTime?
+  Medio             Medio     @relation(fields: [medioId], references: [id], onDelete: Cascade)
+
+  @@index([medioId])
+  @@index([procesada])
+  @@index([procesada, fechaCaptura])
+  @@index([fuenteId])
+  @@index([fechaCaptura])
+  @@unique([medioId, url])
+}
+
+/* ──── Auditoría: registro de decisiones automáticas y manuales ──── */
+model SystemLog {
+  id          String   @id @default(uuid())
+  modulo      String   // scheduler, batch_llm, producto, admin, mantenimiento
+  accion      String   // degradar_fuente, ajustar_horario, forzar_scrape, purge_notas, generar_producto
+  detalle     String   @default("")
+  automatica  Boolean  @default(false)
+  datos       String   @default("{}")  // JSON con contexto adicional
+  fecha       DateTime @default(now())
+
+  @@index([modulo])
+  @@index([accion])
+  @@index([fecha])
+  @@index([modulo, fecha])
 }

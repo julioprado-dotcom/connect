@@ -8,6 +8,8 @@ export type JobTipo =
   | 'check_fuente'
   | 'check_indicador'
   | 'scrape_fuente'
+  | 'scrape_fuente_light'   // Pipeline desacoplado: scrape sin LLM → NotaRaw
+  | 'batch_llm'             // Procesa NotaRaw pendientes → menciones con LLM
   | 'capture_indicador'
   | 'generar_boletin'
   | 'enviar_entrega'
@@ -168,6 +170,7 @@ export type TareaMantenimiento =
   | 'degradar_fuentes'
   | 'limpiar_logs'
   | 'purge_menciones'
+  | 'purge_notas_raw'  // Limpiar NotaRaw > 48h sin procesar (mantenimiento)
   | 'limpiar_jobs'
   | 'limpiar_homepage_html'
   | 'recalcular_scheduler'

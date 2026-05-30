@@ -144,7 +144,10 @@ function measureEventLoopLag(): Promise<number> {
 async function heavyJobPressure(): Promise<number> {
   try {
     return await db.job.count({
-      where: { estado: 'pendiente', tipo: 'scrape_fuente' },
+      where: {
+        estado: 'pendiente',
+        tipo: { in: ['scrape_fuente', 'scrape_fuente_light'] },
+      },
     })
   } catch {
     return 0
@@ -242,7 +245,7 @@ async function workerLoop(): Promise<void> {
 
       // Backpressure: esperar entre jobs con jitter anti-ban
       // Jobs pesados (scrape, generate) necesitan más tiempo de recuperación
-      const baseDelay = (tipo === 'scrape_fuente')
+      const baseDelay = (tipo === 'scrape_fuente' || tipo === 'scrape_fuente_light')
         ? WORKER_CONFIG.delayScrapeMs
         : (tipo === 'generar_boletin')
           ? WORKER_CONFIG.delayGenerateMs
@@ -273,6 +276,8 @@ export async function registerDefaultRunners(): Promise<void> {
     { run: runCheckFuente },
     { run: runCheckIndicador },
     { run: runScrapeFuente },
+    { run: runScrapeFuenteLight },
+    { run: runBatchLLM },
     { run: runCaptureIndicador },
     { run: runGenerarBoletin },
     { run: runEnviarEntrega },
@@ -283,6 +288,8 @@ export async function registerDefaultRunners(): Promise<void> {
     import('./runners/check-fuente'),
     import('./runners/check-indicador'),
     import('./runners/scrape-fuente'),
+    import('./runners/scrape-fuente-light'),
+    import('./runners/batch-llm'),
     import('./runners/capture-indicador'),
     import('./runners/generar-boletin'),
     import('./runners/enviar-entrega'),
@@ -297,6 +304,8 @@ export async function registerDefaultRunners(): Promise<void> {
 
   // Captura runners (Capa 1)
   registerRunner('scrape_fuente', runScrapeFuente)
+  registerRunner('scrape_fuente_light', runScrapeFuenteLight)  // Pipeline desacoplado
+  registerRunner('batch_llm', runBatchLLM)                       // Procesa NotaRaw → menciones
   registerRunner('capture_indicador', runCaptureIndicador)
 
   // Productos ONION200
@@ -310,7 +319,7 @@ export async function registerDefaultRunners(): Promise<void> {
   // Startup
   registerRunner('connectivity_test', runConnectivityTest)
 
-  console.log('[Worker] Runners registrados (9 tipos)')
+  console.log('[Worker] Runners registrados (11 tipos)')
 }
 
 function sleep(ms: number): Promise<void> {

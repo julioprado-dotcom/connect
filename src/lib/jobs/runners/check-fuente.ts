@@ -33,14 +33,13 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
           setHtml(fuenteId, homepageHtml)
         }
         await enqueue({
-          tipo: 'scrape_fuente',
+          tipo: 'scrape_fuente_light',  // Pipeline desacoplado: scrape sin LLM → NotaRaw
           payload: {
             fuenteId,
             medioId,
             ...(urls?.length ? { urls } : {}),
-            // homepageHtml ya NO se pasa por payload — se lee desde html-cache
           },
-          prioridad: 1, // alta prioridad para scrape tras cambio detectado
+          prioridad: 1,
         }).catch(err => {
           console.warn(`[check-fuente] Error encolando scrape para fuente ${fuenteId}:`, err)
         })

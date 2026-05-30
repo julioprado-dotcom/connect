@@ -17,7 +17,10 @@ function generateJobId(): string {
 async function checkHeavyPressure(): Promise<boolean> {
   try {
     const heavyCount = await db.job.count({
-      where: { estado: 'pendiente', tipo: 'scrape_fuente' },
+      where: {
+        estado: 'pendiente',
+        tipo: { in: ['scrape_fuente', 'scrape_fuente_light'] },
+      },
     })
     return heavyCount >= QUEUE_LIMITS.maxHeavyPending
   } catch {
@@ -40,7 +43,7 @@ export function markCaptureEnqueue(): void {
 // Encolar un nuevo job
 export async function enqueue(params: JobCreate): Promise<string> {
   // Flow control: limitar jobs pesados
-  if (params.tipo === 'scrape_fuente') {
+  if (params.tipo === 'scrape_fuente' || params.tipo === 'scrape_fuente_light') {
     const pressure = await checkHeavyPressure()
     if (pressure) {
       throw new Error(

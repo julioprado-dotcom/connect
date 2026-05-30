@@ -294,6 +294,49 @@ async function scheduleIndicatorJobs(): Promise<number> {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Batch LLM — procesa NotaRaw pendientes cada 45 min
+// ═══════════════════════════════════════════════════════════════
+
+function scheduleBatchLLM(): number {
+  const minutos = [15, 60, 105, 150, 195, 240, 285, 330, 375, 420, 465, 510, 555, 600, 645, 690, 735, 780, 825, 870, 915, 960, 1005, 1050, 1095, 1140, 1185, 1230, 1275, 1320, 1365, 1410];
+  let count = 0;
+
+  for (const minuto of minutos) {
+    const hora = Math.floor(minuto / 60);
+    const min = minuto % 60;
+    const expresion = `${min} ${hora} * * *`;
+    if (!cron.validate(expresion)) continue;
+
+    const task = cron.schedule(expresion, async () => {
+      try {
+        const pendientes = await db.notaRaw.count({
+          where: { procesada: false, descartada: false },
+        });
+        if (pendientes === 0) return;
+
+        const pending = await db.job.findFirst({
+          where: { tipo: 'batch_llm', estado: 'pendiente' },
+        });
+        if (pending) return;
+
+        await enqueue({ tipo: 'batch_llm', prioridad: 3, payload: {} });
+        state.totalScheduled++;
+        console.log(`[Scheduler-Service] batch_llm encolado (${pendientes} notas pendientes)`);
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.error(`[Scheduler-Service] Error en batch_llm: ${msg}`);
+      }
+    });
+
+    state.tasks.push(task);
+    count++;
+  }
+
+  console.log(`[Scheduler-Service] Batch LLM programado cada 45 min (${count} tareas)`);
+  return count;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Mantenimiento Nocturno
 // ═══════════════════════════════════════════════════════════════
 
@@ -305,7 +348,7 @@ function scheduleMaintenanceJob(): number {
       await enqueue({
         tipo: 'mantenimiento',
         prioridad: 9,
-        payload: { tareas: ['degradar_fuentes', 'recalcular_horarios', 'recalcular_scheduler', 'limpiar_jobs'] },
+        payload: { tareas: ['degradar_fuentes', 'recalcular_horarios', 'recalcular_scheduler', 'limpiar_jobs', 'purge_notas_raw'] },
       });
       state.totalScheduled++;
       console.log('[Scheduler-Service] Mantenimiento nocturno encolado');
@@ -343,6 +386,7 @@ function schedulePeriodicReschedule(): void {
       await scheduleCheckJobs();
       await scheduleIndicatorJobs();
       scheduleBoletinJobs();
+      scheduleBatchLLM();  // NUEVO: batch LLM cada 45 min
       scheduleMaintenanceJob();
 
       state.lastReschedule = new Date();
@@ -383,6 +427,7 @@ async function main(): Promise<void> {
   await scheduleCheckJobs();
   await scheduleIndicatorJobs();
   scheduleBoletinJobs();
+  scheduleBatchLLM();
   scheduleMaintenanceJob();
   schedulePeriodicReschedule();
 

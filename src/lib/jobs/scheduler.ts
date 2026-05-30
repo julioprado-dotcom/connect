@@ -53,7 +53,10 @@ export async function startScheduler(): Promise<void> {
   // 3. Programar generacion de boletines
   scheduleBoletinJobs()
 
-  // 4. Programar mantenimiento nocturno
+  // 4. Programar batch LLM (procesa NotaRaw pendientes cada 45 min)
+  scheduleBatchLLM()
+
+  // 5. Programar mantenimiento nocturno
   scheduleMaintenanceJob()
 
   console.log(`[Scheduler] ${getState().tasks.length} tareas programadas`)
@@ -356,6 +359,53 @@ async function scheduleIndicatorJobs(): Promise<void> {
   console.log(`[Scheduler] Captura indicadores Tier 1 programada diaria 08:00 Bolivia (${formatCronHuman(expresion)}) — ${indicadoresTier1} indicadores activos`)
 }
 
+// Programar batch LLM — procesa NotaRaw pendientes cada 45 minutos
+function scheduleBatchLLM(): void {
+  // Horarios: cada 45 min desde las 06:15 hasta las 23:15 Bolivia
+  // Alineado para procesar notas después de cada ronda de scraping
+  const minutos = [15, 60, 105, 150, 195, 240, 285, 330, 375, 420, 465, 510, 555, 600, 645, 690, 735, 780, 825, 870, 915, 960, 1005, 1050, 1095, 1140, 1185, 1230, 1275, 1320, 1365, 1410]
+
+  for (const minuto of minutos) {
+    const hora = Math.floor(minuto / 60)
+    const min = minuto % 60
+    const expresion = `${min} ${hora} * * *`
+
+    if (!cron.validate(expresion)) continue
+
+    const task = cron.schedule(expresion, async () => {
+      try {
+        // Solo encolar si hay notas pendientes
+        const pendientes = await db.notaRaw.count({
+          where: { procesada: false, descartada: false },
+        })
+
+        if (pendientes === 0) return
+
+        // Verificar que no haya batch_llm pendiente
+        const pending = await db.job.findFirst({
+          where: { tipo: 'batch_llm', estado: 'pendiente' },
+        })
+        if (pending) return
+
+        await enqueue({
+          tipo: 'batch_llm',
+          prioridad: 3,
+          payload: {},
+        })
+
+        console.log(`[Scheduler] batch_llm encolado (${pendientes} notas pendientes)`)
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error)
+        console.error(`[Scheduler] Error en batch_llm: ${msg}`)
+      }
+    }, CRON_OPTS)
+
+    getState().tasks.push(task)
+  }
+
+  console.log('[Scheduler] Batch LLM programado cada 45 min (06:15-23:15 Bolivia)')
+}
+
 // Programar mantenimiento nocturno (04:00 AM todos los dias)
 function scheduleMaintenanceJob(): void {
   const entry = getMantenimientoCronEntry()
@@ -371,6 +421,7 @@ function scheduleMaintenanceJob(): void {
             'recalcular_horarios',
             'recalcular_scheduler',
             'limpiar_jobs',
+            'purge_notas_raw',  // NUEVO: limpiar NotaRaw > 48h sin procesar
           ],
         },
       })
@@ -421,6 +472,7 @@ export async function rescheduleAll(): Promise<void> {
   await scheduleCheckJobs()
   await scheduleIndicatorJobs()
   scheduleBoletinJobs()
+  scheduleBatchLLM()  // NUEVO: batch LLM cada 45 min
   scheduleMaintenanceJob()
 
   console.log(`[Scheduler] Reprogramacion completa: ${getState().tasks.length} tareas`)

@@ -27,7 +27,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
   const resultados: MantenimientoResult[] = []
 
   // ── PRE-FLIGHT: Si hay tareas destructivas, crear snapshot + archive ──
-  const tareasDestructivas = ['limpiar_jobs', 'purge_menciones', 'limpiar_logs']
+  const tareasDestructivas = ['limpiar_jobs', 'purge_menciones', 'purge_notas_raw', 'limpiar_logs']
   const hayDestruccion = tareas.some(t => tareasDestructivas.includes(t))
 
   if (hayDestruccion) {
@@ -186,6 +186,40 @@ async function ejecutarTarea(tarea: TareaMantenimiento): Promise<MantenimientoRe
         tarea,
         completada: true,
         detalle: `Texto limpiado en ${menciones.length} menciones (> ${QUEUE_LIMITS.mencionTextRetentionMonths} meses) [archivados en backup previo]`,
+      }
+    }
+
+    case 'purge_notas_raw': {
+      // Eliminar NotaRaw > 48h sin procesar (basura acumulada)
+      const cutoff48h = new Date(Date.now() - 48 * 60 * 60 * 1000)
+      const eliminadas = await db.notaRaw.deleteMany({
+        where: {
+          procesada: false,
+          descartada: false,
+          fechaCaptura: { lt: cutoff48h },
+        },
+      })
+      // También marcar descartadas como procesadas para liberar espacio
+      const archivadas = await db.notaRaw.updateMany({
+        where: {
+          descartada: true,
+          procesada: false,
+          fechaProcesada: null,
+        },
+        data: { procesada: true, fechaProcesada: new Date() },
+      })
+      await db.systemLog.create({
+        data: {
+          modulo: 'mantenimiento',
+          accion: 'purge_notas_raw',
+          detalle: `${eliminadas.count} notas eliminadas (>48h), ${archivadas.count} archivadas`,
+          automatica: true,
+        },
+      }).catch(() => {})
+      return {
+        tarea,
+        completada: true,
+        detalle: `${eliminadas.count} notas eliminadas (>48h pendientes), ${archivadas.count} archivadas`,
       }
     }
 
