@@ -289,6 +289,7 @@ async function processMedio(
   try {
     await db.capturaLog.create({
       data: {
+        id: `clog_${Date.now()}_${Math.random().toString(36).substring(2,8)}`,
         medioId: medio.id,
         totalArticulos: notas.length,
         mencionesEncontradas: menciones,

@@ -81,6 +81,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       // FIX: Registrar error en CapturaLog para que sea visible en el dashboard
       await db.capturaLog.create({
         data: {
+          id: `clog_${Date.now()}_${Math.random().toString(36).substring(2,8)}`,
           medioId,
           nivel: fuente.Medio.nivel,
           exitosa: false,
@@ -142,6 +143,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       // Sin notas relevantes — registrar y salir sin gastar LLM
       await db.capturaLog.create({
         data: {
+          id: `clog_${Date.now()}_${Math.random().toString(36).substring(2,8)}`,
           medioId,
           nivel: fuente.Medio.nivel,
           exitosa: true,
@@ -337,6 +339,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
     // Registrar captura log
     await db.capturaLog.create({
       data: {
+        id: `clog_${Date.now()}_${Math.random().toString(36).substring(2,8)}`,
         medioId,
         nivel: fuente.Medio.nivel,
         exitosa: true,
@@ -476,7 +479,7 @@ async function procesarUrlsDirectas(
   await evaluarFrecuencia(fuenteId, true).catch(() => {})
 
   await db.capturaLog.create({
-    data: { medioId, nivel, exitosa: true, totalArticulos: urls.length, mencionesEncontradas: totalMenciones },
+    data: { id: `clog_${Date.now()}_${Math.random().toString(36).substring(2,8)}`, medioId, nivel, exitosa: true, totalArticulos: urls.length, mencionesEncontradas: totalMenciones },
   })
 
   // Backup periódico de DB (cada 100 ciclos o 6h)
@@ -521,7 +524,7 @@ async function procesarFallbackHomepage(
   await evaluarFrecuencia(fuenteId, true).catch(() => {})
 
   await db.capturaLog.create({
-    data: { medioId, nivel, exitosa: true, totalArticulos: 1, mencionesEncontradas: menciones },
+    data: { id: `clog_${Date.now()}_${Math.random().toString(36).substring(2,8)}`, medioId, nivel, exitosa: true, totalArticulos: 1, mencionesEncontradas: menciones },
   })
 
   // Backup periódico de DB (cada 100 ciclos o 6h)
