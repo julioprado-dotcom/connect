@@ -109,6 +109,16 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
     const notas = extraerLinksDeNoticias(html, fuente.url, MAX_LINKS)
     console.log(`[scrape-light] FASE 1: ${notas.length} links extraídos de ${fuente.Medio.nombre}`)
 
+    // Actualizar capacidad: headline extraction succeeded
+    await db.fuenteEstado.update({
+      where: { id: fuenteId },
+      data: {
+        ultimoHeadline: new Date(),
+        totalHeadlines: { increment: notas.length },
+        strategyScrape: 'link-extraction',
+      },
+    }).catch(() => {})
+
     if (notas.length === 0) {
       await db.capturaLog.create({
         data: {
