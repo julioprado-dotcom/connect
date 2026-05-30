@@ -382,3 +382,27 @@ Stage Summary:
 - Worker/Scheduler muestran "Inicializando" si están offline pero el sistema arrancó hace < 5 min
 - Planificador muestra "X tareas programadas" en vez de "X tareas · 0 encolados"
 - Build exitoso, necesita deploy en VPS
+---
+Task ID: arch-e-v2-fixes
+Agent: main
+Task: Arquitectura E v2 — fixes críticos, frecuencias, ventana operativa
+
+Work Log:
+- Verificada infraestructura E v2 existente: NotaRaw/SystemLog en schema, batch-llm.ts, scrape-fuente-light.ts, scheduler con batch_llm cada 45min
+- BUG CRÍTICO ENCONTRADO: worker-service.ts (PM2) NO registraba batch_llm ni scrape_fuente_light — jobs fallaban con "No existe runner para tipo"
+- FIX: Agregados imports y registros en worker-service.ts (9→11 runners)
+- Verificado que check-fuente.ts ya encola scrape_fuente_light (no scrape_fuente)
+- Ejecutado prisma db push — tablas NotaRaw y SystemLog creadas en DB SQLite
+- Ejecutado prisma generate — Prisma Client actualizado
+- Ajustadas frecuencias base: corporativo 1h→4h, regional 4h→6h, red_social 1h→1d
+- Ajustados medios específicos: Los Tiempos 15m→2h, nacionales 1h→4h, TV 4h→6h
+- Agregados SENASAG e IBCE como frecuencia 1w (semanal)
+- Ventana operativa ampliada: ventanaFin 22→23 (último scrape 23:00)
+- Pushed como commit d9c2c01
+
+Stage Summary:
+- Pipeline E v2 funcional end-to-end: scrape(sin LLM) → NotaRaw → batch_llm → Menciones
+- Frecuencias optimizadas: ~40% menos checks/día, sin perder cobertura
+- Ventana 06:00-23:00: último scrape después de noticieros nocturnos
+- Tablas NotaRaw + SystemLog creadas y Prisma Client regenerado
+- PRÓXIMO: usuario debe hacer deploy en VPS (build + pm2 restart)
