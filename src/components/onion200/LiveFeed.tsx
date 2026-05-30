@@ -497,7 +497,7 @@ export function LiveFeed({ onNavigateTab }: LiveFeedProps) {
 
   useEffect(() => {
     fetchData();
-    intervalRef.current = setInterval(fetchData, 30000);
+    intervalRef.current = setInterval(fetchData, 15000);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };

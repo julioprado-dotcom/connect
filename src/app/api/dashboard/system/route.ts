@@ -70,24 +70,81 @@ function formatUptime(seconds: number): string {
   }
 }
 
-// ─── Safe Worker/Scheduler imports ────────────────────────────
+// ─── Heartbeat-based Worker/Scheduler detection (PM2 multi-process) ──
+// Reads heartbeat files as PRIMARY source — works in PM2 mode.
+// Falls back to globalThis require() for monolithic mode.
 
-function safeWorkerStats() {
+const WORKER_HB = os.tmpdir() + '/decodex-worker-heartbeat';
+const SCHEDULER_HB = os.tmpdir() + '/decodex-scheduler-heartbeat';
+
+interface HeartbeatData {
+  online: boolean;
+  age: number;
+  data: Record<string, unknown>;
+}
+
+function readHeartbeat(filePath: string): HeartbeatData {
   try {
-    const { getWorkerStats } = require('@/lib/jobs/worker');
-    return getWorkerStats();
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const data = JSON.parse(content);
+    const age = Date.now() - new Date(data.timestamp).getTime();
+    return { online: age < 30000, age, data };
   } catch {
-    return { running: false, uptime: '0s', jobsCompleted: 0, jobsFailed: 0, jobsPerHour: 0, lastJobTime: null };
+    return { online: false, age: Infinity, data: {} };
   }
 }
 
+function safeWorkerStats() {
+  // PRIMARY: read heartbeat file (works in PM2 multi-process mode)
+  const hb = readHeartbeat(WORKER_HB);
+  if (hb.online) {
+    const uptimeSec = (hb.data.uptime as number) || 0;
+    const jobsCompleted = (hb.data.jobsCompleted as number) || 0;
+    const jobsFailed = (hb.data.jobsFailed as number) || 0;
+    const jobsPerHour = (hb.data.jobsPerHour as number) || 0;
+    const lastJobTime = (hb.data.lastJobTime as string) || null;
+    return {
+      running: true,
+      uptime: formatUptime(uptimeSec),
+      jobsCompleted,
+      jobsFailed,
+      jobsPerHour,
+      lastJobTime,
+    };
+  }
+
+  // FALLBACK: try globalThis require (monolithic mode)
+  try {
+    const { getWorkerStats } = require('@/lib/jobs/worker');
+    const stats = getWorkerStats();
+    if (stats.running) return stats;
+  } catch {
+    // globalThis not available
+  }
+
+  return { running: false, uptime: '0s', jobsCompleted: 0, jobsFailed: 0, jobsPerHour: 0, lastJobTime: null };
+}
+
 function safeSchedulerStats() {
+  // PRIMARY: read heartbeat file (works in PM2 multi-process mode)
+  const hb = readHeartbeat(SCHEDULER_HB);
+  if (hb.online) {
+    return {
+      running: true,
+      totalTasks: (hb.data.totalTasks as number) || 0,
+    };
+  }
+
+  // FALLBACK: try globalThis require (monolithic mode)
   try {
     const { getSchedulerStatus } = require('@/lib/jobs/scheduler');
-    return getSchedulerStatus();
+    const stats = getSchedulerStatus();
+    if (stats.running) return stats;
   } catch {
-    return { running: false, totalTasks: 0 };
+    // globalThis not available
   }
+
+  return { running: false, totalTasks: 0 };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -257,6 +314,12 @@ export async function GET() {
 
     const workerStats = safeWorkerStats();
     const schedulerStatus = safeSchedulerStats();
+
+    // Determine data source for transparency
+    const workerHb = readHeartbeat(WORKER_HB);
+    const schedulerHb = readHeartbeat(SCHEDULER_HB);
+    const dataSource = (workerHb.online || schedulerHb.online) ? 'heartbeat' : 'globalThis';
+
     const backendVitals = { worker: workerStats, scheduler: schedulerStatus };
 
     const diagnoses: Diagnosis[] = [
@@ -293,6 +356,7 @@ export async function GET() {
       nodeVersion: process.version,
       timestamp: new Date().toISOString(),
       status: 'ok',
+      dataSource,
     });
   } catch (error) {
     // ULTIMO RECURSO: 200 con datos minimos. NUNCA 500.

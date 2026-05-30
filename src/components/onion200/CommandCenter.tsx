@@ -7,18 +7,20 @@ import {
   Zap,
   Play,
   Square,
-  RotateCcw,
   Loader2,
   AlertTriangle,
   CheckCircle2,
   XCircle,
-  Clock,
   Layers,
   Radio,
   ChevronDown,
   ChevronUp,
   Database,
   Activity,
+  Timer,
+  FileText,
+  TrendingUp,
+  ArrowRight,
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════
@@ -57,8 +59,123 @@ interface CaptureQueue {
   recentLogs: string[];
 }
 
-interface JobsSummary {
-  porEstado: Record<string, number>;
+interface JobsStats {
+  cola: {
+    pendientes: number;
+    enProgreso: number;
+    fallidos24h: number;
+    completados24h: number;
+    tiempoPromedioMs: number;
+  };
+  worker: {
+    running: boolean;
+    uptime: string;
+    jobsCompleted: number;
+    jobsFailed: number;
+    jobsPerHour: number;
+    lastJobTime: string | null;
+  };
+  checkFirst: {
+    sinCambios24h: number;
+    conCambios24h: number;
+    tasaAhorro: number;
+  };
+  fuentes: {
+    activas: number;
+    conCambiosHoy: number;
+    degradadas: number;
+    conError: number;
+    topProductoras: Array<{ nombre: string; count: number }>;
+  };
+  scheduler: {
+    running: boolean;
+    totalTasks: number;
+  };
+}
+
+interface JobsSummaryData {
+  completadosHoy: number;
+  fallidos24h: number;
+  enProgreso: number;
+  pendientes: number;
+  cancelados: number;
+  jobsByType: Record<string, number>;
+  ultimos: Array<{
+    id: string;
+    tipo: string;
+    estado: string;
+    prioridad: string;
+    intentos: number;
+    maxIntentos: number;
+    duracionSegundos: number | null;
+    fechaCreacion: string;
+    error: string | null;
+  }>;
+}
+
+interface NotaRawStatus {
+  pendientes: number;
+  procesadasHoy: number;
+  total: number;
+  ultimasProcesadas: Array<{
+    id: string;
+    titulo: string;
+    mencionesCreadas: number;
+    puntajeTriaje: number;
+    fechaCaptura: string;
+    fechaProcesada: string | null;
+    medioId: string;
+  }>;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Helpers
+// ═══════════════════════════════════════════════════════════════
+
+function tiempoRelativo(fechaStr: string): string {
+  const fecha = new Date(fechaStr);
+  const ms = Date.now() - fecha.getTime();
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return 'ahora';
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  const dias = Math.floor(hrs / 24);
+  return `${dias}d`;
+}
+
+function estadoColor(estado: string): string {
+  const colors: Record<string, string> = {
+    pendiente: '#f59e0b',
+    en_progreso: '#06b6d4',
+    en_proceso: '#06b6d4',
+    completado: '#10b981',
+    fallido: '#f43f5e',
+    cancelado: '#64748b',
+  };
+  return colors[estado] || '#64748b';
+}
+
+function estadoLabel(estado: string): string {
+  const labels: Record<string, string> = {
+    pendiente: 'Pendiente',
+    en_progreso: 'En progreso',
+    en_proceso: 'En proceso',
+    completado: 'Completado',
+    fallido: 'Fallido',
+    cancelado: 'Cancelado',
+  };
+  return labels[estado] || estado;
+}
+
+function tipoIcon(tipo: string): string {
+  if (tipo.includes('check')) return '🔍';
+  if (tipo.includes('scrape') || tipo.includes('captura')) return '📡';
+  if (tipo.includes('batch') || tipo.includes('llm')) return '🤖';
+  if (tipo.includes('clasif')) return '📊';
+  if (tipo.includes('triaje')) return '✂️';
+  if (tipo.includes('alerta')) return '🚨';
+  return '📋';
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -68,7 +185,9 @@ interface JobsSummary {
 export function CommandCenter() {
   const [queueStatus, setQueueStatus] = useState<QueueStatus | null>(null);
   const [captureQueue, setCaptureQueue] = useState<CaptureQueue | null>(null);
-  const [jobsSummary, setJobsSummary] = useState<JobsSummary | null>(null);
+  const [jobsStats, setJobsStats] = useState<JobsStats | null>(null);
+  const [jobsSummaryData, setJobsSummaryData] = useState<JobsSummaryData | null>(null);
+  const [notaRawStatus, setNotaRawStatus] = useState<NotaRawStatus | null>(null);
   const [kickLoading, setKickLoading] = useState(false);
   const [captureLoading, setCaptureLoading] = useState(false);
   const [stopCaptureLoading, setStopCaptureLoading] = useState(false);
@@ -76,19 +195,24 @@ export function CommandCenter() {
   const [captureResult, setCaptureResult] = useState<{ success: boolean; message: string } | null>(null);
   const [expanded, setExpanded] = useState(true);
   const [logsExpanded, setLogsExpanded] = useState(false);
+  const [ultimosJobsExpanded, setUltimosJobsExpanded] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval>>(null);
 
   const fetchData = useCallback(async () => {
     try {
-      const [queueRes, captureRes, jobsRes] = await Promise.all([
+      const [queueRes, captureRes, statsRes, summaryRes, notaRawRes] = await Promise.all([
         fetchWithTimeout('/api/admin/kick-capture', { timeoutMs: 5000 }),
         fetchWithTimeout('/api/capture', { timeoutMs: 5000 }),
-        fetchWithTimeout('/api/jobs?limit=1', { timeoutMs: 5000 }),
+        fetchWithTimeout('/api/jobs/stats', { timeoutMs: 5000 }),
+        fetchWithTimeout('/api/dashboard/jobs-summary', { timeoutMs: 5000 }),
+        fetchWithTimeout('/api/dashboard/nota-raw', { timeoutMs: 5000 }),
       ]);
 
       if (queueRes.ok) setQueueStatus(await queueRes.json());
       if (captureRes.ok) setCaptureQueue(await captureRes.json());
-      if (jobsRes.ok) setJobsSummary(await jobsRes.json());
+      if (statsRes.ok) setJobsStats(await statsRes.json());
+      if (summaryRes.ok) setJobsSummaryData(await summaryRes.json());
+      if (notaRawRes.ok) setNotaRawStatus(await notaRawRes.json());
     } catch {
       // Silent — panel shows "sin datos"
     }
@@ -173,6 +297,8 @@ export function CommandCenter() {
 
   const cq = captureQueue?.queue;
   const qs = queueStatus?.queueStatus;
+  const workerAlive = jobsStats?.worker.running;
+  const schedulerAlive = jobsStats?.scheduler.running;
 
   return (
     <PanelShell title="Centro de Comando" icon={<Zap className="w-4 h-4" />} className="relative">
@@ -187,6 +313,85 @@ export function CommandCenter() {
 
       {expanded ? (
         <div className="space-y-4">
+          {/* ── System Pulse: Worker + Scheduler live status ── */}
+          <div
+            className="rounded-lg px-3 py-2 flex items-center gap-3 flex-wrap"
+            style={{
+              background: workerAlive && schedulerAlive
+                ? 'rgba(16,185,129,0.03)'
+                : 'rgba(244,63,94,0.03)',
+              border: workerAlive && schedulerAlive
+                ? '1px solid rgba(16,185,129,0.08)'
+                : '1px solid rgba(244,63,94,0.1)',
+            }}
+          >
+            {/* Worker */}
+            <div className="flex items-center gap-1.5">
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{
+                  backgroundColor: workerAlive ? '#10b981' : '#f43f5e',
+                  boxShadow: workerAlive ? '0 0 6px rgba(16,185,129,0.6)' : '0 0 6px rgba(244,63,94,0.6)',
+                  animation: workerAlive ? 'pulse 2s infinite' : 'none',
+                }}
+              />
+              <span className="text-[9px] font-mono text-slate-500">
+                Worker
+              </span>
+              <span
+                className="text-[9px] font-bold font-mono uppercase"
+                style={{ color: workerAlive ? '#10b981' : '#f43f5e' }}
+              >
+                {workerAlive ? 'ONLINE' : 'OFFLINE'}
+              </span>
+            </div>
+
+            <span className="text-slate-800">·</span>
+
+            {/* Scheduler */}
+            <div className="flex items-center gap-1.5">
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{
+                  backgroundColor: schedulerAlive ? '#10b981' : '#f43f5e',
+                  boxShadow: schedulerAlive ? '0 0 6px rgba(16,185,129,0.6)' : '0 0 6px rgba(244,63,94,0.6)',
+                  animation: schedulerAlive ? 'pulse 2s infinite' : 'none',
+                }}
+              />
+              <span className="text-[9px] font-mono text-slate-500">
+                Scheduler
+              </span>
+              <span
+                className="text-[9px] font-bold font-mono uppercase"
+                style={{ color: schedulerAlive ? '#10b981' : '#f43f5e' }}
+              >
+                {schedulerAlive ? `${jobsStats?.scheduler.totalTasks || 0} tareas` : 'OFFLINE'}
+              </span>
+            </div>
+
+            {/* Worker throughput */}
+            {jobsStats?.worker && (
+              <>
+                <span className="text-slate-800 ml-auto">·</span>
+                <span className="text-[9px] font-mono text-slate-600">
+                  {jobsStats.worker.jobsPerHour > 0
+                    ? `${jobsStats.worker.jobsPerHour.toFixed(1)}/h`
+                    : ''}
+                </span>
+                <span className="text-[9px] font-mono text-slate-700">
+                  {jobsStats.worker.uptime !== '0s' ? `up ${jobsStats.worker.uptime}` : ''}
+                </span>
+              </>
+            )}
+
+            {/* Last job time */}
+            {jobsStats?.worker.lastJobTime && (
+              <span className="text-[9px] font-mono text-slate-700">
+                ult. job: {tiempoRelativo(jobsStats.worker.lastJobTime)}
+              </span>
+            )}
+          </div>
+
           {/* ── Row 1: Action Buttons ── */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
 
@@ -295,7 +500,7 @@ export function CommandCenter() {
               )}
             </div>
 
-            {/* Queue Status */}
+            {/* Cola de Trabajos — ENHANCED with completados/fallidos */}
             <div
               className="rounded-lg p-3"
               style={{
@@ -320,6 +525,18 @@ export function CommandCenter() {
                     <span className="text-xs font-mono text-cyan-400 tabular-nums">{qs.enProgreso}</span>
                   </div>
                   <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-mono text-slate-600">Completados 24h</span>
+                    <span className="text-xs font-mono text-emerald-400 tabular-nums">
+                      {jobsStats?.cola.completados24h ?? jobsSummaryData?.completadosHoy ?? '—'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-mono text-slate-600">Fallidos 24h</span>
+                    <span className="text-xs font-mono tabular-nums" style={{ color: (jobsStats?.cola.fallidos24h ?? 0) > 0 ? '#f43f5e' : '#10b981' }}>
+                      {jobsStats?.cola.fallidos24h ?? jobsSummaryData?.fallidos24h ?? '—'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
                     <span className="text-[9px] font-mono text-slate-600">Fuentes activas</span>
                     <span className="text-xs font-mono text-emerald-400 tabular-nums">{qs.fuentesActivas}</span>
                   </div>
@@ -328,6 +545,90 @@ export function CommandCenter() {
                 <p className="text-[9px] font-mono text-slate-700">Cargando estado de cola...</p>
               )}
             </div>
+          </div>
+
+          {/* ── Pipeline Status: NotaRaw → batch LLM ── */}
+          <div
+            className="rounded-lg p-3"
+            style={{
+              background: 'rgba(6,182,212,0.02)',
+              border: '1px solid rgba(6,182,212,0.08)',
+            }}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="w-3.5 h-3.5 text-cyan-500/70" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-400/70 font-mono">
+                Pipeline NotaRaw → Menciones
+              </span>
+            </div>
+            {notaRawStatus ? (
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Pendientes */}
+                <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md" style={{
+                  backgroundColor: 'rgba(245,158,11,0.06)',
+                  border: '1px solid rgba(245,158,11,0.1)',
+                }}>
+                  <span className="text-[8px] font-bold uppercase text-amber-400/70 font-mono">Pendientes</span>
+                  <span className="text-xs font-mono text-amber-400 tabular-nums font-bold">
+                    {notaRawStatus.pendientes}
+                  </span>
+                </div>
+
+                <ArrowRight className="w-3 h-3 text-slate-700 flex-shrink-0" />
+
+                {/* Procesadas hoy */}
+                <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md" style={{
+                  backgroundColor: 'rgba(6,182,212,0.06)',
+                  border: '1px solid rgba(6,182,212,0.1)',
+                }}>
+                  <span className="text-[8px] font-bold uppercase text-cyan-400/70 font-mono">Procesadas hoy</span>
+                  <span className="text-xs font-mono text-cyan-400 tabular-nums font-bold">
+                    {notaRawStatus.procesadasHoy}
+                  </span>
+                </div>
+
+                <ArrowRight className="w-3 h-3 text-slate-700 flex-shrink-0" />
+
+                {/* Total */}
+                <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md" style={{
+                  backgroundColor: 'rgba(100,116,139,0.06)',
+                  border: '1px solid rgba(100,116,139,0.1)',
+                }}>
+                  <span className="text-[8px] font-bold uppercase text-slate-500 font-mono">Total en BD</span>
+                  <span className="text-xs font-mono text-slate-400 tabular-nums font-bold">
+                    {notaRawStatus.total}
+                  </span>
+                </div>
+
+                {/* CheckFirst efficiency */}
+                {jobsStats?.checkFirst && jobsStats.checkFirst.tasaAhorro > 0 && (
+                  <>
+                    <span className="text-slate-800 ml-1">·</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[9px] font-mono text-slate-600">CheckFirst ahorro:</span>
+                      <span className="text-[9px] font-mono text-emerald-400 font-bold tabular-nums">
+                        {(jobsStats.checkFirst.tasaAhorro * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  </>
+                )}
+
+                {/* Avg job time */}
+                {jobsStats?.cola && jobsStats.cola.tiempoPromedioMs > 0 && (
+                  <>
+                    <span className="text-slate-800">·</span>
+                    <div className="flex items-center gap-1">
+                      <Timer className="w-3 h-3 text-slate-600" />
+                      <span className="text-[9px] font-mono text-slate-500">
+                        Promedio: {(jobsStats.cola.tiempoPromedioMs / 1000).toFixed(1)}s
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <p className="text-[9px] font-mono text-slate-700">Cargando estado del pipeline...</p>
+            )}
           </div>
 
           {/* ── Capture v2 Progress Bar ── */}
@@ -424,36 +725,106 @@ export function CommandCenter() {
             </div>
           )}
 
-          {/* ── Jobs Summary (compact) ── */}
-          {jobsSummary && (
+          {/* ── Últimos Jobs — from /api/dashboard/jobs-summary ── */}
+          {jobsSummaryData && jobsSummaryData.ultimos.length > 0 && (
+            <div
+              className="rounded-lg p-3"
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.01)',
+                border: '1px solid rgba(255,255,255,0.04)',
+              }}
+            >
+              <button
+                onClick={() => setUltimosJobsExpanded(!ultimosJobsExpanded)}
+                className="w-full flex items-center gap-2 mb-2"
+              >
+                <TrendingUp className="w-3.5 h-3.5 text-slate-600" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 font-mono">
+                  Últimos Jobs
+                </span>
+                <span className="text-[9px] font-mono text-slate-700">
+                  ({jobsSummaryData.ultimos.length})
+                </span>
+                {ultimosJobsExpanded ? <ChevronUp className="w-3 h-3 ml-auto text-slate-700" /> : <ChevronDown className="w-3 h-3 ml-auto text-slate-700" />}
+              </button>
+
+              {ultimosJobsExpanded && (
+                <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
+                  {jobsSummaryData.ultimos.slice(0, 5).map((job) => (
+                    <div
+                      key={job.id}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded-md"
+                      style={{
+                        backgroundColor: 'rgba(255,255,255,0.01)',
+                        border: '1px solid rgba(255,255,255,0.03)',
+                      }}
+                    >
+                      {/* Status dot */}
+                      <span
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{
+                          backgroundColor: estadoColor(job.estado),
+                          boxShadow: job.estado === 'en_progreso'
+                            ? '0 0 6px rgba(6,182,212,0.5)'
+                            : undefined,
+                          animation: job.estado === 'en_progreso' ? 'pulse 2s infinite' : 'none',
+                        }}
+                      />
+                      {/* Type icon */}
+                      <span className="text-[10px] flex-shrink-0">{tipoIcon(job.tipo)}</span>
+                      {/* Job type */}
+                      <span className="text-[9px] font-mono text-slate-400 truncate max-w-[140px] flex-1">
+                        {job.tipo}
+                      </span>
+                      {/* Duration */}
+                      {job.duracionSegundos !== null && (
+                        <span className="text-[9px] font-mono text-slate-600 tabular-nums flex-shrink-0">
+                          {job.duracionSegundos}s
+                        </span>
+                      )}
+                      {/* Status label */}
+                      <span
+                        className="text-[8px] font-bold font-mono uppercase px-1.5 py-0.5 rounded flex-shrink-0"
+                        style={{
+                          color: estadoColor(job.estado),
+                          backgroundColor: `${estadoColor(job.estado)}15`,
+                          border: `1px solid ${estadoColor(job.estado)}25`,
+                        }}
+                      >
+                        {estadoLabel(job.estado)}
+                      </span>
+                      {/* Time ago */}
+                      <span className="text-[8px] font-mono text-slate-700 flex-shrink-0 ml-auto">
+                        {tiempoRelativo(job.fechaCreacion)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Jobs by type (compact) ── */}
+          {jobsSummaryData && jobsSummaryData.jobsByType && Object.keys(jobsSummaryData.jobsByType).length > 0 && (
             <div className="flex items-center gap-3 px-1 flex-wrap">
-              <span className="text-[9px] font-bold uppercase text-slate-700 font-mono">Trabajos:</span>
-              {Object.entries(jobsSummary.porEstado).map(([estado, count]) => {
-                const colors: Record<string, string> = {
-                  pendiente: '#f59e0b',
-                  en_progreso: '#06b6d4',
-                  completado: '#10b981',
-                  fallido: '#f43f5e',
-                };
-                const color = colors[estado] || '#64748b';
-                return (
-                  <span key={estado} className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
-                    <span className="text-[9px] font-mono text-slate-500">
-                      {estado.replace('_', ' ')}
-                    </span>
-                    <span className="text-[9px] font-mono tabular-nums" style={{ color }}>
-                      {count}
-                    </span>
+              <span className="text-[9px] font-bold uppercase text-slate-700 font-mono">Tipos de job:</span>
+              {Object.entries(jobsSummaryData.jobsByType).slice(0, 8).map(([tipo, count]) => (
+                <span key={tipo} className="flex items-center gap-1">
+                  <span className="text-[10px]">{tipoIcon(tipo)}</span>
+                  <span className="text-[9px] font-mono text-slate-500 truncate max-w-[80px]">
+                    {tipo}
                   </span>
-                );
-              })}
+                  <span className="text-[9px] font-mono tabular-nums text-slate-400">
+                    {count}
+                  </span>
+                </span>
+              ))}
             </div>
           )}
 
           {/* ── Info footer ── */}
           <p className="text-[8px] font-mono text-slate-700 leading-relaxed px-1">
-            <b>Kick Capture</b> encola checks via job queue (rapido, sin LLM). <b>Captura v2</b> ejecuta el pipeline completo de scraping directo con clasificacion LLM. Los datos se refrescan cada 10s.
+            <b>Kick Capture</b> encola checks via job queue (rapido, sin LLM). <b>Captura v2</b> ejecuta el pipeline completo de scraping directo con clasificacion LLM. <b>Pipeline NotaRaw</b> muestra el estado del procesamiento batch LLM. Los datos se refrescan cada 10s.
           </p>
         </div>
       ) : (
