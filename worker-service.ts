@@ -39,6 +39,8 @@ import { registerDefaultRunners } from './src/lib/jobs/worker';
 import { run as runCheckFuente } from './src/lib/jobs/runners/check-fuente';
 import { run as runCheckIndicador } from './src/lib/jobs/runners/check-indicador';
 import { run as runScrapeFuente } from './src/lib/jobs/runners/scrape-fuente';
+import { run as runScrapeFuenteLight } from './src/lib/jobs/runners/scrape-fuente-light';
+import { run as runBatchLLM } from './src/lib/jobs/runners/batch-llm';
 import { run as runCaptureIndicador } from './src/lib/jobs/runners/capture-indicador';
 import { run as runGenerarBoletin } from './src/lib/jobs/runners/generar-boletin';
 import { run as runEnviarEntrega } from './src/lib/jobs/runners/enviar-entrega';
@@ -62,6 +64,8 @@ function registerAllRunners(): void {
   registerRunner('check_fuente', runCheckFuente);
   registerRunner('check_indicador', runCheckIndicador);
   registerRunner('scrape_fuente', runScrapeFuente);
+  registerRunner('scrape_fuente_light', runScrapeFuenteLight);  // Pipeline E: scrape sin LLM → NotaRaw
+  registerRunner('batch_llm', runBatchLLM);                       // Pipeline E: NotaRaw → menciones con LLM
   registerRunner('capture_indicador', runCaptureIndicador);
   registerRunner('generar_boletin', runGenerarBoletin);
   registerRunner('enviar_entrega', runEnviarEntrega);

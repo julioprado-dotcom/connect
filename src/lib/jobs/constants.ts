@@ -48,39 +48,41 @@ export const DEGRADACION_CHAIN: string[] = [
 // ── Frecuencias base por categoria de medio ────────────────────────────
 
 export const FRECUENCIA_BASE_POR_CATEGORIA: Record<string, string> = {
-  // Nivel 1 — Nacionales corporativos
-  corporativo: '1h',
+  // Nivel 1 — Nacionales corporativos: 4h (optimizado, Bolivia actualiza 3-4x/día)
+  corporativo: '4h',
   // Nivel 1 — Oficiales (gobierno, indicadores)
   oficial: '1d',
-  // Nivel 2 — Regionales
-  regional: '4h',
-  // Nivel 3 — Alternativos/independientes
+  // Nivel 2 — Regionales: 6h (actualizan 2-3x/día)
+  regional: '6h',
+  // Nivel 3 — Alternativos/independientes: 1x/día
   alternativo: '1d',
   // Nivel 4 — Redes sociales
-  red_social: '1h',
+  red_social: '1d',
 }
 
 // ── Frecuencias base por medio especifico (override de categoria) ──────
 
 export const FRECUENCIA_BASE_POR_MEDIO: Record<string, string> = {
-  // PRIORIDAD MAXIMA — Los Tiempos: cada 15 min (16 checks/día)
-  'lostiempos.com': '15m',
+  // PRIORIDAD MAXIMA — Los Tiempos: cada 2h (sitios bolivianos actualizan 3-4x/día max)
+  'lostiempos.com': '2h',
 
-  // Nivel 1 — Top 4 con 4x/dia
-  'la-razon.com': '1h',
-  'eldeber.com.bo': '1h',
-  'rtpbolivia.com.bo': '1h',
-  'abi.bo': '1h',
+  // Nivel 1 — Nacionales: 4h (actualizan 3-4x/día, no necesitamos más frecuencia)
+  'la-razon.com': '4h',
+  'eldeber.com.bo': '4h',
+  'rtpbolivia.com.bo': '4h',
+  'abi.bo': '4h',
 
-  // TV principales — 2x/dia
-  'unitel.bo': '4h',
-  'reduno.tv': '4h',
-  'atb.com.bo': '1h',
+  // TV principales — 6h (contenido audiovisual menos urgente)
+  'unitel.bo': '6h',
+  'reduno.tv': '6h',
+  'atb.com.bo': '6h',
 
-  // Fuentes oficiales lentas — 1x/semana
+  // Fuentes oficiales lentas — 1x/semana (SENASAG, IBCE, etc.)
   'tribunal sup electoral': '1w',
   'contraloria': '1w',
   'tribunal constitucional': '1w',
+  'senasag': '1w',
+  'ibce': '1w',
 
   // Indicadores — 1x/dia
   'bcb': '1d',
@@ -89,23 +91,26 @@ export const FRECUENCIA_BASE_POR_MEDIO: Record<string, string> = {
 // ── Horarios por defecto (sin datos de histograma) ─────────────────────
 
 export const HORARIOS_DEFAULT: Record<string, number[]> = {
-  // Los Tiempos — PRIORIDAD MAXIMA: 16 checks/día (06:00–22:00)
-  'lostiempos.com': [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
-  'la-razon.com': [7, 8, 10, 11],
-  'eldeber.com.bo': [7, 8, 10, 11],
-  'rtpbolivia.com.bo': [7, 8, 10, 11],
-  'abi.bo': [8, 9, 15, 16],
-  'unitel.bo': [7, 14],
-  'reduno.tv': [7, 14],
-  'atb.com.bo': [7, 10, 14, 17],
+  // Los Tiempos — 2h frecuencia: 9 checks/día (06:00–22:00, ventana operativa)
+  'lostiempos.com': [6, 8, 10, 12, 14, 16, 18, 20, 22],
+  // Nacionales 4h: 4 checks/día
+  'la-razon.com': [7, 11, 15, 19],
+  'eldeber.com.bo': [7, 11, 15, 19],
+  'rtpbolivia.com.bo': [7, 11, 15, 19],
+  'abi.bo': [8, 12, 16, 20],
+  // TV 6h: 3 checks/día
+  'unitel.bo': [7, 13, 19],
+  'reduno.tv': [7, 13, 19],
+  'atb.com.bo': [7, 13, 19],
+  // Indicadores 1x/día
   'bcb': [9],
 }
 
 export const HORARIOS_CONFIG_DEFAULT: HorariosConfig = {
   numChequeos: 2,
   separacionMinima: 3,
-  ventanaInicio: 6,
-  ventanaFin: 22,
+  ventanaInicio: 6,   // Inicio ventana operativa (06:00 AM)
+  ventanaFin: 23,    // Último scrape 23:00 (después de noticieros nocturnos)
 }
 
 // ── Horarios de boletines ONION200 ─────────────────────────────────────
