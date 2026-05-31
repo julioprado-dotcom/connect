@@ -63,7 +63,9 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       { fechaInicio, fechaFin },
     )
 
-    // 5. Guardar como Reporte
+    // 5. Guardar como Reporte (SIEMPRE se crea, incluso con 0 menciones)
+    // El administrador necesita visibilidad de cada generación para auditoría
+    const responseTime = Date.now() - startTime
     const reporteId = 'rpt_' + randomBytes(12).toString('hex')
     const reporte = await db.reporte.create({
       data: {
@@ -73,14 +75,20 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
         fechaInicio,
         fechaFin,
         resumen: contenido.resumen,
-        contenido: JSON.stringify(contenido),
+        contenido: JSON.stringify({
+          ...contenido,
+          _metadata: {
+            origen: 'scheduler',
+            totalMenciones,
+            responseTimeMs: responseTime,
+            generadoEn: new Date().toISOString(),
+          },
+        }),
         totalMenciones,
         sentimientoPromedio: 0,
         temasPrincipales: '',
       },
     })
-
-    const responseTime = Date.now() - startTime
 
     // 6. Distribuir a contratos activos
     // Si vino contratoId explícito (desde dashboard manual), usar ese.

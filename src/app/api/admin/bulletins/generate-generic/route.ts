@@ -82,13 +82,47 @@ export async function POST(request: NextRequest) {
 
     const resultado = await getMencionesForBulletin(tipo, options);
 
-    if (resultado.totalMenciones === 0) {
+    // IMPORTANTE: El producto SIEMPRE se crea, incluso con 0 menciones.
+    // El administrador necesita visibilidad de cada generación para auditoría.
+    // Si no hay menciones, se registra con estado "sin_datos" en vez de bloquear.
+    const SIN_MENCIONES = resultado.totalMenciones === 0;
+
+    if (SIN_MENCIONES) {
+      // Registrar Reporte vacío para auditoría — no bloquear
+      const titulo = generarTituloProducto(tipo, undefined, ejeSlug);
+      const reporteId = await registrarReporte({
+        tipoProducto: tipo,
+        titulo,
+        contenido: `[SIN_DATOS] ${tipo} — No se encontraron menciones en el periodo ${formatFechaBolivia(inicio)} — ${formatFechaBolivia(fin)}. Verificar: fuentes activas, jobs de scraping, batch_llm.`,
+        resumen: `Sin menciones para ${tipo}. Periodo: ${formatFechaBolivia(inicio)} — ${formatFechaBolivia(fin)}. Pipeline: verificar fuentes activas y batch_llm.`,
+        fechaInicio: inicio,
+        fechaFin: fin,
+        temperatura: 0,
+        tokensUsados: 0,
+        modeloIA: 'ninguno',
+        metadata: JSON.stringify({
+          generico: true,
+          ejeSlug,
+          personaId,
+          totalMenciones: 0,
+          estado: 'sin_datos',
+        }),
+        clienteId,
+      });
+
       return NextResponse.json({
-        exito: false,
-        error: `No se encontraron menciones para "${tipo}" en el periodo consultado`,
-        tipo,
-        fechaInicio: inicio.toISOString(),
-        fechaFin: fin.toISOString(),
+        exito: true,
+        reporteId,
+        titulo,
+        contenido: null,
+        resumen: `No se encontraron menciones para "${tipo}" en el periodo consultado`,
+        sinDatos: true,
+        metadata: {
+          tipo,
+          totalMenciones: 0,
+          fechaInicio: inicio.toISOString(),
+          fechaFin: fin.toISOString(),
+        },
       });
     }
 

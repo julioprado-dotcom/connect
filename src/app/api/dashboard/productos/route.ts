@@ -85,7 +85,11 @@ export async function GET() {
       const todos = allByTipo.get(def.tipoBoletin) || [];
 
       // Determinar estado
-      let estado: 'generado' | 'pendiente' | 'error' | 'sin_datos';
+      // 'generado' = tiene reporte con menciones reales
+      // 'sin_menciones' = tiene reporte generado pero sin menciones (pipeline ok, sin datos)
+      // 'pendiente' = tiene reporte marcado como pendiente de envío
+      // 'sin_datos' = nunca se generó un reporte para este producto
+      let estado: 'generado' | 'sin_menciones' | 'pendiente' | 'sin_datos';
       let mencionesUsadas = 0;
       let ultimaEdicion: string | null = null;
 
@@ -95,13 +99,13 @@ export async function GET() {
         mencionesUsadas = latest.totalMenciones || 0;
         ultimaEdicion = formatDateTimeShort(latest.fechaCreacion?.toISOString() ?? null);
       } else if (latest) {
-        // Tiene reporte pero con 0 menciones = inválido
-        estado = 'error';
+        // Tiene reporte pero con 0 menciones = generado sin datos (auditoría)
+        estado = 'sin_menciones';
         mencionesUsadas = 0;
         ultimaEdicion = formatDateTimeShort(latest.fechaCreacion?.toISOString() ?? null);
       } else if (todos.length > 0) {
         // Tiene reportes pero todos con 0 menciones
-        estado = 'error';
+        estado = 'sin_menciones';
       } else {
         estado = 'sin_datos';
       }
@@ -123,7 +127,7 @@ export async function GET() {
       // Historial real de ediciones (últimas 5)
       const historial = todos.slice(0, 5).map(r => ({
         fecha: formatDateTimeShort(r.fechaCreacion?.toISOString() ?? null) || '—',
-        estado: (r.totalMenciones || 0) > 0 ? 'generado' : (r.enviado ? 'pendiente' : 'error'),
+        estado: (r.totalMenciones || 0) > 0 ? 'generado' : 'sin_menciones',
         menciones: r.totalMenciones || 0,
       }));
 
@@ -149,9 +153,10 @@ export async function GET() {
       resumen: {
         total: productos.length,
         generados: productos.filter(p => p.estado === 'generado').length,
-        enElaboracion: productos.filter(p => p.estado === 'en_elaboracion').length,
+        enElaboracion: 0,
         pendientes: 0,
-        errores: productos.filter(p => p.estado === 'error').length,
+        sinMenciones: productos.filter(p => p.estado === 'sin_menciones').length,
+        errores: 0,
         sinDatos: productos.filter(p => p.estado === 'sin_datos').length,
         premium: productos.filter(p => p.tipoProducto === 'premium').length,
         gratuitos: productos.filter(p => p.tipoProducto === 'gratuito').length,
