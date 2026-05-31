@@ -21,3 +21,24 @@ Stage Summary:
 - Fix 4 APLICADO: Deploy script ahora ejecuta seed-data.ts automáticamente (paso 2c)
 - Commit: b4958a6, push a GitHub exitoso
 - DEPLOY PENDIENTE: No hay acceso SSH al VPS 8.219.207.43
+---
+Task ID: 4
+Agent: Main Agent
+Task: Deploy hardening + Fuente error tracking + On-demand product generation
+
+Work Log:
+- Investigated vps-deploy.sh — found 8 critical issues (no timeouts on prisma, CJS cleanup script, no pre-flight checks, no rollback, no structured logging, no health verification, hardcoded DATABASE_URL, poor build timeout handling)
+- Investigated fuente scraping pipeline — found error tracking gaps (CapturaLog only has plain string errors, FuenteEstado.error gets overwritten, safeFetch errors only go to console.log, no error history, no phantom source detection)
+- Rewrote vps-deploy.sh (220 → 784 lines) with all 8 fixes applied
+- Created FuenteErrorLog Prisma model with structured error fields and indexes
+- Created fuente-error-logger.ts utility with automatic error classification
+- Created 3 API endpoints: /api/fuentes/errores, /api/fuentes/status, /api/productos/generar
+- Integrated error logging into check-first/strategies.ts
+- All changes committed and pushed to GitHub (commit 39ec284)
+
+Stage Summary:
+- vps-deploy.sh: Fully hardened with timeouts, pre-flight checks, rollback tags, structured logging, health verification
+- Fuente errors: Structured error log system with 12 error types, classification, history, resolution tracking
+- Products: On-demand generation API for admin audit/verification
+- 7 files changed, 1108 insertions, 43 deletions
+- Commit: 39ec284 pushed to main
