@@ -9,9 +9,11 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { join } from 'path';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@decodex.bo';
 const BCRYPT_ROUNDS = 12;
+const DB_PATH = join(process.cwd(), 'prisma', 'db', 'custom.db');
 
 function generateSecurePassword(length = 20): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%&*';
@@ -24,7 +26,9 @@ function generateSecurePassword(length = 20): string {
 }
 
 async function main(): Promise<void> {
-  const db = new PrismaClient();
+  const db = new PrismaClient({
+    datasources: { db: { url: `file:${DB_PATH}` } },
+  });
 
   const admin = await db.user.findFirst({ where: { role: 'admin' } });
 
