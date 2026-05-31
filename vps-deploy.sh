@@ -487,7 +487,22 @@ else
     err "prisma generate falló (exit code: ${GEN_EXIT})"
     deploy_log "ERROR" "prisma generate falló (exit code: ${GEN_EXIT})"
   fi
-  warn "Esto puede ser un problema transitorio — continuando con prisma db push..."
+  err "prisma generate es CRÍTICO — sin un cliente válido, TODAS las queries de BD fallan (login, dashboard, etc.)"
+  err "Intentando retry con npm install + generate..."
+  
+  # Retry: limpiar cache de Prisma y reintentar
+  rm -rf "$APP_DIR/node_modules/.prisma" 2>/dev/null
+  rm -rf "$APP_DIR/node_modules/@prisma" 2>/dev/null
+  if timeout "$PRISMA_TIMEOUT" npx prisma generate 2>&1; then
+    ok "prisma generate exitoso en retry"
+    deploy_log "INFO" "prisma generate exitoso en retry"
+  else
+    err "prisma generate falló de nuevo — ABORTANDO deploy"
+    deploy_log "ERROR" "prisma generate falló en retry — deploy abortado"
+    perform_rollback "$BACKUP_TAG" "prisma generate falló en retry"
+    deploy_log_result "FAILED" "prisma generate failed after retry"
+    exit 1
+  fi
 fi
 
 info "Sincronizando esquema Prisma con la BD (timeout: ${PRISMA_TIMEOUT}s)..."
