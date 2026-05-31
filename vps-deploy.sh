@@ -433,7 +433,19 @@ ENV_BACKUP=""
 if [ -f "$APP_DIR/.env" ]; then
   ENV_BACKUP=$(mktemp /tmp/decodex-env-XXXXXX)
   cp "$APP_DIR/.env" "$ENV_BACKUP"
-  info "Backup de .env creado (${ENV_BACKUP})"
+  info "Backup de .env creado"
+fi
+
+# ─── Backup BD antes de git reset (la BD viaja en git y se sobrescribe) ──
+DB_FILE="$APP_DIR/prisma/db/custom.db"
+DB_BACKUP=""
+if [ -f "$DB_FILE" ]; then
+  DB_BACKUP=$(mktemp /tmp/decodex-db-XXXXXX)
+  cp "$DB_FILE" "$DB_BACKUP"
+  DB_SIZE=$(stat -c%s "$DB_FILE" 2>/dev/null || echo "0")
+  info "Backup de BD creado (${DB_SIZE} bytes)"
+else
+  warn "BD no encontrada en $DB_FILE"
 fi
 
 # ─── Git Sync (fetch + reset --hard) ──────────────────────
@@ -464,6 +476,16 @@ if [ -n "$ENV_BACKUP" ] && [ -f "$ENV_BACKUP" ]; then
   cp "$ENV_BACKUP" "$APP_DIR/.env"
   ok ".env restaurado desde backup"
   rm -f "$ENV_BACKUP"
+fi
+
+# ─── Restaurar BD después de git reset (VPS es la fuente de verdad) ──
+if [ -n "$DB_BACKUP" ] && [ -f "$DB_BACKUP" ]; then
+  cp "$DB_BACKUP" "$DB_FILE"
+  RESTORED_SIZE=$(stat -c%s "$DB_FILE" 2>/dev/null || echo "0")
+  ok "BD restaurada desde backup (${RESTORED_SIZE} bytes)"
+  rm -f "$DB_BACKUP"
+else
+  warn "No hubo backup de BD — usando la del repo"
 fi
 
 # ─── Asegurar AUTH_SECRET existe (previene MissingSecret) ──
@@ -901,5 +923,20 @@ echo "════════════════════════�
 
 deploy_log "INFO" "Deploy exitoso: ${BEFORE_COMMIT} → ${AFTER_COMMIT} (backup: ${BACKUP_TAG})"
 deploy_log_result "SUCCESS"
+
+# ─── Sync BD al repo (VPS → git) ─────────────────────────
+# La BD del VPS es la fuente de verdad. Subimos al repo para
+# tener backup en la nube y sincronizar con otros entornos.
+if [ -f "$DB_FILE" ]; then
+  info "Sincronizando BD al repo git..."
+  if git add "$DB_FILE" 2>/dev/null && \
+     git commit -m "db sync: $(date '+%Y-%m-%d %H:%M') — $(stat -c%s "$DB_FILE") bytes" 2>/dev/null && \
+     git push origin main 2>/dev/null; then
+    ok "BD sincronizada al repo"
+    deploy_log "INFO" "BD sincronizada al repo"
+  else
+    warn "No se pudo sincronizar BD al repo (sin cambios o error de push)"
+  fi
+fi
 
 exit 0
