@@ -156,12 +156,14 @@ export async function GET() {
       ),
 
       // ── PIPELINE NotaRaw (estado del buffer intermedio) ──
-      db.notaRaw.count(),
-      db.notaRaw.count({ where: { fechaCaptura: { gte: hoyBo } } }),
-      db.notaRaw.count({ where: { procesada: false, descartada: false } }),
+      // BLINDAJE: .catch(() => 0) — si la tabla NotaRaw no existe,
+      // no rompe todo el Promise.all (cascade → todos "INACTIVO")
+      db.notaRaw.count().catch(() => 0),
+      db.notaRaw.count({ where: { fechaCaptura: { gte: hoyBo } } }).catch(() => 0),
+      db.notaRaw.count({ where: { procesada: false, descartada: false } }).catch(() => 0),
       db.notaRaw.count({
         where: { procesada: true, fechaProcesada: { gte: hoyBo } },
-      }),
+      }).catch(() => 0),
 
       // ── CLASIFICACIÓN global ──
       db.lente.count(),
