@@ -306,7 +306,7 @@ export async function GET() {
     })
 
     // Conteo de jobs
-    const [jobsPendientes, jobsCompletados24h, menciones, capturaLogs] = await Promise.all([
+    const [jobsPendientes, jobsCompletados24h, menciones, capturaLogs, reportesRecientes] = await Promise.all([
       db.job.count({ where: { estado: 'pendiente' } }),
       db.job.count({
         where: {
@@ -316,6 +316,18 @@ export async function GET() {
       }),
       db.mencion.count(),
       db.capturaLog.count(),
+      db.reporte.findMany({
+        orderBy: { fechaCreacion: 'desc' },
+        take: 10,
+        select: {
+          id: true,
+          tipo: true,
+          resumen: true,
+          totalMenciones: true,
+          fechaCreacion: true,
+          enviado: true,
+        },
+      }),
     ])
 
     // Estado del MC
@@ -336,7 +348,19 @@ export async function GET() {
       faseActiva = 'test'
     }
 
+    // Formatear productos recientes para el dashboard
+    const productos = reportesRecientes.map(r => ({
+      id: r.id,
+      tipo: r.tipo,
+      resumen: r.resumen,
+      totalMenciones: r.totalMenciones,
+      fechaCreacion: r.fechaCreacion?.toISOString() ?? null,
+      enviado: r.enviado,
+      estado: r.totalMenciones > 0 ? 'generado' : (r.totalMenciones === 0 ? 'sin_menciones' : 'pendiente'),
+    }))
+
     return NextResponse.json({
+      productos,  // Para ProduccionView -> recientes
       faseActiva,
       fases: {
         test: {
