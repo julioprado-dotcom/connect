@@ -82,9 +82,14 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
 
     const responseTime = Date.now() - startTime
 
-    // 6. Si hay contrato, encolar envio automaticamente
+    // 6. Distribuir a contratos activos
+    // Si vino contratoId explícito (desde dashboard manual), usar ese.
+    // Si es programado (sin contratoId), buscar contratos activos automáticamente.
+    const { enqueue } = await import('../queue')
+    let entregasEnqueued = 0
+
     if (contratoId) {
-      const { enqueue } = await import('../queue')
+      // Envío manual desde dashboard — solo ese contrato
       await enqueue({
         tipo: 'enviar_entrega',
         prioridad: 3,
@@ -95,6 +100,54 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
           contenido: contenido.textoCompleto,
         },
       })
+      entregasEnqueued = 1
+    } else {
+      // Envío programado — buscar contratos activos que coincidan
+      try {
+        const contratos = await db.contrato.findMany({
+          where: {
+            estado: 'activo',
+            fechaInicio: { lte: new Date() },
+            OR: [
+              { fechaFin: null },
+              { fechaFin: { gte: new Date() } },
+            ],
+          },
+          include: {
+            Cliente: { select: { nombre: true, whatsapp: true, email: true } },
+          },
+        })
+
+        for (const contrato of contratos) {
+          // Si el contrato especifica tipoProducto, solo enviar si coincide
+          const tipoProducto = contrato.tipoProducto
+          if (tipoProducto && tipoProducto !== tipoBoletin && tipoProducto !== 'todos') {
+            continue
+          }
+          // Verificar que tenga al menos un canal de destino
+          const tieneCanal = contrato.Cliente.whatsapp || contrato.Cliente.email
+          if (!tieneCanal) continue
+
+          await enqueue({
+            tipo: 'enviar_entrega',
+            prioridad: 3,
+            payload: {
+              reporteId: reporte.id,
+              tipoBoletin,
+              contratoId: contrato.id,
+              contenido: contenido.textoCompleto,
+              canal: (contrato.formatoEntrega as 'whatsapp' | 'email') || 'whatsapp',
+            },
+          })
+          entregasEnqueued++
+        }
+
+        if (contratos.length > 0) {
+          console.log(`[generar_boletin] ${entregasEnqueued} entregas encoladas (${contratos.length} contratos activos)`)
+        }
+      } catch (err) {
+        console.warn(`[generar_boletin] Error buscando contratos para distribución:`, err)
+      }
     }
 
     return {
@@ -106,7 +159,8 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
         fechaInicio,
         fechaFin,
         responseTime,
-        incluyeEnvio: !!contratoId,
+        incluyeEnvio: entregasEnqueued > 0,
+        entregasEnqueued,
       },
     }
   } catch (error: unknown) {
