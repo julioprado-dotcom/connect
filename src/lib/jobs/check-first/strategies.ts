@@ -299,6 +299,34 @@ export async function checkFuente(fuenteId: string): Promise<CheckResult & {
       `[CheckFirst] ${fuente.Medio.nombre}: TODAS las estrategias fallaron (capa ${lifecycleResult.capa}, ${fuente.fallosConsecutivos + 1} fallos consecutivos):`,
       estrategiasProbadas.map(e => `${e.estrategia}(${e.exito ? 'OK' : 'FAIL'})`).join(', '),
     )
+
+    // Log structured error for dashboard visibility
+    const lastError = estrategiasProbadas[estrategiasProbadas.length - 1]
+    if (lastError) {
+      try {
+        const { logErrorFuente: logErr, clasificarError: clasif } = await import('../fuente-error-logger')
+        await logErr({
+          fuenteId,
+          medioId: fuente.medioId,
+          nivel: fuente.Medio.nivel,
+          tipoError: clasif(lastError.detalle),
+          estrategia: lastError.estrategia,
+          url: fuente.url,
+          mensaje: `Todas las estrategias fallaron: ${estrategiasProbadas.map(e => `${e.estrategia}(${e.exito ? 'OK' : 'FAIL'})`).join(', ')}`,
+          detalle: lastError.detalle,
+        })
+      } catch (err) {
+        console.error(`[CheckFirst] Error logging fuente error: ${err instanceof Error ? err.message : err}`)
+      }
+    }
+  } else {
+    // Mark previous errors as resolved
+    try {
+      const { resolverErrores } = await import('../fuente-error-logger')
+      await resolverErrores(fuenteId)
+    } catch (err) {
+      console.error(`[CheckFirst] Error resolving errores: ${err instanceof Error ? err.message : err}`)
+    }
   }
 
   // ─── 4. Actualizar FuenteEstado ────────────────────────────────

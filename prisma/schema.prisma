@@ -247,6 +247,7 @@ model FuenteEstado {
   strategyValid      String    @default("")
   strategyScrape     String    @default("")
   Medio              Medio     @relation(fields: [medioId], references: [id], onDelete: Cascade)
+  ErrorLogs          FuenteErrorLog[]
 
   @@index([medioId])
   @@index([ultimoCheck])
@@ -392,6 +393,7 @@ model Medio {
   RechazoCaptura       RechazoCaptura[]
   UsoIA                UsoIA[]
   NotaRaw              NotaRaw[]
+  ErrorLogs            FuenteErrorLog[]
 
   @@index([categoria])
   @@index([nivel])
@@ -761,6 +763,32 @@ model NotaRaw {
   @@index([fuenteId])
   @@index([fechaCaptura])
   @@unique([medioId, url])
+}
+
+/* ──── Fuente Error Log: structured error history for fuente checks ──── */
+model FuenteErrorLog {
+  id              String   @id @default(uuid())
+  fuenteId        String
+  medioId         String
+  nivel           String   @default("1")
+  tipoError       String   // tls_error, timeout, http_error, waf_blocked, parse_error, empty_response, connection_refused, dns_error, unknown
+  estrategia      String   @default("")  // which check strategy failed (rss, head, fingerprint, api)
+  url             String   @default("")
+  statusCode      Int      @default(0)
+  mensaje         String   @default("")  // human-readable error message
+  detalle         String   @default("")  // full error/stack trace
+  responseTime    Int      @default(0)
+  resuelto        Boolean  @default(false)
+  fecha           DateTime @default(now())
+  
+  FuenteEstado    FuenteEstado @relation(fields: [fuenteId], references: [id], onDelete: Cascade)
+  Medio           Medio        @relation(fields: [medioId], references: [id], onDelete: Cascade)
+
+  @@index([fuenteId])
+  @@index([medioId])
+  @@index([tipoError])
+  @@index([fecha])
+  @@index([resuelto])
 }
 
 /* ──── Auditoría: registro de decisiones automáticas y manuales ──── */
