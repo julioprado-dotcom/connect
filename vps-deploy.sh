@@ -29,9 +29,12 @@ set -euo pipefail
 # mientras bash lo está leyendo. Para evitar el crash, copiamos el script
 # a /tmp y lo ejecutamos desde ahí. En la siguiente ejecución ya estamos
 # en /tmp y no necesitamos re-ejecutar.
+# CRÍTICO: Forzar sobrescrita siempre — si un deploy anterior falló sin
+# ejecutar el EXIT trap, queda la versión VIEJA en /tmp y el siguiente
+# deploy ejecutaría código obsoleto.
 if [ "$(realpath "$0" 2>/dev/null)" != "/tmp/decodex-deploy.sh" ]; then
-  cp "$0" /tmp/decodex-deploy.sh 2>/dev/null
-  chmod +x /tmp/decodex-deploy.sh 2>/dev/null
+  cp -f "$0" /tmp/decodex-deploy.sh
+  chmod +x /tmp/decodex-deploy.sh
   exec bash /tmp/decodex-deploy.sh "$@"
 fi
 trap "rm -f /tmp/decodex-deploy.sh" EXIT
@@ -245,6 +248,30 @@ if [ ! -d "$APP_DIR/node_modules" ]; then
   fi
 else
   ok "node_modules encontrado"
+fi
+
+# Check 1b: @prisma/engines existe (contiene binarios del query engine)
+# Sin este paquete, prisma generate NO puede completar — se cuelga intentando
+# descargar los binarios o falla con MODULE_NOT_FOUND.
+PRISMA_ENGINES_DIR="$APP_DIR/node_modules/@prisma/engines"
+if [ -d "$PRISMA_ENGINES_DIR" ]; then
+  ok "@prisma/engines encontrado"
+else
+  warn "@prisma/engines NO encontrado — prisma generate no funcionará sin él"
+  warn "Instalando @prisma/engines..."
+  if npm install @prisma/engines --save-dev --no-audit --no-fund 2>&1 | tail -5; then
+    if [ -d "$PRISMA_ENGINES_DIR" ]; then
+      ok "@prisma/engines instalado correctamente"
+    else
+      PREFLIGHT_OK=false
+      PREFLIGHT_ERRORS="${PREFLIGHT_ERRORS}@prisma/engines no se instaló correctamente. "
+      err "@prisma/engines sigue ausente después de npm install"
+    fi
+  else
+    PREFLIGHT_OK=false
+    PREFLIGHT_ERRORS="${PREFLIGHT_ERRORS}npm install @prisma/engines falló. "
+    err "No se pudo instalar @prisma/engines"
+  fi
 fi
 
 # Check 2: Base de datos accesible
@@ -470,10 +497,9 @@ export DATABASE_URL="$DETECTED_DATABASE_URL"
 # PRISMA COMMANDS — SIN npx
 # ═══════════════════════════════════════════════════════════════
 # CRÍTICO: Usar el binario local de Prisma directamente.
-# 'npx prisma' verifica internet cada vez — en VPS con DNS lento
-# (Alibaba Cloud) puede colgar 120s+ sin ejecutar nada.
+# 'npx prisma' verifica internet cada vez antes de ejecutar,
+# lo cual puede causar retrasos innecesarios en el VPS.
 # El binario ya está en node_modules/.bin/prisma desde npm install.
-# Esto reduce prisma generate de 120s+ a <1s.
 
 PRISMA_BIN="$APP_DIR/node_modules/.bin/prisma"
 
@@ -484,18 +510,70 @@ if [ ! -x "$PRISMA_BIN" ]; then
   exit 1
 fi
 
-# ─── Generar cliente Prisma ────────────────────────────────
-info "Generando cliente Prisma..."
-if "$PRISMA_BIN" generate 2>&1; then
-  ok "Prisma generate exitoso"
-  deploy_log "INFO" "Prisma generate exitoso"
-else
-  GEN_EXIT=$?
-  err "prisma generate falló (exit code: ${GEN_EXIT})"
-  deploy_log "ERROR" "prisma generate falló (exit code: ${GEN_EXIT})"
-  perform_rollback "$BACKUP_TAG" "prisma generate failed"
-  deploy_log_result "FAILED" "prisma generate failed (exit: ${GEN_EXIT})"
-  exit 1
+# ─── Generar cliente Prisma (SOLO si el schema cambió) ──────────
+# OPTIMIZACIÓN: Si schema.prisma no cambió desde la última generación
+# exitosa, el cliente ya está generado. Regenerar es innecesario y
+# puede colgarse en VPS con recursos limitados.
+SCHEMA_FILE="$APP_DIR/prisma/schema.prisma"
+SCHEMA_HASH_FILE="$APP_DIR/.prisma-schema-hash"
+GENERATED_CLIENT="$APP_DIR/node_modules/.prisma/client/index.js"
+SCHEMA_HASH=""
+SKIP_GENERATE=false
+
+if [ -f "$SCHEMA_FILE" ]; then
+  SCHEMA_HASH=$(md5sum "$SCHEMA_FILE" 2>/dev/null | awk '{print $1}')
+fi
+
+if [ -n "$SCHEMA_HASH" ] && [ -f "$SCHEMA_HASH_FILE" ]; then
+  PREV_HASH=$(cat "$SCHEMA_HASH_FILE" 2>/dev/null || echo "")
+  if [ "$SCHEMA_HASH" = "$PREV_HASH" ] && [ -f "$GENERATED_CLIENT" ]; then
+    SKIP_GENERATE=true
+    ok "Schema sin cambios (hash: ${SCHEMA_HASH:0:8}...) — prisma generate no necesario"
+    deploy_log "INFO" "Prisma generate saltado — schema sin cambios"
+  fi
+fi
+
+if ! $SKIP_GENERATE; then
+  if [ -n "$SCHEMA_HASH" ]; then
+    info "Schema cambió (nuevo hash: ${SCHEMA_HASH:0:8}...) — generando cliente Prisma..."
+  else
+    info "Generando cliente Prisma (primera vez o hash no disponible)..."
+  fi
+  deploy_log "INFO" "Ejecutando prisma generate (schema cambió)"
+
+  # SIN timeout — usar binario local directamente.
+  # El binario local no hace llamadas de red.
+  # Si @prisma/engines existe (verificado en pre-flight), generate completará.
+  if "$PRISMA_BIN" generate 2>&1; then
+    ok "Prisma generate exitoso"
+    deploy_log "INFO" "Prisma generate exitoso"
+    # Guardar hash para futuras comparaciones
+    if [ -n "$SCHEMA_HASH" ]; then
+      echo "$SCHEMA_HASH" > "$SCHEMA_HASH_FILE"
+    fi
+  else
+    GEN_EXIT=$?
+    err "prisma generate falló (exit code: ${GEN_EXIT})"
+    deploy_log "ERROR" "prisma generate falló (exit code: ${GEN_EXIT})"
+
+    # Diagnóstico: verificar qué falló
+    echo ""
+    warn "── Diagnóstico de prisma generate ──"
+    if [ ! -d "$PRISMA_ENGINES_DIR" ]; then
+      err "@prisma/engines NO existe — binarios del engine no disponibles"
+    else
+      ok "@prisma/engines existe"
+    fi
+    if [ ! -f "$GENERATED_CLIENT" ]; then
+      err "node_modules/.prisma/client/index.js NO existe — cliente no generado"
+    else
+      warn "node_modules/.prisma/client/index.js existe (puede estar corrupto/incompleto)"
+    fi
+
+    perform_rollback "$BACKUP_TAG" "prisma generate failed"
+    deploy_log_result "FAILED" "prisma generate failed (exit: ${GEN_EXIT})"
+    exit 1
+  fi
 fi
 
 # ─── Sincronizar esquema Prisma con la BD ──────────────────
