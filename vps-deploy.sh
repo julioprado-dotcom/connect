@@ -98,14 +98,22 @@ if [ "$AVAILABLE_MEM" -lt 300 ]; then
   info "RAM después de detener PM2: ${AVAILABLE_MEM} MB"
 fi
 
-# ─── 2. Git Pull ─────────────────────────────────────────────
-info "Pulling from origin/main..."
-GIT_CHANGED=false
-if git pull origin main 2>&1; then
-  ok "Git pull exitoso"
+# ─── 2. Git Sync (fetch + reset --hard) ──────────────────────
+# CRÍTICO: Usamos fetch + reset --hard en vez de git pull.
+# git pull puede fallar silenciosamente si hay cambios locales
+# (build residuos, archivos temporales), dejando código viejo.
+# reset --hard GARANTIZA que el VPS queda idéntico al repo.
+info "Syncing with origin/main (fetch + reset --hard)..."
+BEFORE_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+if git fetch origin main 2>&1 && git reset --hard origin/main 2>&1; then
+  AFTER_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+  if [ "$BEFORE_COMMIT" = "$AFTER_COMMIT" ]; then
+    warn "Sin cambios nuevos (ya en ${AFTER_COMMIT})"
+  else
+    ok "Git sync: ${BEFORE_COMMIT} → ${AFTER_COMMIT}"
+  fi
 else
-  err "Git pull falló. Verifica manualmente."
-  # Recuperar PM2 aunque falle el pull
+  err "Git sync falló. Verifica manualmente."
   pm2 restart all 2>/dev/null
   exit 1
 fi
