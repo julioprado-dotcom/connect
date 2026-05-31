@@ -48,6 +48,10 @@ function createPrismaClient() {
 
 export const db = globalForPrisma.prisma ?? createPrismaClient();
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db;
+// CRÍTICO: Siempre cachear en globalThis, incluso en producción.
+// Next.js Turbopack crea múltiples contextos de módulo. Sin esto,
+// cada contexto crea su propia PrismaClient → múltiples conexiones
+// a SQLite → memory leak y lock contention.
+if (!globalForPrisma.prisma) globalForPrisma.prisma = db;
 
 export default db;
