@@ -48,6 +48,15 @@ interface EjeClienteMencionado {
   relevancia: 'alta' | 'media' | 'baja';
 }
 
+interface PersonaDetectada {
+  persona_id: string;   // ID de la Persona en DB (auto-creada o existente)
+  nombre: string;
+  cargo: string;
+  partido: string | null;
+  cita: string;
+  contexto: string;
+}
+
 export interface ExtractionResult {
   es_relevante: boolean;
   tratamientoPeriodistico: string;
@@ -55,6 +64,7 @@ export interface ExtractionResult {
   confianzaClasificacion: string;
   resumen: string;
   legisladores_mencionados: LegisladorMencionado[];
+  personas_detectadas: PersonaDetectada[];
   ejes_mencionados: EjeMencionado[];
   ejes_cliente: EjeClienteMencionado[];
   temas_detectados: string[];
@@ -86,6 +96,7 @@ export async function extraerMencionesDeTexto(
     confianzaClasificacion: 'baja',
     resumen: '',
     legisladores_mencionados: [],
+    personas_detectadas: [],
     ejes_mencionados: [],
     ejes_cliente: [],
     temas_detectados: [],
@@ -146,10 +157,14 @@ export async function extraerMencionesDeTexto(
       return emptyResult;
     }
 
-    // 4. Construir sección de legisladores
+    // 4. Construir sección de legisladores (incluye cargoDirectiva para desambiguación)
     const listaLegisladores = personas.length > 0
       ? personas
-          .map(p => `- ID: ${p.id} | ${p.nombre} (${p.partidoSigla || 'Sin partido'}, ${p.camara || 'Sin cámara'})`)
+          .map(p => {
+            const cargo = p.cargoDirectiva ? `, ${p.cargoDirectiva}` : '';
+            const tipo = p.tipo === 'FIGURA_DETECTADA' ? `, FIGURA DETECTADA` : '';
+            return `- ID: ${p.id} | ${p.nombre} (${p.partidoSigla || 'Sin partido'}, ${p.camara || 'Sin cámara'}${cargo}${tipo})`;
+          })
           .join('\n')
       : '(Sin legisladores registrados)';
 
@@ -399,6 +414,101 @@ export async function extraerMencionesDeTexto(
       debugWrite(`  → ${leg.persona_id}: "${leg.cita.substring(0, 80)}"`);
     }
 
+    // Personas detectadas (figuras políticas NO en la lista de legisladores)
+    const personasDetectadasRaw = ensureArray(parsed.personas_detectadas);
+    debugWrite(`personas_detectadas crudas del LLM: ${personasDetectadasRaw.length} items`);
+    if (personasDetectadasRaw.length > 0) {
+      debugWrite(`Primera persona detectada: ${JSON.stringify(personasDetectadasRaw[0]).substring(0, 300)}`);
+    }
+
+    const personasDetectadas: PersonaDetectada[] = personasDetectadasRaw
+      .map((p: Record<string, unknown>) => ({
+        nombre: String(p.nombre || p.name || '').trim(),
+        cargo: String(p.cargo || p.role || p.rol || '').trim(),
+        partido: p.partido ? String(p.partido).trim() : null,
+        cita: String(p.cita || p.quote || p.texto || '').trim(),
+        contexto: String(p.contexto || p.context || '').trim(),
+        persona_id: '',  // Se llenará abajo después de crear/buscar en DB
+      }))
+      .filter((p: PersonaDetectada) => {
+        if (!p.nombre || !p.cargo) {
+          debugWrite(`RECHAZADA persona detectada: sin nombre o cargo. Raw: nombre="${p.nombre}", cargo="${p.cargo}"`);
+          return false;
+        }
+        // No incluir si ya está en la lista de legisladores (match por nombre)
+        const nombreNorm = p.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        for (const existente of personas) {
+          const existenteNorm = existente.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          if (existenteNorm === nombreNorm || existenteNorm.includes(nombreNorm) || nombreNorm.includes(existenteNorm)) {
+            debugWrite(`RECHAZADA persona detectada "${p.nombre}": ya existe como legislador "${existente.nombre}"`);
+            return false;
+          }
+        }
+        if (!p.cita) {
+          debugWrite(`RECHAZADA persona detectada "${p.nombre}": sin cita`);
+          return false;
+        }
+        return true;
+      })
+      .slice(0, 3);
+
+    debugWrite(`Personas detectadas válidas: ${personasDetectadas.length}`);
+    for (const pd of personasDetectadas) {
+      debugWrite(`  → ${pd.nombre} (${pd.cargo}): "${pd.cita.substring(0, 80)}"`);
+    }
+
+    // Auto-crear Persona records en DB para figuras detectadas
+    const personaIdsCreados = new Map<string, string>(); // nombre_normalizado → personaId
+    for (const pd of personasDetectadas) {
+      try {
+        const nombreNorm = pd.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (personaIdsCreados.has(nombreNorm)) {
+          pd.persona_id = personaIdsCreados.get(nombreNorm)!;
+          continue;
+        }
+
+        const existente = await db.persona.findFirst({
+          where: { activa: true, nombre: { contains: pd.nombre.split(' ').pop() || pd.nombre } },
+          select: { id: true, nombre: true },
+        });
+        if (existente) {
+          personaIdsCreados.set(nombreNorm, existente.id);
+          pd.persona_id = existente.id;
+          debugWrite(`Persona detectada "${pd.nombre}" ya existe en DB como "${existente.nombre}" (${existente.id})`);
+          continue;
+        }
+
+        // Crear nueva Persona (tipo FIGURA_DETECTADA)
+        const nuevaPersona = await db.persona.create({
+          data: {
+            id: crypto.randomUUID(),
+            nombre: pd.nombre,
+            camara: 'FIGURA POLITICA',
+            departamento: '',
+            partido: pd.partido || '',
+            partidoSigla: pd.partido || '',
+            tipo: 'FIGURA_DETECTADA',
+            cargoDirectiva: pd.cargo,
+            activa: true,
+            fechaActualizacion: new Date(),
+          },
+        });
+        personaIdsCreados.set(nombreNorm, nuevaPersona.id);
+        pd.persona_id = nuevaPersona.id;
+        debugWrite(`CREADA nueva persona: "${pd.nombre}" (${nuevaPersona.id}) tipo=FIGURA_DETECTADA cargo=${pd.cargo}`);
+
+        // Invalidar cache de personas para que el siguiente batch incluya esta persona
+        cachePersonas = null;
+      } catch (createErr) {
+        const errMsg = createErr instanceof Error ? createErr.message : String(createErr);
+        debugWrite(`ERROR creando persona detectada "${pd.nombre}": ${errMsg}`);
+        console.error('[AUTO-PERSONA] Error creando persona:', errMsg);
+      }
+    }
+
+    // Filtrar solo las que tienen persona_id asignado (creadas o encontradas)
+    const personasDetectadasConId = personasDetectadas.filter(pd => pd.persona_id);
+
     // Ejes (LLM returns "ejes_institucionales", we map to ejes_mencionados)
     const ejesRaw = parsed.ejes_institucionales || parsed.ejes_mencionados;
     const ejesMencionados = ensureArray(ejesRaw)
@@ -456,8 +566,8 @@ export async function extraerMencionesDeTexto(
     // Backward-compatible sentimiento
     const sentimiento = tratamientoToSentimiento(tratamiento);
 
-    const esRelevanteFinal = parsed.es_relevante === true || legisladores.length > 0 || ejesMencionados.length > 0;
-    debugWrite(`RESULTADO FINAL: relevante=${esRelevanteFinal}, legislators=${legisladores.length}, ejes=${ejesMencionados.length}`);
+    const esRelevanteFinal = parsed.es_relevante === true || legisladores.length > 0 || ejesMencionados.length > 0 || personasDetectadasConId.length > 0;
+    debugWrite(`RESULTADO FINAL: relevante=${esRelevanteFinal}, legislators=${legisladores.length}, detectadas=${personasDetectadasConId.length}, ejes=${ejesMencionados.length}`);
 
     // ─── Registrar rechazo si no es relevante ───────────────────
     if (!esRelevanteFinal) {
@@ -484,6 +594,7 @@ export async function extraerMencionesDeTexto(
       confianzaClasificacion: confianza,
       resumen: String(parsed.resumen || '').substring(0, 200),
       legisladores_mencionados: legisladores,
+      personas_detectadas: personasDetectadas,
       ejes_mencionados: ejesMencionados,
       ejes_cliente: ejesClienteParsed,
       temas_detectados: temas,

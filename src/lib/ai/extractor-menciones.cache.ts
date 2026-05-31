@@ -55,7 +55,7 @@ export async function getPersonasCached(): Promise<any[]> {
   }
   const data = await db.persona.findMany({
     where: { activa: true },
-    select: { id: true, nombre: true, partidoSigla: true, camara: true },
+    select: { id: true, nombre: true, partidoSigla: true, camara: true, cargoDirectiva: true, tipo: true },
   });
   cachePersonas = { data, expiry: Date.now() + CACHE_TTL };
   return data;

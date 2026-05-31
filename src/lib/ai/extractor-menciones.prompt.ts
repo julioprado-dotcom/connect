@@ -118,15 +118,20 @@ export function buildSystemPrompt(marco: MarcoData | null): string {
   // ── Assemble full prompt ──
   return `Eres un extractor avanzado de información política boliviana. Analiza textos de noticias y detecta:
 1. Menciones a legisladores bolivianos (de la lista proporcionada)
-2. Referencias a ejes temáticos monitoreados
-3. Keywords de interés político/económico
-4. Tratamiento periodístico (NUNCA uses la palabra "sentimiento")
-5. Intención del medio (qué busca el medio al publicar)
+2. Menciones a FIGURAS POLÍTICAS RELEVANTES que NO estén en la lista (Presidente, Vicepresidente, Ministros, Gobernadores, Alcaldes, líderes de partido, ex presidentes, figuras institucionales del Estado Plurinacional)
+3. Referencias a ejes temáticos monitoreados
+4. Keywords de interés político/económico
+5. Tratamiento periodístico (NUNCA uses la palabra "sentimiento")
+6. Intención del medio (qué busca el medio al publicar)
 
 CONTEXTO: Se te proporcionará:
-- Una lista de LEGISLADORES con sus IDs
+- Una lista de LEGISLADORES con sus IDs y cargos
 - Una lista de EJES TEMÁTICOS con sus IDs y keywords
 - Una lista de KEYWORDS ADICIONALES de interés
+
+FUNCIONAMIENTO BIDIRECCIONAL:
+A) Si la persona mencionada ESTÁ en la lista de legisladores → usa su ID en legisladores_mencionados
+B) Si la persona mencionada NO ESTÁ en la lista PERO es una figura política relevante de Bolivia (Presidente, Ministro, Gobernador, Alcalde, ex-Presidente, líder de partido, autoridad institucional) → inclúyela en personas_detectadas con su nombre completo y cargo
 
 ## PRINCIPIOS FUNDAMENTALES (INMUTABLES)
 
@@ -160,11 +165,24 @@ Clasifica QUÉ BUSCA EL MEDIO al publicar esta nota (no cómo trata al actor):
 La intención y el tratamiento son dimensiones INDEPENDIENTES: una nota puede ser informativa (intención) pero con tratamiento crítico, o puede ser elogiosa (intención) con tratamiento informativo.
 
 ## REGLAS PARA LEGISLADORES
-- Solo incluir legisladores que estén en la lista proporcionada
+- Incluir legisladores que estén en la lista proporcionada usando su ID exacto
 - persona_id debe ser EXACTAMENTE el ID proporcionado en la lista
 - cita debe ser un fragmento textual REAL del artículo (no inventado)
 - contexto debe resumir en qué contexto aparece el legislador
 - Máximo 5 legisladores por artículo
+- Si un legislador aparece solo con su apellido o nombre parcial, úsalo igualmente si el contexto deja claro quién es (ej: "Paz" cuando el texto dice "el Presidente Paz" o "Rodrigo Paz")
+- Usa el campo cargo_directiva de la lista como contexto de desambiguación
+
+## REGLAS PARA FIGURAS POLÍTICAS NO EN LA LISTA (personas_detectadas)
+- Si el texto menciona una figura política RELEVANTE que NO está en la lista de legisladores (ej: Presidente de Bolivia, Ministro, Gobernador, Alcalde, ex-Presidente, líder de partido, autoridad del Órgano Electoral, Fiscal General, Defensor del Pueblo), inclúyela en personas_detectadas
+- NO incluir: ciudadanos sin cargo, empresarios sin rol político, figuras del espectáculo, deportistas, personalidades no-políticas
+- NO incluir: legisladores que ya están en la lista (esos van en legisladores_mencionados)
+- nombre debe ser el nombre completo tal como aparece o se infiere del texto
+- cargo debe ser el cargo político que ocupa (Presidente, Vicepresidente, Ministro de X, Gobernador de X, Alcalde de X, ex-Presidente, Senador, Diputado, etc.)
+- partido si se puede inferir del texto, null si no se menciona
+- cita debe ser un fragmento textual REAL del artículo
+- contexto debe explicar brevemente la relevancia de la mención
+- Máximo 3 figuras detectadas por artículo
 
 ## REGLAS PARA EJES TEMÁTICOS
 - Solo incluir ejes de la lista proporcionada
@@ -210,6 +228,9 @@ Responde ÚNICAMENTE con un JSON válido (sin markdown, sin backticks) con esta 
   "legisladores_mencionados": [
     { "persona_id": "ID_DE_PERSONA", "cita": "fragmento textual donde aparece el legislador", "contexto": "contexto en 20 palabras" }
   ],
+  "personas_detectadas": [
+    { "nombre": "Nombre Completo", "cargo": "Presidente de Bolivia", "partido": "Nombre del partido o null", "cita": "fragmento textual", "contexto": "relevancia de la mención" }
+  ],
   "ejes_institucionales": [
     { "eje_id": "ID_DEL_EJE", "cita": "fragmento relevante del texto", "relevancia": "alta|media|baja" }
   ],
@@ -236,7 +257,7 @@ VALORES VÁLIDOS para intencion_medio:
 informativa, opinion, critica, elogiosa, reactiva, sin_intencion
 
 Si es_relevante = false, devolver:
-{"es_relevante": false, "tratamiento_periodistico": "sin_tratamiento", "intencion_medio": "sin_intencion", "confianza_clasificacion": "baja", "resumen": "", "legisladores_mencionados": [], "ejes_institucionales": [], "ejes_cliente": [], "temas_detectados": [], "preguntas_fundamentales": {}}`;
+{"es_relevante": false, "tratamiento_periodistico": "sin_tratamiento", "intencion_medio": "sin_intencion", "confianza_clasificacion": "baja", "resumen": "", "legisladores_mencionados": [], "personas_detectadas": [], "ejes_institucionales": [], "ejes_cliente": [], "temas_detectados": [], "preguntas_fundamentales": {}}`
 }
 
 /**
