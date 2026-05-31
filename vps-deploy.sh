@@ -109,6 +109,30 @@ else
   exit 1
 fi
 
+# ─── 2b. Sincronizar esquema Prisma con la BD ──────────────
+# CRÍTICO: Garantiza que todas las tablas del schema.prisma existan en la BD.
+# Sin esto, modelos nuevos (NotaRaw, UsoIA, SystemLog) no se crean tras git pull/reset.
+info "Sincronizando esquema Prisma con la BD..."
+if npx prisma generate 2>&1 && npx prisma db push --accept-data-loss 2>&1; then
+  ok "Esquema sincronizado con la BD"
+else
+  warn "prisma db push falló o tuvo warnings — continuando de todas formas"
+fi
+
+# Limpiar jobs viejos del pipeline anterior que puedan bloquear la cola
+info "Limpiando jobs residuales del pipeline anterior..."
+node -e "
+const { PrismaClient } = require('@prisma/client');
+const db = new PrismaClient();
+(async () => {
+  try {
+    const r = await db.job.deleteMany({ where: { tipo: 'scrape_fuente', estado: { in: ['pending','fallido','en_progreso'] } } });
+    if (r.count > 0) console.log('  Eliminados ' + r.count + ' jobs scrape_fuente residuales');
+  } catch(e) { /* tabla Job puede no existir aún */ }
+  await db.\\\$disconnect();
+})();
+" 2>/dev/null || true
+
 # ─── 3. Build (o skip) ───────────────────────────────────────
 if $SKIP_BUILD; then
   warn "Saltando build (--skip-build)"

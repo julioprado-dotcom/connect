@@ -167,6 +167,22 @@ async function main(): Promise<void> {
     console.error('[Worker-Service] Error en reclaim inicial:', err);
   }
 
+  // Limpiar jobs residuales del pipeline viejo (scrape_fuente) que bloquean la cola
+  try {
+    const deleted = await db.job.deleteMany({
+      where: {
+        tipo: 'scrape_fuente',
+        estado: { in: ['pending', 'en_progreso', 'fallido'] },
+      },
+    });
+    if (deleted.count > 0) {
+      console.log(`[Worker-Service] Cleanup: ${deleted.count} jobs scrape_fuente (pipeline viejo) eliminados`);
+    }
+  } catch (err) {
+    // Tabla Job puede no existir — no es fatal
+    console.error('[Worker-Service] Error en cleanup scrape_fuente:', err);
+  }
+
   // Main loop
   while (state.running) {
     try {
@@ -243,8 +259,8 @@ async function main(): Promise<void> {
 
       state.currentJobId = null;
 
-      // Backpressure
-      const baseDelay = tipo === 'scrape_fuente'
+      // Backpressure — scrape_fuente y scrape_fuente_light son trabajos pesados (descargan páginas)
+      const baseDelay = tipo === 'scrape_fuente' || tipo === 'scrape_fuente_light'
         ? WORKER_CONFIG.delayScrapeMs
         : tipo === 'generar_boletin'
           ? WORKER_CONFIG.delayGenerateMs
