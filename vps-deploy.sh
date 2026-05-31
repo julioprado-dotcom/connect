@@ -254,29 +254,15 @@ else
 fi
 
 # Check 1b: @prisma/engines existe (contiene binarios del query engine)
-# Sin este paquete, prisma generate NO puede completar — se cuelga intentando
-# descargar los binarios o falla con MODULE_NOT_FOUND.
+# NOTA: Este es solo un check informativo en pre-flight.
+# Si falta, se instala DESPUÉS de git sync + npm install
+# (instalarlo aquí sería inútil porque git reset --hard
+# restauraría package.json sin @prisma/engines).
 PRISMA_ENGINES_DIR="$APP_DIR/node_modules/@prisma/engines"
 if [ -d "$PRISMA_ENGINES_DIR" ]; then
   ok "@prisma/engines encontrado"
 else
-  warn "@prisma/engines NO encontrado — prisma generate no funcionará sin él"
-  warn "Instalando @prisma/engines..."
-  # --ignore-scripts: evitar postinstall (prisma generate) aquí.
-  # PM2 sigue corriendo → memoria insuficiente.
-  if npm install @prisma/engines --save-dev --no-audit --no-fund --ignore-scripts 2>&1 | tail -5; then
-    if [ -d "$PRISMA_ENGINES_DIR" ]; then
-      ok "@prisma/engines instalado correctamente"
-    else
-      PREFLIGHT_OK=false
-      PREFLIGHT_ERRORS="${PREFLIGHT_ERRORS}@prisma/engines no se instaló correctamente. "
-      err "@prisma/engines sigue ausente después de npm install"
-    fi
-  else
-    PREFLIGHT_OK=false
-    PREFLIGHT_ERRORS="${PREFLIGHT_ERRORS}npm install @prisma/engines falló. "
-    err "No se pudo instalar @prisma/engines"
-  fi
+  warn "@prisma/engines NO encontrado — se instalará después de git sync"
 fi
 
 # Check 2: Base de datos accesible
@@ -481,6 +467,35 @@ if [ ! -d "$APP_DIR/node_modules" ] || [ "$APP_DIR/package.json" -nt "$APP_DIR/n
     deploy_log "ERROR" "npm install falló después de git reset"
     perform_rollback "$BACKUP_TAG" "npm install falló"
     deploy_log_result "FAILED" "npm install failed after git reset"
+    exit 1
+  fi
+fi
+
+# ─── Verificar @prisma/engines DESPUÉS de git sync + npm install ──
+# CRÍTICO: @prisma/engines contiene los binarios del query engine.
+# Sin él, prisma generate NO puede completar.
+# Se verifica AQUÍ (después de git sync y npm install) porque:
+# - package-lock.json está en .gitignore → npm resuelve desde cero
+# - Algunas veces npm no instala correctamente todas las deps transitivas
+# - Instalarlo ANTES de git reset --hard es inútil (se pierde)
+if [ ! -d "$PRISMA_ENGINES_DIR" ]; then
+  warn "@prisma/engines NO encontrado después de npm install — instalando..."
+  # SIN --save-dev: no modificar package.json (git reset lo revertiría)
+  if npm install @prisma/engines --no-audit --no-fund --ignore-scripts 2>&1 | tail -5; then
+    if [ -d "$PRISMA_ENGINES_DIR" ]; then
+      ok "@prisma/engines instalado correctamente"
+    else
+      err "@prisma/engines sigue ausente — abortando"
+      deploy_log "ERROR" "@prisma/engines no se pudo instalar"
+      perform_rollback "$BACKUP_TAG" "@prisma/engines not found after npm install"
+      deploy_log_result "FAILED" "@prisma/engines missing"
+      exit 1
+    fi
+  else
+    err "npm install @prisma/engines falló — abortando"
+    deploy_log "ERROR" "npm install @prisma/engines failed"
+    perform_rollback "$BACKUP_TAG" "npm install @prisma/engines failed"
+    deploy_log_result "FAILED" "npm install @prisma/engines failed"
     exit 1
   fi
 fi
