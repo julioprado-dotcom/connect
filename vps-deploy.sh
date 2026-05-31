@@ -467,46 +467,40 @@ fi
 export DATABASE_URL="$DETECTED_DATABASE_URL"
 
 # ═══════════════════════════════════════════════════════════════
-# ISSUE #1: PRISMA COMMANDS WITH TIMEOUTS
-# Todos los comandos prisma tienen timeout para evitar que cuelguen.
+# PRISMA COMMANDS — SIN npx
 # ═══════════════════════════════════════════════════════════════
+# CRÍTICO: Usar el binario local de Prisma directamente.
+# 'npx prisma' verifica internet cada vez — en VPS con DNS lento
+# (Alibaba Cloud) puede colgar 120s+ sin ejecutar nada.
+# El binario ya está en node_modules/.bin/prisma desde npm install.
+# Esto reduce prisma generate de 120s+ a <1s.
 
-# ─── Sincronizar esquema Prisma con la BD ──────────────────
-# CRÍTICO: Garantiza que todas las tablas del schema.prisma existan en la BD.
-# Sin esto, modelos nuevos (NotaRaw, UsoIA, SystemLog) no se crean tras git pull/reset.
-info "Generando cliente Prisma (timeout: ${PRISMA_TIMEOUT}s)..."
-if timeout "$PRISMA_TIMEOUT" npx prisma generate 2>&1; then
+PRISMA_BIN="$APP_DIR/node_modules/.bin/prisma"
+
+if [ ! -x "$PRISMA_BIN" ]; then
+  err "Prisma binario no encontrado en $PRISMA_BIN — ejecutar npm install primero"
+  perform_rollback "$BACKUP_TAG" "prisma binary not found"
+  deploy_log_result "FAILED" "prisma binary not found"
+  exit 1
+fi
+
+# ─── Generar cliente Prisma ────────────────────────────────
+info "Generando cliente Prisma..."
+if "$PRISMA_BIN" generate 2>&1; then
   ok "Prisma generate exitoso"
   deploy_log "INFO" "Prisma generate exitoso"
 else
   GEN_EXIT=$?
-  if [ "$GEN_EXIT" -eq 124 ]; then
-    err "prisma generate TIMED OUT después de ${PRISMA_TIMEOUT}s"
-    deploy_log "ERROR" "prisma generate timed out (${PRISMA_TIMEOUT}s)"
-  else
-    err "prisma generate falló (exit code: ${GEN_EXIT})"
-    deploy_log "ERROR" "prisma generate falló (exit code: ${GEN_EXIT})"
-  fi
-  err "prisma generate es CRÍTICO — sin un cliente válido, TODAS las queries de BD fallan (login, dashboard, etc.)"
-  err "Intentando retry con npm install + generate..."
-  
-  # Retry: limpiar cache de Prisma y reintentar
-  rm -rf "$APP_DIR/node_modules/.prisma" 2>/dev/null
-  rm -rf "$APP_DIR/node_modules/@prisma" 2>/dev/null
-  if timeout "$PRISMA_TIMEOUT" npx prisma generate 2>&1; then
-    ok "prisma generate exitoso en retry"
-    deploy_log "INFO" "prisma generate exitoso en retry"
-  else
-    err "prisma generate falló de nuevo — ABORTANDO deploy"
-    deploy_log "ERROR" "prisma generate falló en retry — deploy abortado"
-    perform_rollback "$BACKUP_TAG" "prisma generate falló en retry"
-    deploy_log_result "FAILED" "prisma generate failed after retry"
-    exit 1
-  fi
+  err "prisma generate falló (exit code: ${GEN_EXIT})"
+  deploy_log "ERROR" "prisma generate falló (exit code: ${GEN_EXIT})"
+  perform_rollback "$BACKUP_TAG" "prisma generate failed"
+  deploy_log_result "FAILED" "prisma generate failed (exit: ${GEN_EXIT})"
+  exit 1
 fi
 
+# ─── Sincronizar esquema Prisma con la BD ──────────────────
 info "Sincronizando esquema Prisma con la BD (timeout: ${PRISMA_TIMEOUT}s)..."
-if timeout "$PRISMA_TIMEOUT" npx prisma db push 2>&1; then
+if timeout "$PRISMA_TIMEOUT" "$PRISMA_BIN" db push 2>&1; then
   ok "Esquema sincronizado con la BD"
   deploy_log "INFO" "Prisma db push exitoso"
 else
@@ -531,16 +525,17 @@ unset DATABASE_URL
 info "Verificando datos semilla (clientes/contratos) — timeout: ${SEED_TIMEOUT}s..."
 export DATABASE_URL="$DETECTED_DATABASE_URL"
 
-if timeout "$SEED_TIMEOUT" npx tsx prisma/seed-data.ts 2>&1; then
+TSX_BIN="$APP_DIR/node_modules/.bin/tsx"
+if timeout "$SEED_TIMEOUT" "$TSX_BIN" prisma/seed-data.ts 2>&1; then
   ok "Seed completado exitosamente"
   deploy_log "INFO" "Seed completado exitosamente"
 else
   SEED_EXIT=$?
   if [ "$SEED_EXIT" -eq 124 ]; then
     err "Seed TIMED OUT después de ${SEED_TIMEOUT}s"
-    deploy_log "WARN" "Seed timed out (${SEED_TIMEOUT}s) — ejecutar manualmente: npx tsx prisma/seed-data.ts"
+    deploy_log "WARN" "Seed timed out (${SEED_TIMEOUT}s) — ejecutar manualmente: tsx prisma/seed-data.ts"
   else
-    warn "Seed falló (exit code: ${SEED_EXIT}) — ejecutar manualmente: npx tsx prisma/seed-data.ts"
+    warn "Seed falló (exit code: ${SEED_EXIT}) — ejecutar manualmente: tsx prisma/seed-data.ts"
     deploy_log "WARN" "Seed falló (exit code: ${SEED_EXIT})"
   fi
   # Non-fatal: seed data may already exist
@@ -551,7 +546,7 @@ unset DATABASE_URL
 # ═══════════════════════════════════════════════════════════════
 # ISSUE #2: FIX NODE.JS CLEANUP SCRIPT (CJS → ESM via tsx)
 # El script original usaba require('@prisma/client') (CommonJS)
-# pero el proyecto usa ES modules. Se reemplaza con npx tsx.
+# pero el proyecto usa ES modules. Se reemplaza con tsx local (sin npx).
 # ═══════════════════════════════════════════════════════════════
 
 info "Limpiando jobs residuales del pipeline anterior..."
@@ -579,7 +574,7 @@ try {
 CLEANUP_EOF
 
 export DATABASE_URL="$DETECTED_DATABASE_URL"
-timeout "$PRISMA_TIMEOUT" npx tsx "$CLEANUP_SCRIPT" 2>/dev/null || true
+timeout "$PRISMA_TIMEOUT" "$TSX_BIN" "$CLEANUP_SCRIPT" 2>/dev/null || true
 unset DATABASE_URL
 rm -f "$CLEANUP_SCRIPT"
 
@@ -608,8 +603,10 @@ else
   echo ""
 
   # Build con timeout y límite de memoria
+  # Usar binario local de Next.js (sin npx para evitar latencia de red)
+  NEXT_BIN="$APP_DIR/node_modules/.bin/next"
   set +e
-  timeout "$BUILD_TIMEOUT" bash -c "NODE_OPTIONS='--max-old-space-size=${MAX_OLD_SPACE}' npx next build" 2>&1 | tee /tmp/decodex-build.log
+  timeout "$BUILD_TIMEOUT" bash -c "NODE_OPTIONS='--max-old-space-size=${MAX_OLD_SPACE}' '$NEXT_BIN' build" 2>&1 | tee /tmp/decodex-build.log
   BUILD_EXIT=${PIPESTATUS[0]}
   set -e
 
