@@ -426,3 +426,22 @@ Stage Summary:
 - Pipeline E v2 activo: check_fuente → scrape_fuente_light(sin LLM) → NotaRaw → batch_llm → Menciones
 - Fix scrape-fuente-light: ahora actualiza métricas de capacidad (ultimoHeadline, totalHeadlines)
 - Commit: 1731a33 — "fix: scrape-fuente-light actualiza fuenteEstado.ultimoHeadline"
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix CommandCenter Worker OFFLINE + Scheduler no reactivable
+
+Work Log:
+- Investigated root cause: /api/jobs/stats reads worker/scheduler via globalThis (only works in monolithic mode)
+- In PM2 multi-process mode, worker and scheduler run as separate processes, globalThis is never shared
+- Fixed /api/jobs/stats to read heartbeat files as primary source for worker/scheduler status
+- Fixed /api/jobs/scheduler GET: was returning running=true whenever PM2 process exists, even if stopped
+- Added getPm2SchedulerState() using pm2 jlist to detect actual process status (online/stopped/errored)
+- Added pm2Status field to scheduler response for UI awareness
+- Committed as 4c83739 and pushed to GitHub
+
+Stage Summary:
+- 2 files changed: src/app/api/jobs/stats/route.ts, src/app/api/jobs/scheduler/route.ts
+- CommandCenter will now correctly show Worker/Scheduler ONLINE/OFFLINE from heartbeat files
+- Scheduler Resume button will now be enabled after Pause (running=false when stopped)
+- Ready for deploy via vps-deploy.sh on VPS
