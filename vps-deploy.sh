@@ -100,8 +100,16 @@ fi
 
 # ─── 2. Git Pull ─────────────────────────────────────────────
 info "Pulling from origin/main..."
+GIT_CHANGED=false
 if git pull origin main 2>&1; then
   ok "Git pull exitoso"
+  # Detectar si el script en disco cambió (git pull actualiza el archivo)
+  if ! git diff --quiet HEAD@{1} HEAD -- "$0" 2>/dev/null; then
+    GIT_CHANGED=true
+    warn "El script vps-deploy.sh cambió en este pull — re-ejecutando con la nueva versión..."
+    sleep 1
+    exec "$0" "$@"
+  fi
 else
   err "Git pull falló. Verifica manualmente."
   # Recuperar PM2 aunque falle el pull

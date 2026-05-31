@@ -56,11 +56,20 @@ interface SystemHealth {
 }
 
 interface PipelineStatus {
+  pipeline?: {
+    notasRaw?: { total: number; hoy: number; pendientes: number; procesadasHoy: number };
+    status: string;
+  };
   captura?: { status: string };
   clasificacion?: { status: string };
   produccion?: { status: string };
   distribucion?: { status: string };
   sistema?: { status: string };
+  frescura?: {
+    ultimaActividad?: string | null;
+    ultimaActividadHace?: string;
+    ultimaActividadTipo?: string | null;
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -590,6 +599,37 @@ export function SystemStatus({ onNavigateTab }: SystemStatusProps) {
           <p className="text-[9px] font-bold uppercase tracking-widest text-slate-700 font-mono px-1">
             Flujo de Proceso
           </p>
+          {/* Pipeline NotaRaw (buffer intermedio) */}
+          <div className="flex items-center gap-2 px-2 py-1.5 rounded-md" style={{
+            backgroundColor: 'rgba(6,182,212,0.03)',
+            border: '1px solid rgba(6,182,212,0.08)',
+          }}>
+            <PipelineOrb status={pipeline?.pipeline?.status ?? 'idle'} label="Pipeline NotaRaw" />
+            {pipeline?.pipeline?.notasRaw && pipeline.pipeline.notasRaw.total > 0 && (
+              <div className="flex items-center gap-2 ml-auto">
+                <span className="text-[8px] font-mono text-amber-400/70">
+                  {pipeline.pipeline.notasRaw.pendientes} pend.
+                </span>
+                <span className="text-[8px] font-mono text-cyan-400/70">
+                  {pipeline.pipeline.notasRaw.procesadasHoy} proc. hoy
+                </span>
+                <span className="text-[8px] font-mono text-slate-600">
+                  {pipeline.pipeline.notasRaw.total} total
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Data freshness */}
+          {pipeline?.frescura && pipeline.frescura.ultimaActividadHace && pipeline.frescura.ultimaActividadHace !== 'nunca' && (
+            <div className="flex items-center gap-2 px-1">
+              <Clock className="w-3 h-3 text-slate-600" />
+              <span className="text-[8px] font-mono text-slate-600">
+                Último job: <b className="text-slate-500">{pipeline.frescura.ultimaActividadTipo}</b> {pipeline.frescura.ultimaActividadHace}
+              </span>
+            </div>
+          )}
+
           <PipelineOrb status={pipeline?.captura?.status ?? 'idle'} label="Captura" onClick={onNavigateTab ? () => onNavigateTab('captura') : undefined} />
           <PipelineOrb status={pipeline?.clasificacion?.status ?? 'idle'} label="Clasificacion" onClick={onNavigateTab ? () => onNavigateTab('clasificacion') : undefined} />
           <PipelineOrb status={pipeline?.produccion?.status ?? 'idle'} label="Produccion" onClick={onNavigateTab ? () => onNavigateTab('produccion') : undefined} />
