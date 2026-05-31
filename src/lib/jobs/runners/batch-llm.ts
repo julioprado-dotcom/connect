@@ -3,6 +3,15 @@
 //
 // Lee NotaRaw pendientes → agrupa por medioId → 1 llamada LLM por batch → crea menciones.
 // Se ejecuta vía cron cada 45 minutos. No se dispara desde scraping.
+//
+// CADENA DE FECHAS (3 timestamps separados):
+//   NotaRaw.fechaCaptura     → cuándo se scrapeó el artículo
+//   Mencion.fechaCaptura     → copia de NotaRaw.fechaCaptura (fecha real de captura)
+//   Mencion.fechaClasificacion → cuándo el LLM clasificó la nota (fecha de procesamiento)
+//   Mencion.fechaPublicacion  → fecha de publicación del medio (cuándo está disponible)
+//
+// ANTES: Mencion.fechaCaptura = now() al crear → datos de "hoy" engañosos
+// AHORA: Mencion.fechaCaptura = fecha real del scrape (de NotaRaw)
 
 import db from '@/lib/db'
 import type { JobPayload, RunnerResult } from '../types'
@@ -74,7 +83,10 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
           // Enviar al LLM individualmente (reutiliza extractor existente)
           // NOTA: En el futuro se puede optimizar a batch de varias notas en 1 prompt
           const resultado = await extraerMencionesDeTexto(nota.texto, medioId)
-          const menciones = await crearMencionesExtraidas(resultado, medioId, nota.url, nota.titulo)
+          const menciones = await crearMencionesExtraidas(
+            resultado, medioId, nota.url, nota.titulo,
+            { fechaCaptura: nota.fechaCaptura, fechaClasificacion: new Date() },
+          )
 
           mencionesFuente += menciones
           totalMenciones += menciones

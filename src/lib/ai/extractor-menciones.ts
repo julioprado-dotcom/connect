@@ -515,13 +515,14 @@ export async function crearMencionesExtraidas(
   medioId: string,
   url: string,
   titulo: string,
+  fechas?: { fechaCaptura?: Date; fechaClasificacion?: Date },
 ): Promise<number> {
   if (!resultado.es_relevante) return 0;
 
   let creadas = 0;
   const ejeIds = resultado.ejes_mencionados.map(e => e.eje_id);
 
-  // Shared data fields for all menciones
+  // Shared data fields for all menciones — incluye las 3 fechas del pipeline
   const sharedData = {
     tratamientoPeriodistico: resultado.tratamientoPeriodistico,
     intencionMedio: resultado.intencionMedio,
@@ -529,6 +530,11 @@ export async function crearMencionesExtraidas(
     preguntasFundamentales: resultado.preguntas_fundamentales as any, // eslint-disable-line @typescript-eslint/no-explicit-any
     sentimiento: resultado.sentimiento_general, // backward-compatible sentiment from tratamiento
     temas: resultado.temas_detectados.join(', '),
+    // FECHAS DEL PIPELINE:
+    // fechaCaptura: cuándo se scrapeó (viene de NotaRaw, no es now())
+    ...(fechas?.fechaCaptura ? { fechaCaptura: fechas.fechaCaptura } : {}),
+    // fechaClasificacion: cuándo el LLM procesó esta nota
+    ...(fechas?.fechaClasificacion ? { fechaClasificacion: fechas.fechaClasificacion } : {}),
   };
 
   // 1. Crear menciones por legislador (si hay)

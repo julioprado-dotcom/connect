@@ -410,8 +410,9 @@ model Mencion {
   titulo                  String
   texto                   String                @default("")
   url                     String                @default("")
-  fechaPublicacion        DateTime?
-  fechaCaptura            DateTime              @default(now())
+  fechaPublicacion        DateTime?             // 1. Fecha que el medio publicó el artículo
+  fechaCaptura            DateTime              @default(now())  // 2. Fecha de scrape/captura (de NotaRaw, no del LLM)
+  fechaClasificacion      DateTime?             // 3. Fecha de clasificación por IA (batch_llm)
   tipoMencion             String                @default("mencion_pasiva")
   temas                   String                @default("")
   reach                   Int                   @default(0)
@@ -451,6 +452,7 @@ model Mencion {
   @@index([ejeEstructuralId])
   @@index([medioId])
   @@index([fechaCaptura])
+  @@index([fechaClasificacion])
   @@index([personaId])
   @@index([sentimiento])
   @@index([fechaPublicacion])
