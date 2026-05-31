@@ -4,6 +4,11 @@
 // FIX: En modo PM2 multi-proceso, el scheduler corre como proceso independiente
 // (scheduler-service.ts) y NO escribe a globalThis. Por eso leemos el heartbeat
 // file para determinar el estado real del scheduler PM2.
+//
+// FIX v2: heartbeat freshness != scheduler running. Cuando pm2 stop detiene
+// el proceso, el heartbeat expira en 30s pero `pm2 describe` sigue mostrando
+// el proceso (status: stopped). Antes el GET devolvía running=true siempre
+// que isPm2Mode=true, haciendo imposible reactivar el scheduler.
 
 export const runtime = 'nodejs'
 
@@ -29,19 +34,58 @@ function readSchedulerHeartbeat(): { online: boolean; data: Record<string, unkno
   }
 }
 
+/**
+ * Verifica si el scheduler corre como proceso PM2 y su estado real.
+ * Returns: 'online' | 'stopped' | 'errored' | 'none' (no existe)
+ */
+function getPm2SchedulerState(): 'online' | 'stopped' | 'errored' | 'none' {
+  try {
+    const output = execSync('pm2 jlist --no-color 2>/dev/null', {
+      timeout: 5000,
+      encoding: 'utf-8',
+    })
+    const list = JSON.parse(output) as Array<Record<string, unknown>>
+    const scheduler = list.find(
+      (p) => p.name === 'decodex-scheduler' || (p.pm2_env as Record<string, unknown>)?.name === 'decodex-scheduler'
+    )
+    if (!scheduler) return 'none'
+
+    const status = (scheduler.pm2_env as Record<string, unknown>)?.status as string
+      || scheduler.status as string
+      || 'unknown'
+
+    if (status === 'online') return 'online'
+    if (status === 'stopped' || status === 'stopping') return 'stopped'
+    if (status === 'errored' || status === 'stopping') return 'errored'
+    return 'stopped' // default: si existe pero no online → stopped
+  } catch {
+    return 'none'
+  }
+}
+
 export async function GET() {
   try {
     // Leer heartbeat del scheduler PM2 (proceso independiente)
     const hb = readSchedulerHeartbeat()
 
+    // Verificar estado real del proceso PM2 (no solo heartbeat)
+    const pm2State = getPm2SchedulerState()
+    const isPm2Process = pm2State !== 'none' // El proceso existe en PM2
+
     // Leer estado in-process (para modo monolítico)
-    const inProcess = getSchedulerStatus()
+    let inProcess = { running: false, totalTasks: 0, tasks: [] as Array<{ humana?: string; expresion: string }> }
+    try {
+      inProcess = getSchedulerStatus()
+    } catch { /* globalThis no disponible */ }
 
-    // En modo PM2: heartbeat tiene prioridad
-    // En modo monolítico: in-process tiene prioridad
-    const isPm2Mode = hb.online
+    // Determinar modo y estado
+    // En PM2 mode: heartbeat freshness determina running, pm2State confirma
+    // En modo monolítico: in-process.running
+    const isPm2Mode = isPm2Process
+    const running = isPm2Mode
+      ? (hb.online || pm2State === 'online')  // heartbeat fresco O proceso PM2 online
+      : inProcess.running
 
-    const running = isPm2Mode ? true : inProcess.running
     const totalTasks = isPm2Mode
       ? (hb.data.totalTasks as number) ?? 0
       : inProcess.totalTasks
@@ -50,7 +94,6 @@ export async function GET() {
       : 0
 
     // Tareas: en PM2 no tenemos detalle individual desde heartbeat
-    // Mostramos resumen en vez de array vacío
     const tasks = isPm2Mode
       ? []  // El scheduler-service.ts no expone tareas individuales via heartbeat
       : inProcess.tasks.map(t => ({
@@ -68,6 +111,7 @@ export async function GET() {
       totalScheduled,
       tasks,
       mode: isPm2Mode ? 'pm2' : 'in-process',
+      pm2Status: isPm2Mode ? pm2State : undefined,  // 'online' | 'stopped' | 'errored' — útil para UI
       heartbeat: isPm2Mode ? {
         uptime: hb.data.uptime,
         lastReschedule: hb.data.lastReschedule,
@@ -101,17 +145,8 @@ export async function POST(request: NextRequest) {
 
     // Detectar si estamos en modo PM2: verificar si el proceso EXISTE
     // (no depender del heartbeat que puede expirar tras un pause/restart)
-    const hb = readSchedulerHeartbeat()
-    let isPm2Mode = hb.online
-    if (!isPm2Mode) {
-      // Heartbeat expirado — verificar si el proceso PM2 existe aún
-      try {
-        const pm2Status = execSync('pm2 describe decodex-scheduler --no-color 2>/dev/null | head -5', { timeout: 5000 }).toString()
-        if (pm2Status.includes('decodex-scheduler')) {
-          isPm2Mode = true
-        }
-      } catch { /* no pm2 o proceso no existe */ }
-    }
+    const pm2State = getPm2SchedulerState()
+    const isPm2Mode = pm2State !== 'none'
 
     if (isPm2Mode) {
       // Modo PM2: usar pm2 CLI para controlar el proceso scheduler standalone
@@ -157,7 +192,7 @@ export async function POST(request: NextRequest) {
           exito: true,
           estado: 'running',
           modo: 'pm2',
-          mensaje: 'Scheduler reanudado via PM2 start',
+          mensaje: 'Scheduler reanudado via PM2 restart',
         })
       } catch {
         return NextResponse.json({
