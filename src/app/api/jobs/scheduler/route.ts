@@ -99,9 +99,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Detectar si estamos en modo PM2 (scheduler standalone)
+    // Detectar si estamos en modo PM2: verificar si el proceso EXISTE
+    // (no depender del heartbeat que puede expirar tras un pause/restart)
     const hb = readSchedulerHeartbeat()
-    const isPm2Mode = hb.online
+    let isPm2Mode = hb.online
+    if (!isPm2Mode) {
+      // Heartbeat expirado — verificar si el proceso PM2 existe aún
+      try {
+        const pm2Status = execSync('pm2 describe decodex-scheduler --no-color 2>/dev/null | head -5', { timeout: 5000 }).toString()
+        if (pm2Status.includes('decodex-scheduler')) {
+          isPm2Mode = true
+        }
+      } catch { /* no pm2 o proceso no existe */ }
+    }
 
     if (isPm2Mode) {
       // Modo PM2: usar pm2 CLI para controlar el proceso scheduler standalone
@@ -140,9 +150,9 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // resume
+      // resume — usar restart (es más confiable que start --only)
       try {
-        execSync('pm2 start ecosystem.config.js --only decodex-scheduler', { timeout: 15000 })
+        execSync('pm2 restart decodex-scheduler', { timeout: 15000 })
         return NextResponse.json({
           exito: true,
           estado: 'running',

@@ -61,12 +61,10 @@ export async function POST() {
         });
       }
     } else {
-      // Iniciar scheduler
+      // Iniciar scheduler — usar restart (el proceso existe pero está stopped)
+      // Fallback: si no existe, usar start
       try {
-        execSync('pm2 start ecosystem.config.js --only decodex-scheduler', {
-          timeout: 15000,
-          cwd: process.cwd(),
-        });
+        execSync('pm2 restart decodex-scheduler', { timeout: 10000, cwd: process.cwd() });
         return NextResponse.json({
           action: 'started',
           message: 'Scheduler iniciado via PM2',
