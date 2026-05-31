@@ -415,8 +415,9 @@ function schedulePeriodicReschedule(): void {
 // ═══════════════════════════════════════════════════════════════
 
 function scheduleProbeCheck(fuente: { id: string; medioId: string; Medio: { nombre: string } }): void {
-  // Un solo check a hora aleatoria (spread entre 6-22h)
-  const hora = 6 + Math.floor(Math.random() * 16);
+  // Un solo check en ventana de baja actividad (0:00-4:00)
+  // Horas muertas: no hay boletines, ni scrapes, ni batch_llm
+  const hora = Math.floor(Math.random() * 5); // 0, 1, 2, 3 o 4
   const expresion = `0 ${hora} * * *`;
   if (!cron.validate(expresion)) return;
 
@@ -430,7 +431,7 @@ function scheduleProbeCheck(fuente: { id: string; medioId: string; Medio: { nomb
 
       await enqueue({
         tipo: 'check_fuente',
-        prioridad: 9,  // P5 — máxima prioridad baja (maintenance level)
+        prioridad: 5,  // P3 — prioridad media (horas muertas, no compite con nada)
         payload: { fuenteId: fuente.id, medioId: fuente.medioId, probe: true },
       });
 
