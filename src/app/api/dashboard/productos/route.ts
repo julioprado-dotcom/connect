@@ -10,26 +10,29 @@ import { guardError } from '@/lib/rate-guard';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Catálogo de productos ONION200 (mapeado a TipoBoletin del sistema)
+// Catálogo de productos ONION200 — sincronizado con src/constants/products.ts
+// IMPORTANTE: Mantener en paralelo con PRODUCTOS en constants/products.ts
 interface ProductDef {
   tipo: string;
   tipoBoletin: string;
   nombre: string;
   tipoProducto: 'premium' | 'gratuito';
-  frecuencia: 'diario' | 'semanal' | 'bajo_demanda';
+  frecuencia: 'diario' | 'semanal' | 'bajo_demanda' | 'tiempo_real';
 }
 
 const PRODUCTOS: ProductDef[] = [
-  { tipo: 'termometro', tipoBoletin: 'EL_TERMOMETRO', nombre: 'El Termómetro', tipoProducto: 'premium', frecuencia: 'diario' },
+  { tipo: 'el_termometro', tipoBoletin: 'EL_TERMOMETRO', nombre: 'El Termómetro', tipoProducto: 'premium', frecuencia: 'diario' },
   { tipo: 'saldo_del_dia', tipoBoletin: 'SALDO_DEL_DIA', nombre: 'Saldo del Día', tipoProducto: 'premium', frecuencia: 'diario' },
   { tipo: 'el_foco', tipoBoletin: 'EL_FOCO', nombre: 'El Foco', tipoProducto: 'premium', frecuencia: 'diario' },
   { tipo: 'el_especializado', tipoBoletin: 'EL_ESPECIALIZADO', nombre: 'El Especializado', tipoProducto: 'premium', frecuencia: 'semanal' },
-  { tipo: 'el_radar', tipoBoletin: 'EL_RADAR', nombre: 'El Radar', tipoProducto: 'gratuito', frecuencia: 'semanal' },
-  { tipo: 'boletin_del_grano', tipoBoletin: 'BOLETIN_DEL_GRANO', nombre: 'Boletín del Grano', tipoProducto: 'gratuito', frecuencia: 'semanal' },
   { tipo: 'el_informe_cerrado', tipoBoletin: 'EL_INFORME_CERRADO', nombre: 'El Informe Cerrado', tipoProducto: 'premium', frecuencia: 'semanal' },
-  { tipo: 'ficha_legislador', tipoBoletin: 'FICHA_LEGISLADOR', nombre: 'Ficha Legislador', tipoProducto: 'gratuito', frecuencia: 'bajo_demanda' },
-  { tipo: 'el_hilo', tipoBoletin: 'EL_HILO', nombre: 'El Hilo', tipoProducto: 'premium', frecuencia: 'semanal' },
-  { tipo: 'informe_mineria', tipoBoletin: null, nombre: 'Informe de Minería', tipoProducto: 'gratuito', frecuencia: 'semanal' },
+  { tipo: 'el_radar', tipoBoletin: 'EL_RADAR', nombre: 'El Radar', tipoProducto: 'gratuito', frecuencia: 'semanal' },
+  { tipo: 'voz_y_voto', tipoBoletin: 'VOZ_Y_VOTO', nombre: 'Voz y Voto', tipoProducto: 'gratuito', frecuencia: 'semanal' },
+  { tipo: 'el_hilo', tipoBoletin: 'EL_HILO', nombre: 'El Hilo', tipoProducto: 'gratuito', frecuencia: 'semanal' },
+  { tipo: 'foco_de_la_semana', tipoBoletin: 'FOCO_DE_LA_SEMANA', nombre: 'Foco de la Semana', tipoProducto: 'gratuito', frecuencia: 'semanal' },
+  { tipo: 'alerta_temprana', tipoBoletin: 'ALERTA_TEMPRANA', nombre: 'Alerta Temprana', tipoProducto: 'premium', frecuencia: 'tiempo_real' },
+  { tipo: 'ficha_legislador', tipoBoletin: 'FICHA_LEGISLADOR', nombre: 'Ficha del Legislador', tipoProducto: 'premium', frecuencia: 'bajo_demanda' },
+  { tipo: 'boletin_del_grano', tipoBoletin: 'BOLETIN_DEL_GRANO', nombre: 'Boletín del Grano', tipoProducto: 'premium', frecuencia: 'semanal' },
 ];
 
 const DIAS_SEMANA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];

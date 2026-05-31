@@ -137,11 +137,17 @@ fi
 # aplique el schema a la misma BD que usa la aplicación en runtime (db.ts).
 info "Sincronizando esquema Prisma con la BD..."
 export DATABASE_URL="file:${APP_DIR}/prisma/db/custom.db"
-if npx prisma generate 2>&1 && npx prisma db push --accept-data-loss 2>&1; then
+if npx prisma generate 2>&1 && npx prisma db push 2>&1; then
   ok "Esquema sincronizado con la BD ($APP_DIR/prisma/db/custom.db)"
 else
-  warn "prisma db push falló o tuvo warnings — continuando de todas formas"
+  warn "prisma db push falló o tuvo warnings — ejecutar manualmente con prisma migrate si hay cambios de schema incompatibles"
 fi
+unset DATABASE_URL
+
+# ─── 2c. Sembrar datos mínimos si no existen ────────────────────────────
+info "Verificando datos semilla (clientes/contratos)..."
+export DATABASE_URL="file:${APP_DIR}/prisma/db/custom.db"
+npx tsx prisma/seed-data.ts 2>&1 || warn "Seed falló — ejecutar manualmente: npx tsx prisma/seed-data.ts"
 unset DATABASE_URL
 
 # Limpiar jobs viejos del pipeline anterior que puedan bloquear la cola
