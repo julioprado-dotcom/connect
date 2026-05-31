@@ -108,7 +108,7 @@ if git pull origin main 2>&1; then
     GIT_CHANGED=true
     warn "El script vps-deploy.sh cambió en este pull — re-ejecutando con la nueva versión..."
     sleep 1
-    exec "$0" "$@"
+    exec "$APP_DIR/vps-deploy.sh" "$@"
   fi
 else
   err "Git pull falló. Verifica manualmente."
