@@ -144,6 +144,19 @@ async function scheduleCheckJobs(depth = 0): Promise<number> {
 
       // Re-run con depth=1 para evitar recursión infinita
       const scheduledAfterRecovery = await scheduleCheckJobs(1);
+
+      // Registrar el evento para visibilidad en el dashboard
+      try {
+        await db.systemLog.create({
+          data: {
+            modulo: 'scheduler',
+            accion: 'auto_recovery',
+            detalle: `AUTO-RECOVERY: ${resetResult.count} fuentes reseteadas de capa 0. ${scheduledAfterRecovery} tareas programadas.`,
+            datos: JSON.stringify({ fuentesTotal: fuentes.length, fuentesReseteadas: resetResult.count, tareasProgramadas: scheduledAfterRecovery }),
+          },
+        });
+      } catch { /* SystemLog puede no existir — no bloquear */ }
+
       return scheduledCount + scheduledAfterRecovery;
     } catch (error) {
       console.error('[Scheduler-Service] AUTO-RECOVERY falló:', error);
