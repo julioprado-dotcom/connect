@@ -133,12 +133,16 @@ fi
 # ─── 2b. Sincronizar esquema Prisma con la BD ──────────────
 # CRÍTICO: Garantiza que todas las tablas del schema.prisma existan en la BD.
 # Sin esto, modelos nuevos (NotaRaw, UsoIA, SystemLog) no se crean tras git pull/reset.
+# NOTA: Forzamos DATABASE_URL a la ruta canónica de la DB para que prisma db push
+# aplique el schema a la misma BD que usa la aplicación en runtime (db.ts).
 info "Sincronizando esquema Prisma con la BD..."
+export DATABASE_URL="file:${APP_DIR}/prisma/db/custom.db"
 if npx prisma generate 2>&1 && npx prisma db push --accept-data-loss 2>&1; then
-  ok "Esquema sincronizado con la BD"
+  ok "Esquema sincronizado con la BD ($APP_DIR/prisma/db/custom.db)"
 else
   warn "prisma db push falló o tuvo warnings — continuando de todas formas"
 fi
+unset DATABASE_URL
 
 # Limpiar jobs viejos del pipeline anterior que puedan bloquear la cola
 info "Limpiando jobs residuales del pipeline anterior..."
