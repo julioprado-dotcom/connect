@@ -614,6 +614,24 @@ fi
 
 unset DATABASE_URL
 
+# ─── Sembrar usuario admin si no existe ────────────────────
+info "Verificando usuario admin (seed) — timeout: ${SEED_TIMEOUT}s..."
+
+if timeout "$SEED_TIMEOUT" "$TSX_BIN" scripts/seed-admin.ts 2>&1; then
+  ok "Seed admin completado exitosamente"
+  deploy_log "INFO" "Seed admin completado exitosamente"
+else
+  SEED_ADMIN_EXIT=$?
+  if [ "$SEED_ADMIN_EXIT" -eq 124 ]; then
+    err "Seed admin TIMED OUT después de ${SEED_TIMEOUT}s"
+    deploy_log "WARN" "Seed admin timed out (${SEED_TIMEOUT}s)"
+  else
+    warn "Seed admin falló (exit code: ${SEED_ADMIN_EXIT}) — ejecutar manualmente: tsx scripts/seed-admin.ts"
+    deploy_log "WARN" "Seed admin falló (exit code: ${SEED_ADMIN_EXIT})"
+  fi
+  # Non-fatal: admin may already exist
+fi
+
 # ═══════════════════════════════════════════════════════════════
 # ISSUE #2: FIX NODE.JS CLEANUP SCRIPT (CJS → ESM via tsx)
 # El script original usaba require('@prisma/client') (CommonJS)
