@@ -87,7 +87,7 @@ function cleanupHeartbeat(): void {
 // Programación de Fuentes
 // ═══════════════════════════════════════════════════════════════
 
-async function scheduleCheckJobs(): Promise<number> {
+async function scheduleCheckJobs(depth = 0): Promise<number> {
   const fuentes = await db.fuenteEstado.findMany({
     where: { estado: 'activa' },
     include: { Medio: true },
@@ -123,6 +123,30 @@ async function scheduleCheckJobs(): Promise<number> {
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       console.warn(`[Scheduler-Service] Error programando ${fuente.Medio?.nombre}: ${msg}`);
+    }
+  }
+
+  // ─── AUTO-RECOVERY: si TODAS las fuentes están en capa 0 ────
+  // El sistema se apagó (72h+ sin checks). Resetear las N más
+  // productivas para que el pipeline pueda reiniciarse solo.
+  if (omitidas === fuentes.length && fuentes.length > 0 && depth === 0) {
+    console.warn(`[Scheduler-Service] AUTO-RECOVERY: las ${fuentes.length} fuentes están en capa 0. Resetando...`);
+    try {
+      const resetResult = await db.fuenteEstado.updateMany({
+        where: { activo: true },
+        data: {
+          ultimoCheckOk: new Date(),
+          fallosConsecutivos: 0,
+          checksSinCambio: 0,
+        },
+      });
+      console.log(`[Scheduler-Service] AUTO-RECOVERY: ${resetResult.count} fuentes reseteadas. Re-programando...`);
+
+      // Re-run con depth=1 para evitar recursión infinita
+      const scheduledAfterRecovery = await scheduleCheckJobs(1);
+      return scheduledCount + scheduledAfterRecovery;
+    } catch (error) {
+      console.error('[Scheduler-Service] AUTO-RECOVERY falló:', error);
     }
   }
 
