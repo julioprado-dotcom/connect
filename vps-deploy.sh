@@ -428,6 +428,14 @@ if [ -n "$OLD_TAGS" ]; then
   info "Tags de backup antiguos limpiados"
 fi
 
+# ─── Backup .env antes de git reset (git reset lo sobrescribe) ──
+ENV_BACKUP=""
+if [ -f "$APP_DIR/.env" ]; then
+  ENV_BACKUP=$(mktemp /tmp/decodex-env-XXXXXX)
+  cp "$APP_DIR/.env" "$ENV_BACKUP"
+  info "Backup de .env creado (${ENV_BACKUP})"
+fi
+
 # ─── Git Sync (fetch + reset --hard) ──────────────────────
 # CRÍTICO: Usamos fetch + reset --hard en vez de git pull.
 # git pull puede fallar silenciosamente si hay cambios locales
@@ -449,6 +457,22 @@ else
   perform_rollback "$BACKUP_TAG" "git sync falló"
   deploy_log_result "FAILED" "git sync failed"
   exit 1
+fi
+
+# ─── Restaurar .env después de git reset ──────────────────
+if [ -n "$ENV_BACKUP" ] && [ -f "$ENV_BACKUP" ]; then
+  cp "$ENV_BACKUP" "$APP_DIR/.env"
+  ok ".env restaurado desde backup"
+  rm -f "$ENV_BACKUP"
+fi
+
+# ─── Asegurar AUTH_SECRET existe (previene MissingSecret) ──
+if [ -f "$APP_DIR/.env" ] && ! grep -q "^AUTH_SECRET=" "$APP_DIR/.env"; then
+  warn "AUTH_SECRET no encontrado en .env — generando..."
+  GENERATED_SECRET=$(openssl rand -base64 32)
+  echo "AUTH_SECRET=${GENERATED_SECRET}" >> "$APP_DIR/.env"
+  ok "AUTH_SECRET generado y agregado a .env"
+  deploy_log "INFO" "AUTH_SECRET generado automaticamente"
 fi
 
 # ─── Re-check node_modules after git reset ──────────────────
