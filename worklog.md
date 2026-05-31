@@ -445,3 +445,22 @@ Stage Summary:
 - CommandCenter will now correctly show Worker/Scheduler ONLINE/OFFLINE from heartbeat files
 - Scheduler Resume button will now be enabled after Pause (running=false when stopped)
 - Ready for deploy via vps-deploy.sh on VPS
+---
+Task ID: 1
+Agent: Main Agent
+Task: Ajustar intervalos de backups y verificar que container guardian corra en worker
+
+Work Log:
+- Leído container-guardian.ts, worker-service.ts, backup.ts, constants.ts
+- Identificado: container guardian YA se inicia desde worker-service.ts (líneas 170-177), no desde instrumentation.ts
+- El problema no era que no corriera, era la frecuencia: verificaba backups cada ~5 min y operacional era cada 7 días
+- Cambios en constants.ts: backupConfigIntervalHours 24→6h, backupOperacionalIntervalHours 168→6h, nueva backupCheckIntervalTicks=720
+- Cambios en container-guardian.ts: verificación de snapshots.length % 10 → % GUARDIAN_CONFIG.backupCheckIntervalTicks
+- Cambios en worker-service.ts: actualizado comentario y log
+- Commit c3f18a4 pusheado a main
+
+Stage Summary:
+- Backups CONFIG y OPERACIONAL ahora cada 6 horas (en vez de 24h y 7d)
+- Verificación de si toca hacer backup: cada ~6 horas (720 ticks × 30s) en vez de cada ~5 min
+- Container guardian sigue monitoreando memoria cada 30s (eso no cambia)
+- Pendiente deploy en VPS de commits 8c5bd3e + c3f18a4
