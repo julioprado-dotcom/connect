@@ -41,6 +41,8 @@ next-env.d.ts
 # Prisma
 prisma/migrations/
 .prisma-schema-hash
+# prisma/generated-client/ is TRACKED — contains pre-generated Prisma Client for VPS deploy
+# (eliminates prisma generate from deploy pipeline)
 
 # Database
 db/

@@ -11,7 +11,7 @@
 # SEGURIDAD:
 #   - Pre-flight checks antes de tocar git
 #   - Backup tag antes de git reset --hard (rollback real)
-#   - Detiene PM2 ANTES de prisma generate y build (libera ~200MB RAM)
+#   - Detiene PM2 ANTES de build (libera ~200MB RAM)
 #   - Build con NODE_OPTIONS limitado (evita OOM)
 #   - Timeouts en todos los comandos que pueden colgar
 #   - Reinicia PM2 solo si el build fue exitoso
@@ -239,9 +239,8 @@ PREFLIGHT_ERRORS=""
 # Check 1: node_modules existe
 if [ ! -d "$APP_DIR/node_modules" ]; then
   warn "node_modules no encontrado. Intentando npm install..."
-  # --ignore-scripts: evitar postinstall (prisma generate) aquí.
-  # PM2 sigue corriendo en este punto → memoria insuficiente.
-  # Nuestro generate explícito corre después de detener PM2.
+  # --ignore-scripts: evitar postinstall scripts innecesarios.
+  # PM2 sigue corriendo en este punto.
   if npm install --production=false --ignore-scripts 2>&1 | tail -5; then
     ok "npm install completado exitosamente"
   else
@@ -254,10 +253,8 @@ else
 fi
 
 # Check 1b: @prisma/engines existe (contiene binarios del query engine)
-# NOTA: Este es solo un check informativo en pre-flight.
-# Si falta, se instala DESPUÉS de git sync + npm install
-# (instalarlo aquí sería inútil porque git reset --hard
-# restauraría package.json sin @prisma/engines).
+# NOTA: El Prisma Client pre-generado ya incluye sus propios engine binaries
+# (libquery_engine-*.so.node). Este check es solo informativo.
 PRISMA_ENGINES_DIR="$APP_DIR/node_modules/@prisma/engines"
 if [ -d "$PRISMA_ENGINES_DIR" ]; then
   ok "@prisma/engines encontrado"
@@ -391,10 +388,10 @@ ok "Todos los pre-flight checks pasaron"
 echo ""
 
 # ─── Detener PM2 para liberar RAM ────────────────────────────
-# PREVENCIÓN: prisma generate y next build consumen mucha memoria.
+# PREVENCIÓN: next build consume mucha memoria.
 # En un VPS con ~900MB, 3 procesos PM2 (~200MB) dejan memoria
-# insuficiente para generate → se cuelga. Detener PM2 aquí
-# garantiza máxima RAM disponible para todas las operaciones.
+# insuficiente para build → se cuelga. Detener PM2 aquí
+# garantiza máxima RAM disponible para el build.
 AVAILABLE_MEM=$(free -m | awk '/Mem:/ {print $7}')
 info "RAM disponible antes de detener PM2: ${AVAILABLE_MEM} MB"
 
@@ -458,8 +455,8 @@ fi
 # Git reset could have changed package.json, making node_modules stale
 if [ ! -d "$APP_DIR/node_modules" ] || [ "$APP_DIR/package.json" -nt "$APP_DIR/node_modules/.package-lock.json" 2>/dev/null ]; then
   warn "Ejecutando npm install (node_modules stale o ausente después de git reset)..."
-  # --ignore-scripts: nuestro generate explícito con schema hash check
-  # se encarga de prisma generate más adelante.
+  # --ignore-scripts: el Prisma Client se instala desde pre-generated
+  # en el repo (prisma/generated-client/).
   if timeout 180 npm install --production=false --ignore-scripts 2>&1 | tail -10; then
     ok "npm install completado"
   else
@@ -534,84 +531,42 @@ if [ ! -x "$PRISMA_BIN" ]; then
   exit 1
 fi
 
-# ─── Generar cliente Prisma (SOLO si el schema cambió) ──────────
-# OPTIMIZACIÓN: Si schema.prisma no cambió desde la última generación
-# exitosa, el cliente ya está generado. Regenerar es innecesario y
-# puede colgarse en VPS con recursos limitados.
-SCHEMA_FILE="$APP_DIR/prisma/schema.prisma"
-SCHEMA_HASH_FILE="$APP_DIR/.prisma-schema-hash"
-GENERATED_CLIENT="$APP_DIR/node_modules/.prisma/client/index.js"
-SCHEMA_HASH=""
-SKIP_GENERATE=false
+# ─── Instalar Prisma Client pre-generado (SIN prisma generate) ────
+# SOLUCIÓN DEFINITIVA: prisma generate se cuelga en este VPS (1GB RAM)
+# incluso con PM2 detenido, @prisma/engines presente, y .prisma/client
+# limpio. Evidencia: 5 timeouts consecutivos de 300s con 1159MB libres.
+#
+# El cliente ahora se pre-genera localmente (con binaryTargets debian + rhel)
+# y se commitea al repo en prisma/generated-client/. El deploy solo copia
+# estos archivos a node_modules/.prisma/client/. Cero prisma generate.
+PREGEN_DIR="$APP_DIR/prisma/generated-client"
+PRISMA_CLIENT_DIR="$APP_DIR/node_modules/.prisma/client"
+PRISMA_CLIENT_INDEX="$PRISMA_CLIENT_DIR/index.js"
 
-if [ -f "$SCHEMA_FILE" ]; then
-  SCHEMA_HASH=$(md5sum "$SCHEMA_FILE" 2>/dev/null | awk '{print $1}')
-fi
-
-if [ -n "$SCHEMA_HASH" ] && [ -f "$SCHEMA_HASH_FILE" ]; then
-  PREV_HASH=$(cat "$SCHEMA_HASH_FILE" 2>/dev/null || echo "")
-  if [ "$SCHEMA_HASH" = "$PREV_HASH" ] && [ -f "$GENERATED_CLIENT" ]; then
-    SKIP_GENERATE=true
-    ok "Schema sin cambios (hash: ${SCHEMA_HASH:0:8}...) — prisma generate no necesario"
-    deploy_log "INFO" "Prisma generate saltado — schema sin cambios"
-  fi
-fi
-
-if ! $SKIP_GENERATE; then
-  if [ -n "$SCHEMA_HASH" ]; then
-    info "Schema cambió (nuevo hash: ${SCHEMA_HASH:0:8}...) — generando cliente Prisma..."
+if [ -d "$PREGEN_DIR" ] && [ -f "$PREGEN_DIR/index.js" ]; then
+  info "Instalando Prisma Client pre-generado desde repo..."
+  # Limpiar cualquier cliente corrupto de generates fallidos previos
+  rm -rf "$PRISMA_CLIENT_DIR"
+  # Copiar cliente pre-generado
+  cp -r "$PREGEN_DIR" "$PRISMA_CLIENT_DIR"
+  chmod +x "$PRISMA_CLIENT_DIR"/*.so.node 2>/dev/null || true
+  if [ -f "$PRISMA_CLIENT_INDEX" ]; then
+    ok "Prisma Client instalado desde pre-generated (debian + rhel binaries)"
+    deploy_log "INFO" "Prisma Client instalado desde pre-generated repo"
   else
-    info "Generando cliente Prisma (primera vez o hash no disponible)..."
-  fi
-  deploy_log "INFO" "Ejecutando prisma generate (schema cambió)"
-
-  # LIMPIAR .prisma/client antes de generar.
-  # Generates fallidos anteriores dejan archivos corruptos/parciales
-  # que hacen que el próximo generate se cuelgue (evidencia: 3 timeouts
-  # consecutivos con 1159MB libres y @prisma/engines presente).
-  if [ -d "$APP_DIR/node_modules/.prisma/client" ]; then
-    warn "Limpiando .prisma/client corrupto de generates fallidos anteriores..."
-    rm -rf "$APP_DIR/node_modules/.prisma/client"
-  fi
-
-  # Timeout de seguridad (300s) — solo se alcanza si algo falla.
-  # Con PM2 detenido + binario local + @prisma/engines presente +
-  # .prisma/client limpio, generate debería completar en segundos.
-  if timeout 300 "$PRISMA_BIN" generate 2>&1; then
-    ok "Prisma generate exitoso"
-    deploy_log "INFO" "Prisma generate exitoso"
-    # Guardar hash para futuras comparaciones
-    if [ -n "$SCHEMA_HASH" ]; then
-      echo "$SCHEMA_HASH" > "$SCHEMA_HASH_FILE"
-    fi
-  else
-    GEN_EXIT=$?
-    if [ "$GEN_EXIT" -eq 124 ]; then
-      err "prisma generate TIMED OUT después de 300s — posible OOM o problema de sistema"
-      deploy_log "ERROR" "prisma generate timed out (300s) — posible OOM"
-    else
-      err "prisma generate falló (exit code: ${GEN_EXIT})"
-      deploy_log "ERROR" "prisma generate falló (exit code: ${GEN_EXIT})"
-    fi
-
-    # Diagnóstico: verificar qué falló
-    echo ""
-    warn "── Diagnóstico de prisma generate ──"
-    if [ ! -d "$PRISMA_ENGINES_DIR" ]; then
-      err "@prisma/engines NO existe — binarios del engine no disponibles"
-    else
-      ok "@prisma/engines existe"
-    fi
-    if [ ! -f "$GENERATED_CLIENT" ]; then
-      err "node_modules/.prisma/client/index.js NO existe — cliente no generado"
-    else
-      warn "node_modules/.prisma/client/index.js existe (puede estar corrupto/incompleto)"
-    fi
-
-    perform_rollback "$BACKUP_TAG" "prisma generate failed"
-    deploy_log_result "FAILED" "prisma generate failed (exit: ${GEN_EXIT})"
+    err "Fallo al instalar Prisma Client pre-generado — index.js no encontrado"
+    deploy_log "ERROR" "Prisma Client pre-generated index.js no encontrado después de copiar"
+    perform_rollback "$BACKUP_TAG" "pre-generated prisma client install failed"
+    deploy_log_result "FAILED" "pre-generated prisma client install failed"
     exit 1
   fi
+else
+  err "prisma/generated-client/ NO encontrado en repo — commit faltante"
+  deploy_log "ERROR" "prisma/generated-client/ directorio no encontrado"
+  err "Ejecutar localmente: npx prisma generate && cp -r node_modules/.prisma/client prisma/generated-client"
+  perform_rollback "$BACKUP_TAG" "pre-generated prisma client missing from repo"
+  deploy_log_result "FAILED" "pre-generated prisma client missing from repo"
+  exit 1
 fi
 
 # ─── Sincronizar esquema Prisma con la BD ──────────────────
@@ -706,7 +661,7 @@ if $SKIP_BUILD; then
   warn "Saltando build (--skip-build)"
   deploy_log "INFO" "Build saltado (--skip-build)"
 else
-  # PM2 ya está detenido (se detuvo antes de prisma generate para liberar RAM)
+  # PM2 ya está detenido (se detuvo antes para liberar RAM)
   AVAILABLE_MEM=$(free -m | awk '/Mem:/ {print $7}')
   info "RAM disponible para build: ${AVAILABLE_MEM} MB"
 

@@ -12,7 +12,7 @@
     "db:seed": "tsx src/app/api/seed/route.ts",
     "start:worker": "npx tsx worker-service.ts",
     "start:scheduler": "npx tsx scheduler-service.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "echo 'postinstall: prisma generate skipped (using pre-generated client from repo)'"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",

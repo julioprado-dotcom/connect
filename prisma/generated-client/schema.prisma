@@ -1,0 +1,827 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  User              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+/**
+ * ──── Feedback del admin al sistema de IA ────
+ */
+model AdminFeedback {
+  id                  String   @id
+  tipo                String
+  instruccionOriginal String
+  resultado           String   @default("parcial")
+  accionEjecutada     String   @default("")
+  detalle             String   @default("")
+  productoAfectado    String?
+  sugerenciaGenerada  Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @default(now())
+
+  @@index([tipo])
+  @@index([createdAt])
+  @@index([resultado])
+}
+
+/**
+ * ──── Aprendizaje del sistema (auto-optimización) ────
+ */
+model AprendizajeSistema {
+  id               String    @id
+  modulo           String
+  /**
+   * módulos: "estrategia_captura" | "descubrimiento_keywords"
+   */
+  medioId          String?
+  ejeTematicoId    String?
+  personaId        String?
+  keywordPropuesta String?
+  actorPropuesto   String?
+  tipoDato         String    @default("")
+  datoActual       String    @default("")
+  datoOptimo       String    @default("")
+  confianza        Float     @default(0)
+  impacto          String    @default("")
+  estado           String    @default("pendiente")
+  /**
+   * estados: pendiente | aplicada | descartada | en_revision
+   */
+  aplicadaEn       DateTime?
+  origen           String    @default("sistema")
+  /**
+   * origen: sistema | admin | ia
+   */
+  metadata         String    @default("{}")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now())
+
+  @@index([modulo])
+  @@index([estado])
+  @@index([medioId])
+  @@index([ejeTematicoId])
+  @@index([personaId])
+  @@index([createdAt])
+  @@index([modulo, estado])
+}
+
+model CapturaLog {
+  id                   String   @id
+  fecha                DateTime @default(now())
+  medioId              String
+  nivel                String   @default("1")
+  totalArticulos       Int      @default(0)
+  mencionesEncontradas Int      @default(0)
+  exitosa              Boolean  @default(false)
+  errores              String   @default("")
+  Medio                Medio    @relation(fields: [medioId], references: [id], onDelete: Cascade)
+
+  @@index([medioId])
+  @@index([fecha])
+}
+
+model Cliente {
+  id                   String                 @id
+  nombre               String
+  nombreContacto       String                 @default("")
+  email                String
+  telefono             String                 @default("")
+  whatsapp             String                 @default("")
+  organizacion         String                 @default("")
+  segmento             String                 @default("otro")
+  plan                 String                 @default("basico")
+  estado               String                 @default("activo")
+  parlamentarios       String                 @default("")
+  ejesContratados      String                 @default("")
+  notas                String                 @default("")
+  ci                   String                 @default("")
+  razonSocial          String                 @default("")
+  nit                  String                 @default("")
+  fechaCreacion        DateTime               @default(now())
+  fechaActualizacion   DateTime
+  Contrato             Contrato[]
+  eje_tematico_cliente eje_tematico_cliente[]
+}
+
+model Comentario {
+  id              String    @id
+  mencionId       String
+  autor           String    @default("")
+  texto           String
+  sentimiento     String    @default("no_clasificado")
+  fechaComentario DateTime?
+  fechaCaptura    DateTime  @default(now())
+  Mencion         Mencion   @relation(fields: [mencionId], references: [id], onDelete: Cascade)
+}
+
+model Contrato {
+  id                 String    @id
+  clienteId          String
+  tipoProducto       String
+  mediosAsignados    String    @default("")
+  ejesTematicos      String    @default("")
+  parlamentarios     String    @default("")
+  frecuencia         String    @default("diario")
+  formatoEntrega     String    @default("whatsapp")
+  fechaInicio        DateTime
+  fechaFin           DateTime?
+  montoMensual       Float     @default(0)
+  moneda             String    @default("Bs")
+  estado             String    @default("activo")
+  notas              String    @default("")
+  fechaCreacion      DateTime  @default(now())
+  fechaActualizacion DateTime
+  Cliente            Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  Entrega            Entrega[]
+
+  @@index([estado])
+  @@index([estado, tipoProducto])
+  @@index([estado, fechaFin])
+}
+
+model EjeTematico {
+  id                String        @id
+  parentId          String?
+  nombre            String
+  slug              String        @unique
+  icono             String        @default("")
+  color             String        @default("")
+  descripcion       String        @default("")
+  keywords          String        @default("")
+  dimension         String        @default("")
+  activo            Boolean       @default(true)
+  orden             Int           @default(0)
+  tipo              String        @default("legacy")
+  EjeTematico       EjeTematico?  @relation("EjeTematicoToEjeTematico", fields: [parentId], references: [id], onDelete: Cascade)
+  other_EjeTematico EjeTematico[] @relation("EjeTematicoToEjeTematico")
+  Keyword           Keyword[]
+  Mencion           Mencion[]
+  MencionTema       MencionTema[]
+
+  @@index([activo])
+  @@index([tipo, activo])
+  @@index([parentId])
+}
+
+model Entrega {
+  id              String    @id
+  contratoId      String
+  tipoBoletin     String
+  contenido       String    @default("")
+  fechaProgramada DateTime?
+  fechaEnvio      DateTime?
+  estado          String    @default("pendiente")
+  canal           String    @default("whatsapp")
+  destinatarios   String    @default("[]")
+  error           String?
+  fechaCreacion   DateTime  @default(now())
+  Contrato        Contrato  @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+
+  @@index([contratoId])
+  @@index([tipoBoletin])
+  @@index([estado])
+  @@index([fechaEnvio])
+  @@index([estado, fechaEnvio])
+  @@index([estado, fechaCreacion])
+  @@index([estado, fechaProgramada])
+  @@index([contratoId, canal, estado])
+}
+
+model EnvioReporte {
+  id               String           @id
+  reporteId        String
+  canal            String
+  destinatario     String
+  estado           String           @default("pendiente")
+  enviadoEn        DateTime?
+  error            String?
+  ReporteSectorial ReporteSectorial @relation(fields: [reporteId], references: [id], onDelete: Cascade)
+
+  @@index([reporteId])
+}
+
+model FuenteEstado {
+  id                 String           @id
+  medioId            String           @unique
+  url                String
+  tipoCheck          String           @default("head")
+  etag               String           @default("")
+  lastModified       String           @default("")
+  fingerprint        String           @default("")
+  ultimoValor        String           @default("")
+  ultimosIds         String           @default("[]")
+  homepageHtml       String           @default("")
+  ultimoCheck        DateTime?
+  ultimoCambio       DateTime?
+  totalChecks        Int              @default(0)
+  totalCambios       Int              @default(0)
+  checksSinCambio    Int              @default(0)
+  horasPublicacion   String           @default("[]")
+  horariosOptimos    String           @default("[]")
+  frecuenciaBase     String           @default("6h")
+  frecuenciaActual   String           @default("6h")
+  activo             Boolean          @default(false)
+  fallosConsecutivos Int              @default(0)
+  error              String           @default("")
+  responseTime       Int              @default(0)
+  estado             String           @default("creada")
+  capaActual         Int              @default(0)
+  ultimoCheckOk      DateTime?
+  ultimoHeadline     DateTime?
+  ultimoTexto        DateTime?
+  ultimoMencion      DateTime?
+  totalHeadlines     Int              @default(0)
+  totalTexto         Int              @default(0)
+  totalMenciones     Int              @default(0)
+  strategyValid      String           @default("")
+  strategyScrape     String           @default("")
+  Medio              Medio            @relation(fields: [medioId], references: [id], onDelete: Cascade)
+  ErrorLogs          FuenteErrorLog[]
+
+  @@index([medioId])
+  @@index([ultimoCheck])
+  @@index([activo])
+  @@index([estado])
+  @@index([activo, checksSinCambio])
+}
+
+model Indicador {
+  id                  String                @id
+  nombre              String
+  slug                String                @unique
+  categoria           String
+  tipo                String                @default("cuantitativo")
+  fuente              String
+  url                 String                @default("")
+  periodicidad        String                @default("diaria")
+  unidad              String                @default("")
+  formatoNumero       Int                   @default(2)
+  activo              Boolean               @default(true)
+  orden               Int                   @default(0)
+  ejesTematicos       String                @default("")
+  tier                Int                   @default(1)
+  notas               String                @default("")
+  metodologia         String                @default("")
+  variables           String                @default("[]")
+  escalaMin           Float                 @default(0)
+  escalaMax           Float                 @default(10)
+  fechaCreacion       DateTime              @default(now())
+  fechaActualizacion  DateTime
+  IndicadorEvaluacion IndicadorEvaluacion[]
+  IndicadorValor      IndicadorValor[]
+}
+
+model IndicadorEvaluacion {
+  id              String    @id
+  indicadorId     String
+  fechaEvaluacion DateTime  @default(now())
+  valorCompuesto  Float
+  valorTexto      String    @default("")
+  escalaNivel     String    @default("")
+  puntuaciones    String    @default("{}")
+  observaciones   String    @default("")
+  fuentes         String    @default("[]")
+  evaluador       String    @default("sistema")
+  confiable       Boolean   @default(true)
+  fechaCreacion   DateTime  @default(now())
+  Indicador       Indicador @relation(fields: [indicadorId], references: [id], onDelete: Cascade)
+
+  @@index([indicadorId, fechaEvaluacion])
+  @@index([escalaNivel])
+}
+
+model IndicadorValor {
+  id           String    @id
+  indicadorId  String
+  fecha        DateTime
+  valor        Float
+  valorTexto   String    @default("")
+  confiable    Boolean   @default(true)
+  fechaCaptura DateTime  @default(now())
+  metadata     String    @default("")
+  Indicador    Indicador @relation(fields: [indicadorId], references: [id], onDelete: Cascade)
+
+  @@index([indicadorId, fecha])
+}
+
+model Job {
+  id               String    @id
+  tipo             String
+  prioridad        Int       @default(5)
+  estado           String    @default("pendiente")
+  payload          String    @default("{}")
+  resultado        String    @default("")
+  error            String    @default("")
+  intentos         Int       @default(0)
+  maxIntentos      Int       @default(3)
+  fechaCreacion    DateTime  @default(now())
+  fechaInicio      DateTime?
+  fechaFin         DateTime?
+  proximaEjecucion DateTime?
+  programa         String    @default("")
+
+  @@index([estado, prioridad])
+  @@index([tipo])
+  @@index([fechaCreacion])
+  @@index([estado, tipo])
+  @@index([tipo, estado])
+  @@index([estado, fechaFin])
+  @@index([estado, fechaInicio])
+  @@index([estado, fechaCreacion])
+  @@index([estado, proximaEjecucion])
+}
+
+model Keyword {
+  id          String       @id
+  termino     String
+  lenteId     String?
+  ejeId       String?
+  activo      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime
+  Lente       Lente?       @relation(fields: [lenteId], references: [id], onDelete: Cascade)
+  EjeTematico EjeTematico? @relation(fields: [ejeId], references: [id], onDelete: Cascade)
+}
+
+model Lente {
+  id           String         @id
+  nombre       String
+  slug         String         @unique
+  descripcion  String         @default("")
+  activo       Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime
+  Keyword      Keyword[]
+  MencionLente MencionLente[]
+}
+
+model Medio {
+  id                   String           @id
+  nombre               String
+  url                  String           @default("")
+  tipo                 String
+  categoria            String           @default("corporativo")
+  nivel                String           @default("1")
+  departamento         String?
+  plataformas          String           @default("")
+  notas                String           @default("")
+  pais                 String           @default("Bolivia")
+  activo               Boolean          @default(true)
+  fechaCreacion        DateTime         @default(now())
+  frecuenciaOverride   String           @default("")
+  naturaleza           String           @default("PRIVADO")
+  ambito               String           @default("NACIONAL")
+  enfoque              String           @default("GENERALISTA")
+  credibilidad         Int              @default(50)
+  ultimaRevisionHumana DateTime?
+  ultimoError          String           @default("")
+  pesoInformativo      Float            @default(0)
+  CapturaLog           CapturaLog[]
+  FuenteEstado         FuenteEstado?
+  Mencion              Mencion[]
+  RechazoCaptura       RechazoCaptura[]
+  UsoIA                UsoIA[]
+  NotaRaw              NotaRaw[]
+  ErrorLogs            FuenteErrorLog[]
+
+  @@index([categoria])
+  @@index([nivel])
+  @@index([activo])
+  @@index([nombre])
+  @@index([url])
+}
+
+model Mencion {
+  id                      String                @id
+  personaId               String?
+  medioId                 String
+  titulo                  String
+  texto                   String                @default("")
+  url                     String                @default("")
+  fechaPublicacion        DateTime?
+  fechaCaptura            DateTime              @default(now())
+  tipoMencion             String                @default("mencion_pasiva")
+  temas                   String                @default("")
+  reach                   Int                   @default(0)
+  verificado              Boolean               @default(false)
+  fechaCreacion           DateTime              @default(now())
+  enlaceActivo            Boolean               @default(true)
+  fechaVerificacion       DateTime?
+  textoCompleto           String                @default("")
+  comentariosCount        Int                   @default(0)
+  comentariosResumen      String                @default("")
+  sentimiento             String                @default("no_clasificado")
+  tratamientoPeriodistico String?
+  confianzaClasificacion  String?
+  preguntasFundamentales  Json?
+  esDuplicado             Boolean               @default(false)
+  mencionOriginalId       String?
+  mediosRelacionados      String?
+  eventoId                String?
+  coberturasAdicionales   String?
+  deduplicacionLog        String?
+  intencionMedio          String?
+  ejeEstructuralId        String?
+  evidenciaHtmlRuta       String?               @default("")
+  evidenciaPngRuta        String?               @default("")
+  evidenciaHashSha256     String?               @default("")
+  evidenciaTimestamp      DateTime?
+  evidenciaUrlOriginal    String?               @default("")
+  evidenciaTamanoBytes    Int?                  @default(0)
+  Comentario              Comentario[]
+  Persona                 Persona?              @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  Medio                   Medio                 @relation(fields: [medioId], references: [id], onDelete: Cascade)
+  EjeTematico             EjeTematico?          @relation(fields: [ejeEstructuralId], references: [id], onDelete: SetNull)
+  MencionLente            MencionLente[]
+  MencionTema             MencionTema[]
+  mencion_cliente_eje     mencion_cliente_eje[]
+
+  @@index([ejeEstructuralId])
+  @@index([medioId])
+  @@index([fechaCaptura])
+  @@index([personaId])
+  @@index([sentimiento])
+  @@index([fechaPublicacion])
+  @@index([personaId, medioId, url])
+  @@index([medioId, url])
+  @@index([personaId, fechaCaptura])
+  @@index([medioId, fechaCaptura])
+  @@index([enlaceActivo])
+}
+
+model MencionLente {
+  id        String   @id
+  mencionId String
+  lenteId   String
+  createdAt DateTime @default(now())
+  Mencion   Mencion  @relation(fields: [mencionId], references: [id], onDelete: Cascade)
+  Lente     Lente    @relation(fields: [lenteId], references: [id], onDelete: Cascade)
+
+  @@unique([mencionId, lenteId])
+}
+
+model MencionTema {
+  id            String      @id
+  mencionId     String
+  ejeTematicoId String
+  Mencion       Mencion     @relation(fields: [mencionId], references: [id], onDelete: Cascade)
+  EjeTematico   EjeTematico @relation(fields: [ejeTematicoId], references: [id], onDelete: Cascade)
+
+  @@unique([mencionId, ejeTematicoId])
+  @@index([ejeTematicoId])
+}
+
+model Persona {
+  id                 String    @id
+  nombre             String
+  camara             String
+  departamento       String
+  partido            String
+  partidoSigla       String
+  tipo               String
+  cargoDirectiva     String?
+  email              String?
+  fotoUrl            String    @default("")
+  activa             Boolean   @default(true)
+  periodo            String    @default("2025-2030")
+  fechaCreacion      DateTime  @default(now())
+  fechaActualizacion DateTime
+  Mencion            Mencion[]
+  Reporte            Reporte[]
+
+  @@index([camara])
+  @@index([partidoSigla])
+  @@index([activa])
+  @@index([camara, activa])
+}
+
+model Reporte {
+  id                     String    @id
+  tipo                   String
+  personaId              String?
+  fechaInicio            DateTime
+  fechaFin               DateTime
+  resumen                String    @default("")
+  pdfUrl                 String    @default("")
+  enviado                Boolean   @default(false)
+  fechaEnvio             DateTime?
+  totalMenciones         Int       @default(0)
+  sentimientoPromedio    Float     @default(0)
+  temasPrincipales       String    @default("")
+  fechaCreacion          DateTime  @default(now())
+  totalComentarios       Int       @default(0)
+  sentimientoComentarios String    @default("")
+  enlacesRotos           Int       @default(0)
+  contenido              String    @default("")
+  clasificadores         String    @default("")
+  Persona                Persona?  @relation(fields: [personaId], references: [id], onDelete: SetNull)
+
+  @@index([fechaCreacion])
+  @@index([tipo, fechaCreacion])
+  @@index([tipo])
+  @@index([personaId, fechaCreacion])
+}
+
+model ReporteEje {
+  id               String           @id
+  reporteId        String
+  ejeTematico      String
+  mencionCount     Int              @default(0)
+  tratamientoTop   String?
+  medioTop         String?
+  tendencia        String?
+  variacion        Int?
+  ReporteSectorial ReporteSectorial @relation(fields: [reporteId], references: [id], onDelete: Cascade)
+
+  @@index([reporteId])
+}
+
+model ReporteSectorial {
+  id               String         @id
+  sector           String
+  titulo           String
+  periodoInicio    DateTime
+  periodoFin       DateTime
+  includeManana    Boolean        @default(true)
+  resumenEjecutivo String?
+  contenido        String
+  contenidoHtml    String?
+  estado           String         @default("borrador")
+  mencionCount     Int            @default(0)
+  medioCount       Int            @default(0)
+  indiceExposicion Float?
+  creadoEn         DateTime       @default(now())
+  generadoEn       DateTime?
+  enviadoEn        DateTime?
+  EnvioReporte     EnvioReporte[]
+  ReporteEje       ReporteEje[]
+
+  @@index([sector, periodoInicio])
+  @@index([estado])
+}
+
+model Session {
+  id           String   @id
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SugerenciaInteligencia {
+  id            String    @id
+  tipo          String
+  datoPropuesto Json
+  confianza     Int       @default(0)
+  estado        String    @default("pendiente")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime
+  procesadaEn   DateTime?
+
+  @@index([createdAt])
+  @@index([tipo])
+  @@index([estado])
+}
+
+model SuscriptorGratuito {
+  id               String   @id
+  nombre           String   @default("")
+  email            String   @unique
+  whatsapp         String?
+  origen           String   @default("landing")
+  activo           Boolean  @default(true)
+  boletines        String   @default("[]")
+  canal            String   @default("email")
+  fechaSuscripcion DateTime @default(now())
+
+  @@index([email])
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  password      String?
+  role          String    @default("admin")
+  emailVerified DateTime?
+  image         String?
+  activo        Boolean   @default(true)
+  fechaCreacion DateTime  @default(now())
+  Account       Account[]
+  Session       Session[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model cambio_marco_conceptual {
+  id               Int              @id @default(autoincrement())
+  marcoId          Int
+  campo            String
+  valorAnterior    Json?
+  valorNuevo       Json?
+  razon            String?
+  creadoPor        String?
+  creadoEn         DateTime         @default(now())
+  marco_conceptual marco_conceptual @relation(fields: [marcoId], references: [id], onDelete: Cascade)
+}
+
+model eje_tematico_cliente {
+  id                  Int                   @id @default(autoincrement())
+  clienteId           String
+  nombre              String
+  descripcion         String?
+  keywords            String
+  activo              Boolean               @default(true)
+  creadoPor           String?
+  creadoEn            DateTime              @default(now())
+  editadoPor          String?
+  editadoEn           DateTime?
+  Cliente             Cliente               @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  mencion_cliente_eje mencion_cliente_eje[]
+}
+
+model marco_conceptual {
+  id                      Int                       @id @default(autoincrement())
+  version                 Int                       @default(1)
+  activa                  Boolean                   @default(true)
+  principios              Json
+  contextoInstitucional   Json
+  lineasEditoriales       Json
+  ejesInstitucionales     Json
+  escalaTratamiento       Json
+  reglasDesambiguacion    Json
+  criteriosRelevancia     Json
+  exclusionesEtica        Json
+  terminologiaPermitida   Json
+  terminologiaProhibida   Json
+  preguntasFundamentales  Json
+  parametros              Json
+  creadoPor               String                    @default("sistema")
+  creadoEn                DateTime                  @default(now())
+  editadoPor              String?
+  editadoEn               DateTime?
+  cambio_marco_conceptual cambio_marco_conceptual[]
+}
+
+model RechazoCaptura {
+  id           String   @id @default(uuid())
+  medioId      String
+  url          String   @default("")
+  titulo       String   @default("")
+  texto        String   @default("")
+  motivo       String
+  respuestaLLM String   @default("")
+  es_relevante String   @default("false")
+  tratamiento  String?
+  sentimiento  String?
+  confianza    String?
+  textoLen     Int      @default(0)
+  createdAt    DateTime @default(now())
+  Medio        Medio    @relation(fields: [medioId], references: [id], onDelete: Cascade)
+
+  @@index([medioId])
+  @@index([createdAt])
+  @@index([motivo])
+  @@index([url])
+  @@index([medioId, createdAt])
+}
+
+model mencion_cliente_eje {
+  id                   Int                  @id @default(autoincrement())
+  mencionId            String
+  ejeClienteId         Int
+  confianza            Float?
+  Mencion              Mencion              @relation(fields: [mencionId], references: [id], onDelete: Cascade)
+  eje_tematico_cliente eje_tematico_cliente @relation(fields: [ejeClienteId], references: [id], onDelete: Cascade)
+
+  @@unique([mencionId, ejeClienteId])
+}
+
+/**
+ * ──── Registro de uso de IA (tokens y costo) ────
+ */
+model UsoIA {
+  id               String   @id @default(uuid())
+  modelo           String   @default("glm-4.7-flash")
+  fuente           String // captura, clasificacion, deduplicacion, discovery, generacion, instruccion, signal, medio_analyze
+  promptTokens     Int      @default(0)
+  completionTokens Int      @default(0)
+  totalTokens      Int      @default(0)
+  costoUSD         Float    @default(0)
+  medioId          String?
+  mencionId        String?
+  detalles         String   @default("")
+  createdAt        DateTime @default(now())
+
+  Medio Medio? @relation(fields: [medioId], references: [id], onDelete: SetNull)
+
+  @@index([fuente])
+  @@index([modelo])
+  @@index([createdAt])
+  @@index([medioId])
+  @@index([fuente, createdAt])
+}
+
+/**
+ * ──── Notas pre-LLM: almacen intermedio para batch processing ────
+ * FASE 1 (scraping) escribe aquí. FASE 2 (batch LLM) lee y procesa.
+ * Evita ráfagas de LLM: scraping y clasificación están desacoplados.
+ */
+model NotaRaw {
+  id               String    @id @default(uuid())
+  medioId          String
+  fuenteId         String
+  url              String    @default("")
+  titulo           String    @default("")
+  lead             String    @default("")
+  texto            String    @default("")
+  puntajeTriaje    Int       @default(0)
+  razonTriaje      String    @default("")
+  procesada        Boolean   @default(false)
+  descartada       Boolean   @default(false)
+  mencionesCreadas Int       @default(0)
+  fechaCaptura     DateTime  @default(now())
+  fechaProcesada   DateTime?
+  Medio            Medio     @relation(fields: [medioId], references: [id], onDelete: Cascade)
+
+  @@unique([medioId, url])
+  @@index([medioId])
+  @@index([procesada])
+  @@index([procesada, fechaCaptura])
+  @@index([fuenteId])
+  @@index([fechaCaptura])
+}
+
+/**
+ * ──── Fuente Error Log: structured error history for fuente checks ────
+ */
+model FuenteErrorLog {
+  id           String   @id @default(uuid())
+  fuenteId     String
+  medioId      String
+  nivel        String   @default("1")
+  tipoError    String // tls_error, timeout, http_error, waf_blocked, parse_error, empty_response, connection_refused, dns_error, unknown
+  estrategia   String   @default("") // which check strategy failed (rss, head, fingerprint, api)
+  url          String   @default("")
+  statusCode   Int      @default(0)
+  mensaje      String   @default("") // human-readable error message
+  detalle      String   @default("") // full error/stack trace
+  responseTime Int      @default(0)
+  resuelto     Boolean  @default(false)
+  fecha        DateTime @default(now())
+
+  FuenteEstado FuenteEstado @relation(fields: [fuenteId], references: [id], onDelete: Cascade)
+  Medio        Medio        @relation(fields: [medioId], references: [id], onDelete: Cascade)
+
+  @@index([fuenteId])
+  @@index([medioId])
+  @@index([tipoError])
+  @@index([fecha])
+  @@index([resuelto])
+}
+
+/**
+ * ──── Auditoría: registro de decisiones automáticas y manuales ────
+ */
+model SystemLog {
+  id         String   @id @default(uuid())
+  modulo     String // scheduler, batch_llm, producto, admin, mantenimiento
+  accion     String // degradar_fuente, ajustar_horario, forzar_scrape, purge_notas, generar_producto
+  detalle    String   @default("")
+  automatica Boolean  @default(false)
+  datos      String   @default("{}") // JSON con contexto adicional
+  fecha      DateTime @default(now())
+
+  @@index([modulo])
+  @@index([accion])
+  @@index([fecha])
+  @@index([modulo, fecha])
+}
