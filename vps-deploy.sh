@@ -19,6 +19,18 @@
 
 set -euo pipefail
 
+# ─── Self-reexec: evitar que git reset --hard rompa la ejecución ──
+# El deploy script hace git reset --hard, lo cual reemplaza ESTE archivo
+# mientras bash lo está leyendo. Para evitar el crash, copiamos el script
+# a /tmp y lo ejecutamos desde ahí. En la siguiente ejecución ya estamos
+# en /tmp y no necesitamos re-ejecutar.
+if [ "$(realpath "$0" 2>/dev/null)" != "/tmp/decodex-deploy.sh" ]; then
+  cp "$0" /tmp/decodex-deploy.sh 2>/dev/null
+  chmod +x /tmp/decodex-deploy.sh 2>/dev/null
+  exec bash /tmp/decodex-deploy.sh "$@"
+fi
+trap "rm -f /tmp/decodex-deploy.sh" EXIT
+
 # ─── Configuración ─────────────────────────────────────────────
 APP_DIR="/root/decodex-app"
 MAX_OLD_SPACE="1024"       # MB máximo para el heap del build
