@@ -399,17 +399,19 @@ fi
 ok "Todos los pre-flight checks pasaron"
 echo ""
 
-# ─── Verificar memoria disponible ────────────────────────────
+# ─── Detener PM2 para liberar RAM ────────────────────────────
+# PREVENCIÓN: prisma generate y next build consumen mucha memoria.
+# En un VPS con ~900MB, 3 procesos PM2 (~200MB) dejan memoria
+# insuficiente para generate → se cuelga. Detener PM2 aquí
+# garantiza máxima RAM disponible para todas las operaciones.
 AVAILABLE_MEM=$(free -m | awk '/Mem:/ {print $7}')
-info "RAM disponible: ${AVAILABLE_MEM} MB"
+info "RAM disponible antes de detener PM2: ${AVAILABLE_MEM} MB"
 
-if [ "$AVAILABLE_MEM" -lt 300 ]; then
-  warn "RAM baja (${AVAILABLE_MEM} MB). Deteniendo PM2 para liberar recursos..."
-  pm2 stop all 2>/dev/null
-  sleep 2
-  AVAILABLE_MEM=$(free -m | awk '/Mem:/ {print $7}')
-  info "RAM después de detener PM2: ${AVAILABLE_MEM} MB"
-fi
+pm2 stop all 2>/dev/null || true
+sleep 2
+
+AVAILABLE_MEM=$(free -m | awk '/Mem:/ {print $7}')
+info "RAM disponible después de detener PM2: ${AVAILABLE_MEM} MB"
 
 # ═══════════════════════════════════════════════════════════════
 # ISSUE #4: GIT SYNC WITH ROLLBACK TAG
@@ -668,11 +670,7 @@ if $SKIP_BUILD; then
   warn "Saltando build (--skip-build)"
   deploy_log "INFO" "Build saltado (--skip-build)"
 else
-  # Detener PM2 para liberar RAM antes del build
-  info "Deteniendo PM2 para liberar RAM antes del build..."
-  pm2 stop all 2>/dev/null || true
-  sleep 2
-
+  # PM2 ya está detenido (se detuvo antes de prisma generate para liberar RAM)
   AVAILABLE_MEM=$(free -m | awk '/Mem:/ {print $7}')
   info "RAM disponible para build: ${AVAILABLE_MEM} MB"
 
