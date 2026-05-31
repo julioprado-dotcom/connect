@@ -924,19 +924,4 @@ echo "════════════════════════�
 deploy_log "INFO" "Deploy exitoso: ${BEFORE_COMMIT} → ${AFTER_COMMIT} (backup: ${BACKUP_TAG})"
 deploy_log_result "SUCCESS"
 
-# ─── Sync BD al repo (VPS → git) ─────────────────────────
-# La BD del VPS es la fuente de verdad. Subimos al repo para
-# tener backup en la nube y sincronizar con otros entornos.
-if [ -f "$DB_FILE" ]; then
-  info "Sincronizando BD al repo git..."
-  if git add "$DB_FILE" 2>/dev/null && \
-     git commit -m "db sync: $(date '+%Y-%m-%d %H:%M') — $(stat -c%s "$DB_FILE") bytes" 2>/dev/null && \
-     git push origin main 2>/dev/null; then
-    ok "BD sincronizada al repo"
-    deploy_log "INFO" "BD sincronizada al repo"
-  else
-    warn "No se pudo sincronizar BD al repo (sin cambios o error de push)"
-  fi
-fi
-
 exit 0
