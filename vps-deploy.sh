@@ -11,7 +11,7 @@
 # SEGURIDAD:
 #   - Pre-flight checks antes de tocar git
 #   - Backup tag antes de git reset --hard (rollback real)
-#   - Detiene PM2 ANTES del build (libera ~800MB RAM)
+#   - Detiene PM2 ANTES de prisma generate y build (libera ~200MB RAM)
 #   - Build con NODE_OPTIONS limitado (evita OOM)
 #   - Timeouts en todos los comandos que pueden colgar
 #   - Reinicia PM2 solo si el build fue exitoso
@@ -239,7 +239,10 @@ PREFLIGHT_ERRORS=""
 # Check 1: node_modules existe
 if [ ! -d "$APP_DIR/node_modules" ]; then
   warn "node_modules no encontrado. Intentando npm install..."
-  if npm install --production=false 2>&1 | tail -5; then
+  # --ignore-scripts: evitar postinstall (prisma generate) aquí.
+  # PM2 sigue corriendo en este punto → memoria insuficiente.
+  # Nuestro generate explícito corre después de detener PM2.
+  if npm install --production=false --ignore-scripts 2>&1 | tail -5; then
     ok "npm install completado exitosamente"
   else
     PREFLIGHT_OK=false
@@ -259,7 +262,9 @@ if [ -d "$PRISMA_ENGINES_DIR" ]; then
 else
   warn "@prisma/engines NO encontrado — prisma generate no funcionará sin él"
   warn "Instalando @prisma/engines..."
-  if npm install @prisma/engines --save-dev --no-audit --no-fund 2>&1 | tail -5; then
+  # --ignore-scripts: evitar postinstall (prisma generate) aquí.
+  # PM2 sigue corriendo → memoria insuficiente.
+  if npm install @prisma/engines --save-dev --no-audit --no-fund --ignore-scripts 2>&1 | tail -5; then
     if [ -d "$PRISMA_ENGINES_DIR" ]; then
       ok "@prisma/engines instalado correctamente"
     else
@@ -467,7 +472,9 @@ fi
 # Git reset could have changed package.json, making node_modules stale
 if [ ! -d "$APP_DIR/node_modules" ] || [ "$APP_DIR/package.json" -nt "$APP_DIR/node_modules/.package-lock.json" 2>/dev/null ]; then
   warn "Ejecutando npm install (node_modules stale o ausente después de git reset)..."
-  if timeout 180 npm install --production=false 2>&1 | tail -10; then
+  # --ignore-scripts: nuestro generate explícito con schema hash check
+  # se encarga de prisma generate más adelante.
+  if timeout 180 npm install --production=false --ignore-scripts 2>&1 | tail -10; then
     ok "npm install completado"
   else
     err "npm install falló"
@@ -543,10 +550,11 @@ if ! $SKIP_GENERATE; then
   fi
   deploy_log "INFO" "Ejecutando prisma generate (schema cambió)"
 
-  # SIN timeout — usar binario local directamente.
-  # El binario local no hace llamadas de red.
-  # Si @prisma/engines existe (verificado en pre-flight), generate completará.
-  if "$PRISMA_BIN" generate 2>&1; then
+  # Timeout de seguridad (300s) — solo se alcanza si algo falla.
+  # Con PM2 detenido + binario local + @prisma/engines presente,
+  # generate debería completar en segundos. Si no, hay un problema
+  # real (OOM, disco lleno, etc.) que needs diagnóstico.
+  if timeout 300 "$PRISMA_BIN" generate 2>&1; then
     ok "Prisma generate exitoso"
     deploy_log "INFO" "Prisma generate exitoso"
     # Guardar hash para futuras comparaciones
@@ -555,8 +563,13 @@ if ! $SKIP_GENERATE; then
     fi
   else
     GEN_EXIT=$?
-    err "prisma generate falló (exit code: ${GEN_EXIT})"
-    deploy_log "ERROR" "prisma generate falló (exit code: ${GEN_EXIT})"
+    if [ "$GEN_EXIT" -eq 124 ]; then
+      err "prisma generate TIMED OUT después de 300s — posible OOM o problema de sistema"
+      deploy_log "ERROR" "prisma generate timed out (300s) — posible OOM"
+    else
+      err "prisma generate falló (exit code: ${GEN_EXIT})"
+      deploy_log "ERROR" "prisma generate falló (exit code: ${GEN_EXIT})"
+    fi
 
     # Diagnóstico: verificar qué falló
     echo ""
