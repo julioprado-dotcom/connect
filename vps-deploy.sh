@@ -565,10 +565,18 @@ if ! $SKIP_GENERATE; then
   fi
   deploy_log "INFO" "Ejecutando prisma generate (schema cambió)"
 
+  # LIMPIAR .prisma/client antes de generar.
+  # Generates fallidos anteriores dejan archivos corruptos/parciales
+  # que hacen que el próximo generate se cuelgue (evidencia: 3 timeouts
+  # consecutivos con 1159MB libres y @prisma/engines presente).
+  if [ -d "$APP_DIR/node_modules/.prisma/client" ]; then
+    warn "Limpiando .prisma/client corrupto de generates fallidos anteriores..."
+    rm -rf "$APP_DIR/node_modules/.prisma/client"
+  fi
+
   # Timeout de seguridad (300s) — solo se alcanza si algo falla.
-  # Con PM2 detenido + binario local + @prisma/engines presente,
-  # generate debería completar en segundos. Si no, hay un problema
-  # real (OOM, disco lleno, etc.) que needs diagnóstico.
+  # Con PM2 detenido + binario local + @prisma/engines presente +
+  # .prisma/client limpio, generate debería completar en segundos.
   if timeout 300 "$PRISMA_BIN" generate 2>&1; then
     ok "Prisma generate exitoso"
     deploy_log "INFO" "Prisma generate exitoso"
