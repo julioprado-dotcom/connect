@@ -1,41 +1,23 @@
 ---
 Task ID: 1
-Agent: Main Auditor
-Task: Auditoría completa del sistema DECODEX Bolivia ONION200
+Agent: Super Z (main)
+Task: Investigación integral + fixes críticos del sistema DECODEX Bolivia ONION200
 
 Work Log:
-- Leída toda la documentación conceptual (6 archivos batch 1, 6 archivos batch 2)
-- Leídos 3 protocolos de producto + constants/products.ts
-- Leído schema.prisma completo (33 modelos) + 2 seed files
-- Leído worker, scheduler, queue, types, constants, index (8 archivos del job system)
-- Leídas 9 APIs del dashboard (summary, productos, status, fuentes, menciones, jobs, stats, etc.)
-- Leídos dashboard page, ProduccionView, CommandCenter, ResumenView
-- Leídos runners: generar-boletin, scrape-fuente-light, batch-llm
-- Leído vps-deploy.sh (CRÍTICO)
-- Leídos instrumentation.ts, middleware.ts, endpoints de entregas/contratos/clientes/distribución
+- Leí toda la documentación conceptual: CONTEXTO.md, DASHBOARD_DESIGN.md, PROTOCOLOS_PRODUCTO.md, SISTEMA_DE_JOBS.md, ARQUITECTURA_E_V2.md
+- Leí prisma/schema.prisma (30+ modelos), scheduler.ts, worker-service.ts, generar-boletin.ts
+- Leí dashboard components: ProduccionView.tsx, ResumenView.tsx
+- Leí APIs: indicadores-summary/route.ts, dashboard/productos/route.ts, productos/route.ts
+- Leí vps-deploy.sh, cron-builder.ts, constants.ts (BOLETINES_SCHEDULE)
+- VERIFICADO: Scheduler envía tipoBoletin correcto (EL_TERMOMETRO, etc.) — NO es bug
+- CONFIRMADO: vps-deploy.sh tiene `--accept-data-loss` que destruye datos
+- CONFIRMADO: No hay datos semilla (Cliente=0, Contrato=0)
+- CONFIRMADO: Dashboard API productos tiene catálogo desactualizado
 
 Stage Summary:
-- 33 modelos Prisma mapeados, 11 tipos de job, 12 productos ONION200
-- Encontradas 3 desconexiones críticas entre documentación y código
-- Identificada la causa raíz de la destrucción de datos (--accept-data-loss en deploy)
-- Mapeados 3 catálogos de productos inconsistentes
-- Identificados 10+ bugs en componentes del dashboard
-- Generando informe de auditoría completo
-
----
-Task ID: 6
-Agent: Main Auditor
-Task: Generar informe completo de auditoria en PDF
-
-Work Log:
-- Compilados todos los hallazgos de las 8 fases de auditoria
-- Generado script Python con ReportLab para PDF de 10 secciones
-- Generado palette de colores via pdf.py palette.generate
-- Corregidos problemas de fuentes (Tinos/Carlito no eran TTF reales, reemplazados por LiberationSerif/LiberationSans/DejaVuSans)
-- Generado PDF exitosamente: /home/z/my-project/download/AUDITORIA-COMPLETA-DECODEX-ONION200.pdf (125K)
-
-Stage Summary:
-- Informe de 10 secciones con TOC, 10 tablas de datos, 22 hallazgos documentados
-- 5 hallazgos criticos, 9 altos, 5 medios, 3 informativos
-- Plan de accion en 3 fases (Emergencia, Correccion, Estabilizacion)
-- PDF entregado en /home/z/my-project/download/
+- Fix 1 APLICADO: Eliminado --accept-data-loss de vps-deploy.sh línea 140
+- Fix 2 APLICADO: Creado prisma/seed-data.ts (1 Cliente + 12 Contratos)
+- Fix 3 APLICADO: Sincronizado catálogo en /api/dashboard/productos (12 productos reales)
+- Fix 4 APLICADO: Deploy script ahora ejecuta seed-data.ts automáticamente (paso 2c)
+- Commit: b4958a6, push a GitHub exitoso
+- DEPLOY PENDIENTE: No hay acceso SSH al VPS 8.219.207.43
