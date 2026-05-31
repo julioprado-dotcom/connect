@@ -64,3 +64,32 @@ Stage Summary:
 - **IMPORTANTE**: El VPS necesita ejecutar un bootstrap de una sola vez:
   1. Primero: `git rm --cached prisma/db/custom.db` (sacar del índice local)
   2. Después: `bash vps-deploy.sh` (ahora es seguro)
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Analizar problema "Paz es el Presidente" - clasificacion de nombres parciales + commit CAPTURA integration
+
+Work Log:
+- Analice la imagen del dashboard: mencion "Paz convoca al dialogo..." mostraba "Sin clasificar"
+- Investigue el pipeline completo: keyword-triaje → batch-llm → extractor-menciones → LLM
+- Identifique 3 causas raiz del problema:
+  1. cargoDirectiva NO se incluia en la lista enviada al LLM (solo: nombre, partido, camara)
+  2. El prompt no instruye al LLM a hacer matching parcial de nombres
+  3. El fuzzy matching en extractor-menciones.ts solo buscaba nombres completos
+- Investigue la base de datos: 5 legisladores con "Paz" en su nombre, ninguno con cargoDirectiva
+- Solo 1 legislador tiene cargoDirectiva "Presidente" (Diego Avila Navajas, Senado)
+- Implemente 3 fixes:
+  1. extractor-menciones.cache.ts: agregar cargoDirectiva al select de personas
+  2. extractor-menciones.ts: incluir cargoDirectiva en la lista del LLM + matching parcial
+  3. extractor-menciones.prompt.ts: reglas de MATCHING PARCIAL y CONTEXTO DE CARGO
+- Los archivos previamente modificados (CAPTURA integration) tambien se incluyeron
+- Cree branch: fix/captura-integration-clasificacion-nombres
+- Commit: 96ed919 con mensaje detallado
+- Push fallido: sin credenciales GitHub desde este entorno
+
+Stage Summary:
+- Branch creado localmente: fix/captura-integration-clasificacion-nombres (commit 96ed919)
+- 5 archivos modificados: capture/route.ts, CapturaView.tsx, extractor-menciones.cache.ts, extractor-menciones.prompt.ts, extractor-menciones.ts
+- Push pendiente: necesita ejecutarse desde VPS con credenciales GitHub
+- El fix para "Paz=Presidente" opera a nivel del LLM: el prompt ahora le indica hacer matching parcial y usar cargoDirectiva para confirmar
