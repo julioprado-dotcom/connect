@@ -36,8 +36,9 @@ function workerFromHeartbeat(hb: { online: boolean; data: Record<string, unknown
   const hours = Math.floor(uptime / 3600)
   const minutes = Math.floor((uptime % 3600) / 60)
   const seconds = uptime % 60
+  const totalJobs = ((hb.data.jobsCompleted as number) ?? 0) + ((hb.data.jobsFailed as number) ?? 0)
   const jobsPerHour = uptime > 0
-    ? Math.round((((hb.data.jobsCompleted as number) ?? 0) + ((hb.data.jobsFailed as number) ?? 0)) / uptime) * 3600)
+    ? Math.round((totalJobs / uptime) * 3600)
     : 0
 
   return {
