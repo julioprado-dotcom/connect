@@ -42,3 +42,25 @@ Stage Summary:
 - Products: On-demand generation API for admin audit/verification
 - 7 files changed, 1108 insertions, 43 deletions
 - Commit: 39ec284 pushed to main
+---
+Task ID: 1-3
+Agent: main
+Task: Sacar custom.db de git permanentemente + limpiar deploy script + unificar rutas
+
+Work Log:
+- Investigado estado actual: custom.db está trackeada en git (10MB), no está en .gitignore
+- .gitignore actualizado: agregado `prisma/db/custom.db` y `prisma/db/backups/`
+- `git rm --cached prisma/db/custom.db` — sacada del índice, archivo sigue en disco
+- `git rm --cached -r prisma/db/backups/` — backups también sacados
+- vps-deploy.sh: eliminados todos los hacks de skip-worktree (3 bloques: pre-reset, post-reset, sync-to-repo)
+- vps-deploy.sh: eliminado sync de BD al repo (ya no tiene sentido si no está trackeada)
+- db.ts: actualizado comentario de "DB trackeada en git" a "BD fuente de verdad, en .gitignore"
+- Commit d741e92 push a GitHub
+
+Stage Summary:
+- La BD ya NO viaja en git. `git pull` / `git reset --hard` jamás la tocan.
+- El deploy script quedó limpio: sin hacks, sin skip-worktree, sin sync al repo.
+- Se necesita hacer un deploy completo en el VPS para que los fixes de código entrén en producción.
+- **IMPORTANTE**: El VPS necesita ejecutar un bootstrap de una sola vez:
+  1. Primero: `git rm --cached prisma/db/custom.db` (sacar del índice local)
+  2. Después: `bash vps-deploy.sh` (ahora es seguro)
