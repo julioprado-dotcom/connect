@@ -143,7 +143,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
         }
 
         if (contratos.length > 0) {
-          console.log(`[generar_boletin] ${entregasEnqueued} entregas encoladas (${contratos.length} contratos activos)`)
+          console.log(`[generar_boletin] ${tipoBoletin}: ${entregasEnqueued} entregas encoladas (${contratos.length} contratos activos)`)
         }
       } catch (err) {
         console.warn(`[generar_boletin] Error buscando contratos para distribución:`, err)
