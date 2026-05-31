@@ -436,24 +436,10 @@ if [ -f "$APP_DIR/.env" ]; then
   info "Backup de .env creado"
 fi
 
-# ─── Proteger BD: skip-worktree evita que git reset la sobrescriba ──
-# La BD del VPS es la fuente de verdad. --skip-worktree le dice a git
-# que ignore este archivo localmente (no lo toca en checkout/reset).
-DB_FILE="$APP_DIR/prisma/db/custom.db"
-if [ -f "$DB_FILE" ]; then
-  git update-index --skip-worktree "$DB_FILE" 2>/dev/null || true
-  DB_SIZE=$(stat -c%s "$DB_FILE" 2>/dev/null || echo "0")
-  info "BD protegida con skip-worktree (${DB_SIZE} bytes)"
-else
-  warn "BD no encontrada en $DB_FILE"
-fi
-
 # ─── Git Sync (fetch + reset --hard) ──────────────────────
-# CRÍTICO: Usamos fetch + reset --hard en vez de git pull.
-# git pull puede fallar silenciosamente si hay cambios locales
-# (build residuos, archivos temporales), dejando código viejo.
+# La BD (prisma/db/custom.db) está en .gitignore → git nunca la toca.
+# .env se respalda/restaura antes/después del reset.
 # reset --hard GARANTIZA que el VPS queda idéntico al repo.
-# La BD está protegida con --skip-worktree → NO se sobrescribe.
 info "Syncing with origin/main (fetch + reset --hard)..."
 if git fetch origin main 2>&1 && git reset --hard origin/main 2>&1; then
   AFTER_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -477,12 +463,6 @@ if [ -n "$ENV_BACKUP" ] && [ -f "$ENV_BACKUP" ]; then
   cp "$ENV_BACKUP" "$APP_DIR/.env"
   ok ".env restaurado desde backup"
   rm -f "$ENV_BACKUP"
-fi
-
-# ─── Re-aplicar skip-worktree después de git reset ──────────
-if [ -f "$DB_FILE" ]; then
-  git update-index --skip-worktree "$DB_FILE" 2>/dev/null || true
-  ok "BD protegida (skip-worktree activo)"
 fi
 
 # ─── Asegurar AUTH_SECRET existe (previene MissingSecret) ──
@@ -920,24 +900,5 @@ echo "════════════════════════�
 
 deploy_log "INFO" "Deploy exitoso: ${BEFORE_COMMIT} → ${AFTER_COMMIT} (backup: ${BACKUP_TAG})"
 deploy_log_result "SUCCESS"
-
-# ─── Sync BD al repo (VPS → git) — doble respaldo ──────────
-# La BD del VPS es la fuente de verdad. Subimos al repo para
-# tener backup en la nube. Se desactiva skip-worktree temporalmente.
-if [ -f "$DB_FILE" ]; then
-  info "Sincronizando BD al repo (doble respaldo)..."
-  # Desactivar skip-worktree para poder commitear la BD
-  git update-index --no-skip-worktree "$DB_FILE" 2>/dev/null || true
-  if git add "$DB_FILE" 2>/dev/null && \
-     git commit -m "db sync: $(date '+%Y-%m-%d %H:%M') — $(stat -c%s "$DB_FILE") bytes" 2>/dev/null && \
-     git push origin main 2>/dev/null; then
-    ok "BD sincronizada al repo (doble respaldo)"
-    deploy_log "INFO" "BD sincronizada al repo"
-  else
-    warn "No se pudo sincronizar BD al repo (sin cambios o error de push)"
-  fi
-  # Re-aplicar skip-worktree para proteger la BD local
-  git update-index --skip-worktree "$DB_FILE" 2>/dev/null || true
-fi
 
 exit 0

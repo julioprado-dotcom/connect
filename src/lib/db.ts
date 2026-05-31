@@ -4,10 +4,11 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// ─── Persistencia: DB trackeada en git ────────────────────────────
-// Forzar la ruta canónica de la DB (prisma/db/custom.db) que viaja
-// con el repo. Sin esto, el sandbox inyecta DATABASE_URL apuntando
-// a /db/ que se pierde al destruir el sandbox.
+// ─── Ruta canónica de la BD ────────────────────────────────────
+// La BD del VPS (prisma/db/custom.db) es la fuente de verdad.
+// Está en .gitignore — git nunca la toca.
+// db.ts es el SINGLE SOURCE OF TRUTH para la ruta de la BD.
+// Todos los scripts y el runtime usan esta misma ruta absoluta.
 const PROJECT_ROOT = process.cwd();
 const CANONICAL_DB_PATH = PROJECT_ROOT + '/prisma/db/custom.db';
 // Sobrescribir process.env para que PrismaClient use la ruta correcta

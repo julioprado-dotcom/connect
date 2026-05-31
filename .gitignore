@@ -9,9 +9,13 @@ download/productos/*
 !download/MANIFIESTO-INSTALACION-VPS.md
 node_modules/
 
-# Database backups — tracked in git for disaster recovery
-# Only *.db files in prisma/db/backups/ are tracked (source of truth)
-# To exclude from git locally (without affecting team): git update-index --assume-unchanged prisma/db/backups/*.db
+# ─── Base de datos (NUNCA trackear) ──────────────────────────
+# La BD del VPS es la fuente de verdad. Jamás viaja en git.
+# Si custom.db estuviera trackeada, cada git pull/reset
+# sobrescribiría la BD del VPS con la del repo, perdiendo datos.
+# Los backups automáticos se guardan en prisma/db/backups/ (ignorados).
+prisma/db/custom.db
+prisma/db/backups/
 
 # Legacy/conflicting databases — DO NOT track
 backups/*.db
