@@ -162,8 +162,9 @@ export const GUARDIAN_CONFIG = {
   maxSnapshots: 20,           // historial de lecturas
   trendWindowMinutes: 5,      // ventana para calcular tendencia
   // Backup diferencial por dominio
-  backupConfigIntervalHours: 24,    // CONFIG backup cada 24 horas
-  backupOperacionalIntervalHours: 168, // OPERACIONAL backup cada 7 días
+  backupConfigIntervalHours: 6,     // CONFIG backup cada 6 horas
+  backupOperacionalIntervalHours: 6,  // OPERACIONAL backup cada 6 horas
+  backupCheckIntervalTicks: 720,     // verificar si toca backup cada 720 ticks (~6h a 30s/tick)
 }
 
 // ── Configuracion de Health Monitor ────────────────────────────────────

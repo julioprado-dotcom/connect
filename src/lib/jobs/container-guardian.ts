@@ -199,8 +199,8 @@ async function tick(): Promise<void> {
   status.trendMB = trend.trendMB
   status.trendPctPerHour = trend.trendPctPerHour
 
-  // ── Backup diferencial por dominio (solo en stable, cada ~10 ticks = ~5 min) ─
-  if (level === 'stable' && snapshots.length % 10 === 0) {
+  // ── Backup diferencial por dominio (solo en stable, cada ~6 horas) ─
+  if (level === 'stable' && snapshots.length % GUARDIAN_CONFIG.backupCheckIntervalTicks === 0) {
     try {
       const { shouldBackupDomain, createDomainBackup } = require('@/lib/backup') as {
         shouldBackupDomain: (d: 'config' | 'operacional', h: number) => Promise<boolean>,
