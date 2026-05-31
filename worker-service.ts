@@ -167,6 +167,15 @@ async function main(): Promise<void> {
     console.error('[Worker-Service] Error en reclaim inicial:', err);
   }
 
+  // Iniciar container guardian (backups periódicos: config 24h, operacional 7d)
+  try {
+    const { startContainerGuardian } = await import('./src/lib/jobs/container-guardian');
+    startContainerGuardian();
+    console.log('[Worker-Service] Container Guardian iniciado (backups config/24h, operacional/7d)');
+  } catch (err) {
+    console.error('[Worker-Service] Error iniciando container guardian:', err);
+  }
+
   // Limpiar jobs residuales del pipeline viejo (scrape_fuente) que bloquean la cola
   try {
     const deleted = await db.job.deleteMany({
