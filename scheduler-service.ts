@@ -100,6 +100,7 @@ async function scheduleCheckJobs(): Promise<number> {
 
   let scheduledCount = 0;
   let omitidas = 0;
+  let probes = 0;
 
   for (const fuente of fuentes) {
     try {
@@ -114,6 +115,15 @@ async function scheduleCheckJobs(): Promise<number> {
       });
 
       if (capa < 1) {
+        // ── PROBE CHECK: dar UNA oportunidad a fuentes degradadas ──
+        // Sin esto, una fuente en capa 0 queda excluida para siempre:
+        // sin check → sin ultimoCheckOk → capa 0 → sin check (deadlock).
+        // El probe es un solo check de prioridad baja (P5=9).
+        // Si tiene éxito, ultimoCheckOk se actualiza → capa sube →
+        // el próximo reschedule la programa normalmente.
+        // Si falla, queda en capa 0 (estado correcto).
+        scheduleProbeCheck(fuente);
+        probes++;
         omitidas++;
         continue;
       }
@@ -126,7 +136,7 @@ async function scheduleCheckJobs(): Promise<number> {
     }
   }
 
-  console.log(`[Scheduler-Service] ${fuentes.length} fuentes: ${scheduledCount} tareas, ${omitidas} omitidas (capa 0)`);
+  console.log(`[Scheduler-Service] ${fuentes.length} fuentes: ${scheduledCount} tareas, ${omitidas} omitidas (capa 0), ${probes} probes`);
   return scheduledCount;
 }
 
@@ -394,6 +404,40 @@ function schedulePeriodicReschedule(): void {
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       console.error(`[Scheduler-Service] Error en reschedule: ${msg}`);
+    }
+  });
+
+  state.tasks.push(task);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Probe Check — una oportunidad para fuentes en capa 0
+// ═══════════════════════════════════════════════════════════════
+
+function scheduleProbeCheck(fuente: { id: string; medioId: string; Medio: { nombre: string } }): void {
+  // Un solo check a hora aleatoria (spread entre 6-22h)
+  const hora = 6 + Math.floor(Math.random() * 16);
+  const expresion = `0 ${hora} * * *`;
+  if (!cron.validate(expresion)) return;
+
+  const task = cron.schedule(expresion, async () => {
+    try {
+      // No duplicar si ya hay un check pendiente para esta fuente
+      const pendingJob = await db.job.findFirst({
+        where: { tipo: 'check_fuente', estado: 'pendiente', payload: { contains: fuente.id } },
+      });
+      if (pendingJob) return;
+
+      await enqueue({
+        tipo: 'check_fuente',
+        prioridad: 9,  // P5 — máxima prioridad baja (maintenance level)
+        payload: { fuenteId: fuente.id, medioId: fuente.medioId, probe: true },
+      });
+
+      state.totalScheduled++;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error(`[Scheduler-Service] Error en probe ${fuente.Medio.nombre}: ${msg}`);
     }
   });
 

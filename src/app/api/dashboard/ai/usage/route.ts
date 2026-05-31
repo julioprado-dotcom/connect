@@ -140,10 +140,17 @@ export async function GET(request: NextRequest) {
       })),
     });
   } catch (error) {
-    console.error('[AI Usage] Error:', error);
-    return NextResponse.json(
-      { error: 'Error obteniendo estadísticas de uso IA' },
-      { status: 500 }
-    );
+    // BLINDAJE: devolver datos vacíos en vez de 500 (no rompe el dashboard)
+    console.error('[AI Usage] Error (returning empty):', error);
+    return NextResponse.json({
+      periodo: 'error',
+      desde: new Date().toISOString(),
+      totales: { llamadas: 0, promptTokens: 0, completionTokens: 0, totalTokens: 0, costoUSD: 0 },
+      hoy: { llamadas: 0, totalTokens: 0, costoUSD: 0 },
+      porFuente: [],
+      porModelo: [],
+      porDia: [],
+      recientes: [],
+    });
   }
 }
