@@ -93,3 +93,27 @@ Stage Summary:
 - 5 archivos modificados: capture/route.ts, CapturaView.tsx, extractor-menciones.cache.ts, extractor-menciones.prompt.ts, extractor-menciones.ts
 - Push pendiente: necesita ejecutarse desde VPS con credenciales GitHub
 - El fix para "Paz=Presidente" opera a nivel del LLM: el prompt ahora le indica hacer matching parcial y usar cargoDirectiva para confirmar
+---
+Task ID: 1
+Agent: main
+Task: Expandir módulo de inteligencia para auto-detectar figuras, ejes, keywords y tendencias
+
+Work Log:
+- Analizado el pipeline LLM completo: prompt → extractor → crearMenciones → batch-llm
+- Expandido prompt del LLM con 5 dimensiones nuevas de detección:
+  - personas_detectadas: figuras políticas no en lista (Presidente, Ministros, etc.)
+  - ejes_sugeridos: nuevos ejes temáticos detectados
+  - keywords_nuevas: keywords no rastreadas
+  - tendencias: patrones emergentes en la política boliviana
+- Implementado auto-creación de Persona (tipo FIGURA_DETECTADA) en DB
+- Implementado almacenamiento en SugerenciaInteligencia (ejes sugeridos)
+- Implementado almacenamiento en AprendizajeSistema (keywords + tendencias)
+- crearMencionesExtraidas ahora procesa figuras detectadas como menciones
+- Cache incluye cargoDirectiva y tipo en query de personas
+- Commit f5acbcf pusheado a main en GitHub
+
+Stage Summary:
+- 3 archivos modificados: extractor-menciones.ts, extractor-menciones.prompt.ts, extractor-menciones.cache.ts
+- 242 líneas agregadas, 8 eliminadas
+- Push exitoso a origin/main: a72c2b2..f5acbcf
+- El sistema ahora auto-detecta Rodrigo Paz como "Presidente de Bolivia" y lo crea en la BD
