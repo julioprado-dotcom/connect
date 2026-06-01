@@ -57,6 +57,26 @@ interface PersonaDetectada {
   contexto: string;
 }
 
+interface EjeSugerido {
+  nombre: string;
+  keywords: string;
+  justificacion: string;
+  confianza: string;
+}
+
+interface KeywordNueva {
+  termino: string;
+  eje_relacionado: string | null;
+  relevancia: string;
+}
+
+interface TendenciaDetectada {
+  descripcion: string;
+  direccion: string;
+  actores_principales: string[];
+  impacto_potencial: string;
+}
+
 export interface ExtractionResult {
   es_relevante: boolean;
   tratamientoPeriodistico: string;
@@ -67,6 +87,9 @@ export interface ExtractionResult {
   personas_detectadas: PersonaDetectada[];
   ejes_mencionados: EjeMencionado[];
   ejes_cliente: EjeClienteMencionado[];
+  ejes_sugeridos: EjeSugerido[];
+  keywords_nuevas: KeywordNueva[];
+  tendencias: TendenciaDetectada[];
   temas_detectados: string[];
   preguntas_fundamentales: Record<string, unknown>;
   sentimiento_general: string; // backward compatibility
@@ -99,6 +122,9 @@ export async function extraerMencionesDeTexto(
     personas_detectadas: [],
     ejes_mencionados: [],
     ejes_cliente: [],
+    ejes_sugeridos: [],
+    keywords_nuevas: [],
+    tendencias: [],
     temas_detectados: [],
     preguntas_fundamentales: {},
     sentimiento_general: 'no_clasificado',
@@ -497,8 +523,7 @@ export async function extraerMencionesDeTexto(
         pd.persona_id = nuevaPersona.id;
         debugWrite(`CREADA nueva persona: "${pd.nombre}" (${nuevaPersona.id}) tipo=FIGURA_DETECTADA cargo=${pd.cargo}`);
 
-        // Invalidar cache de personas para que el siguiente batch incluya esta persona
-        cachePersonas = null;
+        // Cache se invalida por TTL (60s) — la siguiente llamada incluirá esta persona
       } catch (createErr) {
         const errMsg = createErr instanceof Error ? createErr.message : String(createErr);
         debugWrite(`ERROR creando persona detectada "${pd.nombre}": ${errMsg}`);
@@ -508,6 +533,133 @@ export async function extraerMencionesDeTexto(
 
     // Filtrar solo las que tienen persona_id asignado (creadas o encontradas)
     const personasDetectadasConId = personasDetectadas.filter(pd => pd.persona_id);
+
+    // ─── Ejes sugeridos (nuevos ejes temáticos detectados por IA) ───
+    const ejesSugeridosRaw = ensureArray(parsed.ejes_sugeridos);
+    const ejesSugeridos: EjeSugerido[] = ejesSugeridosRaw
+      .map((e: Record<string, unknown>) => ({
+        nombre: String(e.nombre || e.name || '').trim(),
+        keywords: String(e.keywords || '').trim(),
+        justificacion: String(e.justificacion || e.justification || '').trim(),
+        confianza: confianzasValidas.has(String(e.confianza || '')) ? String(e.confianza) : 'media',
+      }))
+      .filter((e: EjeSugerido) => e.nombre && e.keywords)
+      .slice(0, 2);
+
+    if (ejesSugeridos.length > 0) {
+      debugWrite(`Ejes sugeridos por IA: ${ejesSugeridos.length}`);
+      for (const es of ejesSugeridos) {
+        debugWrite(`  → "${es.nombre}" (keywords: ${es.keywords}, confianza: ${es.confianza})`);
+      }
+    }
+
+    // Almacenar ejes sugeridos como SugerenciaInteligencia para revisión del admin
+    for (const es of ejesSugeridos) {
+      try {
+        await db.sugerenciaInteligencia.create({
+          data: {
+            id: crypto.randomUUID(),
+            tipo: 'eje_sugerido',
+            datoPropuesto: { nombre: es.nombre, keywords: es.keywords, justificacion: es.justificacion, confianza: es.confianza, medioId },
+            confianza: es.confianza === 'alta' ? 90 : es.confianza === 'media' ? 60 : 30,
+            estado: 'pendiente',
+            updatedAt: new Date(),
+          },
+        });
+        debugWrite(`Sugerencia de eje creada: "${es.nombre}"`);
+      } catch (sugErr) {
+        debugWrite(`Error creando sugerencia de eje: ${sugErr instanceof Error ? sugErr.message : String(sugErr)}`);
+      }
+    }
+
+    // ─── Keywords nuevas (no rastreadas) ───
+    const keywordsNuevasRaw = ensureArray(parsed.keywords_nuevas);
+    const keywordsNuevas: KeywordNueva[] = keywordsNuevasRaw
+      .map((k: Record<string, unknown>) => ({
+        termino: String(k.termino || k.term || '').trim().toLowerCase(),
+        eje_relacionado: k.eje_relacionado ? String(k.eje_relacionado) : null,
+        relevancia: ['alta', 'media', 'baja'].includes(String(k.relevancia || '')) ? String(k.relevancia) : 'media',
+      }))
+      .filter((k: KeywordNueva) => {
+        if (!k.termino) return false;
+        // No incluir si ya está en las keywords rastreadas
+        if (todasKeywords.has(k.termino)) return false;
+        return true;
+      })
+      .slice(0, 5);
+
+    if (keywordsNuevas.length > 0) {
+      debugWrite(`Keywords nuevas detectadas: ${keywordsNuevas.length}`);
+      for (const kn of keywordsNuevas) {
+        debugWrite(`  → "${kn.termino}" (eje: ${kn.eje_relacionado || 'N/A'}, relevancia: ${kn.relevancia})`);
+      }
+    }
+
+    // Almacenar keywords nuevas como AprendizajeSistema para auto-optimización
+    for (const kn of keywordsNuevas) {
+      try {
+        await db.aprendizajeSistema.create({
+          data: {
+            id: crypto.randomUUID(),
+            modulo: 'descubrimiento_keywords',
+            keywordPropuesta: kn.termino,
+            tipoDato: 'keyword_nueva',
+            datoActual: '',
+            datoOptimo: kn.termino,
+            confianza: kn.relevancia === 'alta' ? 0.9 : kn.relevancia === 'media' ? 0.6 : 0.3,
+            impacto: `Relevancia: ${kn.relevancia}, Eje: ${kn.eje_relacionado || 'N/A'}`,
+            estado: 'pendiente',
+            origen: 'ia',
+            metadata: JSON.stringify({ medioId, eje_relacionado: kn.eje_relacionado }),
+          },
+        });
+        debugWrite(`Aprendizaje keyword: "${kn.termino}"`);
+      } catch (apErr) {
+        debugWrite(`Error creando aprendizaje keyword: ${apErr instanceof Error ? apErr.message : String(apErr)}`);
+      }
+    }
+
+    // ─── Tendencias (patrones emergentes) ───
+    const tendenciasRaw = ensureArray(parsed.tendencias);
+    const tendencias: TendenciaDetectada[] = tendenciasRaw
+      .map((t: Record<string, unknown>) => ({
+        descripcion: String(t.descripcion || t.description || '').trim(),
+        direccion: String(t.direccion || t.direction || 'emergente').trim(),
+        actores_principales: Array.isArray(t.actores_principales) ? t.actores_principales.map(String) : [],
+        impacto_potencial: String(t.impacto_potencial || 'medio').trim(),
+      }))
+      .filter((t: TendenciaDetectada) => t.descripcion.length > 10)
+      .slice(0, 2);
+
+    if (tendencias.length > 0) {
+      debugWrite(`Tendencias detectadas: ${tendencias.length}`);
+      for (const td of tendencias) {
+        debugWrite(`  → "${td.descripcion.substring(0, 60)}" (${td.direccion}, impacto: ${td.impacto_potencial})`);
+      }
+    }
+
+    // Almacenar tendencias como AprendizajeSistema
+    for (const td of tendencias) {
+      try {
+        await db.aprendizajeSistema.create({
+          data: {
+            id: crypto.randomUUID(),
+            modulo: 'tendencia_detectada',
+            tipoDato: 'tendencia',
+            datoActual: '',
+            datoOptimo: td.descripcion,
+            confianza: td.impacto_potencial === 'alto' ? 0.9 : td.impacto_potencial === 'medio' ? 0.6 : 0.3,
+            impacto: `Dirección: ${td.direccion}, Actores: ${td.actores_principales.join(', ') || 'N/A'}`,
+            estado: 'pendiente',
+            origen: 'ia',
+            metadata: JSON.stringify({ medioId, direccion: td.direccion, actores: td.actores_principales, impacto: td.impacto_potencial }),
+          },
+        });
+        debugWrite(`Aprendizaje tendencia: "${td.descripcion.substring(0, 50)}"`);
+      } catch (tendErr) {
+        debugWrite(`Error creando aprendizaje tendencia: ${tendErr instanceof Error ? tendErr.message : String(tendErr)}`);
+      }
+    }
 
     // Ejes (LLM returns "ejes_institucionales", we map to ejes_mencionados)
     const ejesRaw = parsed.ejes_institucionales || parsed.ejes_mencionados;
@@ -588,15 +740,18 @@ export async function extraerMencionesDeTexto(
     await persistDebugLog(debugLog);
 
     return {
-      es_relevante: parsed.es_relevante === true || legisladores.length > 0 || ejesMencionados.length > 0,
+      es_relevante: parsed.es_relevante === true || legisladores.length > 0 || ejesMencionados.length > 0 || personasDetectadasConId.length > 0 || ejesSugeridos.length > 0,
       tratamientoPeriodistico: tratamiento,
       intencionMedio,
       confianzaClasificacion: confianza,
       resumen: String(parsed.resumen || '').substring(0, 200),
       legisladores_mencionados: legisladores,
-      personas_detectadas: personasDetectadas,
+      personas_detectadas: personasDetectadasConId,
       ejes_mencionados: ejesMencionados,
       ejes_cliente: ejesClienteParsed,
+      ejes_sugeridos: ejesSugeridos,
+      keywords_nuevas: keywordsNuevas,
+      tendencias,
       temas_detectados: temas,
       preguntas_fundamentales,
       sentimiento_general: sentimiento,
@@ -673,7 +828,6 @@ export async function crearMencionesExtraidas(
         });
       } catch (dedupError) {
         console.error('[DEDUP-ERROR] Deduplicacion fallo, creando como original:', dedupError instanceof Error ? dedupError.message : dedupError);
-        // NO continue — la mención se crea como original (sin deduplicar) pero NO se pierde
       }
 
       if (dedupResult && dedupResult.decision === 'es_duplicado' && dedupResult.mencionOriginalId) {
@@ -747,11 +901,49 @@ export async function crearMencionesExtraidas(
 
       creadas++;
     } catch (createErr) {
-      // Tolerancia a fallos: continuar con la siguiente
       const errCode = (createErr as any)?.code;
       const errMeta = (createErr as any)?.meta;
       const errMsg = createErr instanceof Error ? createErr.message : String(createErr);
       console.error('[CREAR-MENCION] Error creando mencion x legislador:', { message: errMsg, code: errCode, meta: errMeta, stack: createErr instanceof Error ? createErr.stack : undefined });
+    }
+  }
+
+  // 1b. Crear menciones para figuras detectadas por IA (tipo FIGURA_DETECTADA)
+  for (const pd of resultado.personas_detectadas) {
+    try {
+      const existente = await db.mencion.findFirst({
+        where: { personaId: pd.persona_id, medioId, url },
+      });
+      if (existente) { creadas++; continue; }
+
+      const mencion = await db.mencion.create({
+        data: {
+          id: crypto.randomUUID(),
+          personaId: pd.persona_id,
+          medioId,
+          titulo,
+          texto: pd.cita,
+          textoCompleto: pd.contexto,
+          url,
+          tipoMencion: tratamientoToTipoMencion(resultado.tratamientoPeriodistico, Boolean(pd.cita)),
+          verificado: false,
+          ejeEstructuralId: ejeIds.length > 0 ? ejeIds[0] : null,
+          deduplicacionLog: JSON.stringify({ decision: 'figura_detectada', timestamp: new Date().toISOString() }),
+          ...sharedData,
+        },
+      });
+
+      for (const ejeId of ejeIds) {
+        try {
+          await db.mencionTema.create({ data: { mencionId: mencion.id, ejeTematicoId: ejeId } });
+        } catch { /* duplicado */ }
+      }
+
+      try { await reclasificarMencion(mencion.id); } catch { /* no bloquear */ }
+      console.log(`[AUTO-FIGURA] Mencion creada: ${pd.nombre} (${pd.persona_id}) → ${url?.substring(0, 60)}`);
+      creadas++;
+    } catch (createErr) {
+      console.error('[CREAR-MENCION] Error creando mencion x figura detectada:', createErr instanceof Error ? createErr.message : String(createErr));
     }
   }
 

@@ -131,7 +131,10 @@ CONTEXTO: Se te proporcionará:
 
 FUNCIONAMIENTO BIDIRECCIONAL:
 A) Si la persona mencionada ESTÁ en la lista de legisladores → usa su ID en legisladores_mencionados
-B) Si la persona mencionada NO ESTÁ en la lista PERO es una figura política relevante de Bolivia (Presidente, Ministro, Gobernador, Alcalde, ex-Presidente, líder de partido, autoridad institucional) → inclúyela en personas_detectadas con su nombre completo y cargo
+B) Si la persona mencionada NO ESTÁ en la lista PERO es una figura política relevante de Bolivia (Presidente, Ministro, Gobernador, Alcalde, ex-Presidente, líder de partido, autoridad institucional) → inclúyela en personas_detectadas
+C) Si el texto trata un tema/eje que NO está en la lista proporcionada → inclúyelo en ejes_sugeridos
+D) Si detectas keywords relevantes que NO están en ninguna lista → inclúyelas en keywords_nuevas
+E) Si detectas patrones o tendencias emergentes en la noticia → inclúyelos en tendencias
 
 ## PRINCIPIOS FUNDAMENTALES (INMUTABLES)
 
@@ -201,6 +204,36 @@ La intención y el tratamiento son dimensiones INDEPENDIENTES: una nota puede se
 - Lista de 1-5 temas o conceptos clave que trata la noticia
 - Usar términos cortos y descriptivos (ej: "pensiones", "reforma laboral", "gas natural")
 
+## MÓDULO DE INTELIGENCIA: DESCUBRIMIENTO AUTOMÁTICO
+El sistema debe aprender de cada nota procesada. Además de clasificar, debes DETECTAR:
+
+### ejes_sugeridos (ejes temáticos NUEVOS no en la lista)
+- Si la noticia trata un tema político/económico/social relevante que NO está cubierto por ningún eje de la lista → sugiere un nuevo eje
+- Solo sugerir ejes que sean realmente nuevos y diferenciables de los existentes
+- NO sugerir si el tema ya está cubierto por un eje existente (incluso parcialmente)
+- nombre: nombre del eje sugerido (ej: "Crisis energética", "Reforma judicial", "Conflictos sociales")
+- keywords: 3-5 keywords que definirían este eje (ej: "energía, electricidad, blackouts, subsidios")
+- justificacion: por qué este eje es relevante y diferenciable
+- confianza: "alta" (muy claro que es un nuevo eje), "media" (podría ser un sub-tema), "baja" (podría overlap con existente)
+- Máximo 2 ejes sugeridos por artículo
+
+### keywords_nuevas (keywords no rastreadas)
+- Si el texto usa términos políticos/económicos relevantes que NO están en la lista de keywords → reportarlos
+- Estos términos podrían mejorar el triaje y la captura futura
+- término: el keyword detectado (ej: "nacionalización del litio", "corte de gas")
+- eje_relacionado: nombre del eje al que pertenece (o null si no aplica)
+- relevancia: "alta" (término político central), "media" (término contextual), "baja" (término tangencial)
+- Máximo 5 keywords nuevas por artículo
+
+### tendencias (patrones emergentes)
+- Si la noticia sugiere un patrón, tendencia o cambio emergente en la política boliviana → reportarlo
+- No reportar hechos aislados, solo PATRONES o TENDENCIAS
+- descripcion: descripción breve de la tendencia (ej: "Aumento de protestas en el eje troncal", "Creciente confrontación entre Poder Ejecutivo y Legislativo")
+- direccion: "creciente" (se intensifica), "decreciente" (se atenúa), "emergente" (aparece por primera vez)
+- actores_principales: nombres de los actores involucrados
+- impacto_potencial: "alto", "medio", "bajo"
+- Máximo 2 tendencias por artículo
+
 ## RESUMEN
 - Máximo 200 palabras
 - Debe reflejar la CALIDAD Y TONO ORIGINAL del texto fuente
@@ -237,6 +270,15 @@ Responde ÚNICAMENTE con un JSON válido (sin markdown, sin backticks) con esta 
   "ejes_cliente": [
     { "eje_cliente_id": NUMERO_ID, "cita": "fragmento relevante del texto", "relevancia": "alta|media|baja" }
   ],
+  "ejes_sugeridos": [
+    { "nombre": "Nombre del Eje Sugerido", "keywords": "kw1, kw2, kw3", "justificacion": "por qué es relevante", "confianza": "alta|media|baja" }
+  ],
+  "keywords_nuevas": [
+    { "termino": "término no rastreado", "eje_relacionado": "nombre del eje o null", "relevancia": "alta|media|baja" }
+  ],
+  "tendencias": [
+    { "descripcion": "patrón emergente detectado", "direccion": "creciente|decreciente|emergente", "actores_principales": ["Actor1", "Actor2"], "impacto_potencial": "alto|medio|bajo" }
+  ],
   "temas_detectados": ["tema1", "tema2", "tema3"],
   "preguntas_fundamentales": {
     "que": "evento principal or null",
@@ -257,7 +299,7 @@ VALORES VÁLIDOS para intencion_medio:
 informativa, opinion, critica, elogiosa, reactiva, sin_intencion
 
 Si es_relevante = false, devolver:
-{"es_relevante": false, "tratamiento_periodistico": "sin_tratamiento", "intencion_medio": "sin_intencion", "confianza_clasificacion": "baja", "resumen": "", "legisladores_mencionados": [], "personas_detectadas": [], "ejes_institucionales": [], "ejes_cliente": [], "temas_detectados": [], "preguntas_fundamentales": {}}`
+{"es_relevante": false, "tratamiento_periodistico": "sin_tratamiento", "intencion_medio": "sin_intencion", "confianza_clasificacion": "baja", "resumen": "", "legisladores_mencionados": [], "personas_detectadas": [], "ejes_institucionales": [], "ejes_cliente": [], "ejes_sugeridos": [], "keywords_nuevas": [], "tendencias": [], "temas_detectados": [], "preguntas_fundamentales": {}}`
 }
 
 /**
