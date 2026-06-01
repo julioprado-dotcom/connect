@@ -1,0 +1,11 @@
+var R=require("../../../chunks/[turbopack]_runtime.js")("server/app/api/seed/route.js")
+R.c("server/chunks/[root-of-the-server]__0g5_bvc._.js")
+R.c("server/chunks/src_lib_indicadores_capturer-tier1_ts_0dko_qd._.js")
+R.c("server/chunks/node_modules_next_dist_esm_build_templates_app-route_11vzwo-.js")
+R.c("server/chunks/src_lib_validations_ts_0qiwmr2._.js")
+R.c("server/chunks/[root-of-the-server]__0e6esfj._.js")
+R.c("server/chunks/node_modules_next_0e1cmes._.js")
+R.c("server/chunks/src_lib_09a5f1-._.js")
+R.c("server/chunks/_next-internal_server_app_api_seed_route_actions_0p645bi.js")
+R.m(244766)
+module.exports=R.m(244766).exports

@@ -1,0 +1,10 @@
+var R=require("../../../../../chunks/[turbopack]_runtime.js")("server/app/api/admin/bulletins/generate-termometro/route.js")
+R.c("server/chunks/src_constants_products_ts_0a~osz4._.js")
+R.c("server/chunks/src_04v8id_._.js")
+R.c("server/chunks/[root-of-the-server]__13-t7.1._.js")
+R.c("server/chunks/src_lib_validations_ts_0qiwmr2._.js")
+R.c("server/chunks/[root-of-the-server]__0e6esfj._.js")
+R.c("server/chunks/node_modules_next_0e1cmes._.js")
+R.c("server/chunks/0zjb_server_app_api_admin_bulletins_generate-termometro_route_actions_0cew5bb.js")
+R.m(697681)
+module.exports=R.m(697681).exports

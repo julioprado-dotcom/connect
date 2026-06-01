@@ -1,0 +1,3 @@
+{
+  "/api/admin/bulletins/generate-generic/route": "app/api/admin/bulletins/generate-generic/route.js"
+}

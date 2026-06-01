@@ -1,0 +1,3 @@
+{
+  "/api/admin/bulletins/generate-foco/route": "app/api/admin/bulletins/generate-foco/route.js"
+}

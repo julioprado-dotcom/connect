@@ -1,0 +1,3 @@
+{
+  "/api/dashboard/fuentes/[id]/pausar/route": "app/api/dashboard/fuentes/[id]/pausar/route.js"
+}

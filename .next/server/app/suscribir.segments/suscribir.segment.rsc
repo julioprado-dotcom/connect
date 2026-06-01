@@ -1,0 +1,4 @@
+1:"$Sreact.fragment"
+2:I[339756,["/_next/static/chunks/10k2pikgq8_.z.js","/_next/static/chunks/0i.l9589uvx0j.js"],"default"]
+3:I[837457,["/_next/static/chunks/10k2pikgq8_.z.js","/_next/static/chunks/0i.l9589uvx0j.js"],"default"]
+0:{"rsc":["$","$1","c",{"children":[null,["$","div",null,{"className":"min-h-screen flex flex-col relative overflow-hidden","style":{"backgroundColor":"#080c14"},"children":[["$","div",null,{"className":"absolute inset-0 pointer-events-none","style":{"background":"repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(6,182,212,0.015) 3px, rgba(6,182,212,0.015) 4px)"}}],["$","main",null,{"className":"relative z-10 flex-1 flex items-start justify-center pt-8 pb-16 px-4","children":["$","div",null,{"className":"w-full max-w-md","children":["$","$L2",null,{"parallelRouterKey":"children","template":["$","$L3",null,{}]}]}]}]]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"kqOjg3SeJsmQ6pjGy82Cx"}

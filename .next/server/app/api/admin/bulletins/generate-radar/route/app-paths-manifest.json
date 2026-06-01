@@ -1,0 +1,3 @@
+{
+  "/api/admin/bulletins/generate-radar/route": "app/api/admin/bulletins/generate-radar/route.js"
+}

@@ -1,0 +1,1040 @@
+{
+  "version": 3,
+  "pages404": true,
+  "appType": "app",
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "priority": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/stats",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, s-maxage=60, stale-while-revalidate=120"
+        }
+      ],
+      "regex": "^/api/stats(?:/)?$"
+    },
+    {
+      "source": "/api/medios",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, s-maxage=300, stale-while-revalidate=600"
+        }
+      ],
+      "regex": "^/api/medios(?:/)?$"
+    },
+    {
+      "source": "/api/ejes",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, s-maxage=300, stale-while-revalidate=600"
+        }
+      ],
+      "regex": "^/api/ejes(?:/)?$"
+    },
+    {
+      "source": "/api/personas",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, s-maxage=120, stale-while-revalidate=240"
+        }
+      ],
+      "regex": "^/api/personas(?:/)?$"
+    },
+    {
+      "source": "/api/reportes/stats",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, s-maxage=60, stale-while-revalidate=120"
+        }
+      ],
+      "regex": "^/api/reportes/stats(?:/)?$"
+    }
+  ],
+  "onMatchHeaders": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [],
+    "fallback": []
+  },
+  "dynamicRoutes": [
+    {
+      "page": "/api/auth/[...nextauth]",
+      "regex": "^/api/auth/(.+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPnextauth": "nxtPnextauth"
+      },
+      "namedRegex": "^/api/auth/(?<nxtPnextauth>.+?)(?:/)?$"
+    },
+    {
+      "page": "/api/clientes/[id]",
+      "regex": "^/api/clientes/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/clientes/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/clientes/[id]/ejes",
+      "regex": "^/api/clientes/([^/]+?)/ejes(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/clientes/(?<nxtPid>[^/]+?)/ejes(?:/)?$"
+    },
+    {
+      "page": "/api/clientes/[id]/ejes/[ejeId]",
+      "regex": "^/api/clientes/([^/]+?)/ejes/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid",
+        "nxtPejeId": "nxtPejeId"
+      },
+      "namedRegex": "^/api/clientes/(?<nxtPid>[^/]+?)/ejes/(?<nxtPejeId>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/contratos/[id]",
+      "regex": "^/api/contratos/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/contratos/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/distribucion/envios/[id]/reintentar",
+      "regex": "^/api/dashboard/distribucion/envios/([^/]+?)/reintentar(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/dashboard/distribucion/envios/(?<nxtPid>[^/]+?)/reintentar(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/fuentes/[id]/pausar",
+      "regex": "^/api/dashboard/fuentes/([^/]+?)/pausar(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/dashboard/fuentes/(?<nxtPid>[^/]+?)/pausar(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/fuentes/[id]/reintentar",
+      "regex": "^/api/dashboard/fuentes/([^/]+?)/reintentar(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/dashboard/fuentes/(?<nxtPid>[^/]+?)/reintentar(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/productos/[tipo]/generar",
+      "regex": "^/api/dashboard/productos/([^/]+?)/generar(?:/)?$",
+      "routeKeys": {
+        "nxtPtipo": "nxtPtipo"
+      },
+      "namedRegex": "^/api/dashboard/productos/(?<nxtPtipo>[^/]+?)/generar(?:/)?$"
+    },
+    {
+      "page": "/api/indicadores/sync/[slug]",
+      "regex": "^/api/indicadores/sync/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPslug": "nxtPslug"
+      },
+      "namedRegex": "^/api/indicadores/sync/(?<nxtPslug>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/indicadores/[id]",
+      "regex": "^/api/indicadores/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/indicadores/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/indicadores/[id]/history",
+      "regex": "^/api/indicadores/([^/]+?)/history(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/indicadores/(?<nxtPid>[^/]+?)/history(?:/)?$"
+    },
+    {
+      "page": "/api/jobs/fuentes/[id]",
+      "regex": "^/api/jobs/fuentes/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/jobs/fuentes/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/jobs/[id]",
+      "regex": "^/api/jobs/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/jobs/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/medios/[id]",
+      "regex": "^/api/medios/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/medios/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/medios/[id]/ai-analyze",
+      "regex": "^/api/medios/([^/]+?)/ai\\-analyze(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/medios/(?<nxtPid>[^/]+?)/ai\\-analyze(?:/)?$"
+    },
+    {
+      "page": "/api/medios/[id]/probe",
+      "regex": "^/api/medios/([^/]+?)/probe(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/medios/(?<nxtPid>[^/]+?)/probe(?:/)?$"
+    },
+    {
+      "page": "/api/menciones/[id]",
+      "regex": "^/api/menciones/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/menciones/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/menciones/[id]/evidence",
+      "regex": "^/api/menciones/([^/]+?)/evidence(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/menciones/(?<nxtPid>[^/]+?)/evidence(?:/)?$"
+    },
+    {
+      "page": "/api/personas/[id]",
+      "regex": "^/api/personas/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/personas/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/productos/[tipo]/ultimo",
+      "regex": "^/api/productos/([^/]+?)/ultimo(?:/)?$",
+      "routeKeys": {
+        "nxtPtipo": "nxtPtipo"
+      },
+      "namedRegex": "^/api/productos/(?<nxtPtipo>[^/]+?)/ultimo(?:/)?$"
+    },
+    {
+      "page": "/api/sugerencias/[id]",
+      "regex": "^/api/sugerencias/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/sugerencias/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/clientes/[id]",
+      "regex": "^/clientes/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/clientes/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/contratos/[id]",
+      "regex": "^/contratos/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/contratos/(?<nxtPid>[^/]+?)(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_global-error",
+      "regex": "^/_global\\-error(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_global\\-error(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/agente",
+      "regex": "^/agente(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/agente(?:/)?$"
+    },
+    {
+      "page": "/agente/nuevo-cliente",
+      "regex": "^/agente/nuevo\\-cliente(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/agente/nuevo\\-cliente(?:/)?$"
+    },
+    {
+      "page": "/agente/registros",
+      "regex": "^/agente/registros(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/agente/registros(?:/)?$"
+    },
+    {
+      "page": "/agente/suscriptor",
+      "regex": "^/agente/suscriptor(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/agente/suscriptor(?:/)?$"
+    },
+    {
+      "page": "/api/admin/bulletins/generate-boletin-grano",
+      "regex": "^/api/admin/bulletins/generate\\-boletin\\-grano(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/bulletins/generate\\-boletin\\-grano(?:/)?$"
+    },
+    {
+      "page": "/api/admin/bulletins/generate-ficha",
+      "regex": "^/api/admin/bulletins/generate\\-ficha(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/bulletins/generate\\-ficha(?:/)?$"
+    },
+    {
+      "page": "/api/admin/bulletins/generate-foco",
+      "regex": "^/api/admin/bulletins/generate\\-foco(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/bulletins/generate\\-foco(?:/)?$"
+    },
+    {
+      "page": "/api/admin/bulletins/generate-generic",
+      "regex": "^/api/admin/bulletins/generate\\-generic(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/bulletins/generate\\-generic(?:/)?$"
+    },
+    {
+      "page": "/api/admin/bulletins/generate-radar",
+      "regex": "^/api/admin/bulletins/generate\\-radar(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/bulletins/generate\\-radar(?:/)?$"
+    },
+    {
+      "page": "/api/admin/bulletins/generate-saldo",
+      "regex": "^/api/admin/bulletins/generate\\-saldo(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/bulletins/generate\\-saldo(?:/)?$"
+    },
+    {
+      "page": "/api/admin/bulletins/generate-termometro",
+      "regex": "^/api/admin/bulletins/generate\\-termometro(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/bulletins/generate\\-termometro(?:/)?$"
+    },
+    {
+      "page": "/api/admin/cache",
+      "regex": "^/api/admin/cache(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/cache(?:/)?$"
+    },
+    {
+      "page": "/api/admin/kick-capture",
+      "regex": "^/api/admin/kick\\-capture(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/kick\\-capture(?:/)?$"
+    },
+    {
+      "page": "/api/admin/purge",
+      "regex": "^/api/admin/purge(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/purge(?:/)?$"
+    },
+    {
+      "page": "/api/admin/status",
+      "regex": "^/api/admin/status(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/status(?:/)?$"
+    },
+    {
+      "page": "/api/alertas/estado",
+      "regex": "^/api/alertas/estado(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/alertas/estado(?:/)?$"
+    },
+    {
+      "page": "/api/analyze",
+      "regex": "^/api/analyze(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/analyze(?:/)?$"
+    },
+    {
+      "page": "/api/analyze/batch",
+      "regex": "^/api/analyze/batch(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/analyze/batch(?:/)?$"
+    },
+    {
+      "page": "/api/analyze/signal",
+      "regex": "^/api/analyze/signal(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/analyze/signal(?:/)?$"
+    },
+    {
+      "page": "/api/auth/setup",
+      "regex": "^/api/auth/setup(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/auth/setup(?:/)?$"
+    },
+    {
+      "page": "/api/backup",
+      "regex": "^/api/backup(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/backup(?:/)?$"
+    },
+    {
+      "page": "/api/capture",
+      "regex": "^/api/capture(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/capture(?:/)?$"
+    },
+    {
+      "page": "/api/capture/connectivity",
+      "regex": "^/api/capture/connectivity(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/capture/connectivity(?:/)?$"
+    },
+    {
+      "page": "/api/clientes",
+      "regex": "^/api/clientes(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/clientes(?:/)?$"
+    },
+    {
+      "page": "/api/contratos",
+      "regex": "^/api/contratos(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/contratos(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/ai/historial",
+      "regex": "^/api/dashboard/ai/historial(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/ai/historial(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/ai/instruccion",
+      "regex": "^/api/dashboard/ai/instruccion(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/ai/instruccion(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/ai/sugerencias",
+      "regex": "^/api/dashboard/ai/sugerencias(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/ai/sugerencias(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/ai/usage",
+      "regex": "^/api/dashboard/ai/usage(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/ai/usage(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/ai-health",
+      "regex": "^/api/dashboard/ai\\-health(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/ai\\-health(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/alertas-comerciales",
+      "regex": "^/api/dashboard/alertas\\-comerciales(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/alertas\\-comerciales(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/alertas-summary",
+      "regex": "^/api/dashboard/alertas\\-summary(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/alertas\\-summary(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/boletin-express",
+      "regex": "^/api/dashboard/boletin\\-express(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/boletin\\-express(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/boletin-keywords",
+      "regex": "^/api/dashboard/boletin\\-keywords(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/boletin\\-keywords(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/capturas-summary",
+      "regex": "^/api/dashboard/capturas\\-summary(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/capturas\\-summary(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/clasificacion",
+      "regex": "^/api/dashboard/clasificacion(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/clasificacion(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/clasificacion/asignar",
+      "regex": "^/api/dashboard/clasificacion/asignar(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/clasificacion/asignar(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/clientes-summary",
+      "regex": "^/api/dashboard/clientes\\-summary(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/clientes\\-summary(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/contratos-summary",
+      "regex": "^/api/dashboard/contratos\\-summary(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/contratos\\-summary(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/distribucion",
+      "regex": "^/api/dashboard/distribucion(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/distribucion(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/distribucion/canales/testear",
+      "regex": "^/api/dashboard/distribucion/canales/testear(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/distribucion/canales/testear(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/distribucion/suscriptores/nueva",
+      "regex": "^/api/dashboard/distribucion/suscriptores/nueva(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/distribucion/suscriptores/nueva(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/ejes-summary",
+      "regex": "^/api/dashboard/ejes\\-summary(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/ejes\\-summary(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/entregas-hoy",
+      "regex": "^/api/dashboard/entregas\\-hoy(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/entregas\\-hoy(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/fuentes",
+      "regex": "^/api/dashboard/fuentes(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/fuentes(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/fuentes/nueva",
+      "regex": "^/api/dashboard/fuentes/nueva(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/fuentes/nueva(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/fuentes-summary",
+      "regex": "^/api/dashboard/fuentes\\-summary(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/fuentes\\-summary(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/generadores-summary",
+      "regex": "^/api/dashboard/generadores\\-summary(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/generadores\\-summary(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/indicadores-summary",
+      "regex": "^/api/dashboard/indicadores\\-summary(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/indicadores\\-summary(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/jobs-summary",
+      "regex": "^/api/dashboard/jobs\\-summary(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/jobs\\-summary(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/log",
+      "regex": "^/api/dashboard/log(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/log(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/medios-summary",
+      "regex": "^/api/dashboard/medios\\-summary(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/medios\\-summary(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/menciones-summary",
+      "regex": "^/api/dashboard/menciones\\-summary(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/menciones\\-summary(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/nota-raw",
+      "regex": "^/api/dashboard/nota\\-raw(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/nota\\-raw(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/personas-summary",
+      "regex": "^/api/dashboard/personas\\-summary(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/personas\\-summary(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/pipeline",
+      "regex": "^/api/dashboard/pipeline(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/pipeline(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/productos",
+      "regex": "^/api/dashboard/productos(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/productos(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/productos-summary",
+      "regex": "^/api/dashboard/productos\\-summary(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/productos\\-summary(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/reportes-summary",
+      "regex": "^/api/dashboard/reportes\\-summary(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/reportes\\-summary(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/search",
+      "regex": "^/api/dashboard/search(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/search(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/status",
+      "regex": "^/api/dashboard/status(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/status(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/summary",
+      "regex": "^/api/dashboard/summary(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/summary(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/suscriptores-summary",
+      "regex": "^/api/dashboard/suscriptores\\-summary(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/suscriptores\\-summary(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/system",
+      "regex": "^/api/dashboard/system(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/system(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/termometro/generar",
+      "regex": "^/api/dashboard/termometro/generar(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/termometro/generar(?:/)?$"
+    },
+    {
+      "page": "/api/ejes",
+      "regex": "^/api/ejes(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/ejes(?:/)?$"
+    },
+    {
+      "page": "/api/entregas",
+      "regex": "^/api/entregas(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/entregas(?:/)?$"
+    },
+    {
+      "page": "/api/fuentes/errores",
+      "regex": "^/api/fuentes/errores(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/fuentes/errores(?:/)?$"
+    },
+    {
+      "page": "/api/fuentes/status",
+      "regex": "^/api/fuentes/status(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/fuentes/status(?:/)?$"
+    },
+    {
+      "page": "/api/indicadores",
+      "regex": "^/api/indicadores(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/indicadores(?:/)?$"
+    },
+    {
+      "page": "/api/indicadores/capture",
+      "regex": "^/api/indicadores/capture(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/indicadores/capture(?:/)?$"
+    },
+    {
+      "page": "/api/indicadores/evaluaciones",
+      "regex": "^/api/indicadores/evaluaciones(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/indicadores/evaluaciones(?:/)?$"
+    },
+    {
+      "page": "/api/indicadores/historico",
+      "regex": "^/api/indicadores/historico(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/indicadores/historico(?:/)?$"
+    },
+    {
+      "page": "/api/indicadores/sync",
+      "regex": "^/api/indicadores/sync(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/indicadores/sync(?:/)?$"
+    },
+    {
+      "page": "/api/jobs",
+      "regex": "^/api/jobs(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/jobs(?:/)?$"
+    },
+    {
+      "page": "/api/jobs/fuentes",
+      "regex": "^/api/jobs/fuentes(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/jobs/fuentes(?:/)?$"
+    },
+    {
+      "page": "/api/jobs/maintenance",
+      "regex": "^/api/jobs/maintenance(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/jobs/maintenance(?:/)?$"
+    },
+    {
+      "page": "/api/jobs/scheduler",
+      "regex": "^/api/jobs/scheduler(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/jobs/scheduler(?:/)?$"
+    },
+    {
+      "page": "/api/jobs/stats",
+      "regex": "^/api/jobs/stats(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/jobs/stats(?:/)?$"
+    },
+    {
+      "page": "/api/jobs/worker",
+      "regex": "^/api/jobs/worker(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/jobs/worker(?:/)?$"
+    },
+    {
+      "page": "/api/marco-conceptual",
+      "regex": "^/api/marco\\-conceptual(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/marco\\-conceptual(?:/)?$"
+    },
+    {
+      "page": "/api/marco-conceptual/historial",
+      "regex": "^/api/marco\\-conceptual/historial(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/marco\\-conceptual/historial(?:/)?$"
+    },
+    {
+      "page": "/api/marco-conceptual/resumen",
+      "regex": "^/api/marco\\-conceptual/resumen(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/marco\\-conceptual/resumen(?:/)?$"
+    },
+    {
+      "page": "/api/marco-conceptual/versionar",
+      "regex": "^/api/marco\\-conceptual/versionar(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/marco\\-conceptual/versionar(?:/)?$"
+    },
+    {
+      "page": "/api/marco-conceptual/versiones",
+      "regex": "^/api/marco\\-conceptual/versiones(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/marco\\-conceptual/versiones(?:/)?$"
+    },
+    {
+      "page": "/api/medios",
+      "regex": "^/api/medios(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/medios(?:/)?$"
+    },
+    {
+      "page": "/api/medios/batch-fix",
+      "regex": "^/api/medios/batch\\-fix(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/medios/batch\\-fix(?:/)?$"
+    },
+    {
+      "page": "/api/medios/health",
+      "regex": "^/api/medios/health(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/medios/health(?:/)?$"
+    },
+    {
+      "page": "/api/medios/pesos",
+      "regex": "^/api/medios/pesos(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/medios/pesos(?:/)?$"
+    },
+    {
+      "page": "/api/menciones",
+      "regex": "^/api/menciones(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/menciones(?:/)?$"
+    },
+    {
+      "page": "/api/personas",
+      "regex": "^/api/personas(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/personas(?:/)?$"
+    },
+    {
+      "page": "/api/productos",
+      "regex": "^/api/productos(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/productos(?:/)?$"
+    },
+    {
+      "page": "/api/productos/generar",
+      "regex": "^/api/productos/generar(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/productos/generar(?:/)?$"
+    },
+    {
+      "page": "/api/rechazos",
+      "regex": "^/api/rechazos(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/rechazos(?:/)?$"
+    },
+    {
+      "page": "/api/reportes",
+      "regex": "^/api/reportes(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/reportes(?:/)?$"
+    },
+    {
+      "page": "/api/reportes/generate",
+      "regex": "^/api/reportes/generate(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/reportes/generate(?:/)?$"
+    },
+    {
+      "page": "/api/reportes/generator-data",
+      "regex": "^/api/reportes/generator\\-data(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/reportes/generator\\-data(?:/)?$"
+    },
+    {
+      "page": "/api/reportes/sectorial/minero",
+      "regex": "^/api/reportes/sectorial/minero(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/reportes/sectorial/minero(?:/)?$"
+    },
+    {
+      "page": "/api/reportes/sectorial/minero/generar",
+      "regex": "^/api/reportes/sectorial/minero/generar(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/reportes/sectorial/minero/generar(?:/)?$"
+    },
+    {
+      "page": "/api/reportes/sectorial/minero/historial",
+      "regex": "^/api/reportes/sectorial/minero/historial(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/reportes/sectorial/minero/historial(?:/)?$"
+    },
+    {
+      "page": "/api/reportes/stats",
+      "regex": "^/api/reportes/stats(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/reportes/stats(?:/)?$"
+    },
+    {
+      "page": "/api/scraping/phase",
+      "regex": "^/api/scraping/phase(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/scraping/phase(?:/)?$"
+    },
+    {
+      "page": "/api/search",
+      "regex": "^/api/search(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/search(?:/)?$"
+    },
+    {
+      "page": "/api/seed",
+      "regex": "^/api/seed(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/seed(?:/)?$"
+    },
+    {
+      "page": "/api/seed-fuentes",
+      "regex": "^/api/seed\\-fuentes(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/seed\\-fuentes(?:/)?$"
+    },
+    {
+      "page": "/api/stats",
+      "regex": "^/api/stats(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/stats(?:/)?$"
+    },
+    {
+      "page": "/api/sugerencias",
+      "regex": "^/api/sugerencias(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/sugerencias(?:/)?$"
+    },
+    {
+      "page": "/api/suscriptores",
+      "regex": "^/api/suscriptores(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/suscriptores(?:/)?$"
+    },
+    {
+      "page": "/api/system/circuit-breaker",
+      "regex": "^/api/system/circuit\\-breaker(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/system/circuit\\-breaker(?:/)?$"
+    },
+    {
+      "page": "/api/system/engine",
+      "regex": "^/api/system/engine(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/system/engine(?:/)?$"
+    },
+    {
+      "page": "/api/system/processes",
+      "regex": "^/api/system/processes(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/system/processes(?:/)?$"
+    },
+    {
+      "page": "/api/system/scheduler/toggle",
+      "regex": "^/api/system/scheduler/toggle(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/system/scheduler/toggle(?:/)?$"
+    },
+    {
+      "page": "/api/system/vitals",
+      "regex": "^/api/system/vitals(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/system/vitals(?:/)?$"
+    },
+    {
+      "page": "/api/system/worker/toggle",
+      "regex": "^/api/system/worker/toggle(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/system/worker/toggle(?:/)?$"
+    },
+    {
+      "page": "/api/verify-links",
+      "regex": "^/api/verify\\-links(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/verify\\-links(?:/)?$"
+    },
+    {
+      "page": "/clientes",
+      "regex": "^/clientes(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/clientes(?:/)?$"
+    },
+    {
+      "page": "/configuracion/marco-conceptual",
+      "regex": "^/configuracion/marco\\-conceptual(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/configuracion/marco\\-conceptual(?:/)?$"
+    },
+    {
+      "page": "/dashboard",
+      "regex": "^/dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dashboard(?:/)?$"
+    },
+    {
+      "page": "/entregas",
+      "regex": "^/entregas(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/entregas(?:/)?$"
+    },
+    {
+      "page": "/favicon.ico",
+      "regex": "^/favicon\\.ico(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/favicon\\.ico(?:/)?$"
+    },
+    {
+      "page": "/login",
+      "regex": "^/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/suscribir",
+      "regex": "^/suscribir(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/suscribir(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "rsc",
+    "varyHeader": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "prefetchHeader": "next-router-prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSegmentHeader": "next-router-segment-prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments",
+    "clientParamParsing": false,
+    "dynamicRSCPrerender": false
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}

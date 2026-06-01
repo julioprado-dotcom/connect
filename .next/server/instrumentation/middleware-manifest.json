@@ -1,0 +1,27 @@
+{
+  "sorted_middleware": [],
+  "middleware": {},
+  "instrumentation": {
+    "files": [
+      "server/edge/chunks/_0b6lbnn._.js",
+      "server/edge/chunks/src_lib_bulletin_product-generator_ts_0-7bywe._.js",
+      "server/edge/chunks/[root-of-the-server]__0plqzr8._.js",
+      "server/edge/chunks/src_lib_jobs_runners_check-fuente_ts_06k3~gv._.js",
+      "server/edge/chunks/src_lib_ai_extractor-menciones_ts_0.9u8kp._.js",
+      "server/edge/chunks/_0p49lf8._.js",
+      "server/edge/chunks/src_lib_indicadores_capturer-tier1_ts_0uibsl_._.js",
+      "server/edge/chunks/src_lib_auto-recovery_ts_0i_jpc5._.js",
+      "server/edge/chunks/src_lib_jobs_0syut9w._.js",
+      "server/edge/chunks/[root-of-the-server]__0y8p3-0._.js",
+      "server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_0adwx2e.js"
+    ],
+    "name": "instrumentation",
+    "wasm": [
+      {
+        "name": "wasm_2978e70454ffa8346e0b5b8bf49cd341",
+        "filePath": "server/edge/chunks/node_modules__prisma_client_query_engine_bg_0656eb_.wasm"
+      }
+    ]
+  },
+  "functions": {}
+}

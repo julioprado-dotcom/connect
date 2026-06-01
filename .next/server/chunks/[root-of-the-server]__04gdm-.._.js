@@ -1,0 +1,3 @@
+module.exports=[463021,(s,e,i)=>{e.exports=s.x("@prisma/client-2c3a283f134fdcb6",()=>require("@prisma/client-2c3a283f134fdcb6"))},843793,s=>{"use strict";var e=s.i(463021);let i=globalThis,r=process.cwd();process.env.DATABASE_URL=`file:${r+"/prisma/db/custom.db"}`;let a=i.prisma??new e.PrismaClient;i.prisma||(i.prisma=a),s.s(["default",0,a])}];
+
+//# sourceMappingURL=%5Broot-of-the-server%5D__04gdm-.._.js.map

@@ -1,0 +1,3 @@
+{
+  "/api/indicadores/sync/[slug]/route": "app/api/indicadores/sync/[slug]/route.js"
+}
