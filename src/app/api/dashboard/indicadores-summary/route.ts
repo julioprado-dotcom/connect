@@ -112,6 +112,8 @@ export async function GET() {
 
       // Última actividad (para verificar frescura de datos)
       ultJob,
+      ultCapturaLog,
+      ultMencionFrescura,
     ] = await Promise.all([
       // ── CAPTURA (Menciones = datos ya procesados por LLM) ──
       db.mencion.count(),
@@ -200,8 +202,10 @@ export async function GET() {
       db.job.count({ where: { estado: 'completado', fechaCreacion: { gte: _24hAgo } } }),
       db.job.count({ where: { estado: 'fallido', fechaCreacion: { gte: _24hAgo } } }),
 
-      // ── Última actividad del sistema ──
+      // ── Última actividad del sistema (Job O CapturaLog) ──
       db.job.findFirst({ orderBy: { fechaCreacion: 'desc' }, select: { fechaCreacion: true, tipo: true } }),
+      db.capturaLog.findFirst({ orderBy: { fecha: 'desc' }, select: { fecha: true, medioId: true } }),
+      db.mencion.findFirst({ orderBy: { fechaCaptura: 'desc' }, select: { fechaCaptura: true } }),
     ]);
 
     // ──── Calcular tasas ────
@@ -230,13 +234,21 @@ export async function GET() {
 
     // ──── Armar respuesta ────
 
+    // Frescura: la más reciente entre Job, CapturaLog y Mencion
+    const timestamps = [
+      { ts: ultJob?.fechaCreacion?.getTime() ?? 0, tipo: ultJob?.tipo ?? 'job' },
+      { ts: ultCapturaLog?.fecha?.getTime() ?? 0, tipo: 'captura' },
+      { ts: ultMencionFrescura?.fechaCaptura?.getTime() ?? 0, tipo: 'mencion' },
+    ];
+    const latest = timestamps.reduce((a, b) => b.ts > a.ts ? b : a);
+
     return NextResponse.json({
       timestamp: new Date().toISOString(),
       // Data freshness indicator
       frescura: {
-        ultimaActividad: ultJob?.fechaCreacion?.toISOString() ?? null,
-        ultimaActividadHace: ultJob ? haceTexto(ultJob.fechaCreacion) : 'nunca',
-        ultimaActividadTipo: ultJob?.tipo ?? null,
+        ultimaActividad: latest.ts > 0 ? new Date(latest.ts).toISOString() : null,
+        ultimaActividadHace: latest.ts > 0 ? haceTexto(new Date(latest.ts)) : 'nunca',
+        ultimaActividadTipo: latest.ts > 0 ? latest.tipo : null,
       },
 
       // ── Pipeline NotaRaw (buffer intermedio) ──
