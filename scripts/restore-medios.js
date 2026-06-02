@@ -6,6 +6,8 @@
  * Lee data/medios.json y crea registros Medio si no existen.
  * Con --force, borra medios existentes y recrea todos.
  */
+// ── Ruta absoluta a la DB (igual que src/lib/db.ts) ──
+process.env.DATABASE_URL = `file:${process.cwd()}/prisma/db/custom.db`;
 const { PrismaClient } = require('./node_modules/.prisma/client');
 const fs = require('fs');
 const path = require('path');

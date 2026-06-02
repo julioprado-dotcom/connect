@@ -12,6 +12,8 @@
  * 6. Opcionalmente encola batch_llm si hay NotasRaw pendientes
  * 7. Opcionalmente encola generar_boletin si hay menciones
  */
+// ── Ruta absoluta a la DB (igual que src/lib/db.ts) ──
+process.env.DATABASE_URL = `file:${process.cwd()}/prisma/db/custom.db`;
 const { PrismaClient } = require('./node_modules/.prisma/client');
 const { randomBytes } = require('crypto');
 const fs = require('fs');

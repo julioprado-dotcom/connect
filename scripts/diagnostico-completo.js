@@ -3,6 +3,8 @@
  * diagnostico-completo.js — Diagnóstico completo del pipeline DECODEX
  * Ejecutar en VPS: node scripts/diagnostico-completo.js
  */
+// ── Ruta absoluta a la DB (igual que src/lib/db.ts) ──
+process.env.DATABASE_URL = `file:${process.cwd()}/prisma/db/custom.db`;
 const { PrismaClient } = require('./node_modules/.prisma/client');
 const p = new PrismaClient();
 
