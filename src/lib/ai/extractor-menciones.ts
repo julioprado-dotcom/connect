@@ -285,7 +285,7 @@ export async function extraerMencionesDeTexto(
 
     // 10. Llamada al LLM
     const zai = await ZAI.create();
-    debugWrite('Llamando a LLM (glm-4-air)...');
+    debugWrite('Llamando a LLM (glm-4.7-flash)...');
     const llmStart = Date.now();
 
     let completion;

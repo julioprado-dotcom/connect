@@ -9,7 +9,7 @@ const PRECIOS_MODELO: Record<string, { prompt: number; completion: number }> = {
   'glm-4.7-flash':  { prompt: 0.00, completion: 0.00 }, // Free via Z.ai SDK
   'glm-4-plus':     { prompt: 0.50, completion: 1.50 },
   'glm-4-long':     { prompt: 0.50, completion: 1.50 },
-  'glm-4-air':      { prompt: 0.10, completion: 0.10 },
+  // glm-4-air: discontinuado, reemplazado por glm-4.7-flash (gratis)
   'gpt-4o':         { prompt: 2.50, completion: 10.00 },
   'gpt-4o-mini':    { prompt: 0.15, completion: 0.60 },
   'gpt-3.5-turbo':  { prompt: 0.50, completion: 1.50 },
