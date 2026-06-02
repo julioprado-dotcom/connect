@@ -110,7 +110,10 @@ export async function GET() {
       jobsCompletados24h,
       jobsFallidos24h,
 
-      // Última actividad (para verificar frescura de datos)
+      // ALERTAS de maxima prioridad
+      alertasCriticas,
+
+      // Ultima actividad (para verificar frescura de datos)
       ultJob,
       ultCapturaLog,
       ultMencionFrescura,
@@ -201,6 +204,17 @@ export async function GET() {
       // ── JOBS ──
       db.job.count({ where: { estado: 'completado', fechaCreacion: { gte: _24hAgo } } }),
       db.job.count({ where: { estado: 'fallido', fechaCreacion: { gte: _24hAgo } } }),
+
+      // ── ALERTAS criticas (ultimas 24h) ──
+      db.systemLog.findMany({
+        where: {
+          modulo: 'alerta_maxima',
+          fecha: { gte: _24hAgo },
+        },
+        orderBy: { fecha: 'desc' },
+        take: 10,
+        select: { id: true, accion: true, detalle: true, datos: true, fecha: true },
+      }),
 
       // ── Última actividad del sistema (Job O CapturaLog) ──
       db.job.findFirst({ orderBy: { fechaCreacion: 'desc' }, select: { fechaCreacion: true, tipo: true } }),
@@ -339,6 +353,20 @@ export async function GET() {
         jobs24h: { completados: jobsCompletados24h, fallidos: jobsFallidos24h },
         status: jobsFallidos24h > jobsCompletados24h ? 'error' : jobsFallidos24h > 0 ? 'warn' : jobsCompletados24h > 0 ? 'ok' : 'idle',
       },
+
+      // ── Alertas criticas ──
+      alertas: {
+        criticas: alertasCriticas.map(a => ({
+          id: a.id,
+          accion: a.accion,
+          detalle: a.detalle,
+          datos: (() => { try { return JSON.parse(a.datos); } catch { return {}; } })(),
+          fecha: a.fecha,
+          hace: haceTexto(a.fecha),
+        })),
+        total: alertasCriticas.length,
+        status: alertasCriticas.length > 0 ? 'critico' : 'ok',
+      },
     });
   } catch (error: unknown) {
     // BLINDAJE: NUNCA 500. Devolver datos degradados.
@@ -353,6 +381,7 @@ export async function GET() {
       produccion: { productos: { total: 0, hoy: 0, semana: 0 }, reportes: 0, porTipo: [], porEstado: [], ultimoProducto: null, ultimoProductoHace: 'nunca', ultimoTipo: null, status: 'idle' },
       distribucion: { envios: { total: 0, exitosos: 0, fallidos: 0, tasaExito: 0 }, entregas: { total: 0, hoy: 0 }, suscriptores: 0, ultimoEnvio: null, ultimoEnvioHace: 'nunca', status: 'idle' },
       sistema: { jobs24h: { completados: 0, fallidos: 0 }, status: 'idle' },
+      alertas: { criticas: [], total: 0, status: 'ok' },
       message: 'Metricas no disponibles temporalmente',
     });
   }

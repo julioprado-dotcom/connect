@@ -1,17 +1,21 @@
 // Runner: generar_boletin - Generacion de productos ONION200
 // DECODEX Bolivia
-// Genera el contenido de un boletin y lo registra en la DB
+//
+// REGLA FIRME: NUNCA crear productos vacíos (0 menciones = no se genera).
+// Si no hay material → alerta de máxima prioridad para que el operador intervenga.
+//
+// Flujo:
+//   menciones > 0 → genera Reporte → push GitHub → distribuir
+//   menciones = 0 → NO crea Reporte → registra alerta máxima → notifica
 
 import db from '@/lib/db'
 import { getMencionesForBulletin, getProductConfig, formatFechaBolivia } from '@/lib/bulletin/product-generator'
-import { buildDeliveryPayload } from '@/lib/bulletin/delivery'
 import { PRODUCTOS } from '@/constants/products'
 import type { TipoBoletin } from '@/types/bulletin'
 import type { JobPayload, RunnerResult } from '../types'
 import { randomBytes } from 'crypto'
 
 export async function run(payload: JobPayload): Promise<RunnerResult> {
-  // Aceptar tanto tipoBoletin (scheduler) como tipoProducto (dashboard manual)
   const tipoBoletin = (payload.tipoBoletin || payload.tipoProducto) as TipoBoletin
   const personaId = payload.personaId as string | undefined
   const contratoId = payload.contratoId as string | undefined
@@ -27,10 +31,10 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
     const config = getProductConfig(tipoBoletin)
     if (!config) {
       const productosValidos = Object.keys(PRODUCTOS).join(', ')
-      console.error(`[generar_boletin] Producto no válido: "${tipoBoletin}". Productos configurados: ${productosValidos}`)
+      console.error(`[generar_boletin] Producto no valido: "${tipoBoletin}". Productos configurados: ${productosValidos}`)
       return {
         success: false,
-        error: `Producto "${tipoBoletin}" no configurado. Productos válidos: ${productosValidos}`,
+        error: `Producto "${tipoBoletin}" no configurado. Productos validos: ${productosValidos}`,
       }
     }
 
@@ -39,6 +43,57 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       tipoBoletin,
       { personaId },
     )
+
+    // ═══════════════════════════════════════════════════════════════
+    // REGLA FIRME: NUNCA crear productos con 0 menciones
+    // ═══════════════════════════════════════════════════════════════
+    if (totalMenciones === 0) {
+      console.warn(`[generar_boletin] SIN MATERIAL para ${tipoBoletin} — abortando generacion, registrando alerta`)
+
+      // Registrar alerta de maxima prioridad en SystemLog
+      await db.systemLog.create({
+        data: {
+          modulo: 'alerta_maxima',
+          accion: 'producto_sin_material',
+          detalle: `ALERTA: ${tipoBoletin} no tiene menciones en el periodo consultado (${formatFechaBolivia(fechaFin)}). No se genero producto. Verificar pipeline: check_fuente → scrape → batch_llm.`,
+          automatica: true,
+          datos: JSON.stringify({
+            tipoBoletin,
+            fechaInicio: fechaInicio.toISOString(),
+            fechaFin: fechaFin.toISOString(),
+            severity: 'critica',
+            origen: payload.programa || 'manual',
+          }),
+        },
+      }).catch(() => {})
+
+      // Contar estado del pipeline para el diagnostico
+      let diagnostico = ''
+      try {
+        const [nrPend, mencionesTotal, fuentesActivas] = await Promise.all([
+          db.notaRaw.count({ where: { procesada: false } }).catch(() => 0),
+          db.mencion.count().catch(() => 0),
+          db.fuenteEstado.count({ where: { activo: true } }).catch(() => 0),
+        ])
+        diagnostico = `NotaRaw pendientes: ${nrPend} | Menciones totales: ${mencionesTotal} | Fuentes activas: ${fuentesActivas}`
+      } catch { /* no bloquear */ }
+
+      return {
+        success: true,
+        data: {
+          tipoBoletin,
+          alerta: true,
+          severity: 'critica',
+          mensaje: `Producto ${tipoBoletin} SIN MATERIAL — no se genero. ${diagnostico}`,
+          totalMenciones: 0,
+          responseTime: Date.now() - startTime,
+        },
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // HAY MATERIAL → generar producto normalmente
+    // ═══════════════════════════════════════════════════════════════
 
     // 3. Obtener indicadores
     let indicadoresData: Record<string, unknown> = {}
@@ -63,8 +118,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       { fechaInicio, fechaFin },
     )
 
-    // 5. Guardar como Reporte (SIEMPRE se crea, incluso con 0 menciones)
-    // El administrador necesita visibilidad de cada generación para auditoría
+    // 5. Guardar como Reporte (solo si hay menciones)
     const responseTime = Date.now() - startTime
     const reporteId = 'rpt_' + randomBytes(12).toString('hex')
     const reporte = await db.reporte.create({
@@ -90,31 +144,26 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       },
     })
 
-    // 6. Push a GitHub si hay contenido real (menciones > 0)
-    if (totalMenciones > 0) {
-      try {
-        const { pushProductosToGithub } = await import('@/lib/git-utils')
-        const githubResult = await pushProductosToGithub(`Producto ${tipoBoletin}: ${totalMenciones} menciones`)
-        if (githubResult.ok && githubResult.commit !== 'no-changes') {
-          console.log(`[generar_boletin] GitHub push OK: ${githubResult.commit}`)
-        } else if (githubResult.ok) {
-          console.log(`[generar_boletin] GitHub: sin cambios nuevos`)
-        } else {
-          console.warn(`[generar_boletin] GitHub push fallido: ${githubResult.error}`)
-        }
-      } catch (err) {
-        console.warn(`[generar_boletin] GitHub push error (no bloqueante):`, err)
+    // 6. Push a GitHub
+    try {
+      const { pushProductosToGithub } = await import('@/lib/git-utils')
+      const githubResult = await pushProductosToGithub(`Producto ${tipoBoletin}: ${totalMenciones} menciones`)
+      if (githubResult.ok && githubResult.commit !== 'no-changes') {
+        console.log(`[generar_boletin] GitHub push OK: ${githubResult.commit}`)
+      } else if (githubResult.ok) {
+        console.log(`[generar_boletin] GitHub: sin cambios nuevos`)
+      } else {
+        console.warn(`[generar_boletin] GitHub push fallido: ${githubResult.error}`)
       }
+    } catch (err) {
+      console.warn(`[generar_boletin] GitHub push error (no bloqueante):`, err)
     }
 
     // 7. Distribuir a contratos activos
-    // Si vino contratoId explícito (desde dashboard manual), usar ese.
-    // Si es programado (sin contratoId), buscar contratos activos automáticamente.
     const { enqueue } = await import('../queue')
     let entregasEnqueued = 0
 
     if (contratoId) {
-      // Envío manual desde dashboard — solo ese contrato
       await enqueue({
         tipo: 'enviar_entrega',
         prioridad: 3,
@@ -127,7 +176,6 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       })
       entregasEnqueued = 1
     } else {
-      // Envío programado — buscar contratos activos que coincidan
       try {
         const contratos = await db.contrato.findMany({
           where: {
@@ -144,12 +192,10 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
         })
 
         for (const contrato of contratos) {
-          // Si el contrato especifica tipoProducto, solo enviar si coincide
           const tipoProducto = contrato.tipoProducto
           if (tipoProducto && tipoProducto !== tipoBoletin && tipoProducto !== 'todos') {
             continue
           }
-          // Verificar que tenga al menos un canal de destino
           const tieneCanal = contrato.Cliente.whatsapp || contrato.Cliente.email
           if (!tieneCanal) continue
 
@@ -171,9 +217,28 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
           console.log(`[generar_boletin] ${tipoBoletin}: ${entregasEnqueued} entregas encoladas (${contratos.length} contratos activos)`)
         }
       } catch (err) {
-        console.warn(`[generar_boletin] Error buscando contratos para distribución:`, err)
+        console.warn(`[generar_boletin] Error buscando contratos para distribucion:`, err)
       }
     }
+
+    // Registrar en SystemLog (auditoria exitosa)
+    await db.systemLog.create({
+      data: {
+        modulo: 'generar_boletin',
+        accion: 'producto_generado',
+        detalle: `${tipoBoletin}: ${totalMenciones} menciones, ${entregasEnqueued} entregas`,
+        automatica: true,
+        datos: JSON.stringify({
+          tipoBoletin,
+          totalMenciones,
+          entregasEnqueued,
+          reporteId: reporte.id,
+          responseTimeMs: responseTime,
+        }),
+      },
+    }).catch(() => {})
+
+    console.log(`[generar_boletin] OK: ${tipoBoletin} → ${totalMenciones} menciones, ${entregasEnqueued} entregas [${Date.now() - startTime}ms]`)
 
     return {
       success: true,
@@ -204,24 +269,11 @@ function buildContenidoBoletin(
   const fecha = formatFechaBolivia(fechas.fechaFin)
   const totalMenciones = menciones.length
 
-  let resumen: string
-
-  if (totalMenciones === 0) {
-    resumen = `[${tipo}] ${fecha} - Sin menciones capturadas. Verificar fuentes activas y jobs de scraping.`
-  } else {
-    resumen = `[${tipo}] ${fecha} - ${totalMenciones} menciones procesadas`
-  }
+  const resumen = `[${tipo}] ${fecha} - ${totalMenciones} menciones procesadas`
 
   const secciones: string[] = []
   secciones.push(`*${tipo} - ${fecha}*`)
   secciones.push(`Total de menciones: ${totalMenciones}`)
-
-  if (totalMenciones === 0) {
-    secciones.push('')
-    secciones.push('No se encontraron menciones en el periodo consultado.')
-    secciones.push('Posibles causas: fuentes inactivas, sin checks recientes, o sin scraping ejecutado.')
-    secciones.push('Revisar: dashboard Jobs > Fuentes > verificar estado de check-fuente.')
-  }
 
   // Indicadores
   if (Object.keys(indicadores).length > 0) {
