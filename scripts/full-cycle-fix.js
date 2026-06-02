@@ -79,7 +79,7 @@ async function main() {
         { ultimoCheckOk: { lt: new Date(Date.now() - 72 * 60 * 60 * 1000) } }
       ]
     },
-    include: { medio: { select: { nombre: true } } }
+    include: { Medio: { select: { nombre: true } } }
   });
 
   console.log(`  ${fuentesCapa0.length} fuentes con capa 0 (sin check reciente):`);
@@ -93,7 +93,7 @@ async function main() {
         fallosConsecutivos: 0,
       }
     });
-    console.log(`  📈 Promovida: ${f.medio?.nombre || f.id}`);
+    console.log(`  📈 Promovida: ${f.Medio?.nombre || f.id}`);
     promovidas++;
   }
   console.log(`  Total promovidas: ${promovidas}`);
@@ -102,7 +102,7 @@ async function main() {
   console.log('\n━━━ PASO 4: Activar todas las fuentes ━━━');
   const inactivas = await db.fuenteEstado.findMany({
     where: { OR: [{ estado: { not: 'activa' } }, { activo: false }] },
-    include: { medio: { select: { nombre: true } } }
+    include: { Medio: { select: { nombre: true } } }
   });
 
   for (const f of inactivas) {
@@ -110,7 +110,7 @@ async function main() {
       where: { id: f.id },
       data: { estado: 'activa', activo: true }
     });
-    console.log(`  ✅ Activada: ${f.medio?.nombre || f.id} (${f.estado})`);
+    console.log(`  ✅ Activada: ${f.Medio?.nombre || f.id} (${f.estado})`);
   }
   console.log(`  Total activadas: ${inactivas.length}`);
 
@@ -118,7 +118,7 @@ async function main() {
   console.log('\n━━━ PASO 5: Resumen post-fix ━━━');
   const despues = await db.fuenteEstado.findMany({
     where: { estado: 'activa' },
-    include: { medio: { select: { nombre: true } } }
+    include: { Medio: { select: { nombre: true } } }
   });
 
   const conCheck = despues.filter(f => f.ultimoCheckOk).length;
@@ -160,7 +160,7 @@ async function main() {
         resultado: '',
       }
     });
-    console.log(`  📤 Encolada: ${f.medio?.nombre || f.id}`);
+    console.log(`  📤 Encolada: ${f.Medio?.nombre || f.id}`);
     encoladas++;
   }
 
