@@ -41,3 +41,26 @@ Stage Summary:
 - Creados: scraping-status/route.ts, CapturasStatusView.tsx, FuentesView.tsx modificado
 - PENDIENTE DEPLOY: Código pusheado pero requiere `git pull && pm2 restart` en VPS
 - No hay acceso SSH desde este entorno — el usuario debe ejecutar el deploy manualmente
+
+---
+Task ID: 3
+Agent: main
+Task: Diagnosticar cadena de dependencias rota (todo en 0) + crear scripts de fix
+
+Work Log:
+- Analicé usuario diagnóstico: ESTADOS groupBy vacío, feActivo 0/0, Menciones=0, Reportes=0
+- Leí schema.prisma: modelo Producto no existe, el correcto es Reporte + ReporteSectorial
+- Leí scheduler-service.ts: solo programa fuentes con estado='activa' (línea 91)
+- Leí source-lifecycle.ts: una fuente solo se promueve a 'activa' tras check exitoso via registrarResultadoCheck()
+- Leí queue.ts: enqueue() sí crea registros en tabla Job
+- Leí mantenimiento.ts: purge_notas_raw elimina >48h, pero no explica pérdida de menciones
+- Identificada cadena rota: Sin FuenteEstado activas → scheduler no programa → worker idle → 0 scraping → 0 menciones → 0 reportes
+- Creé scripts/diagnostico-completo.js: analiza 10 tablas, da diagnóstico con soluciones
+- Creé scripts/fix-pipeline.js: crea FE faltantes, activa todas, limpia jobs, encola check_fuente+batch_llm, soporta --dry-run
+- Push a GitHub (commit ca9cc04)
+
+Stage Summary:
+- RAÍZ DEL PROBLEMA: Scheduler filtra `estado: 'activa'` pero FuenteEstado puede estar vacía/null/creada
+- SINCAD: No hay fuente activa → 0 check_fuente → 0 scrape → 0 NotasRaw → 0 menciones → 0 boletines
+- Scripts creados para diagnóstico y reparación completa del pipeline
+- El usuario necesita ejecutar en VPS: git pull → node scripts/diagnostico-completo.js → node scripts/fix-pipeline.js → pm2 restart decodex-scheduler decodex-worker
