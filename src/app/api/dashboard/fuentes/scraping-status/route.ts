@@ -62,9 +62,10 @@ function deriveEstado(opts: {
   return 'activa';
 }
 
-// Safe number extraction from DB (handles null)
+// Safe number extraction from DB (handles null + BigInt)
 const n = (v: unknown): number => {
   if (v === null || v === undefined) return 0;
+  if (typeof v === 'bigint') return Number(v);
   const num = Number(v);
   return isNaN(num) ? 0 : num;
 };
@@ -138,16 +139,16 @@ export async function GET() {
         `;
         if (nrInfo.length > 0) {
           const placeholders = allIds.map(() => '?').join(',');
-          const notaRawCounts: Array<{ medioId: string; total: number; pendientes: number }> = await db.$queryRawUnsafe(
+          const notaRawCounts: Array<Record<string, unknown>> = await db.$queryRawUnsafe(
             `SELECT medioId,
-               COUNT(*) as total,
-               SUM(CASE WHEN procesada = 0 THEN 1 ELSE 0 END) as pendientes
+               CAST(COUNT(*) AS INTEGER) as total,
+               CAST(SUM(CASE WHEN procesada = 0 THEN 1 ELSE 0 END) AS INTEGER) as pendientes
              FROM NotaRaw
              WHERE medioId IN (${placeholders})
              GROUP BY medioId`,
             ...allIds
           );
-          notaRawMap = new Map(notaRawCounts.map(r => [r.medioId, { total: r.total, pendientes: r.pendientes }]));
+          notaRawMap = new Map(notaRawCounts.map(r => [s(r.medioId), { total: n(r.total), pendientes: n(r.pendientes) }]));
         }
       } catch (err) {
         console.warn('[scraping-status] NotaRaw table missing or error:', err);
