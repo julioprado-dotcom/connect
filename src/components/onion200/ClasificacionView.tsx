@@ -12,6 +12,9 @@ import {
   RefreshCw,
   Play,
   Eye,
+  Activity,
+  Cpu,
+  Clock,
 } from 'lucide-react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 import { PanelShell } from './PanelShell';
@@ -40,6 +43,18 @@ interface BatchResult {
   mensaje?: string;
 }
 
+interface PipelineStatus {
+  running: boolean;
+  tipo: string;
+  elapsedSec: number;
+  notaRawPendientes: number;
+  notaRawProcesadas: number;
+  mencionesTotal: number;
+  avgTimePerNote: number;
+  estimatedRemaining: string;
+  recentLog: string[];
+}
+
 // ═══════════════════════════════════════════════════════════════
 // ClasificacionView — Panel de clasificacion IA con controles
 // ═══════════════════════════════════════════════════════════════
@@ -54,6 +69,57 @@ export function ClasificacionView() {
   const [batchSize, setBatchSize] = useState(1);
   const [classifyingId, setClassifyingId] = useState<string | null>(null);
   const [selectedMencionId, setSelectedMencionId] = useState<string | null>(null);
+
+  // ── Pipeline batch_llm status (polling en vivo cada 8s) ──
+  const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus | null>(null);
+  const pipelineIntervalRef = useRef<ReturnType<typeof setInterval>>(null);
+
+  const fetchPipelineStatus = useCallback(async () => {
+    try {
+      const res = await fetchWithTimeout('/api/capture', { timeoutMs: 6000 });
+      if (res.ok) {
+        const data = await res.json();
+        const p = data.pipeline;
+        if (!p) return;
+
+        const runningBatch = p.runningJobs?.find((j: { tipo: string }) => j.tipo === 'batch_llm');
+        const notaRawPend = p.notaRawPendientes ?? 0;
+        const notaRawTotal = p.notaRawTotal ?? 0;
+        const notaRawProc = notaRawTotal - notaRawPend;
+        const elapsedSec = runningBatch?.elapsedSec ?? 0;
+
+        // Estimar tiempo promedio por nota (si hay batch_llm corriendo o completados recientes)
+        let avgSec = 15; // default
+        if (elapsedSec > 30) {
+          // Si lleva más de 30s, estimar ~1 nota cada 15-25s basado en histórico
+          avgSec = 20;
+        }
+
+        const remaining = notaRawPend;
+        const estTimeSec = remaining > 0 ? remaining * avgSec : 0;
+        const estMin = Math.floor(estTimeSec / 60);
+        const estStr = estTimeSec > 3600 ? `${Math.floor(estMin / 60)}h ${estMin % 60}m` : estMin > 0 ? `${estMin}m` : '<1m';
+
+        setPipelineStatus({
+          running: p.running && !!runningBatch,
+          tipo: runningBatch?.tipo ?? '',
+          elapsedSec,
+          notaRawPendientes: notaRawPend,
+          notaRawProcesadas: notaRawProc,
+          mencionesTotal: p.mencionesHoy ?? 0,
+          avgTimePerNote: avgSec,
+          estimatedRemaining: remaining > 0 ? estStr : '—',
+          recentLog: p.recentLogs?.slice(0, 10) ?? [],
+        });
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => {
+    fetchPipelineStatus();
+    pipelineIntervalRef.current = setInterval(fetchPipelineStatus, 8000);
+    return () => { if (pipelineIntervalRef.current) clearInterval(pipelineIntervalRef.current); };
+  }, [fetchPipelineStatus]);
 
   const fetchPendientes = useCallback(async () => {
     try {
@@ -82,6 +148,14 @@ export function ClasificacionView() {
   useEffect(() => {
     fetchPendientes();
   }, [fetchPendientes]);
+
+  // Auto-refresh pendientes cuando pipeline termina
+  useEffect(() => {
+    if (pipelineStatus && !pipelineStatus.running && pipelineStatus.notaRawProcesadas > 0) {
+      const timer = setTimeout(() => fetchPendientes(), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [pipelineStatus?.running, pipelineStatus?.notaRawProcesadas, fetchPendientes]);
 
   const handleClasificar = async (limit?: number) => {
     const count = limit ?? batchSize;
@@ -185,6 +259,106 @@ export function ClasificacionView() {
               sentimiento, ejes tematicos y personajes relacionados.
             </p>
           </div>
+
+          {/* ═══ Pipeline batch_llm en vivo ═══ */}
+          {pipelineStatus && (
+            <div className="mb-4 py-3 border-y border-slate-800/60">
+              <p className="text-[9px] font-bold uppercase font-mono mb-2.5 flex items-center gap-1.5" style={{
+                color: pipelineStatus.running ? '#10b981' : '#64748b',
+              }}>
+                <Cpu className="w-3 h-3" />
+                Pipeline de Clasificacion
+                {pipelineStatus.running && (
+                  <span className="ml-auto flex items-center gap-1 text-[8px] font-mono px-1.5 py-0.5 rounded" style={{
+                    color: '#10b981',
+                    backgroundColor: 'rgba(16,185,129,0.08)',
+                    border: '1px solid rgba(16,185,129,0.15)',
+                  }}>
+                    <Activity className="w-2.5 h-2.5" />
+                    CLASIFICANDO
+                  </span>
+                )}
+                {!pipelineStatus.running && pipelineStatus.notaRawProcesadas > 0 && (
+                  <span className="ml-auto text-[8px] font-mono px-1.5 py-0.5 rounded" style={{
+                    color: '#64748b',
+                    backgroundColor: 'rgba(100,116,139,0.06)',
+                    border: '1px solid rgba(100,116,139,0.12)',
+                  }}>
+                    IDLE
+                  </span>
+                )}
+              </p>
+
+              {/* Stats grid */}
+              <div className="grid grid-cols-4 gap-2 mb-2">
+                <div className="text-center">
+                  <p className="text-[8px] font-bold uppercase text-slate-600 font-mono">NotaRaw</p>
+                  <p className="text-xs font-mono tabular-nums">
+                    <span className="text-cyan-400">{pipelineStatus.notaRawProcesadas}</span>
+                    <span className="text-slate-700">/</span>
+                    <span className="text-slate-400">{pipelineStatus.notaRawProcesadas + pipelineStatus.notaRawPendientes}</span>
+                  </p>
+                  <p className="text-[7px] font-mono text-slate-600">procesadas</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[8px] font-bold uppercase text-slate-600 font-mono">Pendientes</p>
+                  <p className="text-xs font-mono text-amber-400 tabular-nums">{pipelineStatus.notaRawPendientes}</p>
+                  <p className="text-[7px] font-mono text-slate-600">por clasificar</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[8px] font-bold uppercase text-slate-600 font-mono">Menciones</p>
+                  <p className="text-xs font-mono text-emerald-400 tabular-nums">{pipelineStatus.mencionesTotal}</p>
+                  <p className="text-[7px] font-mono text-slate-600">creadas hoy</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[8px] font-bold uppercase text-slate-600 font-mono">Tiempo/nota</p>
+                  <p className="text-xs font-mono tabular-nums" style={{ color: '#a78bfa' }}>{pipelineStatus.avgTimePerNote}s</p>
+                  <p className="text-[7px] font-mono text-slate-600">promedio</p>
+                </div>
+              </div>
+
+              {/* Progress bar + estimate cuando está corriendo */}
+              {pipelineStatus.running && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[8px] font-mono text-slate-600 flex items-center gap-1">
+                      <Clock className="w-2.5 h-2.5" />
+                      {Math.floor(pipelineStatus.elapsedSec / 60)}m {pipelineStatus.elapsedSec % 60}s transcurridos
+                    </span>
+                    <span className="text-[8px] font-mono text-purple-400">
+                      ~{pipelineStatus.estimatedRemaining} restantes
+                    </span>
+                  </div>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(167,139,250,0.1)' }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-1000"
+                      style={{
+                        width: `${Math.min(100, Math.round((pipelineStatus.notaRawProcesadas / Math.max(1, pipelineStatus.notaRawProcesadas + pipelineStatus.notaRawPendientes)) * 100))}%`,
+                        background: 'linear-gradient(90deg, #a78bfa, #06b6d4)',
+                        boxShadow: '0 0 6px rgba(167,139,250,0.3)',
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Recent pipeline log */}
+              {pipelineStatus.recentLog.length > 0 && (
+                <div className="mt-2.5 max-h-[130px] overflow-y-auto custom-scrollbar space-y-0.5">
+                  <p className="text-[7px] font-bold uppercase text-slate-700 font-mono mb-1">Log del pipeline</p>
+                  {pipelineStatus.recentLog.map((log, i) => (
+                    <p key={i} className="text-[8px] font-mono leading-relaxed truncate px-1" style={{
+                      color: log.includes('✓') || log.includes('✅') ? '#10b981'
+                           : log.includes('▶') ? '#a78bfa'
+                           : '#475569',
+                    }}>
+                      {log}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Batch size selector */}
           <div className="flex items-center gap-2 mb-3">
