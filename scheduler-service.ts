@@ -88,13 +88,32 @@ function cleanupHeartbeat(): void {
 // ═══════════════════════════════════════════════════════════════
 
 async function scheduleCheckJobs(): Promise<number> {
-  const fuentes = await db.fuenteEstado.findMany({
-    where: { estado: 'activa' },
-    include: { Medio: true },
+  // FIX: Usar raw SQL con LEFT JOIN para evitar crash con registros huérfanos
+  // (FuenteEstado con medioId que no corresponde a ningún Medio)
+  const fuentes = await db.$queryRaw`
+    SELECT
+      fe.id, fe.medioId, fe.url, fe.frecuenciaBase, fe.frecuenciaActual,
+      fe.horasPublicacion, fe.ultimoCheckOk, fe.ultimoHeadline,
+      fe.ultimoTexto, fe.ultimoMencion, fe.estado, fe.activo,
+      fe.fallosConsecutivos,
+      m.nombre AS medioNombre, m.categoria AS medioCategoria,
+      m.nivel AS medioNivel, m.frecuenciaOverride AS medioFrecuenciaOverride
+    FROM FuenteEstado fe
+    LEFT JOIN Medio m ON fe.medioId = m.id
+    WHERE fe.estado = 'activa'
+  ` as Array<Record<string, unknown>>;
+
+  // Filtrar registros huérfanos (sin Medio asociado) y loggear
+  const validFuentes = fuentes.filter(f => {
+    if (!f.medioNombre) {
+      console.warn(`[Scheduler-Service] FuenteEstado huérfano ignorado: ${f.id} → medioId ${f.medioId} no existe`);
+      return false;
+    }
+    return true;
   });
 
-  if (fuentes.length === 0) {
-    console.log('[Scheduler-Service] No hay fuentes activas');
+  if (validFuentes.length === 0) {
+    console.log('[Scheduler-Service] No hay fuentes activas válidas');
     return 0;
   }
 
@@ -102,26 +121,19 @@ async function scheduleCheckJobs(): Promise<number> {
   let omitidas = 0;
   let probes = 0;
 
-  for (const fuente of fuentes) {
+  for (const fuente of validFuentes) {
     try {
       const capa = determinarCapa({
-        ultimoCheckOk: fuente.ultimoCheckOk,
-        ultimoHeadline: fuente.ultimoHeadline,
-        ultimoTexto: fuente.ultimoTexto,
-        ultimoMencion: fuente.ultimoMencion,
-        estado: fuente.estado || 'creada',
-        activo: fuente.activo,
-        fallosConsecutivos: fuente.fallosConsecutivos || 0,
+        ultimoCheckOk: fuente.ultimoCheckOk as Date | null,
+        ultimoHeadline: fuente.ultimoHeadline as Date | null,
+        ultimoTexto: fuente.ultimoTexto as Date | null,
+        ultimoMencion: fuente.ultimoMencion as Date | null,
+        estado: (fuente.estado as string) || 'creada',
+        activo: fuente.activo as boolean,
+        fallosConsecutivos: (fuente.fallosConsecutivos as number) || 0,
       });
 
       if (capa < 1) {
-        // ── PROBE CHECK: dar UNA oportunidad a fuentes degradadas ──
-        // Sin esto, una fuente en capa 0 queda excluida para siempre:
-        // sin check → sin ultimoCheckOk → capa 0 → sin check (deadlock).
-        // El probe es un solo check de prioridad baja (P5=9).
-        // Si tiene éxito, ultimoCheckOk se actualiza → capa sube →
-        // el próximo reschedule la programa normalmente.
-        // Si falla, queda en capa 0 (estado correcto).
         scheduleProbeCheck(fuente);
         probes++;
         omitidas++;
@@ -132,26 +144,24 @@ async function scheduleCheckJobs(): Promise<number> {
       scheduledCount += count;
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      console.warn(`[Scheduler-Service] Error programando ${fuente.Medio?.nombre}: ${msg}`);
+      console.warn(`[Scheduler-Service] Error programando ${fuente.medioNombre}: ${msg}`);
     }
   }
 
-  console.log(`[Scheduler-Service] ${fuentes.length} fuentes: ${scheduledCount} tareas, ${omitidas} omitidas (capa 0), ${probes} probes`);
+  console.log(`[Scheduler-Service] ${validFuentes.length} fuentes: ${scheduledCount} tareas, ${omitidas} omitidas (capa 0), ${probes} probes`);
   return scheduledCount;
 }
 
-function scheduleFuente(fuente: {
-  id: string;
-  medioId: string;
-  Medio: { nombre: string; categoria: string; nivel: string; frecuenciaOverride: string };
-  frecuenciaActual: string;
-  frecuenciaBase: string;
-  horasPublicacion: string;
-}): number {
+function scheduleFuente(fuente: Record<string, unknown>): number {
+  const medioNombre = String(fuente.medioNombre || '');
+  const medioCategoria = String(fuente.medioCategoria || '');
+  const medioNivel = String(fuente.medioNivel || '1');
+  const medioFrecuenciaOverride = String(fuente.medioFrecuenciaOverride || '');
+
   const { efectiva } = getFrecuenciaEfectiva(
-    fuente.frecuenciaBase,
-    fuente.frecuenciaActual,
-    fuente.Medio.frecuenciaOverride || null,
+    String(fuente.frecuenciaBase || '6h'),
+    String(fuente.frecuenciaActual || '6h'),
+    medioFrecuenciaOverride || null,
   );
 
   const numChecks = frecuenciaToChecksDia(efectiva);
@@ -162,21 +172,21 @@ function scheduleFuente(fuente: {
 
   let horarios: number[];
   try {
-    const histograma = JSON.parse(fuente.horasPublicacion || '{}');
+    const histograma = JSON.parse(String(fuente.horasPublicacion || '{}'));
     horarios = calcularHorariosOptimos(histograma, numChecks);
   } catch {
-    const defaults = getHorariosDefault(fuente.Medio.nombre, '');
+    const defaults = getHorariosDefault(medioNombre, '');
     horarios = defaults || distribuirFallback(numChecks);
   }
 
   // Guardar horarios en DB
   db.fuenteEstado.update({
-    where: { id: fuente.id },
+    where: { id: fuente.id as string },
     data: { horariosOptimos: JSON.stringify(horarios) },
   }).catch(() => {});
 
-  const domain = (fuente.Medio.nombre || '').toLowerCase().includes('tiempos') ? 'lostiempos.com' : '';
-  const prioridad = domain === 'lostiempos.com' ? 0 : (fuente.Medio.nivel === '1' ? 1 : 3);
+  const domain = medioNombre.toLowerCase().includes('tiempos') ? 'lostiempos.com' : '';
+  const prioridad = domain === 'lostiempos.com' ? 0 : (medioNivel === '1' ? 1 : 3);
 
   for (const hora of horarios) {
     scheduleSingleCheck(fuente, prioridad, hora);
@@ -186,7 +196,7 @@ function scheduleFuente(fuente: {
 }
 
 function scheduleSingleCheck(
-  fuente: { id: string; medioId: string; Medio: { nombre: string } },
+  fuente: Record<string, unknown>,
   prioridad: number,
   hora: number,
 ): void {
@@ -222,7 +232,7 @@ function scheduleSingleCheck(
       state.totalScheduled++;
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      console.error(`[Scheduler-Service] Error en tarea ${fuente.Medio.nombre}: ${msg}`);
+      console.error(`[Scheduler-Service] Error en tarea ${fuente.medioNombre || fuente.id}: ${msg}`);
     }
   });
 
@@ -414,7 +424,7 @@ function schedulePeriodicReschedule(): void {
 // Probe Check — una oportunidad para fuentes en capa 0
 // ═══════════════════════════════════════════════════════════════
 
-function scheduleProbeCheck(fuente: { id: string; medioId: string; Medio: { nombre: string } }): void {
+function scheduleProbeCheck(fuente: Record<string, unknown>): void {
   // Un solo check en ventana de baja actividad (0:00-4:00)
   // Horas muertas: no hay boletines, ni scrapes, ni batch_llm
   const hora = Math.floor(Math.random() * 5); // 0, 1, 2, 3 o 4
@@ -438,7 +448,7 @@ function scheduleProbeCheck(fuente: { id: string; medioId: string; Medio: { nomb
       state.totalScheduled++;
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      console.error(`[Scheduler-Service] Error en probe ${fuente.Medio.nombre}: ${msg}`);
+      console.error(`[Scheduler-Service] Error en probe ${fuente.medioNombre || fuente.id}: ${msg}`);
     }
   });
 
