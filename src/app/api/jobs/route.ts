@@ -14,6 +14,8 @@ const VALID_TIPOS: JobTipo[] = [
   'check_fuente',
   'check_indicador',
   'scrape_fuente',
+  'scrape_fuente_light',   // Pipeline desacoplado: scrape sin LLM → NotaRaw
+  'batch_llm',             // Procesa NotaRaw pendientes → menciones con LLM
   'capture_indicador',
   'generar_boletin',
   'enviar_entrega',
