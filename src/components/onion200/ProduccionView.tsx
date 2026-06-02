@@ -112,6 +112,10 @@ export function ProduccionView() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       setCatalogProducts(json.productos || []);
+      // Also update recientes from catalog (auth-free endpoint)
+      if (json.recientes && json.recientes.length > 0) {
+        setData(prev => prev ? { ...prev, recientes: json.recientes } : prev);
+      }
       setCatalogError(null);
     } catch {
       setCatalogError('Error al cargar catalogo');
@@ -273,7 +277,23 @@ export function ProduccionView() {
     setPreviewData(null);
 
     try {
-      const res = await fetchWithTimeout(`/api/dashboard/productos/${tipo}/ultimo`, { timeoutMs: 10000 });
+      // Mapear tipo dashboard a tipo Reporte para el query
+      const tipoMap: Record<string, string> = {
+        'el_termometro': 'termometro',
+        'saldo_del_dia': 'saldo_del_dia',
+        'el_foco': 'el_foco',
+        'el_especializado': 'el_especializado',
+        'el_informe_cerrado': 'el_informe_cerrado',
+        'ficha_legislador': 'ficha_legislador',
+        'el_radar': 'el_radar',
+        'voz_y_voto': 'el_radar',
+        'el_hilo': 'el_radar',
+        'foco_de_la_semana': 'el_foco',
+        'alerta_temprana': 'el_foco',
+        'boletin_del_grano': 'boletin_del_grano',
+      };
+      const tipoUrl = tipoMap[tipo] || tipo;
+      const res = await fetchWithTimeout(`/api/productos/${tipoUrl}/ultimo`, { timeoutMs: 10000 });
       if (res.ok) {
         const json = await res.json();
         setPreviewData(json);

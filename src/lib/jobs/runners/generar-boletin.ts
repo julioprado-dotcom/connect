@@ -90,7 +90,24 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       },
     })
 
-    // 6. Distribuir a contratos activos
+    // 6. Push a GitHub si hay contenido real (menciones > 0)
+    if (totalMenciones > 0) {
+      try {
+        const { pushProductosToGithub } = await import('@/lib/git-utils')
+        const githubResult = await pushProductosToGithub(`Producto ${tipoBoletin}: ${totalMenciones} menciones`)
+        if (githubResult.ok && githubResult.commit !== 'no-changes') {
+          console.log(`[generar_boletin] GitHub push OK: ${githubResult.commit}`)
+        } else if (githubResult.ok) {
+          console.log(`[generar_boletin] GitHub: sin cambios nuevos`)
+        } else {
+          console.warn(`[generar_boletin] GitHub push fallido: ${githubResult.error}`)
+        }
+      } catch (err) {
+        console.warn(`[generar_boletin] GitHub push error (no bloqueante):`, err)
+      }
+    }
+
+    // 7. Distribuir a contratos activos
     // Si vino contratoId explícito (desde dashboard manual), usar ese.
     // Si es programado (sin contratoId), buscar contratos activos automáticamente.
     const { enqueue } = await import('../queue')

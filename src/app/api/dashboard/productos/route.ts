@@ -148,8 +148,31 @@ export async function GET() {
       };
     });
 
+    // ── Recientes (para ProduccionView) ─────────────────────
+    const recientes = reportes.slice(0, 10).map(r => {
+      let titulo = '';
+      if (r.contenido) {
+        try {
+          const parsed = typeof r.contenido === 'string' ? JSON.parse(r.contenido) : r.contenido;
+          titulo = parsed.textoCompleto ? parsed.textoCompleto.substring(0, 120) : parsed.resumen || '';
+        } catch {
+          titulo = String(r.contenido).substring(0, 120);
+        }
+      }
+      return {
+        id: r.id,
+        tipo: r.tipo,
+        titulo: titulo || r.resumen || `Reporte ${r.tipo}`,
+        totalMenciones: r.totalMenciones || 0,
+        fechaCreacion: r.fechaCreacion?.toISOString() ?? null,
+        enviado: r.enviado ?? false,
+        estado: (r.totalMenciones || 0) > 0 ? 'generado' : 'sin_menciones',
+      };
+    });
+
     return NextResponse.json({
       productos,
+      recientes,
       resumen: {
         total: productos.length,
         generados: productos.filter(p => p.estado === 'generado').length,
