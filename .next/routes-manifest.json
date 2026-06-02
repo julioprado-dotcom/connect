@@ -755,6 +755,12 @@
       "namedRegex": "^/api/jobs/fuentes(?:/)?$"
     },
     {
+      "page": "/api/jobs/full-cycle",
+      "regex": "^/api/jobs/full\\-cycle(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/jobs/full\\-cycle(?:/)?$"
+    },
+    {
       "page": "/api/jobs/maintenance",
       "regex": "^/api/jobs/maintenance(?:/)?$",
       "routeKeys": {},

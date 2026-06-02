@@ -92,6 +92,7 @@
   "/api/jobs/[id]/route": "app/api/jobs/[id]/route.js",
   "/api/jobs/fuentes/[id]/route": "app/api/jobs/fuentes/[id]/route.js",
   "/api/jobs/fuentes/route": "app/api/jobs/fuentes/route.js",
+  "/api/jobs/full-cycle/route": "app/api/jobs/full-cycle/route.js",
   "/api/jobs/maintenance/route": "app/api/jobs/maintenance/route.js",
   "/api/jobs/route": "app/api/jobs/route.js",
   "/api/jobs/scheduler/route": "app/api/jobs/scheduler/route.js",

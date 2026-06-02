@@ -28,6 +28,7 @@
     "/api/jobs/[id]": {},
     "/api/jobs/fuentes": {},
     "/api/jobs/fuentes/[id]": {},
+    "/api/jobs/full-cycle": {},
     "/api/jobs/maintenance": {},
     "/api/jobs/scheduler": {},
     "/api/jobs/stats": {},

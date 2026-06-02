@@ -92,6 +92,7 @@
   "/api/jobs/[id]/route": "/api/jobs/[id]",
   "/api/jobs/fuentes/[id]/route": "/api/jobs/fuentes/[id]",
   "/api/jobs/fuentes/route": "/api/jobs/fuentes",
+  "/api/jobs/full-cycle/route": "/api/jobs/full-cycle",
   "/api/jobs/maintenance/route": "/api/jobs/maintenance",
   "/api/jobs/route": "/api/jobs",
   "/api/jobs/scheduler/route": "/api/jobs/scheduler",
