@@ -47,19 +47,35 @@ function deriveEstado(opts: {
   ultimoCheck: string | null;
   checksSinCambio: number | null;
   fallosConsecutivos: number | null;
+  totalChecks: number | null;
   error: string;
 }): string {
-  const activo = opts.feActivo === 1;
-  if (!activo) return 'pausada';
   const fallos = opts.fallosConsecutivos || 0;
-  if (fallos >= 3) return 'caida';
-  if (!opts.ultimoCheck) return 'sin_estado';
+  const totalChecks = opts.totalChecks || 0;
+
+  // Never checked → sin_estado
+  if (!opts.ultimoCheck || totalChecks === 0) return 'sin_estado';
+
   const hoursSinceCheck = (Date.now() - new Date(opts.ultimoCheck).getTime()) / 3600000;
+
+  // High consecutive failures → caida
+  if (fallos >= 3) return 'caida';
+  // No check in 72h → caida
   if (hoursSinceCheck > 72) return 'caida';
+
+  // Actively checked (within last 6h) → activa regardless of feActivo flag
+  if (hoursSinceCheck <= 6) return 'activa';
+
+  // Checked recently (6-24h) with no failures → activa
+  if (hoursSinceCheck <= 24 && fallos === 0) return 'activa';
+
+  // Checked 24-72h, might be degrading
   const sinCambio = opts.checksSinCambio || 0;
   if (hoursSinceCheck > 48 && sinCambio >= 7) return 'degradada';
   if (fallos > 0) return 'degradada';
-  return 'activa';
+
+  // Default: active if feActivo, paused otherwise
+  return opts.feActivo === 1 ? 'activa' : 'pausada';
 }
 
 // Safe number extraction from DB (handles null + BigInt)
@@ -210,6 +226,7 @@ export async function GET() {
         ultimoCheck: estado.ultimoCheck as string | null,
         checksSinCambio: estado.checksSinCambio as number | null,
         fallosConsecutivos: estado.fallosConsecutivos as number | null,
+        totalChecks: estado.totalChecks as number | null,
         error: s(estado.error),
       });
 
