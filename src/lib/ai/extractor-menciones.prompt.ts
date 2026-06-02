@@ -70,11 +70,23 @@ export function buildSystemPrompt(marco: MarcoData | null): string {
     ];
   }
 
+  // ── Exclusiones de contenido (deportes, espectáculo, etc.) ──
+  const exclusionesContenido = [
+    'El artículo trata PRIMARIAMENTE de deportes, fútbol, campeonatos, ligas deportivas',
+    'El artículo trata PRIMARIAMENTE de espectáculo, farándula, celebridades, influencers',
+    'El artículo trata PRIMARIAMENTE de entretenimiento (cine, series, música, conciertos)',
+    'El artículo trata PRIMARIAMENTE de competencia deportiva sin implicaciones políticas/institucionales',
+  ];
+
   let criteriosSection = criteriosRelevancia.map(c => `- ${c}`).join('\n');
   if (noCriterios.length > 0) {
     criteriosSection += '\n\nes_relevante = false SI se cumple ALGUNO de estos:\n' +
       noCriterios.map(c => `- ${c}`).join('\n');
   }
+  // Siempre agregar exclusiones de contenido
+  criteriosSection += '\n\nes_relevante = false SI el artículo es PRIMARIAMENTE sobre:\n' +
+    exclusionesContenido.map(c => `- ${c}`).join('\n');
+  criteriosSection += '\nNOTA: Un artículo sobre fútbol PUEDE ser relevante SOLO si tiene implicaciones políticas/institucionales claras (ej: uso de recursos públicos para estadios, escándalo de corrupción deportiva, declaración de un legislador sobre deportes). Si es solo deportivo → false.'
 
   // ── Terminología ──
   const terminosPermitidos: string[] = marco
@@ -248,6 +260,11 @@ El sistema debe aprender de cada nota procesada. Además de clasificar, debes DE
 - Detecta ironía/sarcasmo → clasifica como tratamiento_editorial
 - Separa "por qué" (causa) de "para qué" (intención)
 - confianza_clasificacion: "alta" (muy seguro), "media" (razonablemente seguro), "baja" (poco seguro)
+- **NO clasifiques como relevante contenido PRIMARIAMENTE deportivo, de espectáculo o entretenimiento**
+  - Artículos sobre fútbol, campeonatos, ligas deportivas → es_relevante = false (salvo implicaciones políticas/institucionales claras)
+  - Artículos sobre farándula, celebridades, influencers → es_relevante = false
+  - Un partido de fútbol SIN declaración de autoridad política = NO relevante
+  - Si un legislador declara sobre deportes, evalúa si la DECLARACIÓN es relevante (no el deporte en sí)
 
 ## FORMATO DE SALIDA
 

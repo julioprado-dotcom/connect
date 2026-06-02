@@ -301,6 +301,49 @@ function tieneContextoBolivia(textoNorm: string): boolean {
 }
 
 /**
+ * Filtro de contenido irrelevante: deportes, espectáculo, farándula, etc.
+ * Solo filtra si NO hay override por asambleista (el triaje principal ya checkea eso).
+ * Estrategia: si el título/lead tiene señales fuertes de contenido deportivo/espectáculo
+ * Y no tiene ninguna keyword política → descartar.
+ */
+function filtrarContenidoIrrelevante(tituloNorm: string, leadNorm: string): { filtrado: boolean; razon: string } {
+  // Señales fuertes de contenido NO político
+  const IRRELEVANTE_PATTERNS: Array<[string, string[]]> = [
+    ['futbol', ['futbol', 'fútbol', 'partido de futbol', 'partido de fútbol', 'seleccion bolivia', 'selección bolivia', 'seleccion boliviana', 'selección boliviana', 'liga boliviana', 'liga de fútbol', 'futbol boliviano', 'fútbol boliviano', 'balompie', 'balompié', 'copa libertadores', 'copa sudamericana', 'cancha', 'gol', 'goles', 'jugador', 'jugadores de futbol', 'futbolista', 'futbolistas', 'dt de', 'director tecnico', 'entrenador de', 'clasificatorio', 'clasificatorios', 'eliminatoria', 'eliminatorias', 'mundial', 'copa america', 'copa américa', 'estadio', 'torneo apertura', 'torneo clausura', 'división profesional', 'division profesional']],
+    ['deportes', ['deporte', 'deportes', 'deportivo', 'deportiva', 'campeon', 'campeón', 'campeona', 'campeonato', 'campeonato boliviano', 'campeonato mundial', 'medalla', 'medallista', 'olimpiada', 'juegos olimpicos', 'juegos olímpicos', 'juegos bolivarianos', 'juegos suramericanos', 'copa bolivia', 'liga 1']],
+    ['basket', ['basket', 'básquet', 'basketbol', 'baloncesto', 'nba', 'libertadores de basket']],
+    ['espectaculo', ['espectaculo', 'espectáculo', 'farandula', 'farándula', 'famoso', 'famosa', 'famosos', 'celebridad', 'influencer', 'tiktok', 'trending', 'viral', 'redes sociales', 'reality show', 'concurso de belleza', 'miss bolivia', 'miss universo']],
+    ['entretenimiento', ['pelicula', 'película', 'cine', 'serie de tv', 'netflix', 'estreno', 'musica', 'música', 'concierto', 'festival de musica', 'festival de música', 'show', 'comedia']],
+  ];
+
+  const textoCompleto = `${tituloNorm} ${leadNorm}`;
+
+  for (const [, signals] of IRRELEVANTE_PATTERNS) {
+    for (const signal of signals) {
+      if (!textoCompleto.includes(signal)) continue;
+      // Encontró una señal → verificar que NO hay contexto político
+      const tieneContextoPolitico = [
+        'asamblea', 'diputado', 'senador', 'congreso', 'ley', 'presidente',
+        'ministro', 'gobierno', 'estado', 'constitucion', 'politica', 'política',
+        'economia', 'economía', 'presupuesto', 'impuesto', 'yacimiento', 'gas',
+        'litio', 'exportacion', 'importacion', 'marcha', 'protesta', 'huelga',
+        'corrupcion', 'corrupción', 'investigacion', 'proceso judicial', 'fiscal',
+        'parlamento', 'legislativo', 'ejecutivo', 'judicial', 'electoral',
+      ];
+      // Si tiene AL MENOS 1 señal política → no filtrar (puede ser política deportiva)
+      if (tieneContextoPolitico.some(kw => textoCompleto.includes(kw))) continue;
+      // No tiene contexto político → filtrar
+      return {
+        filtrado: true,
+        razon: `Contenido irrelevante: "${signal}" sin contexto político`,
+      };
+    }
+  }
+
+  return { filtrado: false, razon: '' };
+}
+
+/**
  * Verifica si una nota tiene señales fuertes de ser sobre otro país.
  * Requiere: mención de país extranjero + líder/lugar extranjero específico.
  */
@@ -386,6 +429,18 @@ function filtrarGeografia(titulo: string, lead: string): { filtrado: boolean; ra
     .replace(/[^a-z0-9áéíóúñü\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+
+  const leadNorm = lead.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9áéíóúñü\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  // Filtro 1: Contenido irrelevante (deportes, espectáculo, etc.)
+  const irrelevante = filtrarContenidoIrrelevante(textoNorm, leadNorm)
+  if (irrelevante.filtrado) {
+    return { filtrado: true, razon: irrelevante.razon }
+  }
 
   // Si tiene contexto boliviano explícito, nunca filtrar
   if (tieneContextoBolivia(textoNorm)) {

@@ -20,9 +20,11 @@ import { registrarRechazo } from '@/lib/registrar-rechazo'
 
 // ─── Configuración ───────────────────────────────────────────
 
-const MAX_NOTAS_POR_BATCH = 10   // Max notas por fuente en un solo batch LLM
-const MAX_BACHES_POR_EJECUCION = 8  // Limitar cuántas fuentes procesar por ejecución
-const DELAY_ENTRE_BATCHES = 5000  // 5s entre batches de distintas fuentes
+const MAX_NOTAS_POR_MEDIO = 20    // Max notas por medio en una sola ejecución
+const MAX_BACHES_POR_EJECUCION = 30 // Procesar TODAS las fuentes (antes era 8)
+const DELAY_ENTRE_BATCHES = 3000   // 3s entre batches de distintas fuentes
+const MAX_REINTENTOS = 3           // Max reintentos antes de descartar una nota
+const RETRY_DELAY = 10000         // 10s entre reintentos de la misma nota
 
 // ─── Runner principal ────────────────────────────────────────
 
@@ -50,17 +52,24 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
 
     console.log(`[batch-llm] ${notasPendientes.length} notas pendientes de ${new Set(notasPendientes.map(n => n.medioId)).size} fuentes`)
 
-    // 2. Agrupar por medioId
+    // 2. Agrupar por medioId (tomar hasta MAX_NOTAS_POR_MEDIO por medio)
     const porMedio = new Map<string, typeof notasPendientes>()
+    let notasDropped = 0
     for (const nota of notasPendientes) {
       const existing = porMedio.get(nota.medioId)
       if (existing) {
-        if (existing.length < MAX_NOTAS_POR_BATCH) {
+        if (existing.length < MAX_NOTAS_POR_MEDIO) {
           existing.push(nota)
+        } else {
+          notasDropped++
         }
       } else {
         porMedio.set(nota.medioId, [nota])
       }
+    }
+
+    if (notasDropped > 0) {
+      console.log(`[batch-llm] ${notasDropped} notas exceden limite por medio, se procesaran en proximo ciclo`)
     }
 
     // 3. Procesar cada fuente (con límite por ejecución)
@@ -77,72 +86,100 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       console.log(`[batch-llm] Procesando ${notas.length} notas de fuente ${i + 1}/${limit} (${medioId.substring(0, 8)}...)`)
 
       let mencionesFuente = 0
+      let erroredNotas = 0
 
       for (const nota of notas) {
-        try {
-          // Enviar al LLM individualmente (reutiliza extractor existente)
-          // NOTA: En el futuro se puede optimizar a batch de varias notas en 1 prompt
-          const resultado = await extraerMencionesDeTexto(nota.texto, medioId)
-          const menciones = await crearMencionesExtraidas(
-            resultado, medioId, nota.url, nota.titulo,
-            { fechaCaptura: nota.fechaCaptura, fechaClasificacion: new Date() },
-          )
+        let procesada = false
+        let menciones = 0
 
+        for (let intento = 1; intento <= MAX_REINTENTOS; intento++) {
+          try {
+            // Enviar al LLM individualmente (reutiliza extractor existente)
+            const resultado = await extraerMencionesDeTexto(nota.texto, medioId)
+            menciones = await crearMencionesExtraidas(
+              resultado, medioId, nota.url, nota.titulo,
+              { fechaCaptura: nota.fechaCaptura, fechaClasificacion: new Date() },
+            )
+
+            // Éxito: marcar como procesada
+            await db.notaRaw.update({
+              where: { id: nota.id },
+              data: {
+                procesada: true,
+                fechaProcesada: new Date(),
+                mencionesCreadas: menciones,
+                ...(menciones === 0 ? { descartada: true } : {}),
+              },
+            })
+
+            procesada = true
+            break // Salir del loop de reintentos
+          } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err)
+            const isRateLimit = msg.includes('429') || msg.includes('rate') || msg.includes('quota')
+            const isTimeout = msg.includes('timeout') || msg.includes('Timeout') || msg.includes('Abort')
+            const isTransient = isRateLimit || isTimeout
+
+            console.error(`[batch-llm] Error (intento ${intento}/${MAX_REINTENTOS}) nota ${nota.id.substring(0, 8)}: ${msg.substring(0, 150)}`)
+
+            if (intento < MAX_REINTENTOS && isTransient) {
+              // Error transitorio: esperar y reintentar
+              console.log(`[batch-llm] Reintentando en ${RETRY_DELAY/1000}s (error transitorio: ${isRateLimit ? 'rate_limit' : 'timeout'})...`)
+              await new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
+              continue
+            }
+
+            // Último intento o error no transitorio: marcar como descartada SOLO si no es parseable
+            if (intento === MAX_REINTENTOS) {
+              if (isTransient) {
+                // Error transitorio persistente → NO descartar, dejar para próximo ciclo
+                console.warn(`[batch-llm] Nota ${nota.id.substring(0, 8)} con error transitorio persistente, se reintentará en proximo ciclo`)
+                erroredNotas++
+              } else {
+                // Error permanente (parse, DB, etc.) → descartar
+                console.warn(`[batch-llm] Nota ${nota.id.substring(0, 8)} descartada: error permanente (${msg.substring(0, 80)})`)
+                await db.notaRaw.update({
+                  where: { id: nota.id },
+                  data: {
+                    procesada: true,
+                    fechaProcesada: new Date(),
+                    descartada: true,
+                  },
+                })
+                totalDescartadas++
+                totalProcesadas++
+              }
+            }
+          }
+        }
+
+        if (procesada) {
           mencionesFuente += menciones
           totalMenciones += menciones
-
-          // Marcar como procesada
-          await db.notaRaw.update({
-            where: { id: nota.id },
-            data: {
-              procesada: true,
-              fechaProcesada: new Date(),
-              mencionesCreadas: menciones,
-              ...(menciones === 0 ? { descartada: true } : {}),
-            },
-          })
-
-          totalProcesadas++
-        } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : String(err)
-          console.error(`[batch-llm] Error procesando nota ${nota.id.substring(0, 8)}: ${msg}`)
-
-          // Marcar como procesada (con error) para no reintentar indefinidamente
-          await db.notaRaw.update({
-            where: { id: nota.id },
-            data: {
-              procesada: true,
-              fechaProcesada: new Date(),
-              descartada: true,
-            },
-          })
-
-          totalDescartadas++
           totalProcesadas++
         }
       }
 
-      if (mencionesFuente > 0) {
-        console.log(`[batch-llm] ✓ Fuente ${medioId.substring(0, 8)}: ${mencionesFuente} menciones`)
-      }
+      console.log(`[batch-llm] ✓ Fuente ${medioId.substring(0, 8)}: ${mencionesFuente} menciones, ${erroredNotas} errores transitorios`)
 
       fuentesProcesadas++
     }
 
     // 4. Registrar en SystemLog (auditoría)
-    const notasRestantes = notasPendientes.length - totalProcesadas
+    const notasRestantes = notasPendientes.length - totalProcesadas - notasDropped
     await db.systemLog.create({
       data: {
         modulo: 'batch_llm',
         accion: 'procesar_notas',
-        detalle: `${totalProcesadas} notas procesadas, ${totalMenciones} menciones, ${fuentesProcesadas} fuentes`,
+        detalle: `${totalProcesadas} notas procesadas, ${totalMenciones} menciones, ${fuentesProcesadas} fuentes, ${totalDescartadas} descartadas`,
         automatica: true,
         datos: JSON.stringify({
           procesadas: totalProcesadas,
           menciones: totalMenciones,
           descartadas: totalDescartadas,
           fuentes: fuentesProcesadas,
-          restantes: notasRestantes,
+          restantes: Math.max(0, notasRestantes),
+          droppedPorLimite: notasDropped,
           duracionMs: Date.now() - startTime,
         }),
       },

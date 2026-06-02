@@ -4,16 +4,16 @@
   "instrumentation": {
     "files": [
       "server/edge/chunks/_0b6lbnn._.js",
-      "server/edge/chunks/src_lib_jobs_runners_check-fuente_ts_06k3~gv._.js",
+      "server/edge/chunks/src_lib_jobs_link-extractor_ts_0pr65ze._.js",
       "server/edge/chunks/src_lib_auto-recovery_ts_0i_jpc5._.js",
+      "server/edge/chunks/src_lib_jobs_runners_check-fuente_ts_06k3~gv._.js",
       "server/edge/chunks/src_lib_bulletin_product-generator_ts_0-7bywe._.js",
-      "server/edge/chunks/[root-of-the-server]__06qysoo._.js",
       "server/edge/chunks/src_lib_ai_extractor-menciones_ts_0.9u8kp._.js",
+      "server/edge/chunks/_0p49lf8._.js",
       "server/edge/chunks/src_lib_indicadores_capturer-tier1_ts_0uibsl_._.js",
       "server/edge/chunks/[root-of-the-server]__0plqzr8._.js",
-      "server/edge/chunks/src_lib_jobs_0gy-1nf._.js",
-      "server/edge/chunks/_0p49lf8._.js",
-      "server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_0hceb-n.js"
+      "server/edge/chunks/[root-of-the-server]__0j~ex21._.js",
+      "server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_0e6ahvn.js"
     ],
     "name": "instrumentation",
     "wasm": [
