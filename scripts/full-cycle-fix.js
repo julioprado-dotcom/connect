@@ -10,6 +10,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 const path = require('path');
+const crypto = require('crypto');
 process.env.DATABASE_URL = 'file:/root/decodex-app/prisma/db/custom.db';
 
 // Import PrismaClient from absolute path (works from any directory)
@@ -149,6 +150,7 @@ async function main() {
 
     await db.job.create({
       data: {
+        id: crypto.randomUUID(),
         tipo: 'check_fuente',
         estado: 'pendiente',
         prioridad: 1,
@@ -191,6 +193,7 @@ async function main() {
     if (!batchPendiente) {
       await db.job.create({
         data: {
+          id: crypto.randomUUID(),
           tipo: 'batch_llm',
           estado: 'pendiente',
           prioridad: 2,
