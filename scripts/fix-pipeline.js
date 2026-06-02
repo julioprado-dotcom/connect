@@ -14,6 +14,8 @@
  */
 const { PrismaClient } = require('./node_modules/.prisma/client');
 const { randomBytes } = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const p = new PrismaClient();
 
 const DRY_RUN = process.argv.includes('--dry-run');
@@ -26,7 +28,8 @@ async function main() {
   console.log('═══════════════════════════════════════════════════\n');
 
   // ── Paso 1: Diagnóstico rápido ──
-  const totalMedios = await p.medio.count({ where: { activo: true } });
+  const totalMedios = await p.medio.count();
+  const mediosActivos = await p.medio.count({ where: { activo: true } });
   const totalFE = await p.fuenteEstado.count();
   const feActivas = await p.fuenteEstado.count({ where: { estado: 'activa' } });
   const totalJobs = await p.job.count();
@@ -36,7 +39,7 @@ async function main() {
   const totalReportes = await p.reporte.count();
 
   console.log('Estado actual:');
-  console.log(`  Medios activos: ${totalMedios}`);
+  console.log(`  Medios: ${totalMedios} (activos: ${mediosActivos})`);
   console.log(`  FuenteEstado: ${totalFE} (activas: ${feActivas})`);
   console.log(`  Jobs en cola: ${totalJobs}`);
   console.log(`  NotasRaw: ${totalNR} (pendientes: ${nrPendientes})`);
@@ -44,8 +47,43 @@ async function main() {
   console.log(`  Reportes: ${totalReportes}`);
   console.log('');
 
+  // ── Paso 1.5: Si no hay medios, restaurar desde seed ──
+  if (totalMedios === 0) {
+    console.log('\n⚠️  TABLA MEDIO VACÍA — Restaurando desde data/medios.json...');
+    const mediosPath = path.join(__dirname, '..', 'data', 'medios.json');
+    if (!fs.existsSync(mediosPath)) {
+      console.error('ERROR CRÍTICO: No se encuentra data/medios.json');
+      console.error('Ejecutar primero: node scripts/restore-medios.js');
+      await p.disconnect();
+      process.exit(1);
+    }
+    const mediosSeed = JSON.parse(fs.readFileSync(mediosPath, 'utf-8'));
+    console.log(`  Seed: ${mediosSeed.length} medios`);
+    if (!DRY_RUN) {
+      for (const medio of mediosSeed) {
+        await p.medio.create({
+          data: {
+            nombre: medio.nombre,
+            url: medio.url || '',
+            tipo: medio.tipo || 'web',
+            nivel: String(medio.nivel || '1'),
+            departamento: medio.departamento || null,
+            plataformas: medio.plataformas || '',
+            notas: medio.notas || '',
+          },
+        });
+      }
+      console.log(`  ✓ ${mediosSeed.length} medios creados`);
+    } else {
+      console.log(`  [DRY-RUN] Se crearían ${mediosSeed.length} medios`);
+    }
+  }
+
+  // Recontar tras posible seed
+  const totalMediosFinal = await p.medio.count({ where: { activo: true } });
+
   // ── Paso 2: Crear FuenteEstado faltantes ──
-  console.log('─ Paso 2: Crear FuenteEstado faltantes ─');
+  console.log('\n─ Paso 2: Crear FuenteEstado faltantes ─');
   const medios = await p.medio.findMany({
     where: { activo: true },
     select: { id: true, nombre: true, url: true, tipo: true, categoria: true, nivel: true }
