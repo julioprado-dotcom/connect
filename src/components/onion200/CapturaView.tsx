@@ -60,6 +60,8 @@ interface PipelineState {
   runningJobs: PipelineJobInfo[];
   pendingCount: number;
   notaRawPendientes: number;
+  notaRawTotal: number;
+  mencionesHoy: number;
   completedLast30min: number;
   recentLogs: string[];
 }
@@ -288,11 +290,16 @@ export function CapturaView() {
                 </div>
                 <div className="text-center">
                   <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">NotaRaw</p>
-                  <p className="text-sm font-mono text-cyan-400 tabular-nums">{pipeline.notaRawPendientes}</p>
+                  <p className="text-sm font-mono tabular-nums">
+                    <span className="text-cyan-400">{pipeline.notaRawPendientes}</span>
+                    <span className="text-slate-600">/{pipeline.notaRawTotal ?? '?'}</span>
+                  </p>
+                  <p className="text-[7px] font-mono text-slate-600">pend/total</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Jobs 30m</p>
-                  <p className="text-sm font-mono text-emerald-400 tabular-nums">{pipeline.completedLast30min}</p>
+                  <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Menciones</p>
+                  <p className="text-sm font-mono text-emerald-400 tabular-nums">{pipeline.mencionesHoy ?? '?'}</p>
+                  <p className="text-[7px] font-mono text-slate-600">hoy</p>
                 </div>
                 <div className="text-center">
                   <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Estado</p>
@@ -312,8 +319,8 @@ export function CapturaView() {
                       <span className="flex items-center gap-1">
                         <Activity className="w-3 h-3" />
                         {j.tipo}
+                        <span className="text-slate-500">({Math.floor(j.elapsedSec / 60)}m {j.elapsedSec % 60}s)</span>
                       </span>
-                      <span className="text-slate-500">{j.elapsedSec}s</span>
                     </div>
                   ))}
                 </div>

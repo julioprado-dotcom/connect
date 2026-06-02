@@ -516,7 +516,8 @@ export async function GET() {
     // ── Pipeline Job Queue (datos del worker/scheduler) ──────────
     let pipeline = null;
     try {
-      const [runningJobs, pendingCount, notaRawPendientes, completedRecent] = await Promise.all([
+      const sessionStart = new Date(Date.now() - 2 * 60 * 60 * 1000); // últimas 2 horas
+      const [runningJobs, pendingCount, notaRawPendientes, notaRawTotal, completedRecent, mencionesHoy] = await Promise.all([
         db.job.findMany({
           where: { estado: 'en_progreso' },
           select: { tipo: true, fechaInicio: true, payload: true },
@@ -525,12 +526,14 @@ export async function GET() {
         }),
         db.job.count({ where: { estado: 'pendiente' } }),
         db.notaRaw.count({ where: { procesada: false, descartada: false } }),
+        db.notaRaw.count({ where: { procesada: true } }),
         db.job.findMany({
           where: { estado: 'completado', fechaFin: { gte: new Date(Date.now() - 30 * 60 * 1000) } },
           select: { tipo: true, fechaFin: true, resultado: true },
           orderBy: { fechaFin: 'desc' },
           take: 15,
         }),
+        db.mencion.count({ where: { fechaCaptura: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } } }),
       ]);
 
       // Generar logs legibles de jobs recientes
@@ -588,12 +591,14 @@ export async function GET() {
         })),
         pendingCount,
         notaRawPendientes,
+        notaRawTotal,
+        mencionesHoy,
         completedLast30min: completedRecent.length,
         recentLogs: pipelineLogs.reverse(),
       };
     } catch {
       // Non-critical: no bloquear si hay error leyendo jobs
-      pipeline = { running: false, pendingCount: 0, notaRawPendientes: 0, completedLast30min: 0, recentLogs: [], runningJobs: [] };
+      pipeline = { running: false, pendingCount: 0, notaRawPendientes: 0, notaRawTotal: 0, mencionesHoy: 0, completedLast30min: 0, recentLogs: [], runningJobs: [] };
     }
 
     const lastLog = await db.capturaLog.findFirst({

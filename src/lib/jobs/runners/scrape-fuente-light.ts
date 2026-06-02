@@ -186,12 +186,38 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
     }
 
     // FASE 3 LIGHT: Descargar texto → guardar en NotaRaw (SIN LLM)
+    // PRE-DEDUP: Consultar URLs ya existentes en lote para evitar descargas innecesarias
+    const seleccionadasUrls = seleccionadas.slice(0, MAX_NOTAS_A_DESCARGAR).map(n => n.url)
+    let existingUrls = new Set<string>()
+    if (seleccionadasUrls.length > 0) {
+      try {
+        const existing = await db.notaRaw.findMany({
+          where: { medioId, url: { in: seleccionadasUrls } },
+          select: { url: true },
+        })
+        existingUrls = new Set(existing.map(e => e.url))
+        if (existingUrls.size > 0) {
+          console.log(`[scrape-light] PRE-DEDUP: ${existingUrls.size}/${seleccionadasUrls.length} URLs ya existen — saltando descargas`)
+        }
+      } catch {
+        // Non-critical: si falla la consulta, continuamos sin pre-dedup
+      }
+    }
+
     const maxDescargar = Math.min(seleccionadas.length, MAX_NOTAS_A_DESCARGAR)
     let guardadas = 0
     let duplicadas = 0
+    let saltadasPreDedup = 0
 
     for (let i = 0; i < maxDescargar; i++) {
       const nota = seleccionadas[i]
+
+      // PRE-DEDUP: Saltar descarga si URL ya existe en NotaRaw
+      if (existingUrls.has(nota.url)) {
+        duplicadas++
+        saltadasPreDedup++
+        continue
+      }
 
       if (i > 0) {
         await sleep(DELAY_ENTRE_NOTAS)
@@ -264,11 +290,11 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       },
     })
 
-    console.log(`[scrape-light] ${fuente.Medio.nombre}: ${notas.length} links → ${seleccionadas.length} triaje → ${guardadas} guardadas, ${duplicadas} duplicadas [${Date.now() - startTime}ms]`)
+    console.log(`[scrape-light] ${fuente.Medio.nombre}: ${notas.length} links → ${seleccionadas.length} triaje → ${guardadas} guardadas, ${duplicadas} dup (${saltadasPreDedup} pre-dedup) [${Date.now() - startTime}ms]`)
 
     return {
       success: true,
-      data: { notas: notas.length, seleccionadas: seleccionadas.length, guardadas, duplicadas, responseTime: Date.now() - startTime },
+      data: { notas: notas.length, seleccionadas: seleccionadas.length, guardadas, duplicadas, saltadasPreDedup, responseTime: Date.now() - startTime },
     }
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error)
