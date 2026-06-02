@@ -57,6 +57,7 @@
   "/api/dashboard/fuentes/[id]/reintentar/route": "app/api/dashboard/fuentes/[id]/reintentar/route.js",
   "/api/dashboard/fuentes/nueva/route": "app/api/dashboard/fuentes/nueva/route.js",
   "/api/dashboard/fuentes/route": "app/api/dashboard/fuentes/route.js",
+  "/api/dashboard/fuentes/scraping-status/route": "app/api/dashboard/fuentes/scraping-status/route.js",
   "/api/dashboard/generadores-summary/route": "app/api/dashboard/generadores-summary/route.js",
   "/api/dashboard/indicadores-summary/route": "app/api/dashboard/indicadores-summary/route.js",
   "/api/dashboard/jobs-summary/route": "app/api/dashboard/jobs-summary/route.js",

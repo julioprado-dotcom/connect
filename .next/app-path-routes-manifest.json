@@ -57,6 +57,7 @@
   "/api/dashboard/fuentes/[id]/reintentar/route": "/api/dashboard/fuentes/[id]/reintentar",
   "/api/dashboard/fuentes/nueva/route": "/api/dashboard/fuentes/nueva",
   "/api/dashboard/fuentes/route": "/api/dashboard/fuentes",
+  "/api/dashboard/fuentes/scraping-status/route": "/api/dashboard/fuentes/scraping-status",
   "/api/dashboard/generadores-summary/route": "/api/dashboard/generadores-summary",
   "/api/dashboard/indicadores-summary/route": "/api/dashboard/indicadores-summary",
   "/api/dashboard/jobs-summary/route": "/api/dashboard/jobs-summary",

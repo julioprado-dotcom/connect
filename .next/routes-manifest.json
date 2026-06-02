@@ -569,6 +569,12 @@
       "namedRegex": "^/api/dashboard/fuentes/nueva(?:/)?$"
     },
     {
+      "page": "/api/dashboard/fuentes/scraping-status",
+      "regex": "^/api/dashboard/fuentes/scraping\\-status(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/fuentes/scraping\\-status(?:/)?$"
+    },
+    {
       "page": "/api/dashboard/fuentes-summary",
       "regex": "^/api/dashboard/fuentes\\-summary(?:/)?$",
       "routeKeys": {},

@@ -33,6 +33,7 @@ import {
 } from './FuentesView.helpers';
 import { ProbeTerminal } from './FuentesView.probe';
 import { MedioDetailPanel } from './FuentesView.edit-modal';
+import { CapturasStatusView } from './CapturasStatusView';
 
 // ═══════════════════════════════════════════════════════════════
 // FuentesView — Main Component
@@ -621,6 +622,9 @@ export function FuentesView() {
           </div>
         )}
       </PanelShell>
+
+      {/* ── Capturas por Fuente — Scraping Status Panel ── */}
+      <CapturasStatusView />
 
       {/* ── Detail / Edit Panel (inline, below table) ── */}
       <div ref={detailRef} />

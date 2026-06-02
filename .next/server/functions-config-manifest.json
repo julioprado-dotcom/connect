@@ -17,6 +17,7 @@
     "/api/dashboard/fuentes/[id]/pausar": {},
     "/api/dashboard/fuentes/[id]/reintentar": {},
     "/api/dashboard/fuentes/nueva": {},
+    "/api/dashboard/fuentes/scraping-status": {},
     "/api/dashboard/log": {},
     "/api/dashboard/pipeline": {},
     "/api/dashboard/productos": {},

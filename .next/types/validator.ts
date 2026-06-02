@@ -632,6 +632,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../src/app/api/dashboard/fuentes/scraping-status/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/dashboard/fuentes/scraping-status">> = Specific
+  const handler = {} as typeof import("../../src/app/api/dashboard/fuentes/scraping-status/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../src/app/api/dashboard/generadores-summary/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/dashboard/generadores-summary">> = Specific
