@@ -5,7 +5,7 @@
  */
 // ── Ruta absoluta a la DB (igual que src/lib/db.ts) ──
 process.env.DATABASE_URL = `file:${process.cwd()}/prisma/db/custom.db`;
-const { PrismaClient } = require('./node_modules/.prisma/client');
+const { PrismaClient } = require(`${process.cwd()}/node_modules/.prisma/client`);
 const p = new PrismaClient();
 
 async function main() {
