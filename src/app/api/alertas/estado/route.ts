@@ -12,6 +12,7 @@ import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { guardError } from '@/lib/rate-guard';
 import { boliviaStartOfDay, boliviaStartOfYesterday } from '@/lib/date-bolivia';
+import { getCircuitBreakerState } from '@/lib/ai/circuit-breaker';
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -395,6 +396,55 @@ async function alertasCaptura(): Promise<AlertaOperativa[]> {
   return alertas;
 }
 
+async function alertasIA(): Promise<AlertaOperativa[]> {
+  const alertas: AlertaOperativa[] = [];
+
+  try {
+    const cb = getCircuitBreakerState();
+
+    if (cb.state === 'OPEN') {
+      const minutosAbierto = cb.openedAt ? Math.round((Date.now() - cb.openedAt) / 60000) : 0;
+      alertas.push(alerta(
+        5, 'ia',
+        `IA PAUSADA: Circuit Breaker OPEN hace ${minutosAbierto}min`,
+        `El modelo LLM (${cb.lastError || 'error desconocido'}) ha fallado repetidamente. Fase 3 (extraccion IA) completamente pausada. ${cb.totalSkipped} llamadas skipeadas. Reintentara automaticamente en 5 minutos.`,
+        'circuit-breaker',
+      ));
+    } else if (cb.state === 'HALF') {
+      alertas.push(alerta(
+        4, 'ia',
+        'IA en prueba: Circuit Breaker HALF-OPEN',
+        `El sistema esta testeando si el LLM recupero. Ultimo error: ${cb.lastError || 'N/A'}. Si falla, volvera a pausar.`,
+        'circuit-breaker',
+      ));
+    }
+
+    // Errores acumulados recientes con circuit aun cerrado
+    if (cb.state === 'CLOSED' && cb.failures > 0) {
+      alertas.push(alerta(
+        2, 'ia',
+        `IA: ${cb.failures} error(es) reciente(s) de LLM`,
+        `El modelo esta funcionando pero registro ${cb.failures} error(es) consecutivo(s). Ultimo: ${cb.lastError || 'N/A'}. Si alcanza 2, el circuit breaker se abrira automaticamente.`,
+        'circuit-breaker',
+      ));
+    }
+
+    // Recuperacion tras skipeadas
+    if (cb.totalSkipped > 0 && cb.state === 'CLOSED') {
+      alertas.push(alerta(
+        2, 'ia',
+        `IA recuperada tras ${cb.totalSkipped} llamadas skipeadas`,
+        'El circuit breaker se abrio previamente y skipeo llamadas LLM. Ya recupero, pero revisar la causa raiz.',
+        'circuit-breaker',
+      ));
+    }
+  } catch {
+    // Silencio — no romper el endpoint por un error de lectura del circuit breaker
+  }
+
+  return alertas;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // GET Handler
 // ═══════════════════════════════════════════════════════════════
@@ -402,15 +452,17 @@ async function alertasCaptura(): Promise<AlertaOperativa[]> {
 export async function GET() {
   try {
     // Ejecutar todas las verificaciones en paralelo
-    const [alertasF, alertasJ, alertasM, alertasC] = await Promise.all([
+    const [alertasF, alertasJ, alertasM, alertasC, alertasAI] = await Promise.all([
       alertasFuentes(),
       alertasJobs(),
       alertasMenciones(),
       alertasCaptura(),
+      alertasIA(),
     ]);
 
     // Combinar y ordenar por severidad (mayor primero), luego por timestamp
     const todas: AlertaOperativa[] = [
+      ...alertasAI,
       ...alertasF,
       ...alertasJ,
       ...alertasM,
