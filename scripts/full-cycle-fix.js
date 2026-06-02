@@ -176,7 +176,7 @@ async function main() {
   });
   const mencionesHoy = await db.mencion.count({
     where: {
-      createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+      fechaCaptura: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
     }
   });
   console.log(`  NotasRaw sin procesar: ${notasSinClasificar}`);
