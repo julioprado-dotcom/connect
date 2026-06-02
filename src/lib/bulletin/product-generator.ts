@@ -28,15 +28,17 @@ export async function getMencionesForBulletin(
   // Obtener menciones por rango de fechas.
   // Prisma 6.x tiene bug con filtros OR + fecha en SQLite que devuelve 0.
   // Workaround: obtener IDs con raw SQL y luego findMany con id IN.
-  const inicioStr = fechaInicio.toISOString();
-  const finStr = fechaFin.toISOString();
+  // FIX: SQLite almacena DateTime como integer (Unix ms), NO como ISO string.
+  // Pasar timestamps numéricos para que la comparación integer >= integer funcione.
+  const inicioMs = fechaInicio.getTime();
+  const finMs = fechaFin.getTime();
   const sql = Prisma.sql`
     SELECT DISTINCT m.id FROM Mencion m
     WHERE m.esDuplicado = 0
       AND (
-        (m.fechaPublicacion IS NOT NULL AND m.fechaPublicacion >= ${inicioStr} AND m.fechaPublicacion < ${finStr})
+        (m.fechaPublicacion IS NOT NULL AND m.fechaPublicacion >= ${inicioMs} AND m.fechaPublicacion < ${finMs})
         OR
-        (m.fechaPublicacion IS NULL AND m.fechaCaptura >= ${inicioStr} AND m.fechaCaptura < ${finStr})
+        (m.fechaPublicacion IS NULL AND m.fechaCaptura >= ${inicioMs} AND m.fechaCaptura < ${finMs})
       )
       ${options.personaId ? Prisma.sql`AND m.personaId = ${options.personaId}` : Prisma.sql``}
   `;
