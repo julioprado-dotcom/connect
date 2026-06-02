@@ -493,7 +493,7 @@ export async function POST(request: NextRequest) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// GET /api/capture — Estado de la Cola
+// GET /api/capture — Estado de la Cola + Pipeline Job Queue
 // ═══════════════════════════════════════════════════════════════════
 export async function GET() {
   try {
@@ -513,6 +513,89 @@ export async function GET() {
       recentLogs: queueState.log.slice(-30).reverse(),
     };
 
+    // ── Pipeline Job Queue (datos del worker/scheduler) ──────────
+    let pipeline = null;
+    try {
+      const [runningJobs, pendingCount, notaRawPendientes, completedRecent] = await Promise.all([
+        db.job.findMany({
+          where: { estado: 'en_progreso' },
+          select: { tipo: true, fechaInicio: true, payload: true },
+          orderBy: { fechaInicio: 'desc' },
+          take: 5,
+        }),
+        db.job.count({ where: { estado: 'pendiente' } }),
+        db.notaRaw.count({ where: { procesada: false, descartada: false } }),
+        db.job.findMany({
+          where: { estado: 'completado', fechaFin: { gte: new Date(Date.now() - 30 * 60 * 1000) } },
+          select: { tipo: true, fechaFin: true, resultado: true },
+          orderBy: { fechaFin: 'desc' },
+          take: 15,
+        }),
+      ]);
+
+      // Generar logs legibles de jobs recientes
+      const pipelineLogs: string[] = [];
+      const now = new Date();
+
+      // Jobs en progreso
+      for (const j of runningJobs) {
+        const elapsed = j.fechaInicio
+          ? Math.round((now.getTime() - new Date(j.fechaInicio).getTime()) / 1000)
+          : 0;
+        const payload = j.payload as Record<string, unknown> | null;
+        const fuenteId = payload?.fuenteId ? String(payload.fuenteId).substring(0, 10) : '';
+        pipelineLogs.push(
+          `[PIPELINE] ▶ ${j.tipo}${fuenteId ? ` (${fuenteId}...)` : ''} — en progreso ${elapsed}s`
+        );
+      }
+
+      // Jobs completados recientes (últimos 30 min)
+      for (const j of completedRecent) {
+        const res = j.resultado as Record<string, unknown> | null;
+        let detail = '';
+        if (j.tipo === 'check_fuente') {
+          const changed = res?.cambiado ? '✅ cambio' : '— sin cambio';
+          detail = changed;
+        } else if (j.tipo === 'scrape_fuente_light') {
+          const g = res?.guardadas ?? 0;
+          const d = res?.duplicadas ?? 0;
+          detail = `${g} notasRaw, ${d} dup`;
+        } else if (j.tipo === 'batch_llm') {
+          const p = res?.procesadas ?? 0;
+          const m = res?.menciones ?? 0;
+          detail = `${p} notas → ${m} menciones`;
+        } else if (res?.responseTime) {
+          detail = `${Math.round(Number(res.responseTime) / 1000)}s`;
+        }
+        const timeAgo = j.fechaFin
+          ? Math.round((now.getTime() - new Date(j.fechaFin).getTime()) / 60000)
+          : 0;
+        const agoStr = timeAgo === 0 ? 'ahora' : `hace ${timeAgo}m`;
+        pipelineLogs.push(`[PIPELINE] ✓ ${j.tipo} — ${detail} (${agoStr})`);
+      }
+
+      if (runningJobs.length === 0 && pendingCount === 0 && completedRecent.length === 0) {
+        pipelineLogs.push('[PIPELINE] Sin actividad reciente de jobs');
+      }
+
+      pipeline = {
+        running: runningJobs.length > 0,
+        runningJobs: runningJobs.map(j => ({
+          tipo: j.tipo,
+          elapsedSec: j.fechaInicio
+            ? Math.round((now.getTime() - new Date(j.fechaInicio).getTime()) / 1000)
+            : 0,
+        })),
+        pendingCount,
+        notaRawPendientes,
+        completedLast30min: completedRecent.length,
+        recentLogs: pipelineLogs.reverse(),
+      };
+    } catch {
+      // Non-critical: no bloquear si hay error leyendo jobs
+      pipeline = { running: false, pendingCount: 0, notaRawPendientes: 0, completedLast30min: 0, recentLogs: [], runningJobs: [] };
+    }
+
     const lastLog = await db.capturaLog.findFirst({
       orderBy: { fecha: 'desc' },
       include: { Medio: { select: { nombre: true } } },
@@ -520,6 +603,7 @@ export async function GET() {
 
     return NextResponse.json({
       ...status,
+      pipeline,
       lastCaptureLog: lastLog || null,
     });
   } catch (error: unknown) {

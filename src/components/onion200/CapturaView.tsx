@@ -19,6 +19,9 @@ import {
   Wifi,
   WifiOff,
   Eye,
+  Activity,
+  Cpu,
+  Layers,
 } from 'lucide-react';
 import { MencionDetailModal } from './LiveFeed';
 import { sentimentColor, sentimentBg, sentimentLabel } from '@/constants/colors';
@@ -47,9 +50,24 @@ interface CaptureQueueState {
   version?: string;
 }
 
+interface PipelineJobInfo {
+  tipo: string;
+  elapsedSec: number;
+}
+
+interface PipelineState {
+  running: boolean;
+  runningJobs: PipelineJobInfo[];
+  pendingCount: number;
+  notaRawPendientes: number;
+  completedLast30min: number;
+  recentLogs: string[];
+}
+
 interface CaptureStatus {
   queue: CaptureQueueState;
   recentLogs: string[];
+  pipeline: PipelineState | null;
   lastCaptureLog: {
     medioId: string;
     totalArticulos: number;
@@ -218,6 +236,15 @@ export function CapturaView() {
   const queue = status?.queue;
   const progressPct = queue ? Math.round((queue.progress.current / queue.progress.total) * 100) : 0;
   const isRunning = queue?.running ?? false;
+  const pipeline = status?.pipeline ?? null;
+  const isPipelineActive = !isRunning && (pipeline?.running || (pipeline?.completedLast30min ?? 0) > 0);
+  const isSystemActive = isRunning || isPipelineActive;
+
+  // Merge logs: manual capture logs + pipeline logs
+  const allLogs = [
+    ...(status?.recentLogs ?? []).map(l => ({ text: l, source: 'capture' as const })),
+    ...(pipeline?.recentLogs ?? []).map(l => ({ text: l, source: 'pipeline' as const })),
+  ].sort((a, b) => b.text.localeCompare(a.text));
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
@@ -230,22 +257,69 @@ export function CapturaView() {
               <span
                 className="w-2.5 h-2.5 rounded-full"
                 style={{
-                  backgroundColor: isRunning ? '#10b981' : '#64748b',
-                  boxShadow: isRunning ? '0 0 8px rgba(16,185,129,0.5)' : 'none',
+                  backgroundColor: isRunning ? '#10b981' : isPipelineActive ? '#f59e0b' : '#64748b',
+                  boxShadow: isRunning ? '0 0 8px rgba(16,185,129,0.5)' : isPipelineActive ? '0 0 8px rgba(245,158,11,0.5)' : 'none',
+                  animation: isPipelineActive && !isRunning ? 'pulse 2s ease-in-out infinite' : undefined,
                 }}
               />
               <span
                 className="text-[10px] font-bold uppercase font-mono px-2 py-1 rounded"
                 style={{
-                  color: isRunning ? '#10b981' : '#64748b',
-                  backgroundColor: isRunning ? 'rgba(16,185,129,0.08)' : 'rgba(100,116,139,0.08)',
-                  border: `1px solid ${isRunning ? 'rgba(16,185,129,0.2)' : 'rgba(100,116,139,0.2)'}`,
+                  color: isRunning ? '#10b981' : isPipelineActive ? '#f59e0b' : '#64748b',
+                  backgroundColor: isRunning ? 'rgba(16,185,129,0.08)' : isPipelineActive ? 'rgba(245,158,11,0.08)' : 'rgba(100,116,139,0.08)',
+                  border: `1px solid ${isRunning ? 'rgba(16,185,129,0.2)' : isPipelineActive ? 'rgba(245,158,11,0.2)' : 'rgba(100,116,139,0.2)'}`,
                 }}
               >
-                {isRunning ? 'CAPTURA EN CURSO' : 'INACTIVO'}
+                {isRunning ? 'CAPTURA EN CURSO' : isPipelineActive ? 'PIPELINE ACTIVO' : 'INACTIVO'}
               </span>
             </div>
           </div>
+
+          {/* Pipeline stats (cuando captura manual no corre pero pipeline sí) */}
+          {!isRunning && pipeline && (pipeline.running || pipeline.completedLast30min > 0) && (
+            <div className="mb-4 py-3 border-y border-slate-800/60">
+              <p className="text-[9px] font-bold uppercase text-amber-500/80 font-mono mb-2 flex items-center gap-1.5">
+                <Cpu className="w-3 h-3" /> Pipeline Job Queue
+              </p>
+              <div className="grid grid-cols-4 gap-2">
+                <div className="text-center">
+                  <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">En cola</p>
+                  <p className="text-sm font-mono text-amber-400 tabular-nums">{pipeline.pendingCount}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">NotaRaw</p>
+                  <p className="text-sm font-mono text-cyan-400 tabular-nums">{pipeline.notaRawPendientes}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Jobs 30m</p>
+                  <p className="text-sm font-mono text-emerald-400 tabular-nums">{pipeline.completedLast30min}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Estado</p>
+                  <p className="text-sm font-mono tabular-nums" style={{ color: pipeline.running ? '#10b981' : '#64748b' }}>
+                    {pipeline.running ? 'Activo' : 'Idle'}
+                  </p>
+                </div>
+              </div>
+              {/* Running jobs detail */}
+              {pipeline.running && pipeline.runningJobs.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {pipeline.runningJobs.map((j, i) => (
+                    <div key={i} className="flex items-center justify-between text-[9px] font-mono px-2 py-1 rounded" style={{
+                      color: '#10b981',
+                      backgroundColor: 'rgba(16,185,129,0.04)',
+                    }}>
+                      <span className="flex items-center gap-1">
+                        <Activity className="w-3 h-3" />
+                        {j.tipo}
+                      </span>
+                      <span className="text-slate-500">{j.elapsedSec}s</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Progress bar */}
           {isRunning && (
@@ -441,31 +515,35 @@ export function CapturaView() {
               <span className="w-2 h-2 rounded-full bg-red-500" />
               {error}
             </div>
-          ) : !status?.recentLogs || status.recentLogs.length === 0 ? (
+          ) : allLogs.length === 0 ? (
             <div className="flex items-center gap-2 py-8 text-slate-600 text-xs font-mono justify-center">
               <Clock className="w-4 h-4" />
-              Sin actividad de captura. Lanza una captura para ver logs aqui.
+              Sin actividad de captura ni pipeline.
             </div>
           ) : (
             <div className="space-y-0.5 max-h-[500px] overflow-y-auto custom-scrollbar">
-              {status.recentLogs.map((log, i) => {
+              {allLogs.map((item, i) => {
+                const { text: log, source } = item;
                 const isError = log.includes('ERROR') || log.includes('FATAL');
                 const isSuccess = log.includes('FINALIZADA') || log.includes('✅');
                 const isWarning = log.includes('⚠️');
+                const isPipeline = source === 'pipeline';
                 const color = isError
                   ? '#f43f5e'
                   : isSuccess
                     ? '#10b981'
                     : isWarning
                       ? '#f59e0b'
-                      : '#475569';
+                      : isPipeline
+                        ? '#a78bfa'
+                        : '#475569';
                 return (
                   <div
                     key={i}
                     className="px-2 py-1 rounded text-[9px] font-mono leading-relaxed"
                     style={{
                       color,
-                      backgroundColor: isError ? 'rgba(244,63,94,0.03)' : 'transparent',
+                      backgroundColor: isError ? 'rgba(244,63,94,0.03)' : isPipeline ? 'rgba(167,139,250,0.02)' : 'transparent',
                     }}
                   >
                     {log}
