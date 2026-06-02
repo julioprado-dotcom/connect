@@ -509,6 +509,12 @@
       "namedRegex": "^/api/dashboard/clasificacion/asignar(?:/)?$"
     },
     {
+      "page": "/api/dashboard/clasificacion/audit",
+      "regex": "^/api/dashboard/clasificacion/audit(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/clasificacion/audit(?:/)?$"
+    },
+    {
       "page": "/api/dashboard/clientes-summary",
       "regex": "^/api/dashboard/clientes\\-summary(?:/)?$",
       "routeKeys": {},

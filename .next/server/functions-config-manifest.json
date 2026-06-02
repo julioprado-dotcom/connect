@@ -7,6 +7,7 @@
     "/api/dashboard/alertas-comerciales": {},
     "/api/dashboard/clasificacion": {},
     "/api/dashboard/clasificacion/asignar": {},
+    "/api/dashboard/clasificacion/audit": {},
     "/api/dashboard/distribucion": {},
     "/api/dashboard/distribucion/canales/testear": {},
     "/api/dashboard/distribucion/envios/[id]/reintentar": {},

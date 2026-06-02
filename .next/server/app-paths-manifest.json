@@ -42,6 +42,7 @@
   "/api/dashboard/boletin-keywords/route": "app/api/dashboard/boletin-keywords/route.js",
   "/api/dashboard/capturas-summary/route": "app/api/dashboard/capturas-summary/route.js",
   "/api/dashboard/clasificacion/asignar/route": "app/api/dashboard/clasificacion/asignar/route.js",
+  "/api/dashboard/clasificacion/audit/route": "app/api/dashboard/clasificacion/audit/route.js",
   "/api/dashboard/clasificacion/route": "app/api/dashboard/clasificacion/route.js",
   "/api/dashboard/clientes-summary/route": "app/api/dashboard/clientes-summary/route.js",
   "/api/dashboard/contratos-summary/route": "app/api/dashboard/contratos-summary/route.js",

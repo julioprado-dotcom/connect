@@ -42,6 +42,7 @@
   "/api/dashboard/boletin-keywords/route": "/api/dashboard/boletin-keywords",
   "/api/dashboard/capturas-summary/route": "/api/dashboard/capturas-summary",
   "/api/dashboard/clasificacion/asignar/route": "/api/dashboard/clasificacion/asignar",
+  "/api/dashboard/clasificacion/audit/route": "/api/dashboard/clasificacion/audit",
   "/api/dashboard/clasificacion/route": "/api/dashboard/clasificacion",
   "/api/dashboard/clientes-summary/route": "/api/dashboard/clientes-summary",
   "/api/dashboard/contratos-summary/route": "/api/dashboard/contratos-summary",
