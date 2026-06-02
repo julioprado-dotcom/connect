@@ -16,3 +16,28 @@ Stage Summary:
 - BUG 2 (jalando fútbol): keyword-triaje no tenía filtro anti-deportes. Fix: nuevo filtro que verifica señal deportiva + ausencia de contexto político
 - BUG 3 (solo clasifica actores): prompt LLM no excluía deportes de es_relevante. Fix: exclusiones SIEMPRE activas en criterios de relevancia
 - IMPORTANTE: Se necesita `pm2 restart decodex-worker` en VPS para que los fixes tomen efecto en el worker
+
+---
+Task ID: 2
+Agent: main
+Task: Verificar scraping por fuente - crear endpoint + vista de estado de capturas
+
+Work Log:
+- Leí modelo Prisma: Medio + FuenteEstado (rastrea ultimoCheck, ultimoHeadline, ultimoMencion, contadores) + NotaRaw
+- Leí runners check-fuente.ts, scrape-fuente-light.ts, scheduler.ts para entender flujo completo
+- Descubrí que FuentesView usaba /api/medios (sin datos de FuenteEstado) — datos de scraping nunca se mostraban en UI
+- Creé endpoint /api/dashboard/fuentes/scraping-status con datos completos por fuente
+- Creé componente CapturasStatusView con tabla filtrable + filas expandibles con detalle completo
+- Integré CapturasStatusView dentro de FuentesView
+- Build exitoso, push a GitHub completado (commit fa27b06)
+- Consulté backup DB (2026-05-09) para diagnosticar estado real
+
+Stage Summary:
+- DIAGNÓSTICO CRÍTICO: De 34 medios activos, solo 5 fueron alguna vez chequeados. 29 NUNCA scrapeados.
+- Los Tiempos (fuente P0) NUNCA fue chequeado (0 checks)
+- De los 5 chequeados, NINGUNO detectó cambios de contenido (0 cambios totales)
+- Resultado: 0 Menciones creadas, pipeline completamente no funcional
+- Errores: La Razón y El Deber bloqueados por Cloudflare WAF, 3 fuentes con DNS errors
+- Creados: scraping-status/route.ts, CapturasStatusView.tsx, FuentesView.tsx modificado
+- PENDIENTE DEPLOY: Código pusheado pero requiere `git pull && pm2 restart` en VPS
+- No hay acceso SSH desde este entorno — el usuario debe ejecutar el deploy manualmente
