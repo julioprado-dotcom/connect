@@ -186,10 +186,21 @@ La intención y el tratamiento son dimensiones INDEPENDIENTES: una nota puede se
 - contexto debe resumir en qué contexto aparece el legislador
 - Máximo 5 legisladores por artículo
 - Usa el campo cargo_directiva de la lista como contexto de desambiguación
-- ANTI FALSO POSITIVO: NO asignes un legislador SOLO porque comparte un apellido con alguien mencionado en el texto. El nombre completo o al menos nombre + primer apellido deben coincidir, O el texto debe indicar explícitamente un CARGO LEGISLATIVO (Senador, Diputado, Parlamentario, Jefe de Bancada, Presidente/Miembro de Comisión, miembro de la Directiva de Cámara). Ejemplo: si el texto menciona "Walter Flores, secretario de Gobernabilidad" y "Roy Ordóñez, director Jurídico", NO los asignes al legislador "Marcelino Flores Ordoñez" — son personas diferentes. PERO si el texto dice "el Senador Flores presentó un proyecto" o "el diputado Ordóñez integró la Comisión", SÍ puedes asignar al legislador correspondiente.
+- ANTI FALSO POSITIVO POR APELLIDO (REGLA CRÍTICA): NUNCA asignes un legislador de la lista basándote SOLO en la coincidencia parcial de un apellido. Esta es la causa #1 de errores.
+  - Para asignar un legislador, se requiere AL MENOS UNA de estas condiciones:
+    a) El NOMBRE COMPLETO del legislador aparece en el texto (ej: "Gary Rodríguez" coincide con "Gary Rodríguez" en la lista)
+    b) El NOMBRE DE PILA + APELLIDO coinciden exactamente (no solo el apellido)
+    c) El texto indica UN CARGO LEGISLATIVO BOLIVIANO asociado al apellido (ej: "el Senador Rodríguez presentó un proyecto", "la Diputada Rodríguez integró la Comisión")
+  - NUNCA asignes un legislador si la persona mencionada tiene un cargo de OTRO PAÍS (ej: "Presidenta de Venezuela", "Ministro de Colombia", "Alcalde de Lima"). Las personas con cargos extranjeros NO son legisladores bolivianos.
+  - EJEMPLOS DE FALSO POSITIVO PROHIBIDOS:
+    * "Delcy Rodríguez, Presidenta de Venezuela" → NO es la legisladora boliviana con apellido Rodríguez. Es una figura extranjera.
+    * "Walter Flores, secretario de Gobernabilidad" y "Roy Ordóñez, director Jurídico" → NO son el legislador "Marcelino Flores Ordoñez"
+    * "Juan Rodríguez, empresario" → NO es el diputado "Gary Rodríguez" a menos que el texto diga explícitamente "el diputado Gary Rodríguez"
+  - Si hay duda, NO asignes. Es mejor omitir un legislador que asignar uno incorrectamente.
 
 ## REGLAS PARA FIGURAS POLÍTICAS NO EN LA LISTA (personas_detectadas)
 - Si el texto menciona una figura política RELEVANTE que NO está en la lista de legisladores (ej: Presidente de Bolivia, Ministro, Gobernador, Alcalde, ex-Presidente, líder de partido, autoridad del Órgano Electoral, Fiscal General, Defensor del Pueblo), inclúyela en personas_detectadas
+- También incluir: Presidentes, Vicepresidentes, Ministros, y altas autoridades de OTROS PAÍSES si son mencionados en un contexto relevante para Bolivia (ej: "Presidenta de Venezuela", "Presidente de Brasil")
 - NO incluir: ciudadanos sin cargo, empresarios sin rol político, figuras del espectáculo, deportistas, personalidades no-políticas
 - NO incluir: legisladores que ya están en la lista (esos van en legisladores_mencionados)
 - nombre debe ser el nombre completo tal como aparece o se infiere del texto
