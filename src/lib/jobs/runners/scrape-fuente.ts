@@ -300,7 +300,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       // Clasificar con LLM (1 llamada por nota)
       try {
         const resultado = await extraerMencionesDeTexto(textoCompleto, medioId)
-        const menciones = await crearMencionesExtraidas(resultado, medioId, nota.url, nota.titulo)
+        const menciones = await crearMencionesExtraidas(resultado, medioId, nota.url, nota.titulo, undefined, textoCompleto)
 
         totalMencionesCreadas += menciones
         resultados.push({
@@ -475,7 +475,7 @@ async function procesarUrlsDirectas(
 
     try {
       const resultado = await extraerMencionesDeTexto(texto, medioId)
-      totalMenciones += await crearMencionesExtraidas(resultado, medioId, urls[i], '')
+      totalMenciones += await crearMencionesExtraidas(resultado, medioId, urls[i], '', undefined, texto)
     } catch (err) {
       console.warn(`[scrape-fuente] Error en URL directa ${urls[i]}:`, err)
     }
@@ -520,7 +520,7 @@ async function procesarFallbackHomepage(
   if (texto.length > 100) {
     try {
       const resultado = await extraerMencionesDeTexto(texto, medioId)
-      menciones = await crearMencionesExtraidas(resultado, medioId, url, '')
+      menciones = await crearMencionesExtraidas(resultado, medioId, url, '', undefined, texto)
     } catch (err) {
       console.warn(`[scrape-fuente] Fallback error:`, err)
     }

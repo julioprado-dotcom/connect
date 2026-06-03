@@ -99,6 +99,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
             menciones = await crearMencionesExtraidas(
               resultado, medioId, nota.url, nota.titulo,
               { fechaCaptura: nota.fechaCaptura, fechaClasificacion: new Date() },
+              nota.texto, // texto original completo de NotaRaw
             )
 
             // Éxito: marcar como procesada

@@ -157,7 +157,7 @@ async function processMedio(
     if (texto.length > 200) {
       try {
         const resultado = await extraerMencionesDeTexto(texto, medio.id);
-        menciones = await crearMencionesExtraidas(resultado, medio.id, medio.url, '');
+        menciones = await crearMencionesExtraidas(resultado, medio.id, medio.url, '', undefined, texto);
         queueLog(`  📰 ${medio.nombre}: fallback homepage → ${menciones} menciones`);
       } catch {
         errores++;
@@ -261,7 +261,7 @@ async function processMedio(
     // Clasificar con LLM
     try {
       const resultado = await extraerMencionesDeTexto(textoCompleto, medio.id);
-      const creadas = await crearMencionesExtraidas(resultado, medio.id, nota.url, nota.titulo);
+      const creadas = await crearMencionesExtraidas(resultado, medio.id, nota.url, nota.titulo, undefined, textoCompleto);
       menciones += creadas;
       notasClasificadas++;
 

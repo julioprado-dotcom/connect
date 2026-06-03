@@ -782,8 +782,29 @@ export async function crearMencionesExtraidas(
   url: string,
   titulo: string,
   fechas?: { fechaCaptura?: Date; fechaClasificacion?: Date },
+  textoOriginal?: string,
 ): Promise<number> {
   if (!resultado.es_relevante) return 0;
+
+  // ──────────────────────────────────────────────
+  // DEDUP PRE-EXISTENCIA: si ya existe mencion para esta URL, no crear duplicada
+  // (independientemente de persona o eje)
+  // ──────────────────────────────────────────────
+  try {
+    const existenteUrl = await db.mencion.findFirst({
+      where: { medioId, url },
+      select: { id: true, ejeEstructuralId: true, sentimiento: true },
+    });
+    if (existenteUrl) {
+      // Si la existente está clasificada pero la nueva tiene mejor info, actualizar
+      // (estrategia conservadora: no reemplazamos, solo logueamos)
+      console.log(`[DEDUP-URL] Ya existe mencion ${existenteUrl.id} para ${url?.substring(0, 60)} — saltando`);
+      return 0; // No crear ninguna mencion duplicada para esta URL
+    }
+  } catch (dedupErr) {
+    console.error('[DEDUP-URL] Error verificando existencia:', dedupErr instanceof Error ? dedupErr.message : dedupErr);
+    // Continuar si falla la verificación (no bloquear pipeline)
+  }
 
   let creadas = 0;
   const ejeIds = resultado.ejes_mencionados.map(e => e.eje_id);
@@ -859,7 +880,7 @@ export async function crearMencionesExtraidas(
           medioId,
           titulo,
           texto: leg.cita,
-          textoCompleto: leg.contexto,
+          textoCompleto: textoOriginal || leg.contexto,
           url,
           tipoMencion: tratamientoToTipoMencion(resultado.tratamientoPeriodistico, Boolean(leg.cita)),
           verificado: false,
@@ -923,7 +944,7 @@ export async function crearMencionesExtraidas(
           medioId,
           titulo,
           texto: pd.cita,
-          textoCompleto: pd.contexto,
+          textoCompleto: textoOriginal || pd.contexto,
           url,
           tipoMencion: tratamientoToTipoMencion(resultado.tratamientoPeriodistico, Boolean(pd.cita)),
           verificado: false,
@@ -973,7 +994,7 @@ export async function crearMencionesExtraidas(
             medioId,
             titulo,
             texto: resultado.resumen || resultado.ejes_mencionados[0]?.cita || '',
-            textoCompleto: resultado.resumen || '',
+            textoCompleto: textoOriginal || resultado.resumen || '',
             url,
             tipoMencion: 'referencia_tematica',
             verificado: false,
