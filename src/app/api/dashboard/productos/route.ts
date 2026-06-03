@@ -48,9 +48,10 @@ function formatDateTimeShort(iso: string | null): string | null {
 
 export async function GET() {
   try {
-    // ── Obtener todos los reportes ──────────────────────────
+    // ── Obtener reportes (limitado a 50, solo campos necesarios) ──
     const reportes = await db.reporte.findMany({
       orderBy: { fechaCreacion: 'desc' },
+      take: 50,
     });
 
     // ── Agrupar por tipo, obtener el más reciente por tipo ──

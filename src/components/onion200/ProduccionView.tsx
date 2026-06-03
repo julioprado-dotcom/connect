@@ -129,48 +129,58 @@ export function ProduccionView() {
     let cancelled = false;
 
     const loadAll = async () => {
-      // Fetch core data
+      setLoading(true);
+      setCatalogLoading(true);
       try {
-        const [summaryRes] = await Promise.all([
-          fetchWithTimeout('/api/dashboard/indicadores-summary', { timeoutMs: 8000 }),
+        // Fetch ambos en paralelo — sin race condition
+        const [summaryRes, catalogRes] = await Promise.allSettled([
+          fetchWithTimeout('/api/dashboard/indicadores-summary', { timeoutMs: 10000 }),
+          fetchWithTimeout('/api/dashboard/productos', { timeoutMs: 15000 }),
         ]);
         if (cancelled) return;
-        const summary = summaryRes.ok ? await summaryRes.json() : null;
+
+        // Procesar métricas
+        const summary = summaryRes.status === 'fulfilled' && summaryRes.value.ok
+          ? await summaryRes.value.json()
+          : null;
+
+        // Procesar catálogo + recientes
+        let catalogJson: Record<string, unknown> | null = null;
+        if (catalogRes.status === 'fulfilled' && catalogRes.value.ok) {
+          catalogJson = await catalogRes.value.json();
+        } else if (catalogRes.status === 'rejected') {
+          console.warn('[ProduccionView] Timeout cargando catalogo, reintentando...');
+          // Reintento con timeout más largo
+          try {
+            const retry = await fetchWithTimeout('/api/dashboard/productos', { timeoutMs: 25000 });
+            if (retry.ok) catalogJson = await retry.json();
+          } catch { /* give up */ }
+        }
+
+        const recientes = (catalogJson?.recientes as Array<Record<string, unknown>>) || [];
+        const catalogProductos = (catalogJson?.productos as Array<Record<string, unknown>>) || [];
+
         setData({
           productos: summary?.produccion?.productos,
           status: summary?.produccion?.status,
-          recientes: [],
+          recientes,
         });
         setError(null);
-      } catch {
-        if (!cancelled) setError('Error de conexion');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
 
-      // Fetch catalog
-      try {
-        if (cancelled) return;
-        setCatalogLoading(true);
-        const res = await fetchWithTimeout('/api/dashboard/productos', { timeoutMs: 8000 });
-        if (cancelled) return;
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        // Mapear tipoProducto → categoria para compatibilidad con el componente
-        const productosConCategoria = (json.productos || []).map((p: Record<string, unknown>) => ({
+        // Mapear tipoProducto → categoria
+        const productosConCategoria = catalogProductos.map((p: Record<string, unknown>) => ({
           ...p,
           categoria: p.tipoProducto || p.categoria,
         }));
         setCatalogProducts(productosConCategoria);
-        // Actualizar recientes desde esta misma API (más confiable)
-        if (json.recientes && json.recientes.length > 0) {
-          setData(prev => prev ? { ...prev, recientes: json.recientes } : prev);
-        }
-        setCatalogError(null);
+        setCatalogError(catalogJson ? null : 'Error al cargar catalogo');
       } catch {
-        if (!cancelled) setCatalogError('Error al cargar catalogo');
+        if (!cancelled) setError('Error de conexion');
       } finally {
-        if (!cancelled) setCatalogLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setCatalogLoading(false);
+        }
       }
     };
 
