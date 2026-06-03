@@ -14,6 +14,7 @@ import {
   Eye,
   Trash2,
 } from 'lucide-react';
+import { scoreStatus, statusColor } from '@/constants/colors';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -47,9 +48,7 @@ function parseDato(dato: unknown): Record<string, unknown> {
 }
 
 function confianzaColor(c: number): string {
-  if (c >= 70) return '#10b981';
-  if (c >= 40) return '#f59e0b';
-  return '#64748b';
+  return statusColor(scoreStatus(c));
 }
 
 function confianzaLabel(c: number): string {
@@ -63,7 +62,7 @@ function tipoBadge(tipo: string): { label: string; color: string } {
     case 'nueva_persona': return { label: 'NUEVA PERSONA', color: '#06b6d4' };
     case 'nuevo_tema': return { label: 'NUEVO TEMA', color: '#a78bfa' };
     case 'nuevo_medio': return { label: 'NUEVO MEDIO', color: '#f59e0b' };
-    default: return { label: tipo.toUpperCase(), color: '#64748b' };
+    default: return { label: tipo.toUpperCase(), color: statusColor('unknown') };
   }
 }
 

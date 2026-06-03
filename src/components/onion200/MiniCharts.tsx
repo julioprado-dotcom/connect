@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { PanelShell } from './PanelShell';
+import { sentimentColor } from '@/constants/colors';
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -28,13 +29,6 @@ const NIVEL_LABELS: Record<number, string> = {
 
 const SENTIMIENTO_LABELS: Record<string, string> = {
   positivo: 'Pos', negativo: 'Neg', neutral: 'Neu', mixto: 'Mix',
-};
-
-const SENTIMIENTO_COLORS: Record<string, string> = {
-  positivo: '#06b6d4',
-  negativo: '#f43f5e',
-  neutral: '#64748b',
-  mixto: '#f59e0b',
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -184,7 +178,7 @@ export function MiniCharts({ porNivel, porSentimiento, porTipoMencion, totalMenc
   const sentimientoData = (porSentimiento || []).map(item => ({
     label: SENTIMIENTO_LABELS[item.sentimiento] || item.sentimiento,
     value: item.total,
-    color: SENTIMIENTO_COLORS[item.sentimiento] || '#06b6d4',
+    color: sentimentColor(item.sentimiento),
   }));
   const sentimientoTotal = sentimientoData.reduce((s, d) => s + d.value, 0);
 

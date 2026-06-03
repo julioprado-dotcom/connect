@@ -5,6 +5,7 @@ import {
   FileText, Clock, Loader2, Play, X, CheckCircle2, AlertTriangle, Zap,
 } from 'lucide-react';
 import { ALL_PRODUCTS } from '@/constants/nav';
+import { statusColor, statusBg, statusBorder, statusToken } from '@/constants/colors';
 import type { LucideIcon } from 'lucide-react';
 import type {
   CatalogProduct,
@@ -59,22 +60,21 @@ export function getProductMeta(tipo: string): { icon: LucideIcon; color: string 
 export function InlineToast({ notif, onDismiss }: { notif: Notification; onDismiss: () => void }) {
   const isError = notif.tipo === 'error';
   const isWarning = notif.tipo === 'warning';
-  const borderColor = isError ? 'rgba(244,63,94,0.2)' : isWarning ? 'rgba(245,158,11,0.2)' : 'rgba(16,185,129,0.2)';
-  const bgColor = isError ? 'rgba(244,63,94,0.06)' : isWarning ? 'rgba(245,158,11,0.06)' : 'rgba(16,185,129,0.06)';
-  const iconColor = isError ? '#f43f5e' : isWarning ? '#f59e0b' : '#10b981';
+  const statusKey = isError ? 'error' : isWarning ? 'warning' : 'ok';
+  const t = statusToken(statusKey);
   const Icon = isError ? AlertTriangle : isWarning ? Zap : CheckCircle2;
 
   return (
     <div
       className="flex items-start gap-2 px-3 py-2.5 rounded-md animate-in fade-in slide-in-from-top-1 duration-200"
       style={{
-        backgroundColor: bgColor,
-        border: `1px solid ${borderColor}`,
+        backgroundColor: t.bg,
+        border: `1px solid ${t.border}`,
       }}
     >
-      <Icon className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: iconColor }} />
+      <Icon className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: t.color }} />
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-mono" style={{ color: iconColor }}>
+        <p className="text-[10px] font-mono" style={{ color: t.color }}>
           {notif.message}
         </p>
         {notif.detail && (
@@ -146,9 +146,9 @@ export function ProductMiniCard({
         <span
           className="text-[8px] font-bold uppercase font-mono px-1.5 py-0.5 rounded"
           style={{
-            color: isBadgeGenerado ? '#10b981' : '#64748b',
-            backgroundColor: isBadgeGenerado ? 'rgba(16,185,129,0.1)' : 'rgba(100,116,139,0.1)',
-            border: `1px solid ${isBadgeGenerado ? 'rgba(16,185,129,0.15)' : 'rgba(100,116,139,0.1)'}`,
+            color: statusColor(isBadgeGenerado ? 'ok' : 'idle'),
+            backgroundColor: statusBg(isBadgeGenerado ? 'ok' : 'idle'),
+            border: `1px solid ${statusBorder(isBadgeGenerado ? 'ok' : 'idle')}`,
           }}
         >
           {badgeEstado}

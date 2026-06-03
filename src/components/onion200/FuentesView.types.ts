@@ -1,3 +1,5 @@
+import { statusToken, ACCENT } from '@/constants/colors';
+
 // ═══════════════════════════════════════════════════════════════
 // FuentesView — Types, Constants, and Helpers
 // ═══════════════════════════════════════════════════════════════
@@ -76,12 +78,12 @@ export const AMBITO_OPTS = ['NACIONAL', 'REGIONAL', 'LOCAL', 'INTERNACIONAL'] as
 export const ENFOQUE_OPTS = ['GENERALISTA', 'ECONOMICO', 'POLITICO', 'DEPORTIVO', 'CULTURAL'] as const;
 
 export const NATURALEZA_COLORS: Record<string, { text: string; bg: string; border: string }> = {
-  ESTATICAL: { text: '#06b6d4', bg: 'rgba(6,182,212,0.1)', border: 'rgba(6,182,212,0.25)' },
-  ESTATAL: { text: '#06b6d4', bg: 'rgba(6,182,212,0.1)', border: 'rgba(6,182,212,0.25)' },
-  PRIVADO: { text: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)' },
-  COMUNITARIO: { text: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)' },
-  MIXTO: { text: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
-  ONG: { text: '#a78bfa', bg: 'rgba(167,139,250,0.08)', border: 'rgba(167,139,250,0.2)' },
+  ESTATICAL: { text: ACCENT.estatical.color, bg: ACCENT.estatical.bg, border: ACCENT.estatical.border },
+  ESTATAL: { text: ACCENT.estatal.color, bg: ACCENT.estatal.bg, border: ACCENT.estatal.border },
+  PRIVADO: { text: ACCENT.privado.color, bg: ACCENT.privado.bg, border: ACCENT.privado.border },
+  COMUNITARIO: { text: ACCENT.comunitario.color, bg: ACCENT.comunitario.bg, border: ACCENT.comunitario.border },
+  MIXTO: { text: ACCENT.mixto_naturaleza.color, bg: ACCENT.mixto_naturaleza.bg, border: ACCENT.mixto_naturaleza.border },
+  ONG: { text: ACCENT.ong.color, bg: ACCENT.ong.bg, border: ACCENT.ong.border },
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -90,12 +92,15 @@ export const NATURALEZA_COLORS: Record<string, { text: string; bg: string; borde
 
 export const getEstadoColor = (activo: boolean, ultimoError: string): { text: string; bg: string; border: string; blink?: boolean } => {
   if (ultimoError && ultimoError.length > 0) {
-    return { text: '#8b5cf6', bg: 'rgba(139,92,246,0.06)', border: 'rgba(139,92,246,0.2)', blink: true };
+    const t = statusToken('error');
+    return { text: t.color, bg: t.bg, border: t.border, blink: true };
   }
   if (!activo) {
-    return { text: '#f59e0b', bg: 'rgba(245,158,11,0.06)', border: 'rgba(245,158,11,0.2)' };
+    const t = statusToken('inactiva');
+    return { text: t.color, bg: t.bg, border: t.border };
   }
-  return { text: '#06b6d4', bg: 'rgba(6,182,212,0.06)', border: 'rgba(6,182,212,0.15)' };
+  const t = statusToken('active');
+  return { text: t.color, bg: t.bg, border: t.border };
 };
 
 export const getEstadoLabel = (activo: boolean, ultimoError: string): string => {

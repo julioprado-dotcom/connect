@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 import { Shield, Bot, Globe, Database, Zap, Calendar, Play, Square, Loader2, RefreshCw, Clock, Timer, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react';
 import { PanelShell } from './PanelShell';
+import { statusColor, statusBg, statusBorder, statusGlow, statusToken, scoreStatus, normalizeStatus } from '@/constants/colors';
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -96,8 +97,8 @@ function ProcessOrb({
   /** true cuando el sistema acaba de iniciar y el proceso aún no envió heartbeat */
   initializing?: boolean;
 }) {
-  const status = online ? 'ok' : 'error';
-  const color = online ? '#06b6d4' : (initializing ? '#3b82f6' : '#8b5cf6');
+  const orbStatusKey = online ? 'online' : (initializing ? 'starting' : 'offline');
+  const color = statusColor(orbStatusKey);
   const statusLabel = online ? 'En línea' : (initializing ? 'Inicializando' : 'Desconectado');
   const glowSize = online ? 6 : (initializing ? 4 : 12);
 
@@ -109,7 +110,7 @@ function ProcessOrb({
           className="w-3 h-3 rounded-full"
           style={{
             backgroundColor: color,
-            boxShadow: `0 0 ${glowSize}px ${color}60, 0 0 ${glowSize * 2}px ${color}20`,
+            boxShadow: statusGlow(orbStatusKey, glowSize),
           }}
         />
         {online && (
@@ -129,8 +130,8 @@ function ProcessOrb({
             className="text-[9px] font-bold uppercase font-mono px-1.5 py-0.5 rounded"
             style={{
               color,
-              backgroundColor: `${color}10`,
-              border: `1px solid ${color}20`,
+              backgroundColor: statusBg(orbStatusKey),
+              border: `1px solid ${statusBorder(orbStatusKey)}`,
             }}
           >
             {statusLabel}
@@ -149,9 +150,9 @@ function ProcessOrb({
           disabled={loading}
           className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-mono font-bold uppercase tracking-wider transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
-            color: online ? '#8b5cf6' : '#06b6d4',
-            backgroundColor: online ? 'rgba(139,92,246,0.08)' : 'rgba(6,182,212,0.08)',
-            border: `1px solid ${online ? 'rgba(139,92,246,0.2)' : 'rgba(6,182,212,0.2)'}`,
+            color: statusColor(online ? 'warning' : 'active'),
+            backgroundColor: statusBg(online ? 'warning' : 'active'),
+            border: `1px solid ${statusBorder(online ? 'warning' : 'active')}`,
           }}
           title={online ? `Detener ${label}` : `Activar ${label}`}
         >
@@ -177,7 +178,8 @@ function HealthGauge({ score }: { score: number }) {
   const radius = 28;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
-  const color = score >= 80 ? '#06b6d4' : score >= 50 ? '#f59e0b' : '#8b5cf6';
+  const scoreKey = scoreStatus(score);
+  const color = statusColor(scoreKey);
 
   return (
     <div className="flex items-center gap-4 py-2">
@@ -218,10 +220,9 @@ function PipelineOrb({
   label: string;
   onClick?: () => void;
 }) {
-  const statusKey = status === 'warn' ? 'warning' : (status as 'ok' | 'warning' | 'error' | 'idle' | 'starting') || 'idle';
-  const colorMap = { ok: '#06b6d4', warning: '#f59e0b', error: '#8b5cf6', idle: '#64748b', pending: '#3b82f6', starting: '#3b82f6' };
+  const statusKey = normalizeStatus(status);
   const labelMap = { ok: 'En línea', warning: 'Degradado', error: 'Desconectado', idle: 'Inactivo', pending: 'Pendiente', starting: 'Inicializando' };
-  const color = colorMap[statusKey] || colorMap.idle;
+  const color = statusColor(statusKey);
   const glowSize = statusKey === 'error' ? 12 : statusKey === 'warning' ? 8 : 6;
 
   return (
@@ -234,7 +235,7 @@ function PipelineOrb({
           className="w-2.5 h-2.5 rounded-full"
           style={{
             backgroundColor: color,
-            boxShadow: `0 0 ${glowSize}px ${color}60, 0 0 ${glowSize * 2}px ${color}20`,
+            boxShadow: statusGlow(statusKey, glowSize),
           }}
         />
         {statusKey === 'ok' && (
@@ -244,9 +245,9 @@ function PipelineOrb({
       <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 font-mono">{label}</span>
       <span
         className="text-[9px] font-bold uppercase font-mono px-1.5 py-0.5 rounded"
-        style={{ color, backgroundColor: `${color}10`, border: `1px solid ${color}20` }}
+        style={{ color, backgroundColor: statusBg(statusKey), border: `1px solid ${statusBorder(statusKey)}` }}
       >
-        {labelMap[statusKey] || status}
+        {(labelMap as Record<string, string>)[statusKey] || status}
       </span>
       {onClick && (
         <ArrowRight className="w-3 h-3 ml-auto text-slate-600 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition-all duration-200" />
@@ -484,7 +485,7 @@ export function SystemStatus({ onNavigateTab }: SystemStatusProps) {
               {/* Scheduler status */}
               <div className="flex items-center justify-between">
                 <span className="text-[9px] font-mono text-slate-500">
-                  Estado: <span style={{ color: schedulerStatus?.running ? '#06b6d4' : '#8b5cf6' }}>
+                  Estado: <span style={{ color: statusColor(schedulerStatus?.running ? 'active' : 'offline') }}>
                     {schedulerStatus?.running ? 'ACTIVO' : 'PAUSADO'}
                   </span>
                 </span>
@@ -516,9 +517,9 @@ export function SystemStatus({ onNavigateTab }: SystemStatusProps) {
                   disabled={schedulerAction !== null}
                   className="flex items-center justify-center gap-1 py-1.5 px-2 rounded text-[9px] font-bold font-mono uppercase tracking-wider transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{
-                    color: '#06b6d4',
-                    backgroundColor: 'rgba(6,182,212,0.06)',
-                    border: '1px solid rgba(6,182,212,0.15)',
+                    color: statusColor('active'),
+                    backgroundColor: statusBg('active'),
+                    border: `1px solid ${statusBorder('active')}`,
                   }}
                   title="Recalcular horarios optimos basados en actividad de fuentes"
                 >
@@ -530,9 +531,9 @@ export function SystemStatus({ onNavigateTab }: SystemStatusProps) {
                   disabled={schedulerAction !== null || !schedulerStatus?.running}
                   className="flex items-center justify-center gap-1 py-1.5 px-2 rounded text-[9px] font-bold font-mono uppercase tracking-wider transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{
-                    color: '#f59e0b',
-                    backgroundColor: 'rgba(245,158,11,0.06)',
-                    border: '1px solid rgba(245,158,11,0.15)',
+                    color: statusColor('warning'),
+                    backgroundColor: statusBg('warning'),
+                    border: `1px solid ${statusBorder('warning')}`,
                   }}
                 >
                   {schedulerAction === 'pause' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Square className="w-3 h-3" />}
@@ -543,9 +544,9 @@ export function SystemStatus({ onNavigateTab }: SystemStatusProps) {
                   disabled={schedulerAction !== null || schedulerStatus?.running}
                   className="flex items-center justify-center gap-1 py-1.5 px-2 rounded text-[9px] font-bold font-mono uppercase tracking-wider transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{
-                    color: '#06b6d4',
-                    backgroundColor: 'rgba(6,182,212,0.06)',
-                    border: '1px solid rgba(6,182,212,0.15)',
+                    color: statusColor('active'),
+                    backgroundColor: statusBg('active'),
+                    border: `1px solid ${statusBorder('active')}`,
                   }}
                 >
                   {schedulerAction === 'resume' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
@@ -563,7 +564,7 @@ export function SystemStatus({ onNavigateTab }: SystemStatusProps) {
                     }}>
                       <span
                         className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: task.active ? '#06b6d4' : '#64748b' }}
+                        style={{ backgroundColor: statusColor(task.active ? 'active' : 'idle') }}
                       />
                       <span className="text-[9px] font-mono text-slate-400 flex-1 truncate">
                         {task.name}
@@ -653,9 +654,9 @@ export function SystemStatus({ onNavigateTab }: SystemStatusProps) {
               <span
                 className="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded"
                 style={{
-                  color: health.environment === 'production' ? '#06b6d4' : '#f59e0b',
-                  backgroundColor: health.environment === 'production' ? 'rgba(6,182,212,0.08)' : 'rgba(245,158,11,0.08)',
-                  borderColor: health.environment === 'production' ? 'rgba(6,182,212,0.2)' : 'rgba(245,158,11,0.2)',
+                  color: statusColor(health.environment === 'production' ? 'active' : 'warning'),
+                  backgroundColor: statusBg(health.environment === 'production' ? 'active' : 'warning'),
+                  borderColor: statusBorder(health.environment === 'production' ? 'active' : 'warning'),
                   borderWidth: '1px',
                   borderStyle: 'solid',
                 }}

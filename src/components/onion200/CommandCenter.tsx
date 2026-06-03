@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 import { PanelShell } from './PanelShell';
+import { statusColor, statusBg, statusGlow, normalizeStatus } from '@/constants/colors';
 import {
   Zap,
   Play,
@@ -145,15 +146,7 @@ function tiempoRelativo(fechaStr: string): string {
 }
 
 function estadoColor(estado: string): string {
-  const colors: Record<string, string> = {
-    pendiente: '#f59e0b',
-    en_progreso: '#06b6d4',
-    en_proceso: '#06b6d4',
-    completado: '#10b981',
-    fallido: '#f43f5e',
-    cancelado: '#64748b',
-  };
-  return colors[estado] || '#64748b';
+  return statusColor(normalizeStatus(estado));
 }
 
 function estadoLabel(estado: string): string {
@@ -330,8 +323,8 @@ export function CommandCenter() {
               <span
                 className="w-2 h-2 rounded-full"
                 style={{
-                  backgroundColor: workerAlive ? '#10b981' : '#f43f5e',
-                  boxShadow: workerAlive ? '0 0 6px rgba(16,185,129,0.6)' : '0 0 6px rgba(244,63,94,0.6)',
+                  backgroundColor: workerAlive ? statusColor('online') : statusColor('offline'),
+                  boxShadow: workerAlive ? statusGlow('online', 6) : statusGlow('offline', 6),
                   animation: workerAlive ? 'pulse 2s infinite' : 'none',
                 }}
               />
@@ -340,7 +333,7 @@ export function CommandCenter() {
               </span>
               <span
                 className="text-[9px] font-bold font-mono uppercase"
-                style={{ color: workerAlive ? '#10b981' : '#f43f5e' }}
+                style={{ color: workerAlive ? statusColor('online') : statusColor('offline') }}
               >
                 {workerAlive ? 'ONLINE' : 'OFFLINE'}
               </span>
@@ -353,8 +346,8 @@ export function CommandCenter() {
               <span
                 className="w-2 h-2 rounded-full"
                 style={{
-                  backgroundColor: schedulerAlive ? '#10b981' : '#f43f5e',
-                  boxShadow: schedulerAlive ? '0 0 6px rgba(16,185,129,0.6)' : '0 0 6px rgba(244,63,94,0.6)',
+                  backgroundColor: schedulerAlive ? statusColor('online') : statusColor('offline'),
+                  boxShadow: schedulerAlive ? statusGlow('online', 6) : statusGlow('offline', 6),
                   animation: schedulerAlive ? 'pulse 2s infinite' : 'none',
                 }}
               />
@@ -363,7 +356,7 @@ export function CommandCenter() {
               </span>
               <span
                 className="text-[9px] font-bold font-mono uppercase"
-                style={{ color: schedulerAlive ? '#10b981' : '#f43f5e' }}
+                style={{ color: schedulerAlive ? statusColor('online') : statusColor('offline') }}
               >
                 {schedulerAlive ? `${jobsStats?.scheduler.totalTasks || 0} tareas` : 'OFFLINE'}
               </span>
@@ -532,7 +525,7 @@ export function CommandCenter() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-[9px] font-mono text-slate-600">Fallidos 24h</span>
-                    <span className="text-xs font-mono tabular-nums" style={{ color: (jobsStats?.cola.fallidos24h ?? 0) > 0 ? '#f43f5e' : '#10b981' }}>
+                    <span className="text-xs font-mono tabular-nums" style={{ color: (jobsStats?.cola.fallidos24h ?? 0) > 0 ? statusColor('error') : statusColor('ok') }}>
                       {jobsStats?.cola.fallidos24h ?? jobsSummaryData?.fallidos24h ?? '—'}
                     </span>
                   </div>
@@ -646,7 +639,7 @@ export function CommandCenter() {
                 ) : (
                   <CheckCircle2 className="w-3 h-3 text-emerald-500/60" />
                 )}
-                <span className="text-[10px] font-bold uppercase tracking-widest font-mono" style={{ color: cq.running ? '#06b6d4' : '#10b981' }}>
+                <span className="text-[10px] font-bold uppercase tracking-widest font-mono" style={{ color: cq.running ? statusColor('en_progreso') : statusColor('ok') }}>
                   {cq.running ? `Capturando: ${cq.currentMedio || '...'}` : 'Captura Finalizada'}
                 </span>
                 <span className="ml-auto text-[9px] font-mono text-slate-600">
@@ -671,9 +664,9 @@ export function CommandCenter() {
                       style={{
                         width: `${(cq.progress.current / cq.progress.total) * 100}%`,
                         background: cq.running
-                          ? 'linear-gradient(90deg, #06b6d4, #10b981)'
-                          : '#10b981',
-                        boxShadow: cq.running ? '0 0 8px rgba(6,182,212,0.4)' : '0 0 6px rgba(16,185,129,0.3)',
+                          ? `linear-gradient(90deg, ${statusColor('en_progreso')}, ${statusColor('ok')})`
+                          : statusColor('ok'),
+                        boxShadow: cq.running ? statusGlow('en_progreso', 8) : statusGlow('ok', 6),
                       }}
                     />
                   </div>

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Loader2, RefreshCw, X, TrendingUp, Minus, TrendingDown, Plus, Pause, Play, Trash2 } from 'lucide-react';
 import { TIER_CONFIG, CATEGORIAS } from './IndicadoresView.types';
 import type { EnrichedIndicador } from './IndicadoresView.types';
+import { statusColor } from '@/constants/colors';
 
 // ═══════════════════════════════════════════════════════════════
 // Helpers
@@ -78,7 +79,7 @@ export function TierBadge({ tier }: { tier: number }) {
 
 export function ConfiableDot({ confiable }: { confiable: boolean | undefined }) {
   if (confiable === undefined || confiable === null) return null;
-  const color = confiable ? '#10b981' : '#f59e0b';
+  const color = statusColor(confiable ? 'confiable' : 'warning');
   return (
     <span
       className="w-1 h-1 rounded-full flex-shrink-0"
@@ -159,7 +160,7 @@ export function MiniSparkline({
   const lastVal = values[values.length - 1];
   const prevVal = values[values.length - 2];
   const trend = lastVal >= prevVal ? 'up' : 'down';
-  const trendColor = trend === 'up' ? '#10b981' : '#f43f5e';
+  const trendColor = statusColor(trend === 'up' ? 'ok' : 'error');
 
   return (
     <div className="flex items-end gap-1">
@@ -314,9 +315,9 @@ export function IndicatorCard({
             <span
               className="inline-flex items-center px-1.5 py-0 rounded text-[8px] font-bold font-mono uppercase tracking-wider leading-none"
               style={{
-                color: ue.escalaNivel === 'critico' ? '#ef4444' : ue.escalaNivel === 'alto' ? '#f59e0b' : ue.escalaNivel === 'bajo' ? '#10b981' : '#06b6d4',
-                backgroundColor: (ue.escalaNivel === 'critico' ? '#ef4444' : ue.escalaNivel === 'alto' ? '#f59e0b' : ue.escalaNivel === 'bajo' ? '#10b981' : '#06b6d4') + '12',
-                border: '1px solid ' + (ue.escalaNivel === 'critico' ? '#ef4444' : ue.escalaNivel === 'alto' ? '#f59e0b' : ue.escalaNivel === 'bajo' ? '#10b981' : '#06b6d4') + '20',
+                color: statusColor(ue.escalaNivel === 'critico' ? 'critico' : ue.escalaNivel === 'alto' ? 'warning' : ue.escalaNivel === 'bajo' ? 'ok' : 'active'),
+                backgroundColor: statusColor(ue.escalaNivel === 'critico' ? 'critico' : ue.escalaNivel === 'alto' ? 'warning' : ue.escalaNivel === 'bajo' ? 'ok' : 'active') + '12',
+                border: '1px solid ' + statusColor(ue.escalaNivel === 'critico' ? 'critico' : ue.escalaNivel === 'alto' ? 'warning' : ue.escalaNivel === 'bajo' ? 'ok' : 'active') + '20',
               }}
             >
               {ue.escalaNivel} · {ue.valorCompuesto.toFixed(1)}
@@ -414,7 +415,7 @@ function HistoryChart({
         {change > 0 ? <TrendingUp className="w-3.5 h-3.5 text-emerald-400" /> :
          change < 0 ? <TrendingDown className="w-3.5 h-3.5 text-rose-400" /> :
          <Minus className="w-3.5 h-3.5 text-slate-400" />}
-        <span className="text-[10px] font-mono" style={{ color: change > 0 ? '#10b981' : change < 0 ? '#f43f5e' : '#64748b' }}>
+        <span className="text-[10px] font-mono" style={{ color: statusColor(change > 0 ? 'ok' : change < 0 ? 'error' : 'idle') }}>
           {change > 0 ? '+' : ''}{changePct}% variacion
         </span>
         <span className="text-[9px] font-mono text-slate-600 ml-auto">
@@ -607,8 +608,8 @@ export function HistoryModal({
                       <td className="py-1 px-2 text-right text-slate-300">{row.valorTexto || row.valor}</td>
                       <td className="py-1 px-2 text-right">
                         <span className="w-1 h-1 rounded-full inline-block" style={{
-                          backgroundColor: row.confiable ? '#10b981' : '#f59e0b',
-                          boxShadow: '0 0 3px ' + (row.confiable ? '#10b981' : '#f59e0b') + '50',
+                          backgroundColor: statusColor(row.confiable ? 'confiable' : 'warning'),
+                          boxShadow: '0 0 3px ' + statusColor(row.confiable ? 'confiable' : 'warning') + '50',
                         }} />
                       </td>
                     </tr>

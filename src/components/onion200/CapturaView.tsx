@@ -24,7 +24,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { MencionDetailModal } from './LiveFeed';
-import { sentimentColor, sentimentBg, sentimentLabel } from '@/constants/colors';
+import { sentimentColor, sentimentBg, sentimentLabel, statusColor, statusGlow, statusBg, statusBorder } from '@/constants/colors';
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -241,6 +241,7 @@ export function CapturaView() {
   const pipeline = status?.pipeline ?? null;
   const isPipelineActive = !isRunning && (pipeline?.running || (pipeline?.completedLast30min ?? 0) > 0);
   const isSystemActive = isRunning || isPipelineActive;
+  const systemStatusKey = isRunning ? 'running' : isPipelineActive ? 'degraded' : 'idle';
 
   // Merge logs: manual capture logs + pipeline logs
   const allLogs = [
@@ -259,17 +260,17 @@ export function CapturaView() {
               <span
                 className="w-2.5 h-2.5 rounded-full"
                 style={{
-                  backgroundColor: isRunning ? '#10b981' : isPipelineActive ? '#f59e0b' : '#64748b',
-                  boxShadow: isRunning ? '0 0 8px rgba(16,185,129,0.5)' : isPipelineActive ? '0 0 8px rgba(245,158,11,0.5)' : 'none',
+                  backgroundColor: statusColor(systemStatusKey),
+                  boxShadow: (isRunning || isPipelineActive) ? statusGlow(systemStatusKey) : 'none',
                   animation: isPipelineActive && !isRunning ? 'pulse 2s ease-in-out infinite' : undefined,
                 }}
               />
               <span
                 className="text-[10px] font-bold uppercase font-mono px-2 py-1 rounded"
                 style={{
-                  color: isRunning ? '#10b981' : isPipelineActive ? '#f59e0b' : '#64748b',
-                  backgroundColor: isRunning ? 'rgba(16,185,129,0.08)' : isPipelineActive ? 'rgba(245,158,11,0.08)' : 'rgba(100,116,139,0.08)',
-                  border: `1px solid ${isRunning ? 'rgba(16,185,129,0.2)' : isPipelineActive ? 'rgba(245,158,11,0.2)' : 'rgba(100,116,139,0.2)'}`,
+                  color: statusColor(systemStatusKey),
+                  backgroundColor: statusBg(systemStatusKey),
+                  border: `1px solid ${statusBorder(systemStatusKey)}`,
                 }}
               >
                 {isRunning ? 'CAPTURA EN CURSO' : isPipelineActive ? 'PIPELINE ACTIVO' : 'INACTIVO'}
@@ -303,7 +304,7 @@ export function CapturaView() {
                 </div>
                 <div className="text-center">
                   <p className="text-[9px] font-bold uppercase text-slate-600 font-mono">Estado</p>
-                  <p className="text-sm font-mono tabular-nums" style={{ color: pipeline.running ? '#10b981' : '#64748b' }}>
+                  <p className="text-sm font-mono tabular-nums" style={{ color: statusColor(pipeline.running ? 'running' : 'idle') }}>
                     {pipeline.running ? 'Activo' : 'Idle'}
                   </p>
                 </div>
@@ -313,7 +314,7 @@ export function CapturaView() {
                 <div className="mt-2 space-y-1">
                   {pipeline.runningJobs.map((j, i) => (
                     <div key={i} className="flex items-center justify-between text-[9px] font-mono px-2 py-1 rounded" style={{
-                      color: '#10b981',
+                      color: statusColor('running'),
                       backgroundColor: 'rgba(16,185,129,0.04)',
                     }}>
                       <span className="flex items-center gap-1">
@@ -442,7 +443,7 @@ export function CapturaView() {
             <div
               className="mt-3 flex items-center gap-2 px-3 py-2 rounded-md text-[10px] font-mono"
               style={{
-                color: launchResult.success ? '#10b981' : '#f43f5e',
+                color: launchResult.success ? statusColor('ok') : statusColor('error'),
                 backgroundColor: launchResult.success ? 'rgba(16,185,129,0.06)' : 'rgba(244,63,94,0.06)',
                 border: `1px solid ${launchResult.success ? 'rgba(16,185,129,0.15)' : 'rgba(244,63,94,0.15)'}`,
               }}
@@ -463,7 +464,7 @@ export function CapturaView() {
               disabled={connLoading || isRunning}
               className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-[10px] font-bold font-mono uppercase tracking-wider transition-all duration-200 hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed"
               style={{
-                color: connTest?.connectivity.verdict === 'OK' ? '#10b981' : connTest?.connectivity.verdict === 'CRITICAL' ? '#f43f5e' : '#64748b',
+                color: statusColor(connTest?.connectivity.verdict === 'OK' ? 'ok' : connTest?.connectivity.verdict === 'CRITICAL' ? 'error' : 'idle'),
                 backgroundColor: connTest?.connectivity.verdict === 'OK' ? 'rgba(16,185,129,0.06)' : connTest?.connectivity.verdict === 'CRITICAL' ? 'rgba(244,63,94,0.06)' : 'rgba(100,116,139,0.06)',
                 border: `1px solid ${connTest?.connectivity.verdict === 'OK' ? 'rgba(16,185,129,0.15)' : connTest?.connectivity.verdict === 'CRITICAL' ? 'rgba(244,63,94,0.15)' : 'rgba(100,116,139,0.15)'}`,
               }}
@@ -476,7 +477,7 @@ export function CapturaView() {
               <div className="mt-2 space-y-1">
                 {connTest.tests.map((t) => (
                   <div key={t.label} className="flex items-center justify-between text-[9px] font-mono px-2 py-1 rounded" style={{
-                    color: t.ok ? '#10b981' : '#f43f5e',
+                    color: statusColor(t.ok ? 'ok' : 'error'),
                     backgroundColor: t.ok ? 'rgba(16,185,129,0.03)' : 'rgba(244,63,94,0.03)',
                   }}>
                     <span>{(t.ok || t.totalCambios) ? '✓' : '✗'} {t.label}</span>
@@ -500,7 +501,7 @@ export function CapturaView() {
                 <span
                   className="px-1.5 py-0.5 rounded"
                   style={{
-                    color: status.lastCaptureLog.exitosa ? '#10b981' : '#f59e0b',
+                    color: statusColor(status.lastCaptureLog.exitosa ? 'ok' : 'warning'),
                     backgroundColor: status.lastCaptureLog.exitosa
                       ? 'rgba(16,185,129,0.08)'
                       : 'rgba(245,158,11,0.08)',
@@ -536,14 +537,14 @@ export function CapturaView() {
                 const isWarning = log.includes('⚠️');
                 const isPipeline = source === 'pipeline';
                 const color = isError
-                  ? '#f43f5e'
+                  ? statusColor('error')
                   : isSuccess
-                    ? '#10b981'
+                    ? statusColor('ok')
                     : isWarning
-                      ? '#f59e0b'
+                      ? statusColor('warning')
                       : isPipeline
                         ? '#a78bfa'
-                        : '#475569';
+                        : statusColor('idle');
                 return (
                   <div
                     key={i}

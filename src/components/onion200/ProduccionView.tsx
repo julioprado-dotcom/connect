@@ -9,6 +9,7 @@ import {
   Eye, Zap, Package,
 } from 'lucide-react';
 import { ALL_PRODUCTS } from '@/constants/nav';
+import { statusColor, statusGlow, normalizeStatus } from '@/constants/colors';
 
 import type {
   ProduccionData,
@@ -464,8 +465,8 @@ export function ProduccionView() {
                   <span
                     className="w-2.5 h-2.5 rounded-full"
                     style={{
-                      backgroundColor: prod?.status === 'ok' ? '#10b981' : '#64748b',
-                      boxShadow: prod?.status === 'ok' ? '0 0 8px rgba(16,185,129,0.4)' : 'none',
+                      backgroundColor: statusColor(prod?.status === 'ok' ? 'ok' : 'idle'),
+                      boxShadow: prod?.status === 'ok' ? statusGlow('ok') : 'none',
                     }}
                   />
                   <span className="text-[10px] font-bold uppercase font-mono text-slate-500">
@@ -685,8 +686,8 @@ export function ProduccionView() {
                         <span
                           className="text-[9px] font-mono px-1.5 py-0.5 rounded"
                           style={{
-                            color: p.estado === 'completado' ? '#10b981' : '#f59e0b',
-                            backgroundColor: p.estado === 'completado' ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)',
+                            color: statusColor(normalizeStatus(p.estado || 'unknown')),
+                            backgroundColor: statusColor(normalizeStatus(p.estado || 'unknown')) + '15',
                           }}
                         >
                           {p.estado}

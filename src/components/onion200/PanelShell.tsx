@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { X } from 'lucide-react';
+import { statusColor, statusGlow } from '@/constants/colors';
 
 // ═══════════════════════════════════════════════════════════════
 // PanelShell — reusable sci-fi container
@@ -61,8 +62,11 @@ export function PanelShell({
             </button>
           ) : (
             <>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-glow-pulse" />
-              <span className="text-[9px] uppercase text-emerald-400/80 font-mono">
+              <span
+                style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: statusColor('running'), boxShadow: statusGlow('running') }}
+                className="animate-glow-pulse"
+              />
+              <span className="text-[9px] uppercase font-mono" style={{ color: statusColor('running') }}>
                 en vivo
               </span>
             </>

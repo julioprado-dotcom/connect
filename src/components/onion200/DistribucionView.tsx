@@ -19,6 +19,7 @@ import {
   Wifi,
 } from 'lucide-react';
 import { ALL_PRODUCTS } from '@/constants/nav';
+import { statusColor, statusGlow, normalizeStatus, ACCENT } from '@/constants/colors';
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -265,8 +266,8 @@ export function DistribucionView() {
                 <span
                   className="w-2.5 h-2.5 rounded-full"
                   style={{
-                    backgroundColor: data?.status === 'ok' ? '#10b981' : '#64748b',
-                    boxShadow: data?.status === 'ok' ? '0 0 8px rgba(16,185,129,0.4)' : 'none',
+                    backgroundColor: statusColor(normalizeStatus(data?.status || 'idle')),
+                    boxShadow: data?.status === 'ok' ? statusGlow(normalizeStatus(data?.status || 'idle')) : 'none',
                   }}
                 />
                 <span className="text-[10px] font-bold uppercase font-mono text-slate-500">
@@ -306,7 +307,7 @@ export function DistribucionView() {
                   <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(6,182,212,0.08)' }}>
                     <div className="h-full rounded-full transition-all duration-500" style={{
                       width: `${tasaExito}%`,
-                      background: 'linear-gradient(90deg, #10b981, #06b6d4)',
+                      background: `linear-gradient(90deg, ${statusColor('ok')}, ${statusColor('active')})`,
                     }} />
                   </div>
                 </div>
@@ -349,9 +350,9 @@ export function DistribucionView() {
             </p>
             <div className="flex flex-col gap-2">
               {([
-                { canal: 'email' as const, label: 'Email / SMTP', Icon: Mail, accentColor: '#06b6d4' },
-                { canal: 'whatsapp' as const, label: 'WhatsApp', Icon: MessageCircle, accentColor: '#10b981' },
-                { canal: 'telegram' as const, label: 'Telegram', Icon: Send, accentColor: '#a78bfa' },
+                { canal: 'email' as const, label: 'Email / SMTP', Icon: Mail, accentColor: ACCENT.email.color },
+                { canal: 'whatsapp' as const, label: 'WhatsApp', Icon: MessageCircle, accentColor: ACCENT.whatsapp.color },
+                { canal: 'telegram' as const, label: 'Telegram', Icon: Send, accentColor: ACCENT.telegram.color },
               ]).map(({ canal, label, Icon, accentColor }) => {
                 const result = testResults[canal];
                 return (
@@ -675,10 +676,10 @@ export function DistribucionView() {
                               )}
                               <span style={{
                                 color: e.estado === 'entregado' || e.estado === 'exitoso'
-                                  ? '#10b981'
+                                  ? statusColor('entregado')
                                   : e.estado === 'fallido'
-                                    ? '#f87171'
-                                    : '#f59e0b',
+                                    ? statusColor('error')
+                                    : statusColor('pending'),
                               }}>
                                 {e.estado}
                               </span>

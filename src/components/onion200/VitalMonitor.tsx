@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 import { PanelShell } from './PanelShell';
 import { Cpu, MemoryStick, HardDrive, Clock, Server } from 'lucide-react';
+import { statusColor, thresholdStatus } from '@/constants/colors';
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -236,11 +237,7 @@ export function VitalMonitor() {
   }, [fetchData]);
 
   // Determine color based on severity
-  const getColor = (pct: number): string => {
-    if (pct > 85) return '#8b5cf6'; // violeta — alerta
-    if (pct > 60) return '#f59e0b'; // ámbar — vigilancia
-    return '#06b6d4'; // cyan — ok
-  };
+  const getColor = (pct: number): string => statusColor(thresholdStatus(pct));
 
   if (error && !vitals) {
     return (

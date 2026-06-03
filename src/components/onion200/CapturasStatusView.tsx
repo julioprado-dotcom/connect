@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 import { PanelShell } from './PanelShell';
+import { statusToken, freshnessStatus, statusColor } from '@/constants/colors';
 import {
   Radio,
   RefreshCw,
@@ -87,11 +88,11 @@ type CapturaFilter = 'todas' | 'scrapeadas' | 'nunca' | 'activas' | 'problemas';
 // ═══════════════════════════════════════════════════════════════
 
 const ESTADO_COLORS: Record<string, { text: string; bg: string; border: string }> = {
-  activa: { text: '#06b6d4', bg: 'rgba(6,182,212,0.06)', border: 'rgba(6,182,212,0.15)' },
-  degradada: { text: '#f59e0b', bg: 'rgba(245,158,11,0.06)', border: 'rgba(245,158,11,0.15)' },
-  caida: { text: '#ef4444', bg: 'rgba(239,68,68,0.06)', border: 'rgba(239,68,68,0.15)' },
-  pausada: { text: '#64748b', bg: 'rgba(100,116,139,0.06)', border: 'rgba(100,116,139,0.15)' },
-  sin_estado: { text: '#475569', bg: 'rgba(71,85,105,0.06)', border: 'rgba(71,85,105,0.15)' },
+  activa: { text: statusToken('activa').color, bg: statusToken('activa').bg, border: statusToken('activa').border },
+  degradada: { text: statusToken('degradada').color, bg: statusToken('degradada').bg, border: statusToken('degradada').border },
+  caida: { text: statusToken('caida').color, bg: statusToken('caida').bg, border: statusToken('caida').border },
+  pausada: { text: statusToken('pausada').color, bg: statusToken('pausada').bg, border: statusToken('pausada').border },
+  sin_estado: { text: statusToken('sin_estado').color, bg: statusToken('sin_estado').bg, border: statusToken('sin_estado').border },
 };
 
 const ESTADO_LABELS: Record<string, string> = {
@@ -103,19 +104,20 @@ const ESTADO_LABELS: Record<string, string> = {
 };
 
 function getTimeColor(hace: string): string {
-  if (hace === 'nunca') return '#475569';
-  if (hace === 'ahora' || hace.startsWith('hace 1') || hace.startsWith('hace 2')) return '#06b6d4';
-  if (hace.includes('h') && !hace.includes('d')) {
-    const num = parseInt(hace.replace(/\D/g, ''));
-    if (num <= 6) return '#06b6d4';
-    if (num <= 24) return '#f59e0b';
+  if (hace === 'nunca') return statusColor('sin_estado');
+  let minutes = Infinity;
+  if (hace === 'ahora') minutes = 0;
+  else if (hace.startsWith('hace ')) {
+    const match = hace.match(/hace (\d+)/);
+    if (match) {
+      const num = parseInt(match[1]);
+      if (hace.includes('h')) minutes = num * 60;
+      else if (hace.includes('d')) minutes = num * 1440;
+      else if (hace.includes('m')) minutes = num;
+      else minutes = num * 60;
+    }
   }
-  if (hace.includes('d')) {
-    const num = parseInt(hace.replace(/\D/g, ''));
-    if (num <= 2) return '#f59e0b';
-    return '#ef4444';
-  }
-  return '#475569';
+  return statusColor(freshnessStatus(minutes));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -370,7 +372,7 @@ export function CapturasStatusView() {
                               {fuente.notaRawTotal}
                             </span>
                             {fuente.notaRawPendientes > 0 && (
-                              <span className="ml-1 text-[8px] font-bold" style={{ color: '#f59e0b' }}>
+                              <span className="ml-1 text-[8px] font-bold" style={{ color: statusColor('pending') }}>
                                 ({fuente.notaRawPendientes} pend.)
                               </span>
                             )}

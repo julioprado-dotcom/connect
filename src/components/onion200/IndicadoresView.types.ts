@@ -1,3 +1,5 @@
+import { statusColor } from '@/constants/colors';
+
 // ═══════════════════════════════════════════════════════════════
 // Types — matching the actual API shape from /api/indicadores
 // ═══════════════════════════════════════════════════════════════
@@ -75,9 +77,9 @@ export const CATEGORIAS: Record<string, { label: string; color: string }> = {
 };
 
 export const TIER_CONFIG: Record<number, { label: string; color: string }> = {
-  1: { label: 'AUTO', color: '#10b981' },
-  2: { label: 'SEMI', color: '#f59e0b' },
-  3: { label: 'MANUAL', color: '#64748b' },
+  1: { label: 'AUTO', color: statusColor('ok') },
+  2: { label: 'SEMI', color: statusColor('warning') },
+  3: { label: 'MANUAL', color: statusColor('idle') },
 };
 
 export const CATEGORIA_ORDER = [
