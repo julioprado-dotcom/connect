@@ -647,6 +647,30 @@
       "namedRegex": "^/api/dashboard/productos\\-summary(?:/)?$"
     },
     {
+      "page": "/api/dashboard/quality/duplicates",
+      "regex": "^/api/dashboard/quality/duplicates(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/quality/duplicates(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/quality/merge",
+      "regex": "^/api/dashboard/quality/merge(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/quality/merge(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/quality/reclassify",
+      "regex": "^/api/dashboard/quality/reclassify(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/quality/reclassify(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard/quality/stats",
+      "regex": "^/api/dashboard/quality/stats(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard/quality/stats(?:/)?$"
+    },
+    {
       "page": "/api/dashboard/reportes-summary",
       "regex": "^/api/dashboard/reportes\\-summary(?:/)?$",
       "routeKeys": {},
