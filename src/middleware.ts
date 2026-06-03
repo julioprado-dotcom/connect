@@ -82,6 +82,12 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
+    // Permitir llamadas internas del servidor (runner → admin endpoints)
+    const internalSecret = request.headers.get('x-internal-secret');
+    if (internalSecret === process.env.AUTH_SECRET) {
+      return NextResponse.next();
+    }
+
     // Verificar token JWT (compatible con Edge Runtime)
     // secureCookie: true cuando el request llega por HTTPS (detectado vía X-Forwarded-Proto)
     // Esto funciona tanto en dev (HTTP) como en producción con Caddy (HTTPS)

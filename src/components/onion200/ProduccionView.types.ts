@@ -24,10 +24,13 @@ export interface ProduccionData {
 export interface CatalogProduct {
   tipo: string;
   nombre: string;
-  estado: string;
+  estado: string;             // Operational status from ALL_PRODUCTS ('operativo'|'definido')
+  estadoDatos?: string;       // Data state from API ('generado'|'sin_datos'|'sin_menciones')
   categoria: string;
   ultimaEdicion: string | null;
   ultimoId: string | null;
+  mencionesUsadas?: number;
+  totalEdiciones?: number;
 }
 
 export interface EjeItem {

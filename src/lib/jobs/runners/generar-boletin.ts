@@ -19,12 +19,53 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
   const tipoBoletin = (payload.tipoBoletin || payload.tipoProducto) as TipoBoletin
   const personaId = payload.personaId as string | undefined
   const contratoId = payload.contratoId as string | undefined
+  const endpoint = payload.endpoint as string | undefined
+  const ejeSlug = payload.ejeSlug as string | undefined
 
   if (!tipoBoletin) {
     return { success: false, error: 'generar_boletin requiere tipoBoletin o tipoProducto en el payload' }
   }
 
   const startTime = Date.now()
+
+  // ── If a dedicated endpoint is specified, try calling it via internal fetch ──
+  // This enables LLM-powered generation instead of plain text
+  if (endpoint) {
+    try {
+      console.log(`[generar_boletin] Intentando endpoint dedicado: ${endpoint}`)
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.BASE_URL || 'http://localhost:3000'
+      const body: Record<string, unknown> = { tipo: tipoBoletin }
+      if (personaId) body.personaId = personaId
+      if (ejeSlug) body.ejeSlug = ejeSlug
+      if (contratoId) body.contratoId = contratoId
+
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      // Internal auth bypass for server-to-server calls
+      if (process.env.AUTH_SECRET) {
+        headers['x-internal-secret'] = process.env.AUTH_SECRET
+      }
+
+      const res = await fetch(`${baseUrl}${endpoint}`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(120000), // 2min timeout
+      })
+
+      if (res.ok) {
+        const result = await res.json()
+        if (result.ok || result.success || result.exito) {
+          console.log(`[generar_boletin] Endpoint dedicado OK: ${endpoint} [${Date.now() - startTime}ms]`)
+          return { success: true, data: result }
+        }
+        console.warn(`[generar_boletin] Endpoint dedicado retorno error: ${JSON.stringify(result)}`)
+      } else {
+        console.warn(`[generar_boletin] Endpoint dedicado HTTP ${res.status}, fallback a texto plano`)
+      }
+    } catch (err) {
+      console.warn(`[generar_boletin] Endpoint dedicado fallo, fallback a texto plano:`, err)
+    }
+  }
 
   try {
     // 1. Verificar que el producto existe

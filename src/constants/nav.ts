@@ -10,7 +10,7 @@ import {
   Thermometer, Scale, Search, FileText, UserCheck, GraduationCap,
   Radio, ListChecks, Link2, Target, Users, MonitorPlay, Globe,
   RadioTower, UsersRound, ChevronRight, Eye, Bookmark, LayoutGrid, Activity,
-  Shield,
+  Shield, Coffee,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -123,6 +123,8 @@ export const ALL_PRODUCTS: ProductDisplay[] = [
   { tipo: 'VOZ_Y_VOTO', nombre: 'Voz y Voto', icon: ListChecks, color: '#6366F1', categoria: 'gratuito', estado: 'definido' },
   { tipo: 'EL_HILO', nombre: 'El Hilo', icon: Link2, color: '#14B8A6', categoria: 'gratuito', estado: 'definido' },
   { tipo: 'FOCO_DE_LA_SEMANA', nombre: 'Foco de la Semana', icon: Target, color: '#10B981', categoria: 'gratuito', estado: 'definido' },
+  // Premium Mid (Sectorial)
+  { tipo: 'BOLETIN_DEL_GRANO', nombre: 'Boletin del Grano', icon: Coffee, color: '#92400E', categoria: 'premium_mid', estado: 'definido' },
 ];
 
 // ─── Product Categories ───────────────────────────────────────

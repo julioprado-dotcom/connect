@@ -163,16 +163,28 @@ export function ProduccionView() {
         setData({
           productos: summary?.produccion?.productos,
           status: summary?.produccion?.status,
-          recientes,
+          recientes: recientes as ProduccionData['recientes'],
         });
         setError(null);
 
-        // Mapear tipoProducto → categoria
-        const productosConCategoria = catalogProductos.map((p: Record<string, unknown>) => ({
-          ...p,
-          categoria: p.tipoProducto || p.categoria,
-        }));
-        setCatalogProducts(productosConCategoria);
+        // Enriquecer con ALL_PRODUCTS: categoria correcta (4 niveles), estado operativo, tipo UPPERCASE
+        const productosEnriquecidos = catalogProductos.map((p: Record<string, unknown>) => {
+          // Buscar por tipoBoletin (API) o tipo (fallback) en ALL_PRODUCTS
+          const tipoBoletin = (p.tipoBoletin as string) || (p.tipo as string)?.toUpperCase();
+          const navProduct = ALL_PRODUCTS.find((ap) => ap.tipo === tipoBoletin);
+          return {
+            ...p,
+            // Use ALL_PRODUCTS.categoria (4-tier) instead of API's tipoProducto (2-tier)
+            categoria: navProduct?.categoria || (p.tipoProducto as string) || (p.categoria as string),
+            // Use ALL_PRODUCTS.estado (operativo/definido) for generate button
+            estado: navProduct?.estado || (p.estado as string),
+            // Keep API data state as separate field for badge display
+            estadoDatos: p.estado as string,
+            // Ensure tipo is UPPERCASE for handleGenerate comparisons
+            tipo: tipoBoletin || (p.tipo as string),
+          } as CatalogProduct;
+        });
+        setCatalogProducts(productosEnriquecidos);
         setCatalogError(catalogJson ? null : 'Error al cargar catalogo');
       } catch {
         if (!cancelled) setError('Error de conexion');
@@ -227,7 +239,8 @@ export function ProduccionView() {
     setParamModalTipo(null);
 
     try {
-      const res = await fetchWithTimeout(`/api/dashboard/productos/${tipo}/generar`, {
+      // Use lowercase for URL — endpoint handles case conversion internally
+      const res = await fetchWithTimeout(`/api/dashboard/productos/${tipo.toLowerCase()}/generar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -264,10 +277,11 @@ export function ProduccionView() {
 
   // ── Handle generate click ──
   const handleGenerate = useCallback((tipo: string) => {
-    if (tipo === 'EL_FOCO' || tipo === 'FICHA_LEGISLADOR') {
-      setParamModalTipo(tipo);
+    const tipoUpper = tipo.toUpperCase();
+    if (tipoUpper === 'EL_FOCO' || tipoUpper === 'FICHA_LEGISLADOR') {
+      setParamModalTipo(tipoUpper);
     } else {
-      executeGenerate(tipo, {});
+      executeGenerate(tipoUpper, {});
     }
   }, [executeGenerate]);
 
@@ -280,6 +294,7 @@ export function ProduccionView() {
       executeGenerate('FICHA_LEGISLADOR', { personaId: selectedPersona });
     }
   }, [paramModalTipo, selectedEje, selectedPersona, executeGenerate]);
+  // confirmParamModal logic is correct — types already uppercase
 
   // ── Toggle preview ──
   const togglePreview = useCallback(async (tipo: string) => {
@@ -294,7 +309,8 @@ export function ProduccionView() {
     setPreviewData(null);
 
     try {
-      // Mapear tipo dashboard a tipo Reporte para el query
+      // Mapear tipo (UPPERCASE or lowercase) a slug URL para /api/productos/[tipo]/ultimo
+      const tipoLower = tipo.toLowerCase();
       const tipoMap: Record<string, string> = {
         'el_termometro': 'termometro',
         'saldo_del_dia': 'saldo_del_dia',
@@ -304,12 +320,12 @@ export function ProduccionView() {
         'ficha_legislador': 'ficha_legislador',
         'el_radar': 'el_radar',
         'voz_y_voto': 'el_radar',
-        'el_hilo': 'el_radar',
-        'foco_de_la_semana': 'el_foco',
-        'alerta_temprana': 'el_foco',
+        'el_hilo': 'el_hilo',
+        'foco_de_la_semana': 'foco_de_la_semana',
+        'alerta_temprana': 'alerta_temprana',
         'boletin_del_grano': 'boletin_del_grano',
       };
-      const tipoUrl = tipoMap[tipo] || tipo;
+      const tipoUrl = tipoMap[tipoLower] || tipoLower;
       const res = await fetchWithTimeout(`/api/productos/${tipoUrl}/ultimo`, { timeoutMs: 10000 });
       if (res.ok) {
         const json = await res.json();

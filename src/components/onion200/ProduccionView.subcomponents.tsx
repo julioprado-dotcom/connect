@@ -110,6 +110,9 @@ export function ProductMiniCard({
   const needsEje = product.tipo === 'EL_FOCO';
   const needsPersona = product.tipo === 'FICHA_LEGISLADOR';
   const catColor = CATEGORY_COLORS[product.categoria] || '#64748b';
+  // Show data state in badge (from API), fall back to operational state
+  const badgeEstado = product.estadoDatos || product.estado;
+  const isBadgeGenerado = badgeEstado === 'generado';
 
   return (
     <div
@@ -137,22 +140,27 @@ export function ProductMiniCard({
         </span>
       </div>
 
-      {/* Estado badge */}
+      {/* Estado badge — shows data state (generado/sin_datos) */}
       <div className="flex items-center gap-1.5 mb-2">
         <span
           className="text-[8px] font-bold uppercase font-mono px-1.5 py-0.5 rounded"
           style={{
-            color: isOperativo ? '#10b981' : '#64748b',
-            backgroundColor: isOperativo ? 'rgba(16,185,129,0.1)' : 'rgba(100,116,139,0.1)',
-            border: `1px solid ${isOperativo ? 'rgba(16,185,129,0.15)' : 'rgba(100,116,139,0.1)'}`,
+            color: isBadgeGenerado ? '#10b981' : '#64748b',
+            backgroundColor: isBadgeGenerado ? 'rgba(16,185,129,0.1)' : 'rgba(100,116,139,0.1)',
+            border: `1px solid ${isBadgeGenerado ? 'rgba(16,185,129,0.15)' : 'rgba(100,116,139,0.1)'}`,
           }}
         >
-          {product.estado}
+          {badgeEstado}
         </span>
         {product.ultimaEdicion && (
           <span className="text-[8px] font-mono text-slate-600 flex items-center gap-0.5">
             <Clock className="w-2.5 h-2.5" />
-            {new Date(product.ultimaEdicion).toLocaleDateString('es-BO', { day: '2-digit', month: 'short' })}
+            {product.ultimaEdicion}
+          </span>
+        )}
+        {(product.mencionesUsadas !== undefined && product.mencionesUsadas > 0) && (
+          <span className="text-[7px] font-mono text-slate-600">
+            {product.mencionesUsadas} menc.
           </span>
         )}
       </div>
