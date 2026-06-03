@@ -58,10 +58,11 @@ export function getProductMeta(tipo: string): { icon: LucideIcon; color: string 
 
 export function InlineToast({ notif, onDismiss }: { notif: Notification; onDismiss: () => void }) {
   const isError = notif.tipo === 'error';
-  const borderColor = isError ? 'rgba(244,63,94,0.2)' : 'rgba(16,185,129,0.2)';
-  const bgColor = isError ? 'rgba(244,63,94,0.06)' : 'rgba(16,185,129,0.06)';
-  const iconColor = isError ? '#f43f5e' : '#10b981';
-  const Icon = isError ? AlertTriangle : CheckCircle2;
+  const isWarning = notif.tipo === 'warning';
+  const borderColor = isError ? 'rgba(244,63,94,0.2)' : isWarning ? 'rgba(245,158,11,0.2)' : 'rgba(16,185,129,0.2)';
+  const bgColor = isError ? 'rgba(244,63,94,0.06)' : isWarning ? 'rgba(245,158,11,0.06)' : 'rgba(16,185,129,0.06)';
+  const iconColor = isError ? '#f43f5e' : isWarning ? '#f59e0b' : '#10b981';
+  const Icon = isError ? AlertTriangle : isWarning ? Zap : CheckCircle2;
 
   return (
     <div

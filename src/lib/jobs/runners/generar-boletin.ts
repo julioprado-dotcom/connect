@@ -159,6 +159,8 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
         diagnostico = `NotaRaw pendientes: ${nrPend} | Menciones totales: ${mencionesTotal} | Fuentes activas: ${fuentesActivas}`
       } catch { /* no bloquear */ }
 
+      // Mantener success:true para evitar reintentos innecesarios del worker.
+      // El campo alerta:true indica al UI (via polling) que no se generó producto.
       return {
         success: true,
         data: {

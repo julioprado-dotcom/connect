@@ -59,7 +59,7 @@ export interface UltimoProduct {
 
 export interface Notification {
   id: string;
-  tipo: 'success' | 'error';
+  tipo: 'success' | 'error' | 'warning';
   message: string;
   detail?: string;
   timestamp: number;

@@ -70,7 +70,7 @@ export function ProduccionView() {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
 
-  const addNotification = useCallback((tipo: 'success' | 'error', message: string, detail?: string) => {
+  const addNotification = useCallback((tipo: 'success' | 'error' | 'warning', message: string, detail?: string) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     setNotifications((prev) => [...prev.slice(-4), { id, tipo, message, detail, timestamp: Date.now() }]);
     // Auto-dismiss after 6s
@@ -233,10 +233,21 @@ export function ProduccionView() {
     fetchParams();
   }, [paramModalTipo]);
 
-  // ── Execute generation ──
+  // ── Job polling ref (para cancelar polling si el componente se desmonta) ──
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ── Execute generation (FIX 5: encolar + polling de resultado real) ──
   const executeGenerate = useCallback(async (tipo: string, body: Record<string, string>) => {
     setGeneratingTipo(tipo);
     setParamModalTipo(null);
+
+    // Limpiar polling anterior si existe
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+
+    let jobId: string | null = null;
 
     try {
       // Use lowercase for URL — endpoint handles case conversion internally
@@ -263,23 +274,95 @@ export function ProduccionView() {
       const json = await res.json();
 
       if (json.ok) {
-        addNotification('success', `Producto generado exitosamente`, `Job ID: ${json.jobId || '—'}`);
-        // Refresh data
-        fetchData();
-        fetchCatalog();
+        jobId = json.jobId || null;
+        // FIX 5: Mostrar toast ámbar de "iniciado" — NO "exitosamente"
+        addNotification('warning', `Generacion de ${tipo} iniciada`, `Procesando... (job ${jobId ? jobId.slice(0, 8) + '...' : '—'})`);
+
+        // FIX 5: Iniciar polling de job status cada 5s para detectar resultado real
+        if (jobId) {
+          const tipoLock = tipo; // closure
+          pollTimerRef.current = setInterval(async () => {
+            try {
+              const jobRes = await fetchWithTimeout(`/api/jobs/${jobId}`, { timeoutMs: 6000 });
+              if (!jobRes.ok) return;
+              const jobData = await jobRes.json();
+              const job = jobData.job;
+              if (!job) return;
+
+              const estado = job.estado;
+
+              // Job terminado — limpiar polling y mostrar resultado real
+              if (estado === 'completado' || estado === 'fallido' || estado === 'cancelado') {
+                if (pollTimerRef.current) {
+                  clearInterval(pollTimerRef.current);
+                  pollTimerRef.current = null;
+                }
+                setGeneratingTipo(null);
+
+                if (estado === 'completado') {
+                  const result = job.resultado ? (typeof job.resultado === 'string' ? JSON.parse(job.resultado) : job.resultado) : null;
+                  // Verificar si fue alerta (0 menciones) — no es un producto real
+                  if (result?.alerta) {
+                    addNotification('error', `Sin material para ${tipoLock}`, result.mensaje || 'No se encontraron menciones');
+                  } else {
+                    addNotification('success', `${tipoLock} generado exitosamente`, `${result?.totalMenciones || '?'} menciones · ${result?.responseTime ? Math.round(result.responseTime / 1000) + 's' : ''}`);
+                  }
+                } else if (estado === 'fallido') {
+                  const errorMsg = job.error || job.resultado || 'Error desconocido en el procesamiento';
+                  const errMsg = typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg)?.substring(0, 150);
+                  addNotification('error', `Fallo la generacion de ${tipoLock}`, errMsg);
+                } else {
+                  addNotification('warning', `Job de ${tipoLock} cancelado`, '');
+                }
+
+                // Refrescar datos con resultado real
+                fetchData();
+                fetchCatalog();
+              }
+            } catch {
+              // Polling silencioso — no saturar con errores
+            }
+          }, 5000); // Poll cada 5s
+
+          // Auto-timeout: si despues de 5 minutos no termina, dejar de esperar
+          setTimeout(() => {
+            if (pollTimerRef.current) {
+              clearInterval(pollTimerRef.current);
+              pollTimerRef.current = null;
+              setGeneratingTipo(null);
+              addNotification('warning', `Tiempo de espera agotado para ${tipo}`, 'El job sigue procesandose en segundo plano');
+              fetchData();
+              fetchCatalog();
+            }
+          }, 300000); // 5 min max
+        }
       } else {
         addNotification('error', json.mensaje || 'Error al generar producto', json.error);
       }
     } catch (err) {
       addNotification(
         'error',
-        'Error al generar producto',
+        'Error al iniciar generacion',
         err instanceof Error ? err.message : 'Error desconocido'
       );
     } finally {
-      setGeneratingTipo(null);
+      // Solo limpiar generatingTipo si no hay polling activo
+      // (el polling lo limpiará cuando termine)
+      if (!jobId || !pollTimerRef.current) {
+        setGeneratingTipo(null);
+      }
     }
   }, [fetchData, fetchCatalog, addNotification]);
+
+  // ── Cleanup polling on unmount ──
+  useEffect(() => {
+    return () => {
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
+  }, []);
 
   // ── Handle generate click ──
   const handleGenerate = useCallback((tipo: string) => {
