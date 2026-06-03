@@ -113,18 +113,18 @@ export const ALL_PRODUCTS: ProductDisplay[] = [
   { tipo: 'EL_TERMOMETRO', nombre: 'El Termometro', icon: Thermometer, color: '#3B82F6', categoria: 'premium', estado: 'operativo' },
   { tipo: 'SALDO_DEL_DIA', nombre: 'Saldo del Dia', icon: Scale, color: '#8B5CF6', categoria: 'premium', estado: 'operativo' },
   { tipo: 'EL_FOCO', nombre: 'El Foco', icon: Search, color: '#F59E0B', categoria: 'premium', estado: 'operativo' },
-  { tipo: 'EL_INFORME_CERRADO', nombre: 'El Informe Cerrado', icon: FileText, color: '#10B981', categoria: 'premium', estado: 'definido' },
-  { tipo: 'FICHA_LEGISLADOR', nombre: 'Ficha del Legislador', icon: UserCheck, color: '#06B6D4', categoria: 'premium', estado: 'definido' },
-  { tipo: 'EL_ESPECIALIZADO', nombre: 'El Especializado', icon: GraduationCap, color: '#EC4899', categoria: 'premium_mid', estado: 'definido' },
+  { tipo: 'EL_INFORME_CERRADO', nombre: 'El Informe Cerrado', icon: FileText, color: '#10B981', categoria: 'premium', estado: 'operativo' },
+  { tipo: 'FICHA_LEGISLADOR', nombre: 'Ficha del Legislador', icon: UserCheck, color: '#06B6D4', categoria: 'premium', estado: 'operativo' },
+  { tipo: 'EL_ESPECIALIZADO', nombre: 'El Especializado', icon: GraduationCap, color: '#EC4899', categoria: 'premium_mid', estado: 'operativo' },
   // Premium Alta
-  { tipo: 'ALERTA_TEMPRANA', nombre: 'Alerta Temprana', icon: Bell, color: '#EF4444', categoria: 'premium_alta', estado: 'definido' },
+  { tipo: 'ALERTA_TEMPRANA', nombre: 'Alerta Temprana', icon: Bell, color: '#EF4444', categoria: 'premium_alta', estado: 'operativo' },
   // Gratuitos
   { tipo: 'EL_RADAR', nombre: 'El Radar', icon: Radio, color: '#22C55E', categoria: 'gratuito', estado: 'operativo' },
-  { tipo: 'VOZ_Y_VOTO', nombre: 'Voz y Voto', icon: ListChecks, color: '#6366F1', categoria: 'gratuito', estado: 'definido' },
-  { tipo: 'EL_HILO', nombre: 'El Hilo', icon: Link2, color: '#14B8A6', categoria: 'gratuito', estado: 'definido' },
-  { tipo: 'FOCO_DE_LA_SEMANA', nombre: 'Foco de la Semana', icon: Target, color: '#10B981', categoria: 'gratuito', estado: 'definido' },
+  { tipo: 'VOZ_Y_VOTO', nombre: 'Voz y Voto', icon: ListChecks, color: '#6366F1', categoria: 'gratuito', estado: 'operativo' },
+  { tipo: 'EL_HILO', nombre: 'El Hilo', icon: Link2, color: '#14B8A6', categoria: 'gratuito', estado: 'operativo' },
+  { tipo: 'FOCO_DE_LA_SEMANA', nombre: 'Foco de la Semana', icon: Target, color: '#10B981', categoria: 'gratuito', estado: 'operativo' },
   // Premium Mid (Sectorial)
-  { tipo: 'BOLETIN_DEL_GRANO', nombre: 'Boletin del Grano', icon: Coffee, color: '#92400E', categoria: 'premium_mid', estado: 'definido' },
+  { tipo: 'BOLETIN_DEL_GRANO', nombre: 'Boletin del Grano', icon: Coffee, color: '#92400E', categoria: 'premium_mid', estado: 'operativo' },
 ];
 
 // ─── Product Categories ───────────────────────────────────────

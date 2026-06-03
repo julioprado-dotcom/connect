@@ -431,7 +431,7 @@ export function ProduccionView() {
                     Acciones Rapidas
                   </p>
                   <div className="space-y-1">
-                    {ALL_PRODUCTS.filter((p) => p.estado === 'operativo').slice(0, 4).map((product) => {
+                    {ALL_PRODUCTS.filter((p) => p.estado === 'operativo').slice(0, 8).map((product) => {
                       const Icon = product.icon;
                       const isCurrentGen = generatingTipo === product.tipo;
                       return (
