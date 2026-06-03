@@ -11,6 +11,7 @@ import { DistribucionView } from '@/components/onion200/DistribucionView';
 import { FuentesView } from '@/components/onion200/FuentesView';
 import { InteligenciaView } from '@/components/onion200/InteligenciaView';
 import { IndicadoresView } from '@/components/onion200/IndicadoresView';
+import { CalidadView } from '@/components/onion200/CalidadView';
 import { AlertasPanel } from '@/components/dashboard/panels/AlertasPanel';
 import Image from 'next/image';
 import {
@@ -36,6 +37,7 @@ import {
   Cog,
   Bot,
   ChevronDown,
+  ShieldCheck,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { useTheme } from '@/components/theme-provider';
@@ -64,7 +66,7 @@ interface PipelineKPIs {
   };
 }
 
-type TabKey = 'resumen' | 'alertas' | 'indicadores' | 'fuentes' | 'captura' | 'clasificacion' | 'inteligencia' | 'produccion' | 'distribucion';
+type TabKey = 'resumen' | 'alertas' | 'indicadores' | 'fuentes' | 'captura' | 'clasificacion' | 'calidad' | 'inteligencia' | 'produccion' | 'distribucion';
 
 interface TabConfig {
   key: TabKey;
@@ -80,6 +82,7 @@ const TABS: TabConfig[] = [
   { key: 'fuentes', label: 'FUENTES', icon: <Database className="w-3.5 h-3.5" /> },
   { key: 'captura', label: 'CAPTURA', icon: <Radio className="w-3.5 h-3.5" />, statusKey: 'captura' },
   { key: 'clasificacion', label: 'CLASIFICACION', icon: <Crosshair className="w-3.5 h-3.5" />, statusKey: 'clasificacion' },
+  { key: 'calidad', label: 'CALIDAD', icon: <ShieldCheck className="w-3.5 h-3.5" /> },
   { key: 'inteligencia', label: 'INTELIGENCIA', icon: <Sparkles className="w-3.5 h-3.5" /> },
   { key: 'produccion', label: 'PRODUCCION', icon: <FileText className="w-3.5 h-3.5" />, statusKey: 'produccion' },
   { key: 'distribucion', label: 'DISTRIBUCION', icon: <Send className="w-3.5 h-3.5" />, statusKey: 'distribucion' },
@@ -96,8 +99,8 @@ const PROFILES = [
 ] as const;
 
 const PROFILE_HIGHLIGHTS: Record<string, TabKey[]> = {
-  analista: ['resumen', 'alertas', 'fuentes', 'inteligencia'],
-  admin: ['captura', 'clasificacion', 'produccion', 'distribucion'],
+  analista: ['resumen', 'alertas', 'fuentes', 'inteligencia', 'calidad'],
+  admin: ['captura', 'clasificacion', 'calidad', 'produccion', 'distribucion'],
   periodista: ['indicadores', 'captura', 'inteligencia', 'resumen'],
 };
 
@@ -690,6 +693,7 @@ export default function ONION200Dashboard() {
           {activeTab === 'fuentes' && <FuentesView />}
           {activeTab === 'captura' && <CapturaView />}
           {activeTab === 'clasificacion' && <ClasificacionView />}
+          {activeTab === 'calidad' && <CalidadView />}
           {activeTab === 'inteligencia' && <InteligenciaView />}
           {activeTab === 'produccion' && <ProduccionView />}
           {activeTab === 'distribucion' && <DistribucionView />}

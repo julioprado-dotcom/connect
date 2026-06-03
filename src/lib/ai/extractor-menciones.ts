@@ -787,19 +787,44 @@ export async function crearMencionesExtraidas(
   if (!resultado.es_relevante) return 0;
 
   // ──────────────────────────────────────────────
-  // DEDUP PRE-EXISTENCIA: si ya existe mencion para esta URL, no crear duplicada
-  // (independientemente de persona o eje)
+  // DEDUP CAPA 0: Verificar NotaRaw pendiente con misma URL (evitar reprocesamiento)
+  // ──────────────────────────────────────────────
+  try {
+    if (url && url.length > 5) {
+      const notaPendiente = await db.notaRaw.findFirst({
+        where: { url, procesada: false },
+        select: { id: true },
+      });
+      if (notaPendiente) {
+        // Ya hay una nota pendiente con la misma URL, no reprocesar
+        console.log(`[DEDUP-NOTA] NotaRaw pendiente ${notaPendiente.id} ya existe para ${url?.substring(0, 60)} — saltando`);
+        return 0;
+      }
+    }
+  } catch (err) {
+    // No bloquear pipeline si falla
+  }
+
+  // ──────────────────────────────────────────────
+  // DEDUP CAPA 1: si ya existe mencion para esta URL en cualquier medio, no crear duplicada
+  // (busca cross-medio para cubrir scrape de fuentes que comparten contenido)
   // ──────────────────────────────────────────────
   try {
     const existenteUrl = await db.mencion.findFirst({
-      where: { medioId, url },
-      select: { id: true, ejeEstructuralId: true, sentimiento: true },
+      where: { url },
+      select: { id: true, medioId: true, ejeEstructuralId: true, sentimiento: true, textoCompleto: true },
     });
     if (existenteUrl) {
-      // Si la existente está clasificada pero la nueva tiene mejor info, actualizar
-      // (estrategia conservadora: no reemplazamos, solo logueamos)
-      console.log(`[DEDUP-URL] Ya existe mencion ${existenteUrl.id} para ${url?.substring(0, 60)} — saltando`);
-      return 0; // No crear ninguna mencion duplicada para esta URL
+      // Enriquecer existente si no tiene texto original y la nueva trae uno
+      if (textoOriginal && textoOriginal.length > 500 && (!existenteUrl.textoCompleto || existenteUrl.textoCompleto.length < 500)) {
+        await db.mencion.update({
+          where: { id: existenteUrl.id },
+          data: { textoCompleto: textoOriginal },
+        });
+        console.log(`[DEDUP-URL] Enriquecida mencion ${existenteUrl.id} con textoOriginal (${textoOriginal.length} chars)`);
+      }
+      console.log(`[DEDUP-URL] Ya existe mencion ${existenteUrl.id} (medio: ${existenteUrl.medioId}) para ${url?.substring(0, 60)} — saltando`);
+      return 0;
     }
   } catch (dedupErr) {
     console.error('[DEDUP-URL] Error verificando existencia:', dedupErr instanceof Error ? dedupErr.message : dedupErr);
@@ -880,7 +905,7 @@ export async function crearMencionesExtraidas(
           medioId,
           titulo,
           texto: leg.cita,
-          textoCompleto: textoOriginal || leg.contexto,
+          textoCompleto: textoOriginal || resultado.resumen || leg.contexto,
           url,
           tipoMencion: tratamientoToTipoMencion(resultado.tratamientoPeriodistico, Boolean(leg.cita)),
           verificado: false,
@@ -944,7 +969,7 @@ export async function crearMencionesExtraidas(
           medioId,
           titulo,
           texto: pd.cita,
-          textoCompleto: textoOriginal || pd.contexto,
+          textoCompleto: textoOriginal || resultado.resumen || pd.contexto,
           url,
           tipoMencion: tratamientoToTipoMencion(resultado.tratamientoPeriodistico, Boolean(pd.cita)),
           verificado: false,
@@ -995,6 +1020,7 @@ export async function crearMencionesExtraidas(
             titulo,
             texto: resultado.resumen || resultado.ejes_mencionados[0]?.cita || '',
             textoCompleto: textoOriginal || resultado.resumen || '',
+            deduplicacionLog: JSON.stringify({ decision: 'referencia_tematica', timestamp: new Date().toISOString() }),
             url,
             tipoMencion: 'referencia_tematica',
             verificado: false,

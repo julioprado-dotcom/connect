@@ -45,17 +45,59 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       orderBy: { puntajeTriaje: 'desc' },  // Priorizar notas con mejor triaje
     })
 
-    if (notasPendientes.length === 0) {
-      console.log(`[batch-llm] Sin notas pendientes. Fin.`)
+    // 1b. DEDUP: Eliminar notas duplicadas (misma URL ya procesada o pendiente duplicada)
+    //    Esto evita enviar al LLM notas que generarían menciones duplicadas
+    const urlsVistas = new Set<string>()
+    const urlsYaProcesadas = new Set<string>()
+    
+    // Obtener URLs ya existentes en Mencion (para no reprocesar)
+    if (notasPendientes.length > 0) {
+      const urlsNotas = notasPendientes.map(n => n.url)
+      const existentes = await db.mencion.findMany({
+        where: { url: { in: urlsNotas } },
+        select: { url: true },
+      })
+      for (const e of existentes) urlsYaProcesadas.add(e.url)
+    }
+
+    const notasFiltradas = notasPendientes.filter(nota => {
+      // Ya existe mencion para esta URL → descartar nota
+      if (urlsYaProcesadas.has(nota.url)) return false
+      // URL duplicada entre pendientes → mantener solo la primera (mayor puntaje)
+      if (urlsVistas.has(nota.url)) return false
+      urlsVistas.add(nota.url)
+      return true
+    })
+
+    const notasDedupDescartadas = notasPendientes.length - notasFiltradas.length
+    if (notasDedupDescartadas > 0) {
+      // Marcar duplicados de NotaRaw como descartadas
+      const urlsDuplicadas = notasPendientes
+        .filter(n => !notasFiltradas.some(f => f.id === n.id))
+        .map(n => n.id)
+      
+      // En batches de 50 para no saturar
+      for (let i = 0; i < urlsDuplicadas.length; i += 50) {
+        await db.notaRaw.updateMany({
+          where: { id: { in: urlsDuplicadas.slice(i, i + 50) } },
+          data: { procesada: true, descartada: true, fechaProcesada: new Date() },
+        })
+      }
+      
+      console.log(`[batch-llm] ${notasDedupDescartadas} notas descartadas por dedup (URL ya procesada o duplicada)`)
+    }
+
+    if (notasFiltradas.length === 0) {
+      console.log(`[batch-llm] Sin notas pendientes (o todas duplicadas). Fin.`)
       return { success: true, data: { procesadas: 0, menciones: 0, fuentes: 0 } }
     }
 
-    console.log(`[batch-llm] ${notasPendientes.length} notas pendientes de ${new Set(notasPendientes.map(n => n.medioId)).size} fuentes`)
+    console.log(`[batch-llm] ${notasFiltradas.length} notas pendientes de ${new Set(notasFiltradas.map(n => n.medioId)).size} fuentes`)
 
     // 2. Agrupar por medioId (tomar hasta MAX_NOTAS_POR_MEDIO por medio)
-    const porMedio = new Map<string, typeof notasPendientes>()
+    const porMedio = new Map<string, typeof notasFiltradas>()
     let notasDropped = 0
-    for (const nota of notasPendientes) {
+    for (const nota of notasFiltradas) {
       const existing = porMedio.get(nota.medioId)
       if (existing) {
         if (existing.length < MAX_NOTAS_POR_MEDIO) {
@@ -167,12 +209,12 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
     }
 
     // 4. Registrar en SystemLog (auditoría)
-    const notasRestantes = notasPendientes.length - totalProcesadas - notasDropped
+    const notasRestantes = notasFiltradas.length - totalProcesadas - notasDropped
     await db.systemLog.create({
       data: {
         modulo: 'batch_llm',
         accion: 'procesar_notas',
-        detalle: `${totalProcesadas} notas procesadas, ${totalMenciones} menciones, ${fuentesProcesadas} fuentes, ${totalDescartadas} descartadas`,
+        detalle: `${totalProcesadas} notas procesadas, ${totalMenciones} menciones, ${fuentesProcesadas} fuentes, ${totalDescartadas} descartadas, ${notasDedupDescartadas} dedup`,
         automatica: true,
         datos: JSON.stringify({
           procesadas: totalProcesadas,
@@ -181,12 +223,13 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
           fuentes: fuentesProcesadas,
           restantes: Math.max(0, notasRestantes),
           droppedPorLimite: notasDropped,
+          dedupDescartadas: notasDedupDescartadas,
           duracionMs: Date.now() - startTime,
         }),
       },
     }).catch(() => {})
 
-    console.log(`[batch-llm] Completado: ${totalProcesadas}/${notasPendientes.length} notas, ${totalMenciones} menciones, ${fuentesProcesadas} fuentes [${Date.now() - startTime}ms]`)
+    console.log(`[batch-llm] Completado: ${totalProcesadas}/${notasFiltradas.length} notas, ${totalMenciones} menciones, ${fuentesProcesadas} fuentes [${Date.now() - startTime}ms]`)
 
     return {
       success: true,
