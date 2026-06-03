@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { enqueue } from '@/lib/jobs/queue';
 import { PRODUCTOS } from '@/constants/products';
+import db from '@/lib/db';
 import type { TipoBoletin } from '@/types/bulletin';
 
 export const runtime = 'nodejs';
@@ -66,11 +67,31 @@ export async function POST(
       // Empty body is fine
     }
 
+    // ═══ FIX 2: Dedup — verificar si ya existe un job para este producto ═══
+    const existingJob = await db.job.findFirst({
+      where: {
+        tipo: 'generar_boletin',
+        estado: { in: ['pendiente', 'en_progreso'] },
+        payload: { contains: tipoUpper },
+        fechaCreacion: { gte: new Date(Date.now() - 3600 * 1000) }, // Solo jobs recientes (1h)
+      },
+    });
+
+    if (existingJob) {
+      return NextResponse.json({
+        ok: false,
+        error: `Ya existe un job de ${productoNombre} en estado "${existingJob.estado}" (ID: ${existingJob.id}). Espere a que termine antes de generar otro.`,
+        existingJobId: existingJob.id,
+        existingJobState: existingJob.estado,
+      }, { status: 409 });
+    }
+
     // Enqueue a generar_boletin job
     const jobId = await enqueue({
       tipo: 'generar_boletin',
-      prioridad: 2, // P2 — Media priority for generation
+      prioridad: 3, // P3 — Media priority for manual generation
       payload: {
+        tipoBoletin: tipoUpper,     // FIX 4: Normalizar — ambos campos para dedup
         tipoProducto: tipoUpper,
         productoNombre,
         endpoint: DEDICATED_ENDPOINTS[tipoUpper] || '/api/admin/bulletins/generate-generic',

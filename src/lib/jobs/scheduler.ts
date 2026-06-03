@@ -271,12 +271,32 @@ function scheduleBoletinJobs(): void {
         if (pendingCount >= QUEUE_LIMITS.maxPendingJobs) return
 
         const productType = entry.tipoBoletin || entry.tipo
+
+        // ═══ FIX 1: Dedup — no encolar si ya existe un job para este producto ═══
+        // Busca en ambos campos: scheduler envia 'tipoBoletin', dashboard envia 'tipoProducto'
+        const existingJob = await db.job.findFirst({
+          where: {
+            tipo: 'generar_boletin',
+            estado: { in: ['pendiente', 'en_progreso'] },
+            OR: [
+              { payload: { contains: productType } },
+            ],
+            fechaCreacion: { gte: new Date(Date.now() - 3600 * 1000) }, // Solo jobs recientes (1h)
+          },
+        })
+        if (existingJob) {
+          console.log(`[Scheduler] Boletin ${productType} ya existe (${existingJob.id}, estado=${existingJob.estado}), saltando`)
+          return
+        }
+
         await enqueue({
           tipo: 'generar_boletin',
           prioridad: entry.prioridad as 0 | 1 | 3 | 5 | 7 | 9,
           payload: {
             tipoBoletin: productType,
+            tipoProducto: productType, // FIX 4: Normalizar — ambos campos para dedup consistente
             programado: true,
+            triggeredBy: 'scheduler-auto',
           },
         })
 

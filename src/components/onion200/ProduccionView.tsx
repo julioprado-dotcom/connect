@@ -251,6 +251,12 @@ export function ProduccionView() {
         const errJson = res.headers.get('content-type')?.includes('json')
           ? await res.json().catch(() => ({}))
           : {};
+        // FIX 2b: Manejar 409 Conflict (job duplicado) con mensaje claro
+        if (res.status === 409) {
+          addNotification('error', errJson.error || 'Ya existe un job en curso para este producto', `Estado: ${errJson.existingJobState || 'desconocido'}`);
+          setGeneratingTipo(null);
+          return;
+        }
         throw new Error(errJson.error || errJson.mensaje || `HTTP ${res.status}`);
       }
 
