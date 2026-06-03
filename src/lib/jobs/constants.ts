@@ -201,9 +201,10 @@ export const FLOW_CONTROL = {
   maxCheckFuenteBatch: 3,          // máx checks por batch (endpoint /api/jobs)
   maxScrapePending: 1,             // máx scrape_fuente en cola al mismo tiempo — UNO A LA VEZ
   captureEndpointCooldownMs: 180000, // cooldown de 3 min entre capturas
-  // Protección de memoria
-  heapWarnMb: 350,                 // warn si heapUsed supera esto
-  heapCriticalMb: 450,             // pausar worker si heapUsed supera esto
+  // Protección de memoria (debe ser MENOR que PM2 max_memory_restart)
+  // PM2 worker = 768M, flow control debe actuar mucho antes
+  heapWarnMb: 300,                 // warn si heapUsed supera esto
+  heapCriticalMb: 380,             // pausar worker si heapUsed supera esto (antes del OOM de PM2)
 }
 
 // ── Configuracion de Retries ───────────────────────────────────────────

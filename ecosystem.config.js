@@ -43,9 +43,10 @@ module.exports = {
       instances: 1,
       autorestart: true,
       watch: false,
-      max_memory_restart: '400M',
+      max_memory_restart: '768M',
       env: {
         NODE_ENV: 'production',
+        NODE_OPTIONS: '--max-old-space-size=768',
       },
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       error_file: './logs/worker-error.log',
@@ -65,7 +66,7 @@ module.exports = {
       instances: 1,
       autorestart: true,
       watch: false,
-      max_memory_restart: '200M',
+      max_memory_restart: '256M',
       env: {
         NODE_ENV: 'production',
       },

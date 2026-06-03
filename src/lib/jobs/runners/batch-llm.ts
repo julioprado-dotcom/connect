@@ -22,7 +22,7 @@ import { registrarRechazo } from '@/lib/registrar-rechazo'
 
 const MAX_NOTAS_POR_MEDIO = 20    // Max notas por medio en una sola ejecución
 const MAX_BACHES_POR_EJECUCION = 30 // Procesar TODAS las fuentes (antes era 8)
-const DELAY_ENTRE_BATCHES = 3000   // 3s entre batches de distintas fuentes
+const DELAY_ENTRE_BATCHES = 5000   // 5s entre batches de distintas fuentes (reducir 429 rate limit)
 const MAX_REINTENTOS = 3           // Max reintentos antes de descartar una nota
 const RETRY_DELAY = 10000         // 10s entre reintentos de la misma nota
 
@@ -37,12 +37,14 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
 
   try {
     // 1. Leer notas pendientes, agrupadas por medioId
+    // FIX MEMORIA: Limitar a 150 notas por batch para evitar OOM en 2GB VPS
     const notasPendientes = await db.notaRaw.findMany({
       where: {
         procesada: false,
         descartada: false,
       },
       orderBy: { puntajeTriaje: 'desc' },  // Priorizar notas con mejor triaje
+      take: 150,  // FIX: paginar — no cargar todas las pendientes en memoria
     })
 
     // 1b. DEDUP: Eliminar notas duplicadas (misma URL ya procesada o pendiente duplicada)

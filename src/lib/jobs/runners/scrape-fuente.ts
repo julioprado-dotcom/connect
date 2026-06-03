@@ -29,7 +29,7 @@ const MAX_LINKS = 40          // Máximo de links a extraer de la homepage
 const MAX_NOTAS_A_CLASIFICAR = 15 // Límite de notas a clasificar con LLM por fuente
 const MAX_NOTAS_A_DESCARGAR = 20  // Límite de notas a descargar por fuente
 const DELAY_ENTRE_NOTAS = 2000    // 2s entre descargas para no saturar
-const DELAY_ENTRE_LLM = 3000      // 3s entre llamadas al LLM para evitar rate limit 429
+const DELAY_ENTRE_LLM = 5000      // 5s entre llamadas al LLM para evitar rate limit 429 (aumentado de 3s)
 
 // ─── Runner principal ────────────────────────────────────────
 
