@@ -88,7 +88,7 @@ function readHeartbeat(filePath: string): HeartbeatData {
     const content = fs.readFileSync(filePath, 'utf-8');
     const data = JSON.parse(content);
     const age = Date.now() - new Date(data.timestamp).getTime();
-    return { online: age < 30000, age, data };
+    return { online: age < 60000, age, data };
   } catch {
     return { online: false, age: Infinity, data: {} };
   }

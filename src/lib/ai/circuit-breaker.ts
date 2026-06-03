@@ -28,7 +28,7 @@ export interface CircuitBreakerState {
 // ─── Configuración ─────────────────────────────────────────────────────────
 
 const CIRCUIT_CONFIG = {
-  failureThreshold: 2,        // errores consecutivos para abrir el circuit
+  failureThreshold: 4,        // errores consecutivos para abrir el circuit (era 2, muy sensible)
   recoveryIntervalMs: 5 * 60 * 1000,  // 5 minutos antes de intentar recuperación
   halfOpenTestIntervalMs: 30 * 1000,  // cada 30s hacer 1 prueba en half-open
   maxHalfOpenTests: 3,        // máx pruebas en half-open antes de re-abrir

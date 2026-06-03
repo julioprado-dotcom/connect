@@ -10,7 +10,7 @@ import ZAI from 'z-ai-web-dev-sdk';
 import { registrarLlamadaLLM, USO_FUENTE } from '@/lib/registrar-uso-ia';
 import { deduplicarMencion, actualizarCoberturaDuplicado } from '@/lib/deduplicacion';
 import { reclasificarMencion } from '@/lib/clasificador-v2';
-import { canCallLLM, recordSuccess, recordFailure, recordSkipped } from '@/lib/ai/circuit-breaker';
+import { canCallLLM, recordSuccess, recordFailure, recordSkipped, getCircuitBreakerState } from '@/lib/ai/circuit-breaker';
 import { registrarRechazo, RECHAZO_MOTIVO } from '@/lib/registrar-rechazo';
 
 // ─── Imports from sub-files ──────────────────────────────────
@@ -280,7 +280,11 @@ export async function extraerMencionesDeTexto(
       debugWrite('CIRCUIT BREAKER OPEN: llamada LLM skipeada');
       recordSkipped();
       await persistDebugLog(debugLog);
-      return emptyResult;
+      // LANZAR ERROR para que batch-llm sepa que no se procesó realmente
+      const cbState = getCircuitBreakerState();
+      const err = new Error(`CIRCUIT_BREAKER_OPEN: LLM no disponible (skipeadas: ${cbState.totalSkipped}, estado: ${cbState.state})`);
+      (err as any).isCircuitBreaker = true;
+      throw err;
     }
 
     // 10. Llamada al LLM

@@ -161,13 +161,23 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
             const msg = err instanceof Error ? err.message : String(err)
             const isRateLimit = msg.includes('429') || msg.includes('rate') || msg.includes('quota')
             const isTimeout = msg.includes('timeout') || msg.includes('Timeout') || msg.includes('Abort')
-            const isTransient = isRateLimit || isTimeout
+            const isServerError = msg.includes('500') || msg.includes('status 500')
+            const isCircuitBreaker = msg.includes('CIRCUIT_BREAKER_OPEN')
+            const isTransient = isRateLimit || isTimeout || isServerError || isCircuitBreaker
 
             console.error(`[batch-llm] Error (intento ${intento}/${MAX_REINTENTOS}) nota ${nota.id.substring(0, 8)}: ${msg.substring(0, 150)}`)
 
+            if (isCircuitBreaker) {
+              // Circuit breaker abierto → NO reintentar, dejar para próximo ciclo
+              console.warn(`[batch-llm] Nota ${nota.id.substring(0, 8)} skipeada: circuit breaker abierto. Se reintentará en proximo ciclo.`)
+              erroredNotas++
+              break
+            }
+
             if (intento < MAX_REINTENTOS && isTransient) {
               // Error transitorio: esperar y reintentar
-              console.log(`[batch-llm] Reintentando en ${RETRY_DELAY/1000}s (error transitorio: ${isRateLimit ? 'rate_limit' : 'timeout'})...`)
+              const tipoError = isRateLimit ? 'rate_limit' : isServerError ? 'server_500' : 'timeout'
+              console.log(`[batch-llm] Reintentando en ${RETRY_DELAY/1000}s (error transitorio: ${tipoError})...`)
               await new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
               continue
             }

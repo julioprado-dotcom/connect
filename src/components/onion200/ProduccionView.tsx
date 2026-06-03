@@ -131,17 +131,15 @@ export function ProduccionView() {
     const loadAll = async () => {
       // Fetch core data
       try {
-        const [summaryRes, productosRes] = await Promise.all([
+        const [summaryRes] = await Promise.all([
           fetchWithTimeout('/api/dashboard/indicadores-summary', { timeoutMs: 8000 }),
-          fetchWithTimeout('/api/productos?limit=10&orderBy=fechaCreacion&orderDir=desc', { timeoutMs: 8000 }),
         ]);
         if (cancelled) return;
         const summary = summaryRes.ok ? await summaryRes.json() : null;
-        const productos = productosRes.ok ? await productosRes.json() : null;
         setData({
           productos: summary?.produccion?.productos,
           status: summary?.produccion?.status,
-          recientes: productos?.productos || productos || [],
+          recientes: [],
         });
         setError(null);
       } catch {
@@ -158,7 +156,16 @@ export function ProduccionView() {
         if (cancelled) return;
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
-        setCatalogProducts(json.productos || []);
+        // Mapear tipoProducto → categoria para compatibilidad con el componente
+        const productosConCategoria = (json.productos || []).map((p: Record<string, unknown>) => ({
+          ...p,
+          categoria: p.tipoProducto || p.categoria,
+        }));
+        setCatalogProducts(productosConCategoria);
+        // Actualizar recientes desde esta misma API (más confiable)
+        if (json.recientes && json.recientes.length > 0) {
+          setData(prev => prev ? { ...prev, recientes: json.recientes } : prev);
+        }
         setCatalogError(null);
       } catch {
         if (!cancelled) setCatalogError('Error al cargar catalogo');
