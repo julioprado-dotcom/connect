@@ -185,8 +185,8 @@ La intención y el tratamiento son dimensiones INDEPENDIENTES: una nota puede se
 - cita debe ser un fragmento textual REAL del artículo (no inventado)
 - contexto debe resumir en qué contexto aparece el legislador
 - Máximo 5 legisladores por artículo
-- Si un legislador aparece solo con su apellido o nombre parcial, úsalo igualmente si el contexto deja claro quién es (ej: "Paz" cuando el texto dice "el Presidente Paz" o "Rodrigo Paz")
 - Usa el campo cargo_directiva de la lista como contexto de desambiguación
+- ANTI FALSO POSITIVO: NO asignes un legislador SOLO porque comparte un apellido con alguien mencionado en el texto. El nombre completo o al menos nombre + primer apellido deben coincidir. Ejemplo: si el texto menciona "Walter Flores" y "Roy Ordóñez", NO lo asignes al legislador "Marcelino Flores Ordoñez" — son personas diferentes. Solo asigna si el contexto político/legislativo deja ABSOLUTAMENTE claro que se refiere al legislador (ej: "el Senador Flores dijo..." o "el diputado Ordóñez presentó una ley...").
 
 ## REGLAS PARA FIGURAS POLÍTICAS NO EN LA LISTA (personas_detectadas)
 - Si el texto menciona una figura política RELEVANTE que NO está en la lista de legisladores (ej: Presidente de Bolivia, Ministro, Gobernador, Alcalde, ex-Presidente, líder de partido, autoridad del Órgano Electoral, Fiscal General, Defensor del Pueblo), inclúyela en personas_detectadas
