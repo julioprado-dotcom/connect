@@ -50,3 +50,28 @@ Stage Summary:
 - Panel de calidad: UI completa para auditoría, fusión y eliminación de duplicados
 - Todos los archivos nuevos compilan sin errores TypeScript
 - Archivos del core (extractor-menciones.ts, batch-llm.ts) solo tienen errores pre-existentes
+---
+Task ID: 1
+Agent: main
+Task: Implementar 4 protecciones anti-duplicacion en pipeline de produccion
+
+Work Log:
+- Analizado el sistema completo de jobs/scheduler/worker del proyecto DECODEX Bolivia
+- Identificadas 4 brechas de duplicacion criticas:
+  1. scheduleBoletinJobs() sin dedup → reschedule 6h podia duplicar
+  2. Dashboard endpoint sin dedup → click manual + scheduler auto = duplicado
+  3. Runner sin lock → 2 jobs del mismo producto creaban 2 Reportes
+  4. Payload inconsistente: 'tipoBoletin' vs 'tipoProducto' → dedup no coincidia
+- Implementado Fix 1: Dedup en scheduler.ts scheduleBoletinJobs() - query DB antes de encolar
+- Implementado Fix 2: Dedup en dashboard endpoint con 409 Conflict + manejo en frontend
+- Implementado Fix 3: Lock en generar-boletin.ts runner - aborta si ya hay job en_progreso
+- Implementado Fix 4: Normalizacion de payload - ambos campos (tipoBoletin + tipoProducto)
+- Fix de prioridad invalida (2 → 3) en dashboard endpoint
+- Commit: 3fd69cd
+
+Stage Summary:
+- 3 capas de proteccion anti-duplicacion implementadas
+- Nivel 1 (enqueue): Scheduler y Dashboard verifican DB
+- Nivel 2 (execute): Runner tiene lock por producto
+- Nivel 3 (UI): Frontend maneja 409 con toast informativo
+- Archivos modificados: scheduler.ts, route.ts, generar-boletin.ts, ProduccionView.tsx
