@@ -45,13 +45,16 @@ export interface PersonaItem {
 }
 
 export interface UltimoProduct {
+  encontrado: boolean;
   id: string;
   tipo: string;
-  titulo: string;
-  contenido: string;
   resumen: string;
+  contenido: string | Record<string, unknown>;  // Puede ser string o objeto JSON parseado
+  totalMenciones?: number;
   fechaCreacion: string;
-  metadata: Record<string, unknown>;
+  fechaInicio?: string;
+  fechaFin?: string;
+  temasPrincipales?: string;
 }
 
 export interface Notification {

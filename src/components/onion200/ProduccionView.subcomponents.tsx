@@ -384,8 +384,31 @@ export function ParamModal({
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ContentPreview
+// ContentPreview — Vista previa del contenido del reporte
 // ═══════════════════════════════════════════════════════════════
+
+/**
+ * Extrae texto legible del campo `contenido` de un Reporte.
+ * El campo puede ser: string plano, objeto JSON con textoCompleto, o null.
+ */
+function extractContenidoText(contenido: unknown): string | null {
+  if (!contenido) return null;
+  if (typeof contenido === 'string') return contenido.length > 0 ? contenido : null;
+  if (typeof contenido === 'object' && contenido !== null) {
+    const obj = contenido as Record<string, unknown>;
+    // Priorizar campos de texto del boletín generado
+    const texto = obj.textoCompleto || obj.texto || obj.cuerpo || obj.body || null;
+    if (typeof texto === 'string' && texto.length > 0) return texto;
+    // Fallback: intentar stringify el objeto
+    try {
+      const str = JSON.stringify(contenido, null, 2);
+      return str && str !== '{}' ? str : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
 
 export function ContentPreview({
   data,
@@ -405,37 +428,103 @@ export function ContentPreview({
 
   if (!data) {
     return (
-      <div className="py-4 text-slate-600 text-[10px] font-mono text-center">
-        No hay contenido disponible
+      <div className="py-6 text-slate-600 text-[10px] font-mono text-center space-y-1">
+        <FileText className="w-5 h-5 mx-auto text-slate-700" />
+        <p>Producto no generado aun</p>
+        <p className="text-[8px] text-slate-700">Usa el boton &quot;Generar&quot; en el catalogo para crear el primer reporte</p>
       </div>
     );
   }
 
+  // Extraer texto del contenido (puede ser objeto JSON o string)
+  const contenidoText = extractContenidoText(data.contenido);
+  // Safely format date
+  const fechaStr = data.fechaCreacion
+    ? new Date(data.fechaCreacion).toLocaleString('es-BO', { dateStyle: 'short', timeStyle: 'short' })
+    : null;
+  const periodoStr = [
+    data.fechaInicio ? `Desde: ${new Date(data.fechaInicio).toLocaleDateString('es-BO', { dateStyle: 'short' })}` : '',
+    data.fechaFin ? `Hasta: ${new Date(data.fechaFin).toLocaleDateString('es-BO', { dateStyle: 'short' })}` : '',
+  ].filter(Boolean).join(' | ');
+
   return (
     <div className="space-y-3 pt-2 border-t" style={{ borderColor: 'rgba(6,182,212,0.08)' }}>
+      {/* Header: ID + fecha */}
       <div className="flex items-center justify-between">
         <p className="text-[10px] font-mono text-slate-400">
-          ID: <span className="text-cyan-500/70">{data.id.slice(0, 12)}...</span>
+          ID: <span className="text-cyan-500/70">{data.id ? data.id.slice(0, 12) : '—'}...</span>
         </p>
-        <p className="text-[9px] font-mono text-slate-600 flex items-center gap-1">
-          <Clock className="w-2.5 h-2.5" />
-          {new Date(data.fechaCreacion).toLocaleString('es-BO', { dateStyle: 'short', timeStyle: 'short' })}
-        </p>
+        {fechaStr && (
+          <p className="text-[9px] font-mono text-slate-600 flex items-center gap-1">
+            <Clock className="w-2.5 h-2.5" />
+            {fechaStr}
+          </p>
+        )}
       </div>
-      {data.titulo && (
-        <p className="text-[11px] font-mono text-slate-300 font-medium">{data.titulo}</p>
+
+      {/* Tipo + menciones */}
+      <div className="flex items-center gap-2">
+        <span className="text-[8px] font-bold uppercase font-mono px-1.5 py-0.5 rounded"
+          style={{
+            color: '#a78bfa',
+            backgroundColor: 'rgba(167,139,250,0.08)',
+            border: '1px solid rgba(167,139,250,0.15)',
+          }}
+        >
+          {data.tipo || 'N/A'}
+        </span>
+        {data.totalMenciones != null && data.totalMenciones > 0 && (
+          <span className="text-[8px] font-mono text-slate-600">
+            {data.totalMenciones} menciones
+          </span>
+        )}
+      </div>
+
+      {/* Periodo */}
+      {periodoStr && (
+        <p className="text-[9px] font-mono text-slate-600">{periodoStr}</p>
       )}
+
+      {/* Resumen */}
       {data.resumen && (
-        <p className="text-[10px] font-mono text-slate-500 leading-relaxed italic">
-          {data.resumen}
-        </p>
+        <div className="rounded px-3 py-2" style={{
+          backgroundColor: 'rgba(245,158,11,0.04)',
+          border: '1px solid rgba(245,158,11,0.08)',
+        }}>
+          <p className="text-[9px] font-bold uppercase font-mono text-amber-500/70 mb-1">Resumen</p>
+          <p className="text-[10px] font-mono text-slate-400 leading-relaxed">
+            {data.resumen}
+          </p>
+        </div>
       )}
-      {data.contenido && (
+
+      {/* Temas principales */}
+      {data.temasPrincipales && (
+        <div className="rounded px-3 py-2" style={{
+          backgroundColor: 'rgba(6,182,212,0.04)',
+          border: '1px solid rgba(6,182,212,0.08)',
+        }}>
+          <p className="text-[9px] font-bold uppercase font-mono text-cyan-500/70 mb-1">Temas principales</p>
+          <p className="text-[10px] font-mono text-slate-400 leading-relaxed">
+            {data.temasPrincipales}
+          </p>
+        </div>
+      )}
+
+      {/* Contenido principal */}
+      {contenidoText && (
         <div
-          className="text-[10px] font-mono text-slate-400 leading-relaxed max-h-72 overflow-y-auto custom-scrollbar whitespace-pre-wrap"
+          className="text-[10px] font-mono text-slate-400 leading-relaxed max-h-80 overflow-y-auto custom-scrollbar whitespace-pre-wrap"
           style={{ backgroundColor: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '4px' }}
         >
-          <pre className="p-3 text-[9px] leading-relaxed">{data.contenido}</pre>
+          <pre className="p-3 text-[9px] leading-relaxed">{contenidoText}</pre>
+        </div>
+      )}
+
+      {/* Si no hay contenido pero sí hay reporte (vacío) */}
+      {!contenidoText && !data.resumen && (
+        <div className="py-4 text-slate-600 text-[10px] font-mono text-center">
+          Reporte generado sin contenido de texto
         </div>
       )}
     </div>

@@ -329,7 +329,8 @@ export function ProduccionView() {
       const res = await fetchWithTimeout(`/api/productos/${tipoUrl}/ultimo`, { timeoutMs: 10000 });
       if (res.ok) {
         const json = await res.json();
-        setPreviewData(json);
+        // Solo asignar si hay reporte real encontrado
+        setPreviewData(json.encontrado ? json : null);
       } else {
         setPreviewData(null);
       }
