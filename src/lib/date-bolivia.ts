@@ -21,7 +21,10 @@ export function boliviaNow(): Date {
  */
 export function boliviaStartOfDay(): Date {
   const boNow = boliviaNow();
-  return new Date(boNow.getFullYear(), boNow.getMonth(), boNow.getDate());
+  // FIX: Usar Date.UTC() para medianoche UTC, no new Date() que usa timezone local.
+  // En VPS con TZ=America/La_Paz, new Date(year,month,day) = medianoche local (04:00 UTC)
+  // lo cual rompe los calculos de rango de fechas.
+  return new Date(Date.UTC(boNow.getFullYear(), boNow.getMonth(), boNow.getDate()));
 }
 
 /**
@@ -55,8 +58,8 @@ export function boliviaStartOfWeek(): Date {
   const boNow = boliviaNow();
   const day = boNow.getDay(); // 0=dom, 1=lun, ...
   const diffToMonday = day === 0 ? 6 : day - 1;
-  const monday = new Date(boNow.getFullYear(), boNow.getMonth(), boNow.getDate() - diffToMonday);
-  return new Date(monday.getFullYear(), monday.getMonth(), monday.getDate());
+  // FIX: Usar Date.UTC() para medianoche UTC
+  return new Date(Date.UTC(boNow.getFullYear(), boNow.getMonth(), boNow.getDate() - diffToMonday));
 }
 
 /**
@@ -64,7 +67,8 @@ export function boliviaStartOfWeek(): Date {
  */
 export function boliviaStartOfMonth(): Date {
   const boNow = boliviaNow();
-  return new Date(boNow.getFullYear(), boNow.getMonth(), 1);
+  // FIX: Usar Date.UTC() para medianoche UTC
+  return new Date(Date.UTC(boNow.getFullYear(), boNow.getMonth(), 1));
 }
 
 /**

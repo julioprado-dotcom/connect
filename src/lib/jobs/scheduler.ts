@@ -10,6 +10,17 @@ import { calcularHorariosOptimos, getHorariosDefault } from './histogram/calcula
 import { buildCronEntries, getBoletinCronEntries, getMantenimientoCronEntry, formatCronHuman } from './histogram/cron-builder'
 import { CHECK_FIRST_CONFIG, QUEUE_LIMITS } from './constants'
 import { determinarCapa, descripcionCapa, evaluarDegradacionMasiva } from './source-lifecycle'
+import { PRODUCTOS } from '@/constants/products'
+
+// DEDICATED_ENDPOINTS: mapeo de productos a endpoints LLM dedicados
+const DEDICATED_ENDPOINTS: Record<string, string> = {
+  EL_TERMOMETRO: '/api/admin/bulletins/generate-termometro',
+  SALDO_DEL_DIA: '/api/admin/bulletins/generate-saldo',
+  EL_FOCO: '/api/admin/bulletins/generate-foco',
+  EL_RADAR: '/api/admin/bulletins/generate-radar',
+  BOLETIN_DEL_GRANO: '/api/admin/bulletins/generate-boletin-grano',
+  FICHA_LEGISLADOR: '/api/admin/bulletins/generate-ficha',
+}
 
 // ─── Timezone: todos los cron jobs usan hora de Bolivia ──────────────
 const CRON_OPTS = { scheduled: true, timezone: 'America/La_Paz' }
@@ -297,6 +308,9 @@ function scheduleBoletinJobs(): void {
             tipoProducto: productType, // FIX 4: Normalizar — ambos campos para dedup consistente
             programado: true,
             triggeredBy: 'scheduler-auto',
+            // FIX: Incluir endpoint para que el runner use Path A (endpoint dedicado LLM)
+            // Si el producto tiene endpoint dedicado, lo usa; si no, cae en generate-generic.
+            endpoint: DEDICATED_ENDPOINTS[productType] || '/api/admin/bulletins/generate-generic',
           },
         })
 
