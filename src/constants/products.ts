@@ -355,7 +355,7 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     tipo: 'EL_INFORME_CERRADO',
     nombre: 'El Informe Cerrado',
     nombreCorto: 'Informe',
-    descripcion: 'Análisis profundo semanal. Incluye tendencias, ranking de actores y consolidación de datos de la semana.'
+    descripcion: 'Análisis profundo semanal. Incluye tendencias, ranking de actores y consolidación de datos de la semana.',
     categoria: 'premium',
     frecuencia: 'semanal',
     horarioEnvio: 'Lunes 10:00 AM',
