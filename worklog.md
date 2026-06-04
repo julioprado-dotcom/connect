@@ -51,3 +51,35 @@ Stage Summary:
 - NOTE: ESTANDAR_PRODUCTOS.md line 49 still says "Accion sugerida" for ALERTA - contradicts REGLAS_ANTI_ALUCINACION but this is documentation, not prompt code
 
 Key insight: With only 4 NotaRaws captured in a crisis day, the problem is UPSTREAM of the extractor - it's in the scrape-fuente runner (Phase A of pipeline). The extractor only processes what scrape-fuente captures.
+
+---
+Task ID: 5
+Agent: Main Agent
+Task: Diagnosticar falla de captura — análisis exhaustivo de BD backup
+
+Work Log:
+- Descargé backup DB más reciente desde branch db-backup (commit d46d0db, 2026-06-04 12:00)
+- Install sqlite3 not available, used Python sqlite3 module
+- Analicé NotaRaws, FuenteEstado, CapturaLog, SystemLog, Job tables
+
+Stage Summary:
+**Context**: ~2 semanas sin captura (migración May 12 → Jun 1-3)
+**Backup snapshot**: June 4 12:00 (VPS showed 104 NotaRaws total for June 4, backup only had 18 at noon)
+
+KEY FINDINGS:
+1. FUENTES ACTIVAS: 30 activas, 19 inactivas (se inactivaron durante migración por 3 fallos consecutivos)
+2. CHECKS HOY: 16 fuentes con checks (6 capa=2 al 100% cambios, 3 capa=0 inactivas, 1 capa=2 night checkers)
+3. SIN CHECKS HOY: 33 fuentes, pero 13 de ellas activas con checks del 3 junio (frecuencia 6h = esperable)
+4. ERRORES INACTIVAS: fetch failed (10), tipo_desconocido: zai (3), HTTP 403 (3), 401 (1), 404 (1), 301 (1)
+5. CAPTURA LOG: Vacío desde May 12 — los checks nuevos NO se registran en CapturaLog
+6. JOB TABLE: No hay jobs desde May 12 — scheduler no usa tabla Job para check_fuente
+7. SYSTEM LOG: Con fecha 2000-01-01 (bug de timestamp) pero muestra batch_llm y generar_boletin activos
+8. NOTARAWS HOY (backup 12:00): 18 de 3 fuentes. VPS mostró 104 total para el día.
+9. CAPA=2 sources: 100% ratio de cambios (12 checks = 12 cambios) — scraping funciona perfecto
+
+DIAGNOSIS:
+- El pipeline SÍ está funcionando parcialmente desde que se reinició (Jun 3 22:42)
+- El scheduler hace checks directamente (no via Job table) y está activo
+- 19 fuentes inactivas necesitan reset de fallosConsecutivos
+- "tipo_desconocido: zai" es un bug en strategy resolution
+- CapturaLog no registra checks nuevos — probablemente código no actualizado en VPS
