@@ -1,0 +1,1041 @@
+===== CONTEXTO =====
+CONTEXTO — DECODEX Bolivia v0.14.0
+
+1. PROTOCOLO DE ACCION INMEDIATA
+
+    *** PROCEDIMIENTO DE ARRANQUE DEL SERVIDOR ***
+    *** Documentacion completa: docs/PROCEDIMIENTO_ARRANQUE.md ***
+
+    Verificar servidor: curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
+    Si devuelve 000 → servidor caido.
+
+    LEVANTAR SERVIDOR (metodo unico verificado para Z.ai sandbox):
+        node -e "
+        const { spawn } = require('child_process');
+        const fs = require('fs');
+        const log = fs.openSync('/tmp/decodex-server.log', 'a');
+        const child = spawn(
+          '/home/z/my-project/node_modules/next/dist/bin/next',
+          ['start', '-p', '3000'],
+          {
+            cwd: '/home/z/my-project',
+            stdio: ['ignore', log, log],
+            detached: true,
+          }
+        );
+        child.unref();
+        "
+
+    Verificar Caddy: curl -s -o /dev/null -w "%{http_code}" http://localhost:81
+    Verificar DB: ls -la prisma/db/custom.db (debe existir, ~6-7 MB)
+    Ver logs: tail -20 /tmp/decodex-server.log
+
+    NOTA: nohup, setsid y & directo NO funcionan en el Bash tool de Z.ai.
+    Solo spawn() con detached:true + unref() sobrevive entre llamadas.
+    Ver explicacion completa en docs/PROCEDIMIENTO_ARRANQUE.md
+
+    LO QUE NO SE DEBE HACER
+    NUNCA ejecutar bun run dev manualmente — colapsa el panel de preview
+    NUNCA trackear .zscripts/ en git — causa merge conflicts
+    NUNCA agregar headers X-Frame-Options o CSP que bloqueen iframes
+    NUNCA hacer git reset --hard sin verificar primero
+
+    ENTORNO Z.ai
+    Contenedor Linux con usuario "z", Caddy en puerto 81, Next.js en puerto 3000
+    Preview via iframe cross-origin: Firefox ETP bloquea cookies de terceros
+    Por eso esta version (v07) NO tiene autenticacion — acceso directo al dashboard
+    Daemon persistente: spawn() con detached:true + unref() (ver PROCEDIMIENTO_ARRANQUE.md)
+
+2. IDENTIDAD DEL PROYECTO
+
+Nombre: DECODEX Bolivia
+Motor Interno: ONION200
+Version: 0.14.0 (Modo Prueba + QA tools + 34 indicadores rescatados + campos facturacion)
+Repositorio: https://github.com/julioprado-dotcom/connect
+Descripcion: SaaS de inteligencia mediatica que monitorea la presencia de actores politicos
+    bolivianos en medios de comunicacion y redes sociales. Proporciona boletines
+    especializados con datos duros, indicadores macroeconomicos y analisis de tendencias.
+    Orientado al pluralismo y la Constitucion del 2009.
+Slogan: "Traduciendo senales en patrones de poder"
+Subtitulo: "Motor de inteligencia mediatica y analisis de senales del Sur Global"
+
+3. CONTEXTO POLITICO ACTUAL (Mayo 2026)
+
+    PRESIDENTE: Rodrigo Paz Pereira (PDC) — asumo noviembre 2025
+    ASAMBLEA LEGISLATIVA: 130 diputados + 36 senadores electos en 2025
+    COYUNTURA: Eliminacion subsidio gasolina, escasez combustible, 176 conflictos sociales Q1 2026,
+        YPFB en crisis, 10 comisiones de verdad activas
+
+4. VISION DEL PRODUCTO
+
+    DECODEX opera en cuatro capas: CAPTURA → INDICADORES → PROCESAMIENTO → ENTREGA
+    11 productos ONION200 (4 dedicados + 7 genericos)
+    6 combos de precios (500 – 5.000 Bs/mes)
+    Funnel comercial: Awareness → Consideracion → Premium Entry → Premium Mid → Premium Alta
+    3 instalaciones white-label: DECODEX Energia (ABEN), Hidrocarburos (YPFB), Macro (CAINCO)
+
+5. MARCO FILOSOFICO
+
+    NO somos jueces ni parte. Analizamos TENDENCIAS Y PAUTAS INFORMATIVAS, no contenidos.
+    Marco: pluralismo + CPE 2009. Compromiso con PLURALIDAD DE FUENTES.
+    Registramos quien dijo que, cuando, donde, en que medio. Entregamos el MAPA, no el TERRITORIO.
+
+6. MODELO DE ANALISIS
+
+    Actor → Temas: Que temas se asocian a este actor en medios
+    Tema → Actores: Quienes fueron mencionados en relacion a un tema
+    Tipos de mencion: cita directa, mencion pasiva, cobertura de declaraciones,
+        mencion en contexto, foto/video
+
+7. EJES TEMATICOS — 12 EJES + 5 DIMENSIONES
+
+    12 ejes raiz con jerarquia (parentId + 35 sub-clasificaciones)
+    5 dimensiones: Produccion (verde), Precio (amber), Conflicto (rojo),
+        Regulacion (azul), Infraestructura (purpura)
+    Indicadores: Brecha de Visibilidad, Indice de Tension Social, Top 10 Actores
+
+8. FUENTES — 5 NIVELES
+
+    Nivel 1: 15 corporativos/nacionales (La Razon, El Deber, ATB, ABI, etc.)
+    Nivel 2: 9 regionales (El Potosi, La Patria, Correo del Sur, etc.)
+    Nivel 3: 6 alternativos (Abya Yala TV, Bolpress, CEDIB, etc.)
+
+===== ESTANDAR PRODUCTOS =====
+# ESTÁNDAR DE PRODUCTOS DECODEX — Línea Base Periodística
+
+Este documento define el estándar de calidad periodística para TODOS los productos del sistema. Basado en los prototipos "Resumen Semanal: Medio Ambiente" y "Resumen Semanal: Minería".
+
+**REGLA FUNDAMENTAL:** Todo producto DECODEX debe cumplir este estándar. No hay productos de "segunda categoría".
+
+---
+
+## PRINCIPIOS
+
+1. **Epistemología en el método, neutralidad en la etiqueta**
+2. **NO saludo ni despedida en PDF**
+3. **Datos reales, no placeholder.** Si no hay datos: *"Cobertura limitada para el período"*
+4. **Fuentes citadas con ranking cuantitativo**
+5. **Tensiones, no secciones** (organizar por tensión estructural)
+6. **Máximo 5 colores por documento, 2 tipografías máximo**
+
+---
+
+## ESTRUCTURA SEGÚN FRECUENCIA
+
+### SEMANAL (9 secciones)
+
+1. Portada
+2. Resumen Ejecutivo
+3. Estadísticas Clave
+4. Mapa de Tensiones
+5. Noticias Destacadas (3-5, con nivel ALTA/MEDIA/BAJA)
+6. Índice de Fuentes (ranking top 10)
+7. Cruce Transversal
+8. Tendencia y Proyección
+9. Nota Metodológica
+
+### DIARIO (resumida)
+
+1. Portada compacta
+2. Resumen del Día
+3. 4 métricas
+4. Top 5 Noticias
+5. Top 5 Fuentes
+6. Nota Metodológica breve
+
+### ALERTA (tiempo real)
+
+1. Nivel de urgencia
+2. Hecho verificado
+3. Fuentes
+4. Contexto
+5. Acción sugerida
+6. Timestamp
+
+### FICHA (bajo demanda)
+
+1. Datos biográficos
+2. Cobertura mediática 30 días
+3. Ejes frecuentes
+4. Fuentes
+5. Red de conexiones
+
+---
+
+## CRITERIOS DE TENSIÓN
+
+| Nivel | Criterio | Color |
+|---|---|---|
+| **ALTA** | Afecta políticas públicas o derechos humanos, múltiples fuentes, potencial de escalamiento | `#c53030` (rojo) |
+| **MEDIA** | Tema recurrente con desarrollo nuevo, 2-3 fuentes | `#d69e2e` (ámbar) |
+| **BAJA** | Informativo sin tensión inmediata, 1 fuente | `#38a169` (verde) |
+
+---
+
+## MAPEO DE PRODUCTOS ACTUALES AL ESTÁNDAR
+
+### DIARIOS (estructura resumida)
+
+| Producto | Hora | Descripción |
+|---|---|---|
+| EL TERMÓMETRO | 07:00 AM | Panorama general, top 5 ejes del día |
+| SALDO DEL DÍA | 07:00 PM | Balance del día |
+| EL FOCO | 09:00 AM | 1 eje en profundidad (rotativo) |
+| EL ESPECIALIZADO | 10:00 AM | Análisis sectorial |
+
+### SEMANALES (estructura completa)
+
+| Producto | Hora | Descripción |
+|---|---|---|
+| EL INFORME CERRADO | Lunes 10:00 AM | Consolidado general |
+| EL RADAR | Lunes 08:00 AM | Tendencias emergentes |
+| VOZ Y VOTO | Lunes 08:00 AM | Actividad política/legislativa |
+| EL HILO | Lunes 08:00 AM | Narrativa que conecta noticias |
+| FOCO DE LA SEMANA | Lunes 08:00 AM | 1 eje en profundidad semanal |
+
+### ESPECIALES
+
+| Producto | Formato |
+|---|---|
+| ALERTA TEMPRANA | Formato alerta |
+| FICHA LEGISLADOR | Formato ficha |
+
+### FUTUROS (con lentes transversales)
+
+| Producto | Lente | Paleta |
+|---|---|---|
+| Resumen Semanal: Medio Ambiente | medio-ambiente | `#456253` / `#2c8686` |
+| Resumen Semanal: Minería | mineria | `#5a4a3a` / `#8b6914` |
+| Resumen Semanal: Corrupción | corrupcion-impunidad | `#4a2030` / `#8b2040` |
+
+---
+
+## PLAN DE ACCIÓN
+
+| Fase | Plazo | Objetivo |
+|---|---|---|
+| **FASE 1** | AHORA | Generar productos diarios con datos de hoy. Instalar puppeteer. Debug scheduler. |
+| **FASE 2** | DÍA 8+ | Generar productos semanales con datos acumulados. |
+| **FASE 3** | POSTERIOR | Implementar 9 ejes + lentes transversales + productos por lente. |
+
+---
+
+## REGLA DE ENTREGA
+
+| Canal | Formato |
+|---|---|
+| **PDF** | Sin saludo ni despedida. Datos y análisis directo. |
+| **Email** | Con saludo breve. |
+| **Telegram** | 1-2 líneas de contexto. |
+
+===== PROTOCOLO EL_FOCO =====
+# El Foco — Protocolo de Producto
+
+**CONNECT / DECODEX Bolivia**
+**ONION200**
+**Media Monitoring & Intelligence Platform — Bolivia**
+
+---
+
+| Campo | Detalle |
+|---|---|
+| **Producto** | El Foco |
+| **Categoría** | Boletín de profundidad temática diaria |
+| **Nivel** | Premium Entry — primer producto comercial especializado |
+| **Versión del protocolo** | 1.0 |
+| **Fecha de elaboración** | Julio 2025 |
+| **Equipo responsable** | Producto — ONION200 / DECODEX Bolivia |
+| **Clasificación** | Interno — Confidencial |
+
+---
+
+## 1. Definición del Producto
+
+### 1.1 ¿Qué es El Foco?
+
+**El Foco** es un boletín informativo **diario** que realiza un análisis profundo y exhaustivo de **un solo eje temático** por emisión. A diferencia de los productos panorámicos, El Foco no busca cubrir todo el espectro mediático del cliente, sino que **hunde la mirada en un tema específico** para entregar contexto, evolución, actores clave y prospectiva.
+
+Cada edición de El Foco se construye alrededor de uno de los once ejes temáticos que conforman el modelo de monitoreo de ONION200:
+
+| # | Eje Temático |
+|---|---|
+| 1 | Gobierno, Oposición e Instituciones |
+| 2 | Economía y Política Económica |
+| 3 | Hidrocarburos y Energía |
+| 4 | Minería y Metalurgia |
+| 5 | Medio Ambiente, Territorio y Recursos |
+| 6 | Justicia y Derechos Humanos |
+| 7 | Educación, Salud y Políticas Sociales |
+| 8 | Infraestructura, Vivienda y Servicios |
+| 9 | Seguridad Ciudadana y Defensa |
+| 10 | Relaciones Internacionales y Geopolítica |
+| 11 | Tecnología, Innovación y Comunicación |
+
+### 1.2 Principios Fundamentales
+
+- **Profundidad sobre amplitud**: Un solo eje, analizado en profundidad, con más contexto que cualquier otro producto del ecosistema.
+- **Elección del cliente**: El cliente define qué ejes temáticos desea monitorear. Puede elegir 1, 3, 5 o los 11 ejes completos.
+- **Acción sobre información**: Cada boletín no solo informa, sino que **contextualiza y proyecta**, permitiendo al cliente tomar decisiones informadas.
+- **Consistencia diaria**: El Foco se entrega todos los días, sin interrupciones, generando un hábito de lectura y una fuente confiable de inteligencia temática.
+
+### 1.3 Posicionamiento en la Cartera de Productos
+
+El Foco ocupa el nivel **Premium Entry** dentro del funnel de productos de DECODEX Bolivia:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  PREMIUM HIGH   │  El Especializado                      │
+│                  │  (Análisis experto sectorial profundo) │
+├──────────────────┼────────────────────────────────────────┤
+│  PREMIUM MID     │  (Espacio para futuros productos)      │
+├──────────────────┼────────────────────────────────────────┤
+│  PREMIUM ENTRY   │  ★ El Foco                            │
+│                  │  (Profundidad temática diaria)         │
+├──────────────────┼────────────────────────────────────────┤
+│  PREMIUM BASE    │  El Termómetro + Saldo del Día        │
+│                  │  (Panorama diario completo)            │
+├──────────────────┼────────────────────────────────────────┤
+│  GRATUITO        │  El Radar                             │
+│                  │  (Awareness y captación)               │
+└──────────────────┴────────────────────────────────────────┘
+```
+
+---
+
+## 2. Diferencia con El Termómetro
+
+El Foco y El Termómetro son productos **complementarios**, no competidores. Cada uno cumple una función distinta en la estrategia de inteligencia del cliente.
+
+| Dimensiones | El Termómetro | El Foco |
+|---|---|---|
+| **Alcance** | Abarca **TODOS** los ejes temáticos del cliente en un solo boletín | Profundiza en **UN solo eje temático** por boletín |
+| **Objetivo** | Dar el **panorama general** del día: qué pasó en cada eje | Dar la **profundidad temática**: entender el contexto, las causas y las implicancias |
+| **Horario de entrega** | 7:00 AM (Bolivia) — primera lectura del día | 9:00 AM (Bolivia) — después del Termómetro, análisis de segundo nivel |
+| **Extensión** | 1 página, 3 minutos de lectura | 2 páginas, 5 minutos de lectura |
+| **Nivel de detalle** | Resumen ejecutivo por eje: 3-4 líneas por tema | Análisis completo: indicadores, actores, cronología, prospectiva |
+| **Formato de ejes** | Todos los ejes del cliente en un solo documento | Un eje por documento (si el cliente tiene 3 ejes, recibe 3 boletines) |
+| **Indicadores** | Menciona indicadores de forma resumida | Presenta indicadores ONION200 con contexto detallado |
+| **Menciones** | Top menciones generales | 5-8 menciones destacadas con contexto profundo |
+| **Analogía** | El **mapa del terreno**: ves todo desde arriba | El **microscopio**: ves un área con máximo detalle |
+
+### 2.1 Flujo de Lectura Recomendado
+
+La experiencia óptima de consumo para un cliente que tiene ambos productos es:
+
+```
+7:00 AM  →  Leer El Termómetro (3 min)
+              ↓
+           "Veo que en Minería hubo mucha actividad..."
+              ↓
+9:00 AM  →  Leer El Foco — Minería (5 min)
+              ↓
+           "Entiendo el contexto, los actores, la evolución..."
+              ↓
+           Decisión informada
+```
+
+**El Termómetro detecta; El Foco profundiza.**
+
+---
+
+## 3. Frecuencia y Horario de Entrega
+
+| Parámetro | Especificación |
+|---|---|
+| **Frecuencia** | Diaria, todos los días del año (365 días) |
+| **Horario de entrega** | **9:00 AM** hora de Bolivia (UTC-4) |
+| **Ventana de procesamiento** | 5:00 AM — 8:30 AM (procesamiento GLM + revisión humana) |
+| **Ventana de revisión QA** | 8:30 AM — 9:00 AM (control de calidad antes del envío) |
+| **Dia después del Termómetro** | Sí — El Foco se entrega 2 horas después del Termómetro (7:00 AM) |
+
+### 3.1 Secuencia de Entrega Diaria
+
+```
+6:00 AM   ───  Recopilación nocturna de menciones (00:00 — 6:00 AM)
+6:00 AM   ───  Procesamiento de El Termómetro (GLM)
+7:00 AM   ───  Entrega de El Termómetro
+7:00 AM   ───  Inicio de procesamiento de El Foco (GLM)
+8:30 AM   ───  Revisión QA de El Foco
+9:00 AM   ───  Entrega de El Foco
+17:00 PM  ───  Entrega de Saldo del Día
+```
+
+### 3.2 Cobertura Temporal del Análisis
+
+Cada edición de El Foco analiza la actividad mediática del período:
+
+- **Período principal**: desde las **00:00 del día anterior** hasta las **06:00 del día actual**
+- **Contexto comparativo**: se compara con el **día anterior** y la **misma fecha de la semana anterior**
+
+---
+
+## 4. Formato y Estructura del Boletín
+
+Cada edición de El Foco sigue una estructura estándar y rigurosa que garantiza consistencia y facilidad de consumo.
+
+### 4.1 Estructura General
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║                    EL FOCO                                   ║
+║            [Nombre del Eje Temático]                         ║
+
+===== PROTOCOLO SALDO =====
+# El Saldo del Día — Protocolo de Producto
+
+**ONION200 / DECODEX Bolivia**
+**Monitor de Presencia en Medios — Bolivia**
+
+---
+
+**Versión:** 1.0.0
+**Fecha:** Junio 2026
+**Autor:** Equipo de Producto — ONION200
+**Clasificación:** Interno / Producción
+**Producto relacionado:** El Termómetro (Protocolo 01)
+
+---
+
+## Tabla de Contenidos
+
+1. [Portada y Ficha Técnica](#1-portada-y-ficha-técnica)
+2. [Definición del Producto](#2-definición-del-producto)
+3. [Horario de Generación y Entrega](#3-horario-de-generación-y-entrega)
+4. [Relación con El Termómetro — El Duo Diario Premium](#4-relación-con-el-termómetro--el-duo-diario-premium)
+5. [Formato y Estructura del Boletín](#5-formato-y-estructura-del-boletín)
+6. [Longitud y Estándares de Lectura](#6-longitud-y-estándares-de-lectura)
+7. [Prompt GLM — Estructura del Sistema de Generación](#7-prompt-glm--estructura-del-sistema-de-generación)
+8. [Flujo de Generación Automático](#8-flujo-de-generación-automático)
+9. [Ejemplo de Salida Realista](#9-ejemplo-de-salida-realista)
+
+---
+
+## 1. Portada y Ficha Técnica
+
+**El Saldo del Día** es el segundo pilar del sistema de inteligencia mediática de ONION200 / DECODEX Bolivia. Mientras que otros productos del ecosistema cubren horizontes semanales o mensuales, este producto responde a la necesidad concreta y cotidiana de cada cliente de cerrar su jornada con claridad: ¿qué pasó hoy con los temas que me importan? ¿Cómo evolucionó la agenda respecto a lo que esperábamos esta mañana? ¿Hay algo que deba seguir mañana?
+
+Este protocolo define con precisión cada aspecto del producto: su naturaleza, su relación con el resto del ecosistema, su formato, su lógica de generación automatizada y los estándares de calidad que debe cumplir antes de llegar al cliente. Es el documento de referencia tanto para el equipo de desarrollo que implementa el motor de generación como para el equipo comercial que lo posiciona ante clientes potenciales.
+
+La ficha técnica del producto es la siguiente:
+
+| Campo | Detalle |
+|---|---|
+| **Nombre del producto** | El Saldo del Día |
+| **Tipo** | Boletín inteligente de cierre de jornada |
+| **Frecuencia** | Diaria (Lunes a Domingo, 365 días al año) |
+| **Hora de generación** | 7:00 PM hora Bolivia (GMT-4) |
+| **Hora de entrega** | 7:08 PM hora Bolivia (GMT-4) |
+| **Canales de entrega** | WhatsApp (primario) + Email (secundario) |
+| **Formato** | Texto estructurado + gráfico opcional |
+| **Longitud** | 1 página, ~2 minutos de lectura |
+| **Motor de IA** | GLM vía z-ai-web-dev-sdk |
+| **Plan mínimo requerido** | Plan Avanzado |
+| **Idioma** | Español (es-BO) |
+
+---
+
+## 2. Definición del Producto
+
+### Concepto Central
+
+**El Saldo del Día cierra la jornada:** es el resumen de evolución en la jornada y el balance de los ejes temáticos contratados al finalizar la jornada. Su propósito es ofrecer al cliente una fotografía nítida de lo que ocurrió en su ámbito de interés entre la mañana y la noche de cada día, permitiéndole tomar decisiones informadas sobre acciones de comunicación, seguimiento de crisis o ajustes de estrategia para el día siguiente.
+
+### Principio Fundamental: Cliente-Céntrico
+
+Este es el aspecto más importante del producto y la diferencia competitiva clave frente a cualquier otro boletín de medios en el mercado boliviano: **El Saldo del Día NO es un reporte nacional**. No cubre todos los temas del día, no resume la agenda general de Bolivia, no compite con los titulares de los diarios. Es, por definición y diseño, el balance de la jornada de un cliente específico.
+
+Cada instancia de El Saldo del Día se genera exclusivamente a partir de los ejes temáticos que el cliente contrató. Si un cliente corporativo del sector minero tiene contratados los ejes "Medio Ambiente, Territorio y Recursos" y "Economía y Política Económica", su Saldo del Día solo analizará menciones clasificadas en esos ejes. Las protestas de maestros en Cochabamba o las declaraciones del Presidente sobre política internacional simplemente no aparecerán en ese boletín, porque no son relevantes para ese cliente.
+
+Esta personalización es la esencia del producto. Transforma un boletín genérico de monitoreo de medios en una herramienta de inteligencia estratégica que cada cliente percibe como hecha a su medida. El cliente no recibe "lo que pasó en Bolivia hoy", sino "lo que pasó hoy en tu mundo".
+
+### Lo que NO es El Saldo del Día
+
+Para evitar confusiones internas y comerciales, es fundamental establecer con claridad lo que este producto no es:
+
+- **No es un clipping de prensa:** No enumera artículos ni reproduce titulares. Entrega análisis y balance.
+- **No es una alerta de crisis:** Si ocurre una emergencia mediática, el sistema de Alertas Inmediatas actúa en tiempo real. El Saldo del Día es el balance de cierre, no la alarma temprana.
+- **No es un informe mensual:** No tiene profundidad analítica de largo plazo ni comparativos intermensuales. Es ágil, diario, de lectura inmediata.
+- **No es neutral:** Es plural. No busca equidistancia entre fuentes sino representar la diversidad real de cobertura mediática, consistente con el marco filosófico de ONION200 (pluralismo + CPE 2009).
+- **No es un sustituto del Termómetro:** Es su complemento. El Termómetro abre el día, El Saldo del Día lo cierra. Juntos forman un ciclo de inteligencia completo.
+
+### Propuesta de Valor para el Cliente
+
+El Saldo del Día responde a preguntas concretas que todo tomador de decisión se plantea al final del día:
+
+1. *"¿Pasó algo relevante hoy con mis temas?"* — El balance ejecutivo lo dice en 5 líneas.
+2. *"¿Me afectó algo que no estaba previendo?"* — Las alertas pendientes identifican riesgos emergentes.
+3. *"¿Cómo evolucionó la situación desde esta mañana?"* — La comparación apertura vs. cierre es directa.
+4. *"¿Qué sigo mañana?"* — La sección de seguimiento prioriza la atención del cliente.
+
+---
+
+## 3. Horario de Generación y Entrega
+
+### Justificación del Horario: 7:00 PM Bolivia
+
+El horario de 7:00 PM (19:00 hora Bolivia, GMT-4) fue seleccionado estratégicamente tras analizar los patrones de consumo informativo y los ciclos laborales del mercado objetivo boliviano. A esa hora, la mayoría de los portales de noticias han publicado su última actualización del día, los noticieros centrales de televisión (Unitel, Red Uno, ATB) ya han concluido sus ediciones vespertinas, y las redes sociales han procesado el pico de actividad de la tarde.
+
+Desde una perspectiva operativa, las 7:00 PM representan el punto óptimo entre la disponibilidad de datos y la utilidad para el cliente. Generar el boletín antes (por ejemplo, a las 5:00 PM) significaría perder la cobertura vespertina de los medios, que frecuentamente contiene declaraciones, conferencias de prensa y reacciones que modifican sustancialmente la agenda del día. Generarlo después (por ejemplo, a las 9:00 PM) reduce su utilidad práctica porque muchos tomadores de decisión ya han cerrado su jornada laboral.
+
+### Zonas Horarias y Consideraciones
+
+El sistema opera exclusivamente en hora Bolivia (GMT-4). Todos los timestamps internos, las consultas a la base de datos, los filtros temporales de menciones y los horarios de entrega se calculan en esta zona horaria. No se utiliza UTC internamente para ninguna lógica de negocio del producto.
+
+| Parámetro | Valor |
+|---|---|
+| **Zona horaria del sistema** | America/La_Paz (GMT-4) |
+| **Ventana de captura** | 7:00 PM del día anterior a 6:59 PM del día actual |
+| **Hora de trigger** | 7:00:00 PM precisa |
+| **Hora límite de entrega** | 7:08:00 PM |
+| **Margen de tolerancia** | ±2 minutos por contingencias técnicas |
+
+### Ventana de Datos
+
+El Saldo del Día analiza todas las menciones capturadas en la ventana de 24 horas que va desde las 7:00 PM del día anterior hasta las 6:59 PM del día actual. Esta ventana está alineada con el ciclo del Termómetro: lo que El Termómetro anticipó a las 7:00 AM se evalúa con los datos acumulados hasta justo antes de que se genere el próximo Saldo del Día. De esta manera, se mantiene una continuidad temporal sin gaps ni duplicaciones.
+
+En caso de que el sistema de captura haya experimentado interrupciones durante el día (caídas de servidores de medios, problemas de conectividad, mantenimiento programado), el Saldo del Día operará con los datos disponibles y añadirá una nota técnica indicando las fuentes o períodos con cobertura incompleta. La transparencia operativa es un principio del producto.
+
+---
+
+## 4. Relación con El Termómetro — El Duo Diario Premium
+
+### Visión Conjunta
+
+El Termómetro (7:00 AM) y El Saldo del Día (7:00 PM) forman el **"duo diario premium"** del ecosistema ONION200. No son dos productos independientes que coinciden en el mismo cliente; son las dos mitades de un ciclo de inteligencia mediática diseñado para acompañar al cliente durante toda su jornada. Juntos, transforman el monitoreo de medios pasivo en un sistema activo de anticipación y evaluación.
+
+### El Termómetro: Abre el Día (7:00 AM)
+
+El Termómetro es el producto matutino que prepara al cliente para la jornada. Su función es triple:
+
+1. **Clima mediático:** Describe el estado general de los ejes temáticos del cliente basándose en la actividad nocturna y las primeras publicaciones de la mañana. Responde a: *"¿En qué contexto amanece mi agenda hoy?"*
+2. **Alertas tempranas:** Identifica temas que muestran actividad inusual, spikes de menciones, o coberturas que podrían escalar durante el día. Responde a: *"¿Qué debo vigilar hoy?"*
+3. **What to watch:** Sugiere los 2-3 temas con mayor probabilidad de desarrollar cobertura significativa en las próximas horas, basándose en patrones históricos y dinámica de fuentes. Responde a: *"¿Hacia dónde va la atención mediática hoy?"*
+
+### El Saldo del Día: Cierra el Día (7:00 PM)
+
+El Saldo del Día realiza la evaluación de cierre. Su función es evaluar lo que realmente ocurrió, comparándolo con las expectativas de la mañana:
+
+1. **Evolución:** Compara el estado de cada eje temático al momento de apertura (datos del Termómetro) con el estado al cierre. ¿Los temas que se anticiparon como calientes realmente lo fueron? ¿Apareció algo que no se esperaba?
+2. **Balance:** Entrega un resumen ejecutivo de la jornada que permite al cliente cerrar su día con una comprensión clara de lo que pasó en su ámbito de interés.
+3. **What happened:** Detalla las menciones clave, los cambios de tendencia y los eventos relevantes que marcaron la jornada.
+
+### Tabla Comparativa
+
+| Dimensión | El Termómetro (7:00 AM) | El Saldo del Día (7:00 PM) |
+|---|---|---|
+| **Momento del día** | Apertura de jornada | Cierre de jornada |
+| **Pregunta clave** | ¿Qué viene hoy? | ¿Qué pasó hoy? |
+| **Orientación temporal** | Prospectiva (hacia adelante) | Retrospectiva (hacia atrás) |
+| **Datos base** | Actividad nocturna + primera hora | Jornada completa (24h) |
+| **Tono** | Preventivo, anticipatorio | Evaluativo, de balance |
+| **Indicador principal** | Clima (frío/tibio/caliente/ardiente) | Evolución (sube/baja/se mantiene) |
+| **Formato gráfico** | Radar de alertas | Gráfico de actividad por hora |
+| **Acción sugerida** | Vigilar, preparar, anticipar | Evaluar, decidir, seguir |
+
+===== PROTOCOLO RADAR =====
+# El Radar — Protocolo de Producto
+
+> **ONION200 · DECODEX Bolivia**
+> Inteligencia mediática para Bolivia
+>
+> Versión: 1.0.0
+> Fecha: Julio 2025
+> Clasificación: Interno — Equipo de Producto
+> Responsable: Dirección de Producto — DECODEX Bolivia
+
+---
+
+## Índice
+
+1. [Portada](#1-portada)
+2. [Definición del Producto](#2-definición-del-producto)
+3. [Objetivo Comercial](#3-objetivo-comercial)
+4. [Frecuencia y Programación](#4-frecuencia-y-programación)
+5. [Formato y Estructura del Boletín](#5-formato-y-estructura-del-boletín)
+6. [Longitud y Tiempo de Lectura](#6-longitud-y-tiempo-de-lectura)
+7. [Prompt GLM — Instrucciones de Generación](#7-prompt-glm--instrucciones-de-generación)
+8. [Modelo de Datos](#8-modelo-de-datos)
+9. [Canales de Distribución](#9-canales-de-distribución)
+10. [Métricas de Éxito](#10-métricas-de-éxito)
+11. [Flujo de Producción](#11-flujo-de-producción)
+12. [Relación con el Ecosistema de Productos](#12-relación-con-el-ecosistema-de-productos)
+13. [Anexos](#13-anexos)
+
+---
+
+## 1. Portada
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║              ● EL RADAR                                      ║
+║              Boletín Semanal de Inteligencia Mediática        ║
+║                                                              ║
+║              ONION200 · DECODEX Bolivia                         ║
+║              Bolivia                                          ║
+║                                                              ║
+║              Protocolo de Producto v1.0.0                    ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+```
+
+**El Radar** es el producto de entrada gratuito del ecosistema **DECODEX Bolivia**, diseñado para distribuir inteligencia mediática de valor masivo y actuar como puente hacia los productos premium del sistema ONION200.
+
+---
+
+## 2. Definición del Producto
+
+### 2.1 ¿Qué es El Radar?
+
+**El Radar** es un boletín semanal **GRATUITO** de inteligencia mediática que ofrece una radiografía clara y visual del panorama informativo boliviano, organizado según los **11 ejes temáticos** del sistema ONION200.
+
+No es una newsletter de noticias. Es un **mapa de lo que los medios están cubriendo**, cuánto están cubriendo y cómo se distribuye la atención informativa entre los grandes temas nacionales.
+
+### 2.2 Propuesta de Valor
+
+| Elemento | Descripción |
+|----------|-------------|
+| **Tipo** | Boletín semanal de inteligencia mediática |
+| **Precio** | Gratuito — para siempre |
+| **Cobertura** | 11 ejes temáticos del sistema ONION200 |
+| **Fuentes** | Medios monitoreados por el sistema (Niveles 1-5) |
+| **Actualización** | Cada semana — lunes 8:00 AM (Hora Bolivia, UTC-4) |
+| **Formato** | Email, WhatsApp, redes sociales, página web |
+
+### 2.3 Público Objetivo
+
+El Radar está diseñado para una **audiencia masiva**, no especializada:
+
+| Segmento | Perfil | Motivación |
+|----------|--------|------------|
+| **Legisladores** | Diputados y senadores | Ver su propia visibilidad y tendencias temáticas |
+| **Periodistas** | Redactores, editores, corresponsales | Entender qué cubren los medios competidores |
+| **ONGs** | Organizaciones de sociedad civil | Monitorear temas de democracia, derechos humanos, medio ambiente |
+| **Academia** | Investigadores, docentes universitarios | Fuente de datos para estudios de comunicación |
+| **Público general** | Ciudadanos informados | Entender el panorama mediático sin sesgo editorial |
+| **Empresas** | Responsables de comunicación corporativa | Anticipar temas que pueden impactar su sector |
+| **Embajadas / Cooperación** | Representaciones diplomáticas | Monitorear estabilidad política y social |
+
+### 2.4 Función Principal: Awareness → Funnel
+
+El Radar no es un producto de monetización directa. Su función en el ecosistema es:
+
+```
+AWARENESS → INTERÉS → CONSIDERACIÓN → CONVERSIÓN
+
+El Radar     El Radar     Landing       Plan Premium
+(Descubrimiento) (Hábito semanal) (Evaluación) (Suscripción de pago)
+     ↑                                                    │
+     └────────────────────────────────────────────────────┘
+                    Funnel de DECODEX Bolivia
+```
+
+**El Radar es la puerta de entrada.** Un usuario que recibe El Radar durante 4 semanas desarrolla:
+- Confianza en los datos de DECODEX Bolivia
+- Hábito de consumo semanal
+
+===== PROMPT MESTRO =====
+# PROMPT MAESTRO — DECODEX Bolivia
+
+> **Versión:** 1.0 | **Fecha:** 8 mayo 2026 | **Autoría:** Equipo DECODEX
+> **Uso:** Este documento es el prompt contextual que debe incluirse al iniciar cualquier sesión de trabajo con IA asistente en el proyecto DECODEX Bolivia. Se suma al prompt del sistema según la tarea específica.
+
+---
+
+## IDENTIDAD
+
+Eres asistente de desarrollo del proyecto **DECODEX Bolivia** ("Motor de Inteligencia Mediática"), un ecosistema completo para el procesamiento de información periodística e indicadores socioeconómicos con inteligencia artificial, con enfoque periodístico institucional.
+
+**Repo:** `/home/z/my-project/decodeX-bolivia/`
+**Stack:** Next.js 16 (App Router) + TypeScript + Bun + Prisma ORM + SQLite (dev) / PostgreSQL (prod) + Tailwind CSS 4 + shadcn/ui + Zustand + GLM (via z-ai-web-dev-sdk)
+**Motor interno:** ONION200 (arquitectura en capas de procesamiento de datos)
+**Versión actual:** 0.14.0
+**Lema:** "Traduciendo señales en información uti"
+
+---
+
+## FILOSOFÍA Y MARCO CONCEPTUAL (CRÍTICO)
+
+DECODEX no es un sistema de media monitoring convencional. Opera bajo un **marco epistemológico de 9 principios** que gobierna TODO el comportamiento del sistema, incluyendo las respuestas de la IA:
+
+1. **Objetividad Activa** — Hechos verificables, sin falsa equidad
+2. **Transparencia Metodológica** — Criterios explícitos, confianza en 3 niveles
+3. **Honestidad Informativa** — Reflejar fielmente la fuente, no mejorarla
+4. **Pluralismo Informativo** — Igualdad de fuentes, desbalance como dato analítico
+5. **Contexto Institucional** — Conocimiento profundo del Estado Plurinacional de Bolivia
+6. **Independencia Analítica** — "El cliente recibe inteligencia, no validación"
+7. **Ética del Dato** — Solo fuentes públicas, sin perfiles psicológicos, datos sensibles excluidos
+8. **Enfoque Analítico-Institucional** — **RECHAZA terminología de marketing** (share of voice, sentiment, reach, engagement, KPI, stakeholder, insights)
+9. **Rigor Periodístico** — 8 preguntas fundamentales por mención
+
+**Terminología OBLIGATORIA:** tratamiento periodístico, cobertura, profundidad de análisis, diversidad de fuentes, dinámica de agenda, inteligencia institucional, evento mediático, relevancia institucional, actor institucional, hallazgo, indicador de análisis.
+
+**Terminología PROHIBIDA:** share of voice, brand sentiment, reach, impressions, engagement, NPS, brand awareness, posicionamiento, buzz, viral, insights, actionable intelligence, competitive intelligence, stakeholder, lead, KPI.
+
+**IA:** Solo se usa GLM (via z-ai-web-dev-sdk). Prohibido GPT, Claude, Gemini.
+
+---
+
+## ARQUITECTURA DEL ECOSISTEMA
+
+DECODEX NO es una aplicación monolítica. Es un **ecosistema de 7 subsistemas integrados** que podrían funcionar independientemente:
+
+### 1. Motor de Captura (`src/lib/jobs/`)
+- **4 capas:** Job Queue SQLite → Check-First (ETag/RSS/Fingerprint/API) → Adaptive Frequency → Histogram-Based Scheduling
+- **Anti-ban:** Rotación de User-Agent, rate limiting por dominio, respeto robots.txt
+- **8 runners:** scrape-fuente, check-fuente, check-indicador, capture-indicador, generar-boletin, enviar-entrega, verificar-enlaces, mantenimiento
+- **Scheduler:** Stagger anti-colisión (2-min separación, max 20/hora)
+- **País-agnóstico:** ✅ Solo cambian las fuentes configuradas
+
+### 2. Deduplicación Cross-Medio (`src/lib/deduplicacion.ts`)
+- Huella de evento (actor + tema + acción + fecha)
+- Heurística rápida + verificación GLM para casos dudosos
+- Ventana configurable (default 48h), umbral similitud 0.80
+- Distingue: duplicado, evolutivo, y original
+- **País-agnóstico:** ⚠️ Verb patterns en español, necesita extensión para otros idiomas
+
+### 3. Extractor IA de Menciones (`src/lib/ai/extractor-menciones.ts`)
+- Extracción de menciones de artículos capturados
+- Usa el Marco Conceptual como system prompt
+- Clasificación automática de tratamiento periodístico
+- **País-agnóstico:** ⚠️ Depende del seed del Marco Conceptual por país
+
+### 4. Pipeline de Indicadores Socioeconómicos (`src/lib/indicadores/`)
+- **Tier 1 (automático):** TC BCB, TC Paralelo, LME (5 metales), Commodities (7), Macro BCB
+- **Tier 2 (semi-automático):** Conflictividad, Riesgo País, Minería, Regalías
+- **Tier 3 (manual):** INE, Salud, Pasivos Ambientales
+- **Inyector:** Formatea indicadores para inyección en prompts GLM (max 5 por prompt)
+- Fallback chain: Yahoo Finance → Stooq → Investing.com
+- **País-agnóstico:** ⚠️ Arquitectura sí, datos 100% Bolivia
+
+### 5. Sistema de Productos y Generadores (`src/lib/bulletin/`, `src/constants/products.ts`)
+- **11 productos:** 7 Premium + 4 Gratuitos
+- **4 generadores dedicados:** Termómetro, Saldo, Foco, Radar
+- **7 genéricos:** Informe Cerrado, Especializado, Voz y Voto, El Hilo, Foco Semanal, Alerta Temprana, Ficha Legislador
+- Cada producto tiene: system prompt, temperatura, palabras objetivo, ventana temporal, canales
+- **País-agnóstico:** ⚠️ System prompts mencionan "medios bolivianos", "Estado Plurinacional"
+
+### 6. Multi-canal Delivery (`src/lib/bulletin/delivery.ts`, `src/lib/scheduler/delivery-dispatcher.ts`)
+- WhatsApp (Twilio), Email (Resend), PDF (Puppeteer)
+- Formateo específico por canal (Markdown→WhatsApp, HTML con paleta DECODEX→Email)
+- Dispatcher con tracking, reintentos (max 3), estadísticas
+- **País-agnóstico:** ✅ Completamente genérico
+
+### 7. CRM Ligero (`src/app/agente/`, APIs de clientes/contratos/suscriptores)
+- Portal móvil-first para agentes de ventas
+- Gestión de clientes, contratos, suscriptores gratuitos
+- Previsualización del dashboard del cliente
+- **País-agnóstico:** ✅ Completamente genérico
+
+---
+
+## MODELO DE DATOS (Prisma — 29+ modelos)
+
+**Entidades principales:** Persona (173 legisladores), Medio (30 fuentes en 5 niveles), EjeTematico (12 raíz + 35 sub), Mencion, Reporte, Indicador (34+), IndicadorValor, Cliente, Contrato, Entrega, Suscriptor, Job, FuenteEstado, MarcoConceptual (versionado), CambioMarcoConceptual, EjeTematicoCliente, MencionClienteEje, User, Account, Session
+
+**Archivo:** `prisma/schema.prisma` (616 líneas)
+
+
+===== REPORTE ANTI-ALUCINACION =====
+# REPORTE URGENTE: Correccion Anti-Alucinacion en Generadores
+## DECODEX Bolivia ONION200 v0.16.0
+
+**Fecha:** 13 de mayo de 2026  
+**Commits:** 9e731f8 → 66d5f0a  
+**Prioridad:** CRITICA — Implementado y verificado
+
+---
+
+## Resumen Ejecutivo
+
+Se implemento un sistema completo de prevencion de alucinaciones en los 12 generadores de productos de DECODEX Bolivia. El problema raiz fue que los system prompts del LLM tenian restricciones debiles ("Solo usar datos proporcionados") y temperaturas altas (hasta 0.6), permitiendo a la IA inventar datos, mencionar personajes politicos fuera de contexto, y generar contenido en ingles.
+
+### Correcciones Implementadas:
+1. 7 reglas anti-alucinacion obligatorias inyectadas al INICIO de cada system prompt
+2. Sistema de verificacion post-generacion que cruza contenido contra menciones reales
+3. Temperaturas reducidas a maximo 0.2 (antes hasta 0.6)
+4. Deteccion de personajes politicos sensibles (19 nombres)
+5. Deteccion de contenido en ingles
+
+### Estado: Implementado. Pendiente regeneracion de productos con API disponible.
+
+---
+
+## Diagnosticos por Generador
+
+### Generadores que usan LLM (5 endpoints):
+
+| Generador | Archivo | Prompt Anterior | Problemas | Prompt Corregido | Verificacion Integrada |
+|---|---|---|---|---|---|
+| El Termometro | `generate-termometro/route.ts` | "Solo usar datos proporcionados, no inventar informacion" | Sin prohibicion de contexto externo, temp 0.3 | 7 reglas + temp 0.0 | SI |
+| Saldo del Dia | `generate-saldo/route.ts` | "Solo usar datos proporcionados" | Mismo problema, temp 0.3 | 7 reglas + temp 0.0 | SI |
+| El Radar | `generate-radar/route.ts` | "Solo usar datos proporcionados" | Mismo problema, temp 0.3 | 7 reglas + temp 0.0 | SI |
+| El Foco | `generate-foco/route.ts` | "Incluir contexto y antecedentes cuando sea relevante" | Instruccion que da libertad de inventar, temp 0.5 | 7 reglas + temp 0.1 | SI |
+| Generic (11 productos) | `generate-generic/route.ts` | Varia por producto | Varios, temps 0.3-0.6 | 7 reglas + temps corregidos | SI |
+
+### Productos que NO usan LLM:
+- Ficha Legislador: solo datos de la DB
+
+---
+
+## Cambios en Temperaturas
+
+| Categoria | Productos | Temp Anterior | Temp Nueva |
+|---|---|---|---|
+| RESTRINGIDO (cero libertad) | El Termometro, Saldo del Dia, El Radar | 0.3 | **0.0** |
+| MODERADO (algunas libertades) | El Foco, El Hilo, Foco de la Semana, Boletin del Grano | 0.4-0.6 | **0.1** |
+| ABIERTO (verificacion estricta) | El Especializado, El Informe Cerrado | 0.4-0.5 | **0.2** |
+
+---
+
+## Verificacion Post-Generacion
+
+### Archivo: `src/lib/verification/verify-product.ts`
+
+**Logica:**
+1. Construir corpus de texto verificado a partir de las menciones reales
+2. Dividir el texto generado en oraciones
+3. Verificar cada oracion contra el corpus:
+   - Personajes sensibles: si aparece un nombre politico NO en las menciones, eliminar
+   - Datos especificos (leyes, decretos, cifras): verificar respaldo
+   - Contenido en ingles: detectar patrones
+4. Reconstruir texto limpio sin contenido no verificado
+5. Devolver resultado con flag `verified` y detalle de eliminaciones
+
+### Personajes Politicos Sensibles (19):
+Evo Morales, Luis Arce, David Choquehuanca, Santa Cruz, Camacho, Mesa, TSE, OEP, Fiscalia, Tribunal Supremo, Tribunal Constitucional, CIDOB, CONAMAQ, COB, MAS, Comunidad Ciudadana, Creemos, Frente Unido, Senado, Diputados, Presidente, Vicepresidente, Ministro, Gabinete, Fiscal, Defensor, Contralor.
+
+### Integracion en Generadores:
+Cada generador ahora ejecuta despues de la llamada al LLM:
+```typescript
+const textoVerificado = await verifyProduct(contenido, mencionesUsadas, tipoProducto);
+if (!textoVerificado.verified) {
+  console.log('ALERTA: Se elimino contenido no verificado:', textoVerificado.eliminados.length);
+}
+// Usa textoVerificado.textoLimpio en lugar del original
+```
+
+---
+
+## Verificacion de Base de Datos
+
+### Estado Confirmado:
+- **DB correcta:** `/home/z/my-project/prisma/db/custom.db` (9.7 MB)
+- **Total menciones:** 399
+- **Rango:** 12-13 mayo 2026 (ultimas 24h)
+- **`src/lib/db.ts`** ya sobreescribe `DATABASE_URL` a la ruta correcta
+
+### Eventos Clave Verificados en la DB:
+
+| Evento | Menciones | Estado |
+|---|---|---|
+| COB (bloqueos, paro) | 25 | Encontrado |
+| Ponchos Rojos | 23 | Encontrado |
+| Santa Cruz | 26 | Encontrado |
+| Morales (Evo) | 24 | Encontrado |
+| Bloqueos | 30 | Encontrado |
+| Ley 1720 | 3 | Encontrado |
+| Magisterio | 1 | Encontrado |
+| Marcha indigena | - | Buscar en texto completo |
+
+===== EXTRACTOR PROMPT FULL =====
+// Extraer menciones de legisladores Y temas relevantes de texto de noticias usando LLM
+// DECODEX Bolivia — Pipeline A (scrape-fuente)
+// Prompt building logic extracted from extractor-menciones.ts
+
+import { MarcoData, safeJson } from './extractor-menciones.cache';
+import {
+  DEFAULT_ESCALA,
+  DEFAULT_PREGUNTAS,
+  DEFAULT_PRINCIPIOS,
+} from './extractor-menciones.config';
+
+/**
+ * Build the system prompt dynamically from the Marco Conceptual.
+ * FASE 4D: Added INTENCIÓN DEL MEDIO section.
+ */
+export function buildSystemPrompt(marco: MarcoData | null): string {
+  // ── Principios ──
+  const principios = marco
+    ? safeJson<{ codigo: string; nombre: string; reglas_operativas?: string }[]>(marco.principios, DEFAULT_PRINCIPIOS)
+    : DEFAULT_PRINCIPIOS;
+
+  const principiosSection = principios
+    .map((p, i) => `${i + 1}. **${p.nombre}** (${p.codigo})\n   - ${p.reglas_operativas || ''}`)
+    .join('\n');
+
+  // ── Escala de Tratamiento Periodístico ──
+  let escala: { codigo: string; nombre: string }[];
+  if (marco) {
+    const escalaRaw = safeJson<{ categorias?: { codigo: string; nombre: string }[] } | { codigo: string; nombre: string }[]>(
+      marco.escalaTratamiento,
+      DEFAULT_ESCALA,
+    );
+    escala = Array.isArray(escalaRaw) && escalaRaw.length > 0 && 'codigo' in escalaRaw[0]
+      ? escalaRaw as { codigo: string; nombre: string }[]
+      : ('categorias' in (escalaRaw as Record<string, unknown>)
+          ? ((escalaRaw as { categorias: { codigo: string; nombre: string }[] }).categorias)
+          : DEFAULT_ESCALA);
+  } else {
+    escala = DEFAULT_ESCALA;
+  }
+
+  const escalaSection = escala
+    .map(e => `- **${e.codigo}**: ${e.nombre}`)
+    .join('\n');
+
+  // ── Criterios de Relevancia ──
+  let criteriosRelevancia: string[] = [];
+  let noCriterios: string[] = [];
+  if (marco) {
+    const cr = safeJson<unknown>(marco.criteriosRelevancia, null);
+    if (Array.isArray(cr)) {
+      // Formato array: ['criterio1', ...] o [{criterio: '...'}, ...]
+      criteriosRelevancia = (cr as unknown[]).map((c: unknown) =>
+        typeof c === 'string' ? c : (c as Record<string, string>)?.criterio || ''
+      ).filter(Boolean);
+    } else if (cr && typeof cr === 'object') {
+      // Formato objeto: { es_relevante_si: [...], no_es_relevante_si: [...] }
+      const obj = cr as Record<string, unknown>;
+      criteriosRelevancia = Array.isArray(obj.es_relevante_si)
+        ? (obj.es_relevante_si as string[]).filter(Boolean) : [];
+      noCriterios = Array.isArray(obj.no_es_relevante_si)
+        ? (obj.no_es_relevante_si as string[]).filter(Boolean) : [];
+    }
+  }
+  if (criteriosRelevancia.length === 0) {
+    criteriosRelevancia = [
+      'Menciona al menos un legislador monitoreado',
+      'Se refiere a al menos un eje temático monitoreado',
+      'Contiene al menos una keyword de interés',
+    ];
+  }
+
+  // ── Exclusiones de contenido (deportes, espectáculo, etc.) ──
+  const exclusionesContenido = [
+    'El artículo trata PRIMARIAMENTE de deportes, fútbol, campeonatos, ligas deportivas',
+    'El artículo trata PRIMARIAMENTE de espectáculo, farándula, celebridades, influencers',
+    'El artículo trata PRIMARIAMENTE de entretenimiento (cine, series, música, conciertos)',
+    'El artículo trata PRIMARIAMENTE de competencia deportiva sin implicaciones políticas/institucionales',
+  ];
+
+  let criteriosSection = criteriosRelevancia.map(c => `- ${c}`).join('\n');
+  if (noCriterios.length > 0) {
+    criteriosSection += '\n\nes_relevante = false SI se cumple ALGUNO de estos:\n' +
+      noCriterios.map(c => `- ${c}`).join('\n');
+  }
+  // Siempre agregar exclusiones de contenido
+  criteriosSection += '\n\nes_relevante = false SI el artículo es PRIMARIAMENTE sobre:\n' +
+    exclusionesContenido.map(c => `- ${c}`).join('\n');
+  criteriosSection += '\nNOTA: Un artículo sobre fútbol PUEDE ser relevante SOLO si tiene implicaciones políticas/institucionales claras (ej: uso de recursos públicos para estadios, escándalo de corrupción deportiva, declaración de un legislador sobre deportes). Si es solo deportivo → false.'
+
+  // ── Terminología ──
+  const terminosPermitidos: string[] = marco
+    ? safeJson<string[]>(marco.terminologiaPermitida, [])
+    : [];
+  const terminosProhibidos: string[] = marco
+    ? safeJson<string[]>(marco.terminologiaProhibida, [])
+    : [];
+
+  let terminologiaSection = '';
+  if (terminosPermitidos.length > 0) {
+    terminologiaSection += `\n**Términos PERMITIDOS** (usar estos):\n${terminosPermitidos.map(t => `- ${t}`).join('\n')}\n`;
+  }
+  if (terminosProhibidos.length > 0) {
+    terminologiaSection += `\n**Términos PROHIBIDOS** (NUNCA usar estos):\n${terminosProhibidos.map(t => `- ${t}`).join('\n')}\n`;
+  }
+
+  // ── Exclusiones Éticas ──
+  const exclusionesRaw: unknown[] = marco
+    ? safeJson<unknown[]>(marco.exclusionesEtica, [])
+    : [];
+  let exclusionesSection = '';
+  if (exclusionesRaw.length > 0) {
+    const exclusionesList = exclusionesRaw
+      .map((e) => typeof e === 'string' ? e : (e as Record<string, string>)?.exclusion || '')
+      .filter(Boolean);
+    if (exclusionesList.length > 0) {
+      exclusionesSection = `\n**Exclusiones éticas** (no procesar si la noticia trata de):\n${exclusionesList.map(ex => `- ${ex}`).join('\n')}\n`;
+    }
+  }
+
+  // ── Preguntas Fundamentales ──
+  const preguntas = marco
+    ? safeJson<{ codigo: string; nombre: string; descripcion?: string }[]>(marco.preguntasFundamentales, DEFAULT_PREGUNTAS)
+    : DEFAULT_PREGUNTAS;
+
+  const preguntasSection = preguntas
+    .map(p => `- **${p.codigo}** (${p.nombre}): ${p.descripcion || ''}`)
+    .join('\n');
+
+  // ── Assemble full prompt ──
+  return `Eres un extractor avanzado de información política boliviana. Analiza textos de noticias y detecta:
+1. Menciones a legisladores bolivianos (de la lista proporcionada)
+2. Menciones a FIGURAS POLÍTICAS RELEVANTES que NO estén en la lista (Presidente, Vicepresidente, Ministros, Gobernadores, Alcaldes, líderes de partido, ex presidentes, figuras institucionales del Estado Plurinacional)
+3. Referencias a ejes temáticos monitoreados
+4. Keywords de interés político/económico
+5. Tratamiento periodístico (NUNCA uses la palabra "sentimiento")
+6. Intención del medio (qué busca el medio al publicar)
+
+CONTEXTO: Se te proporcionará:
+- Una lista de LEGISLADORES con sus IDs y cargos
+- Una lista de EJES TEMÁTICOS con sus IDs y keywords
+- Una lista de KEYWORDS ADICIONALES de interés
+
+FUNCIONAMIENTO BIDIRECCIONAL:
+A) Si la persona mencionada ESTÁ en la lista de legisladores → usa su ID en legisladores_mencionados
+B) Si la persona mencionada NO ESTÁ en la lista PERO es una figura política relevante de Bolivia (Presidente, Ministro, Gobernador, Alcalde, ex-Presidente, líder de partido, autoridad institucional) → inclúyela en personas_detectadas
+C) Si el texto trata un tema/eje que NO está en la lista proporcionada → inclúyelo en ejes_sugeridos
+D) Si detectas keywords relevantes que NO están en ninguna lista → inclúyelas en keywords_nuevas
+E) Si detectas patrones o tendencias emergentes en la noticia → inclúyelos en tendencias
+
+## PRINCIPIOS FUNDAMENTALES (INMUTABLES)
+
+${principiosSection}
+
+## ESCALA DE TRATAMIENTO PERIODÍSTICO
+
+${escalaSection}
+
+## CRITERIOS DE RELEVANCIA
+
+es_relevante = true SI se cumple AL MENOS UNO de estos criterios:
+${criteriosSection}
+
+Si la noticia no menciona nada relevante, es_relevante = false y devuelve arrays vacíos.
+${terminologiaSection}${exclusionesSection}
+## LAS 8 PREGUNTAS FUNDAMENTALES
+
+Debes intentar responder estas preguntas a partir del texto:
+${preguntasSection}
+
+## INTENCIÓN DEL MEDIO (dimensión independiente del tratamiento)
+Clasifica QUÉ BUSCA EL MEDIO al publicar esta nota (no cómo trata al actor):
+- informativa: busca informar sobre un hecho/evento, sin tomar posición
+- opinion: publica posición editorial, columna o análisis valorativo
+- critica: busca cuestionar, denunciar o generar descrédito
+- elogiosa: busca resaltar positivamente, promocionar o legitimar
+- reactiva: responde a declaración/acusación/publicación previa de otro medio o actor
+- sin_intencion: no se puede determinar o el texto es insuficiente
+
+La intención y el tratamiento son dimensiones INDEPENDIENTES: una nota puede ser informativa (intención) pero con tratamiento crítico, o puede ser elogiosa (intención) con tratamiento informativo.
+
+## REGLAS PARA LEGISLADORES
+- Incluir legisladores que estén en la lista proporcionada usando su ID exacto
+- persona_id debe ser EXACTAMENTE el ID proporcionado en la lista
+- cita debe ser un fragmento textual REAL del artículo (no inventado)
+- contexto debe resumir en qué contexto aparece el legislador
+- Máximo 5 legisladores por artículo
+- Usa el campo cargo_directiva de la lista como contexto de desambiguación
+- ANTI FALSO POSITIVO POR APELLIDO (REGLA CRÍTICA): NUNCA asignes un legislador de la lista basándote SOLO en la coincidencia parcial de un apellido. Esta es la causa #1 de errores.
+  - Para asignar un legislador, se requiere AL MENOS UNA de estas condiciones:
+    a) El NOMBRE COMPLETO del legislador aparece en el texto (ej: "Gary Rodríguez" coincide con "Gary Rodríguez" en la lista)
+    b) El NOMBRE DE PILA + APELLIDO coinciden exactamente (no solo el apellido)
+    c) El texto indica UN CARGO LEGISLATIVO BOLIVIANO asociado al apellido (ej: "el Senador Rodríguez presentó un proyecto", "la Diputada Rodríguez integró la Comisión")
+  - NUNCA asignes un legislador si la persona mencionada tiene un cargo de OTRO PAÍS (ej: "Presidenta de Venezuela", "Ministro de Colombia", "Alcalde de Lima"). Las personas con cargos extranjeros NO son legisladores bolivianos.
+  - EJEMPLOS DE FALSO POSITIVO PROHIBIDOS:
+    * "Delcy Rodríguez, Presidenta de Venezuela" → NO es la legisladora boliviana con apellido Rodríguez. Es una figura extranjera.
+    * "Walter Flores, secretario de Gobernabilidad" y "Roy Ordóñez, director Jurídico" → NO son el legislador "Marcelino Flores Ordoñez"
+    * "Juan Rodríguez, empresario" → NO es el diputado "Gary Rodríguez" a menos que el texto diga explícitamente "el diputado Gary Rodríguez"
+  - Si hay duda, NO asignes. Es mejor omitir un legislador que asignar uno incorrectamente.
+
