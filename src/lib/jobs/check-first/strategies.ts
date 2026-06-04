@@ -201,7 +201,17 @@ export async function checkFuente(fuenteId: string): Promise<CheckResult & {
     }
   }
 
-  const tipoCheckActual = (fuente.tipoCheck || detectarTipoCheck(fuente.url)) as TipoCheck
+  let tipoCheckActual = (fuente.tipoCheck || detectarTipoCheck(fuente.url)) as TipoCheck
+
+  // Sanitizar tipoCheck inválido (ej. legacy 'zai') → auto-detectar desde URL
+  // Sin esto, un tipoCheck inválido causa fallo instantáneo y rotación innecesaria
+  if (!STRATEGY_ORDER.includes(tipoCheckActual)) {
+    const detected = detectarTipoCheck(fuente.url)
+    console.warn(
+      `[CheckFirst] ${fuente.Medio.nombre}: tipoCheck inválido "${tipoCheckActual}" → auto-detectando "${detected}"`,
+    )
+    tipoCheckActual = detected
+  }
   const url = fuente.url
   const estrategiasProbadas: Array<{ estrategia: TipoCheck; exito: boolean; detalle: string }> = []
 

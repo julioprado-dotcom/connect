@@ -362,6 +362,27 @@ export async function evaluarDegradacionMasiva(): Promise<{
       })
     }
 
+    // ── Reactivación: fuentes inactivas con evidencia reciente de funcionamiento ──
+    // Si una fuente fue marcada 'inactiva' pero tiene un check OK reciente
+    // (dentro del umbral de frescura), reactivarla. Esto resuelve el ciclo
+    // donde scheduler solo chequea 'activa' → fuentes nunca se recuperan.
+    if (
+      !degradacion.degradada &&
+      fuente.estado === 'inactiva' &&
+      fuente.ultimoCheckOk &&
+      Date.now() - fuente.ultimoCheckOk.getTime() < UMBRALES.CHECK_OK_FRESHNESS_MS
+    ) {
+      updates.estado = 'activa'
+      updates.activo = true
+      updates.fallosConsecutivos = 0
+      reactivedas++
+      detalles.push({
+        fuenteId: fuente.id,
+        nombre: fuente.Medio.nombre,
+        accion: 'Reactivada (check OK reciente)',
+      })
+    }
+
     // Actualizar capa en DB (siempre)
     if (nuevaCapa !== (fuente.capaActual as CapaFuente)) {
       updates.capaActual = nuevaCapa
@@ -376,8 +397,8 @@ export async function evaluarDegradacionMasiva(): Promise<{
     }
   }
 
-  if (degradadas > 0) {
-    console.log(`[Lifecycle] Evaluación masiva: ${degradadas}/${fuentes.length} fuentes degradadas`)
+  if (degradadas > 0 || reactivedas > 0) {
+    console.log(`[Lifecycle] Evaluación masiva: ${degradadas} degradadas, ${reactivedas} reactivadas de ${fuentes.length} fuentes`)
   }
 
   return { evaluadas: fuentes.length, degradadas, reactivedas, detalles }
