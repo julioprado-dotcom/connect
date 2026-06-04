@@ -32,29 +32,6 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
     return { success: false, error: 'generar_boletin requiere tipoBoletin o tipoProducto en el payload' }
   }
 
-  // ═══ FIX 3: Lock por producto — evitar duplicacion de Reportes ═══
-  // Verificar si ya existe un job del mismo producto en progreso.
-  // El worker es secuencial, pero el orphan reclaim puede resetear jobs,
-  // y la cola puede tener multiples jobs del mismo tipo si se encolaron
-  // antes del fix de dedup.
-  try {
-    const conflictingJob = await db.job.findFirst({
-      where: {
-        tipo: 'generar_boletin',
-        estado: 'en_progreso',
-        payload: { contains: tipoBoletin },
-      },
-    })
-    if (conflictingJob) {
-      console.warn(`[generar_boletin] LOCK: Ya existe job ${conflictingJob.id} en progreso para ${tipoBoletin}. Abortando este job para evitar duplicado.`)
-      return {
-        success: false,
-        error: `LOCK: Ya se esta generando ${tipoBoletin} (job ${conflictingJob.id}). Abortando para evitar duplicado.`,
-      }
-    }
-  } catch {
-    // No bloquear si la query falla
-  }
 
   const startTime = Date.now()
 

@@ -15,13 +15,14 @@ module.exports = {
     // ═══════════════════════════════════════════════════
     {
       name: 'decodex-web',
+      exec_mode: 'fork',
       script: 'npm',
       args: 'start',
       cwd: __dirname,
       instances: 1,
       autorestart: true,
       watch: false,
-      max_memory_restart: '600M',
+      max_memory_restart: '900M',
       env: {
         NODE_ENV: 'production',
       },
@@ -39,6 +40,8 @@ module.exports = {
       script: 'npx',
       args: 'tsx worker-service.ts',
       cwd: __dirname,
+      exec_mode: 'fork',
+      exec_mode: 'fork',
       exec_mode: 'fork',
       instances: 1,
       autorestart: true,
@@ -62,6 +65,8 @@ module.exports = {
       script: 'npx',
       args: 'tsx scheduler-service.ts',
       cwd: __dirname,
+      exec_mode: 'fork',
+      exec_mode: 'fork',
       exec_mode: 'fork',
       instances: 1,
       autorestart: true,
