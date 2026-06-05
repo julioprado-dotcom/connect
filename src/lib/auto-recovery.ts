@@ -308,7 +308,7 @@ export async function seedMarcoConceptual(): Promise<boolean> {
     const criteriosRelevancia = {
       es_relevante_si: [
         "Menciona a una Persona activa en el sistema (legislador, autoridad)",
-        "Se refiere a un EjeTematico activo con al menos 2 keywords coincidentes",
+        "Se refiere a un EjeTematico activo con al menos 1 keyword coincidente",
         "Contiene datos cuantitativos (porcentajes, montos, fechas de eventos)",
         "Es opinión editorial o columna de un medio monitoreado",
         "Genera reacción política verificable (rechazo, apoyo, convocatoria)"

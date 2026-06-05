@@ -255,12 +255,19 @@ export async function extraerMencionesDeTexto(
       indicadoresSection += '\n';
     }
 
-    // 7. Truncar texto si es muy largo (max ~12000 chars para el LLM)
-    // FIX: Aumentado de 4000 a 12000 — artículos bolivianos típicos tienen 8000-15000 chars.
-    // Con 4000 se perdían menciones en la segunda mitad del artículo.
-    const textoTruncado = texto.length > 12000
-      ? texto.substring(0, 12000) + '...'
-      : texto;
+    // 7. Limpiar whitespace excesivo antes de enviar al LLM
+    // FIX: E-Papers y medios con HTML mal limpio generan cientos de líneas vacías
+    // que confunden al LLM y desperdician tokens. Collapse a max 2 newlines consecutivos.
+    const textoLimpio = texto
+      .replace(/\n{3,}/g, '\n\n')  // Collapse 3+ newlines → 2
+      .replace(/[^\S\n]+/g, ' ')     // Collapse multiple spaces/tabs → 1 space
+      .replace(/^ +| +$/gm, '')     // Trim leading/trailing spaces per line
+      .trim();
+
+    // 7b. Truncar texto si es muy largo (max ~12000 chars para el LLM)
+    const textoTruncado = textoLimpio.length > 12000
+      ? textoLimpio.substring(0, 12000) + '...'
+      : textoLimpio;
 
     // 8. Construir prompt del usuario
     let userContent = `LEGISLADORES MONITOREADOS:\n${listaLegisladores}\n\n`;

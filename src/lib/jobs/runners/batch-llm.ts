@@ -157,6 +157,24 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
               },
             })
 
+            // FIX: Log LLM response for debugging descartadas (batch-llm no registraba antes)
+            if (menciones === 0) {
+              registrarRechazo({
+                medioId,
+                url: nota.url,
+                titulo: nota.titulo,
+                texto: nota.texto.substring(0, 500),
+                motivo: 'es_relevante_false',
+                respuestaLLM: JSON.stringify(resultado).substring(0, 500),
+                resultado: {
+                  es_relevante: resultado.es_relevante,
+                  tratamientoPeriodistico: resultado.tratamientoPeriodistico,
+                  sentimiento_general: resultado.sentimiento_general,
+                  confianzaClasificacion: resultado.confianzaClasificacion,
+                },
+              }).catch(() => {}) // Non-critical — no bloquear el batch
+            }
+
             procesada = true
             break // Salir del loop de reintentos
           } catch (err: unknown) {
