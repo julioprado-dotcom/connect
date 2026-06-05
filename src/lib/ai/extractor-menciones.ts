@@ -794,16 +794,22 @@ export async function crearMencionesExtraidas(
   titulo: string,
   fechas?: { fechaCaptura?: Date; fechaClasificacion?: Date },
   textoOriginal?: string,
+  notaRawId?: string,
 ): Promise<number> {
   if (!resultado.es_relevante) return 0;
 
   // ──────────────────────────────────────────────
   // DEDUP CAPA 0: Verificar NotaRaw pendiente con misma URL (evitar reprocesamiento)
+  // FIX: Excluir notaRawId para no auto-bloquear la nota que se está procesando
   // ──────────────────────────────────────────────
   try {
     if (url && url.length > 5) {
       const notaPendiente = await db.notaRaw.findFirst({
-        where: { url, procesada: false },
+        where: { 
+          url, 
+          procesada: false,
+          ...(notaRawId ? { id: { not: notaRawId } } : {}),
+        },
         select: { id: true },
       });
       if (notaPendiente) {

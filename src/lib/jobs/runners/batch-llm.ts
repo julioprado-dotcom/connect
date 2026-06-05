@@ -152,6 +152,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
               resultado, medioId, nota.url, nota.titulo,
               { fechaCaptura: nota.fechaCaptura, fechaClasificacion: new Date() },
               nota.texto, // texto original completo de NotaRaw
+              nota.id,   // FIX: pasar notaRawId para excluir del DEDUP CAPA 0
             )
 
             // Actualizar mencionesCreadas y descartada
@@ -164,13 +165,15 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
             })
 
             // FIX: Log LLM response for debugging descartadas (batch-llm no registraba antes)
+            // FIX: Determinar motivo correcto — si LLM dijo relevante pero menciones=0, es dedup
             if (menciones === 0) {
+              const motivo = resultado.es_relevante ? 'duplicado' : 'es_relevante_false'
               registrarRechazo({
                 medioId,
                 url: nota.url,
                 titulo: nota.titulo,
                 texto: nota.texto.substring(0, 500),
-                motivo: 'es_relevante_false',
+                motivo,
                 respuestaLLM: JSON.stringify(resultado).substring(0, 500),
                 resultado: {
                   es_relevante: resultado.es_relevante,
