@@ -1,12 +1,30 @@
 # Z.ai Sandbox / Runtime
 .zscripts/
-worklog.md
-# download/ — ignore everything except productos/ and docs (generated PDFs go to GitHub)
+worklog*.md
+HANDOFF*.md
+agent-ctx/
+
+# download/ — ignore everything except productos/
 download/*
 !download/productos/
 download/productos/*
 !download/productos/semana-*/
-!download/MANIFIESTO-INSTALACION-VPS.md
+
+# docs/ — internal documentation, never tracked
+docs/
+documents/
+upload/*.md
+upload/*.pdf
+upload/*.docx
+upload/*.txt
+
+# Root-level documentation (not code)
+CONTEXTO.md
+SETUP_IA.md
+PROTOCOLO_GIT.md
+README-SETUP.md
+decodex-audit.txt
+decodex-docs.txt
 node_modules/
 
 # ─── Base de datos (NUNCA trackear) ──────────────────────────
@@ -27,9 +45,6 @@ prisma/db/custom.db.sin-*
 prisma/db/custom.db.vacio
 
 # Sensitive / session files
-HANDOFF.md
-worklog_backup.md
-worklog-session2.md
 agent-ctx/
 
 # Environment
