@@ -83,3 +83,22 @@ DIAGNOSIS:
 - 19 fuentes inactivas necesitan reset de fallosConsecutivos
 - "tipo_desconocido: zai" es un bug en strategy resolution
 - CapturaLog no registra checks nuevos — probablemente código no actualizado en VPS
+---
+Task ID: 6
+Agent: Main Agent
+Task: Generar documento de arquitectura de ejes temáticos DECODEX
+
+Work Log:
+- Leí worklog.md, ESTANDAR_PRODUCTOS.md, BLOQUE-INSTRUCCIONES-EJES-V2.md, REPORTE-EJES-V2.md para contexto
+- Invoqué skill docx, leí routes/create.md, references/design-system.md, references/common-rules.md, references/toc.md
+- Escribí script generate-axes-doc.js con paleta DS-1 (Deep Sea), receta R1, 8 secciones principales
+- Generé documento DOCX con portada, índice TOC, y contenido completo
+- Corregí error en makeTable (lastDataRow.root undefined)
+- Ejecuté postcheck.py → 8/9 pass (1 warning menor)
+- Ejecuté add_toc_placeholders.py → fijó outlineLvl y updateFields
+- Re-ejecuté postcheck.py → 8/9 pass, 0 errores
+
+Stage Summary:
+- Documento generado: /home/z/my-project/download/DECODEX-Arquitectura-Ejes-Tematicos.docx
+- 8 secciones: Diagnóstico, Principios Epistemológicos, Modelo Multi-Eje, Tabla Maestra de Ejes (12 dominios), Lentes Transversales, Modelo de Datos, Impacto en Productos, Ruta de Implementación
+- Integra todas las correcciones epistemológicas discutidas en la sesión
