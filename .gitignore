@@ -120,3 +120,7 @@ data/erbol_*.json
 data/boliviaverifica_*.json
 data/electos_*.json
 data/electos_2025_text.txt
+
+# Heavy files to never track
+backups/archives/
+logs/
