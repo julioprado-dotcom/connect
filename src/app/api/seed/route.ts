@@ -25,6 +25,21 @@ function validateSeedKey(request: Request): boolean {
 // 12 Dominios Estructurales — DECODEX ONION200 v2
 // Cada dominio = eje raíz con tipo:'estructural'. Hijos (subtemas) se crean por separado.
 // Regla: separar sujetos de acciones, nunca criminalizar la acción colectiva.
+
+// 9 Lentes Transversales — DECODEX ONION200 v2
+// Cada lente es una perspectiva analítica que cruza dominios.
+// Se almacenan en tabla Lente con Keywords vinculadas via Keyword.lenteId.
+const LENTES_TRANSVERSALES = [
+  { nombre: 'Movilización Social', slug: 'movilizacion-social', descripcion: 'Bloqueos, marchas, huelgas, paros, cabildos, tomas, picketes y toda forma de acción colectiva de presión social. REGLA: determinar el MOTIVO de la movilización para asignar eje temático correcto.', keywords: ['bloqueo', 'marcha', 'huelga', 'paro', 'cabildo', 'toma', 'pickete', 'movilización', 'movilizacion', 'protesta', 'paro nacional', 'paro departamental', 'paro municipal', 'paro de transporte', 'medidas de presión', 'medida de presión', 'conflicto social', 'choque', 'enfrentamiento', 'vía', 'carrera', 'carretera', 'trancas', 'puntos de bloqueo', 'punto de bloqueo', 'corte de ruta', 'almohadazo', 'piquete', 'vigilia', 'huelga de hambre', 'manifestación', 'manifestacion', 'concentración', 'concentracion', 'multitudinaria', 'derechos humanos', 'represión', 'represion', 'desalojo', 'gases lacrimógenos', 'antimotín', 'gendarmería', 'policía', 'policia', 'detención', 'detencion', 'libertad', 'reivindicación', 'reivindicacion'] },
+  { nombre: 'Hidrocarburos', slug: 'hidrocarburos', descripcion: 'Perspectiva transversal de la cadena hidrocarburífera: producción, refinación, importación, comercialización, precios, subsidios, YPFB, contratos internacionales.', keywords: ['hidrocarburos', 'hidrocarburo', 'petróleo', 'petroleo', 'gasolina', 'diésel', 'diesel', 'glp', 'gas natural', 'combustible', 'combustibles', 'ypfb', 'yacimientos', 'refinería', 'refineria', 'gualberto villarroel', 'palmasola', 'subsidio', 'subsidio a combustibles', 'desabastecimiento', 'abastecimiento', 'escasez', 'colas', 'fila', 'precio paralelo', 'sobreprecio', 'contrabando de combustibles', 'electropaz', 'elfec', 'cre', 'enda', 'generación eléctrica', 'generacion electrica', 'apagón', 'racionamiento', 'tarifa eléctrica', 'importación de combustibles', 'importacion de combustibles', 'anh', 'anm'] },
+  { nombre: 'Medio Ambiente', slug: 'medio-ambiente', descripcion: 'Perspectiva ambiental que cruza todos los dominios: deforestación, contaminación, cambio climático, biodiversidad, áreas protegidas, sistemas de vida.', keywords: ['medio ambiente', 'deforestación', 'deforestacion', 'incendios forestales', 'biodiversidad', 'parque nacional', 'madidi', 'contaminación', 'contaminacion', 'cambio climático', 'cambio climatico', 'sequía', 'sequia', 'pilcomayo', 'residuos', 'sostenibilidad', 'desarrollo sostenible', 'pachamama', 'glaciar', 'deshielo', 'agua', 'rio', 'río', 'lago titicaca', 'lago poopó', 'emisiones', 'huella de carbono', 'efecto invernadero', 'chiquitanía', 'amazonía', 'amazonia', 'conservación', 'conservacion'] },
+  { nombre: 'Corrupción e Impunidad', slug: 'corrupcion-impunidad', descripcion: 'Perspectiva transversal de corrupción: casos, lavado de dinero, nepotismo, soborno, coima, tráfico de influencias, impunidad, extinción de dominio.', keywords: ['corrupción', 'corrupcion', 'peculado', 'soborno', 'coima', 'cohecho', 'enriquecimiento ilícito', 'enriquecimiento ilicito', 'nepotismo', 'tráfico de influencias', 'trafico de influencias', 'impunidad', 'lavado de dinero', 'extinción de dominio', 'extincion de dominio', 'incautación', 'incautacion', 'desvío de fondos', 'desvio de fondos', 'desvío de recursos', 'fraude', 'estafa', 'malversación', 'malversacion', 'sobreprecio', 'irregularidad', 'denuncia de corrupción', 'anticorrupción', 'asfi', 'felcc', 'caso', 'investigación', 'investigacion'] },
+  { nombre: 'Género y Diversidad', slug: 'genero-diversidad', descripcion: 'Perspectiva de género y diversidad que cruza todos los dominios: feminicidio, violencia de género, brecha salarial, LGBTIQ+, participación política de mujeres.', keywords: ['género', 'genero', 'feminicidio', 'violencia de género', 'violencia contra la mujer', 'acoso sexual', 'machismo', 'misoginia', 'brecha salarial', 'techo de cristal', 'ley 348', 'lgbtiq+', 'diversidad sexual', 'igualdad de género', 'igualdad de genero', 'mujer', 'mujeres', 'participación femenina', 'participacion femenina', 'cuota de género', 'aborto', 'derechos reproductivos', 'violencia intrafamiliar', 'violencia digital', 'ciberacoso', 'discriminación', 'discriminacion'] },
+  { nombre: 'Pueblos Indígenas', slug: 'pueblos-indigenas', descripcion: 'Perspectiva de pueblos indígenas y originarios: derechos colectivos, tierras comunitarias, autonomías indígenas, consulta previa, naciones originarias.', keywords: ['indígena', 'indigena', 'originario', 'tco', 'tierra comunitaria', 'autonomía indígena', 'autonomia indigena', 'consulta previa', 'consentimiento libre', 'charagua iyambae', 'pueblo originario', 'nación originaria', 'nacion originaria', 'qulla', 'aymara', 'guaraní', 'guarani', 'chiquitano', 'mojeño', 'trinitario', 'usos y costumbres', 'democracia comunitaria', 'justicia indígena', 'territorio indígena', 'derechos colectivos', 'cosmovisión', 'cosmovision', 'pachamama', 'buen vivir', 'vivir bien', 'suma qamaña'] },
+  { nombre: 'Café y Economías Regionales', slug: 'cafe-economias-regionales', descripcion: 'Perspectiva de economías regionales y productos específicos: café, coca, quinua, soya, ganadería, producción agroindustrial, comercio regional, cadenas productivas.', keywords: ['café', 'cafe', 'cacao', 'coca', 'quinua', 'quinoa', 'soya', 'ganadería', 'ganaderia', 'agroindustria', 'economía regional', 'economia regional', 'cadena productiva', 'comercio regional', 'exportación agropecuaria', 'exportacion agropecuaria', 'producción agrícola', 'produccion agricola', 'comercio justo', 'feria agropecuaria', 'yungas', 'caranavi', 'chapare', 'beniano', 'productor', 'agricultor', 'cooperativa agrícola', 'cooperativa agricola', 'certificación', 'certificacion', 'comercialización'] },
+  { nombre: 'Litio y Energía', slug: 'litio-energia', descripcion: 'Perspectiva transversal de litio y energías alternativas: YLB, salares, DLE, baterías, vehículos eléctricos, energía solar, eólica, hidrógeno verde, transición energética.', keywords: ['litio', 'ylb', 'salar de uyuni', 'salar de coipasa', 'dle', 'extracción directa de litio', 'evaporación', 'evaporacion', 'carbonato de litio', 'hidróxido de litio', 'batería', 'bateria', 'vehículo eléctrico', 'vehiculo electrico', 'energía solar', 'energia solar', 'parque solar', 'energía eólica', 'energia eolica', 'hidrógeno verde', 'hidrogeno verde', 'transición energética', 'transicion energetica', 'energía renovable', 'energia renovable', 'tierras raras', 'neodimio', 'allkem', 'livent', 'bcm', 'berkeley', 'pilas de combustible'] },
+  { nombre: 'Salud Pública', slug: 'salud-publica', descripcion: 'Perspectiva de salud pública que cruza dominios: servicios de salud, pandemias, vacunación, medicamentos, sistema de salud, MINSAL, cobertura, determinantes sociales de salud.', keywords: ['salud', 'hospital', 'medicamentos', 'mins', 'mins al', 'médicos', 'medicos', 'enfermeros', 'enfermeras', 'sistema de salud', 'vacunación', 'vacunacion', 'pandemia', 'covid', 'ebola', 'dengue', 'malaria', 'tuberculosis', 'cobertura de salud', 'seguro de salud', 'mi salud', 'salud pública', 'salud publica', 'emergencia sanitaria', 'colapso hospitalario', 'deficit de médicos', 'falta de medicinas', 'centro de salud', 'posta sanitaria', 'desnutrición', 'desnutricion', 'salud mental', 'epidemia'] },
+];
 const EJES_TEMATICOS = [
   // ─── Dominio 1: Hidrocarburos y Energía ───────────────────
   { nombre: 'Hidrocarburos y Energía', slug: 'hidrocarburos-energia', icono: '⛽', color: '#f59e0b', orden: 1, tipo: 'estructural', keywords: 'gas,petróleo,YPFB,litio,electricidad,subsidio,gasolina,diésel,hidrocarburo,regalías,Ley de Hidrocarburos,GNL,GLP,Gualberto Villarroel,Guaracachi,ENDE,megavatios,abastecimiento,desabastecimiento,colas,racionamiento,importación,combustible,adulterada,tarifa,geotermia,solar,eólica,hidroeléctrica,consumo eléctrico,apagón,generación térmica,generación hidroeléctrica,electropaz,elfec,cre,enda,energía renovable,energias alternativas,parque solar,parque eólico', descripcion: 'Gas domiciliario (GNL/GLP), gasolina adulterada, diesel y combustibles líquidos, abastecimiento y desabastecimiento, importación y comercio exterior, demanda y consumo, exportación de gas natural, energías alternativas' },
@@ -263,6 +278,56 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Mode: seed only lentes transversales (no wipe needed)
+    if (body.seed_only === 'lentes') {
+      const existingLentes = new Set(
+        (await db.lente.findMany({
+          where: { slug: { in: LENTES_TRANSVERSALES.map(l => l.slug) } },
+          select: { slug: true },
+        })).map(l => l.slug)
+      );
+
+      const lentesToCreate = LENTES_TRANSVERSALES.filter(l => !existingLentes.has(l.slug)).map(l => ({
+        id: crypto.randomUUID(),
+        nombre: l.nombre,
+        slug: l.slug,
+        descripcion: l.descripcion,
+        activo: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }));
+
+      let lentesCreated = 0;
+      if (lentesToCreate.length > 0) {
+        const result = await db.lente.createMany({ data: lentesToCreate, skipDuplicates: true });
+        lentesCreated = result.count;
+      }
+
+      // Create keywords for new lentes
+      const allLentesNow = await db.lente.findMany({ where: { activo: true }, select: { id: true, slug: true } });
+      const lenteBySlugNow = new Map(allLentesNow.map(l => [l.slug, l.id]));
+      const kwData: Array<{ id: string; termino: string; lenteId: string; activo: boolean; createdAt: Date; updatedAt: Date }> = [];
+      for (const lenteDef of LENTES_TRANSVERSALES) {
+        const lenteId = lenteBySlugNow.get(lenteDef.slug);
+        if (!lenteId) continue;
+        for (const kw of lenteDef.keywords) {
+          if (kw.trim().length >= 2) {
+            kwData.push({ id: crypto.randomUUID(), termino: kw.toLowerCase(), lenteId, activo: true, createdAt: new Date(), updatedAt: new Date() });
+          }
+        }
+      }
+      if (kwData.length > 0) {
+        await db.keyword.createMany({ data: kwData, skipDuplicates: true });
+      }
+
+      return NextResponse.json({
+        message: `Lentes: ${lentesCreated} creados, ${existingLentes.size} ya existían, ${kwData.length} keywords procesados`,
+        lentesCreated,
+        lentesExisting: existingLentes.size,
+        keywordsProcessed: kwData.length,
+      });
+    }
+
     if (existing > 0 && !force) {
       return NextResponse.json({
         message: 'Base de datos ya contiene datos. Usa { "force": true } para re-seed o { "seed_only": "subs" } para solo sub-clasificaciones.',
@@ -285,6 +350,8 @@ export async function POST(request: NextRequest) {
       await db.capturaLog.deleteMany();
       await db.persona.deleteMany();
       await db.medio.deleteMany();
+      await db.keyword.deleteMany(); // Clean keywords (depend on ejes/lentes)
+      await db.lente.deleteMany();      // Clean lentes
       await db.ejeTematico.deleteMany();
     }
 
@@ -349,6 +416,38 @@ export async function POST(request: NextRequest) {
     if (subKeywordData.length > 0) {
       await db.keyword.createMany({ data: subKeywordData, skipDuplicates: true });
       console.log(`Created ${subKeywordData.length} keyword records for sub-clasificaciones`);
+    }
+
+    // 1c. Seed 9 lentes transversales (DECODEX ONION200 v2)
+    console.log('Seeding lentes transversales...');
+    const lentesData = LENTES_TRANSVERSALES.map(l => ({
+      id: crypto.randomUUID(),
+      nombre: l.nombre,
+      slug: l.slug,
+      descripcion: l.descripcion,
+      activo: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }));
+    const lentesResult = await db.lente.createMany({ data: lentesData, skipDuplicates: true });
+    console.log(`Created ${lentesResult.count} lentes transversales`);
+
+    // Create Keyword records for lentes
+    const allLentes = await db.lente.findMany({ where: { activo: true }, select: { id: true, slug: true } });
+    const lenteBySlug = new Map(allLentes.map(l => [l.slug, l.id]));
+    const lenteKeywordData: Array<{ id: string; termino: string; lenteId: string; activo: boolean; createdAt: Date; updatedAt: Date }> = [];
+    for (const lenteDef of LENTES_TRANSVERSALES) {
+      const lenteId = lenteBySlug.get(lenteDef.slug);
+      if (!lenteId) continue;
+      for (const kw of lenteDef.keywords) {
+        if (kw.trim().length >= 2) {
+          lenteKeywordData.push({ id: crypto.randomUUID(), termino: kw.toLowerCase(), lenteId, activo: true, createdAt: new Date(), updatedAt: new Date() });
+        }
+      }
+    }
+    if (lenteKeywordData.length > 0) {
+      await db.keyword.createMany({ data: lenteKeywordData, skipDuplicates: true });
+      console.log(`Created ${lenteKeywordData.length} keyword records for lentes`);
     }
 
     // 2. Seed medios from medios.json (batch createMany)
@@ -465,15 +564,21 @@ export async function POST(request: NextRequest) {
 // GET para ver estado actual del seed
 export async function GET() {
   try {
-    const [personas, medios, ejes, menciones] = await Promise.all([
+    const [personas, medios, ejes, menciones, lentes, keywords] = await Promise.all([
       db.persona.count(),
       db.medio.count(),
       db.ejeTematico.count(),
       db.mencion.count(),
+      db.lente.count(),
+      db.keyword.count(),
     ]);
 
     const diputados = await db.persona.count({ where: { camara: 'Diputados' } });
     const senadores = await db.persona.count({ where: { camara: 'Senadores' } });
+
+    // Ejes estructurales vs legacy
+    const ejesEstructurales = await db.ejeTematico.count({ where: { tipo: 'estructural' } });
+    const ejesSub = await db.ejeTematico.count({ where: { parentId: { not: null } } });
 
     // Distribución por partido
     const personasPorPartido = await db.persona.groupBy({
@@ -496,6 +601,10 @@ export async function GET() {
       senadores,
       medios,
       ejes,
+      ejesEstructurales,
+      ejesSub,
+      lentes,
+      keywords,
       menciones,
       porPartido: personasPorPartido.map(p => ({ partido: p.partidoSigla, count: p._count.id })),
       porDepartamento: personasPorDepto.map(d => ({ departamento: d.departamento, count: d._count.id })),

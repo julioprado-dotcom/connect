@@ -139,3 +139,27 @@ Stage Summary:
 - db.ts path corrected for canonical DB location
 - Network issues with fetching Bolivian news sources (TLS/DNS) — infrastructure issue, not code
 - All code pushed to GitHub
+
+---
+Task ID: 1
+Agent: main
+Task: Alinear seed/route.ts con documento v2 + integrar 9 lentes transversales
+
+Work Log:
+- Audit completo: 3 versiones desconectadas encontradas (route.ts con 12 dominios v0.6.0, seed-ejes-v3.ts con 12 V3, documento v2 con 12 definitivos)
+- Confirmado que seed/route.ts YA tenía tipo:'estructural' en los 12 dominios (corregido en sesión anterior)
+- Confirmado que nombres de dominios coinciden con documento v2 del usuario
+- Confirmado Dominio 6 con nota epistemológica
+- Confirmado Dominio 10 con subtema "Magisterio, autonomía universitaria y presupuesto"
+- Integrados 9 lentes transversales (usuario definió como válidos): Movilización Social, Hidrocarburos, Medio Ambiente, Corrupción e Impunidad, Género y Diversidad, Pueblos Indígenas, Café y Economías Regionales, Litio y Energía, Salud Pública
+- Agregada constante LENTES_TRANSVERSALES con 9 lentes + keywords comprehensivos
+- Agregada lógica de seed para crear lentes en tabla Lente + Keyword records
+- Agregado modo seed_only:'lentes' para seed incremental sin borrar datos
+- Actualizada limpieza de tablas en force mode (keyword + lente antes de ejeTematico)
+- Actualizado GET handler para reportar lentes, keywords, ejesEstructurales, ejesSub
+
+Stage Summary:
+- seed/route.ts ahora tiene: 12 dominios (tipo:'estructural') + 73 sub-clasificaciones + 9 lentes transversales + keywords para todo
+- clasificador-v2.ts ya funciona: lee ejes WHERE tipo='estructural' + lentes WHERE activo=true, usa Keyword records
+- NOTA: Dominio 5 se mantiene como "Medio Ambiente y Territorio" (usuario anotó "sistemas de vida y territorio" pero no pidió cambio explícito)
+- NOTA: seed-ejes-v3.ts (scripts/) tiene una taxonomía V3 diferente con 11 lentes — se mantiene como script separado, no se integra al API seed
