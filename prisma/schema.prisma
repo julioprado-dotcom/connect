@@ -169,6 +169,7 @@ model EjeTematico {
   Keyword           Keyword[]
   Mencion           Mencion[]
   MencionTema       MencionTema[]
+  NotaEje           NotaEje[]  @relation("NotaEjeEje")
 
   @@index([activo])
   @@index([tipo, activo])
@@ -447,6 +448,7 @@ model Mencion {
   EjeTematico             EjeTematico?          @relation(fields: [ejeEstructuralId], references: [id], onDelete: SetNull)
   MencionLente            MencionLente[]
   MencionTema             MencionTema[]
+  NotaEje                 NotaEje[]
   mencion_cliente_eje     mencion_cliente_eje[]
 
   @@index([ejeEstructuralId])
@@ -792,6 +794,23 @@ model FuenteErrorLog {
   @@index([tipoError])
   @@index([fecha])
   @@index([resuelto])
+}
+
+/* ──── NotaEje: multi-eje classification with weights (forward-looking) ──── */
+model NotaEje {
+  id          String      @id @default(uuid())
+  mencionId   String
+  ejeId       String
+  peso        Float       @default(1.0)  // weight 0.0-1.0, threshold >= 0.5
+  createdAt   DateTime    @default(now())
+
+  Mencion     Mencion     @relation(fields: [mencionId], references: [id], onDelete: Cascade)
+  EjeTematico EjeTematico @relation("NotaEjeEje", fields: [ejeId], references: [id], onDelete: Cascade)
+
+  @@unique([mencionId, ejeId])
+  @@index([mencionId])
+  @@index([ejeId])
+  @@index([peso])
 }
 
 /* ──── Auditoría: registro de decisiones automáticas y manuales ──── */
