@@ -154,22 +154,6 @@
   },
   {
     "nivel": 2,
-    "nombre": "La Estrella",
-    "url": "",
-    "tipo": "Impreso",
-    "departamento": "Potosí",
-    "plataformas": "web,facebook"
-  },
-  {
-    "nivel": 2,
-    "nombre": "Norte de Potosí",
-    "url": "",
-    "tipo": "Digital",
-    "departamento": "Potosí",
-    "plataformas": "web,facebook"
-  },
-  {
-    "nivel": 2,
     "nombre": "El Día",
     "url": "https://eldia.com.bo",
     "tipo": "Digital",
@@ -186,7 +170,7 @@
   },
   {
     "nivel": 2,
-    "nombre": "Leo.bo",
+    "nombre": "La Estrella del Oriente (Leo.bo)",
     "url": "https://leo.bo",
     "tipo": "Digital",
     "departamento": "Santa Cruz",
@@ -239,13 +223,5 @@
     "tipo": "Portal",
     "plataformas": "web,facebook",
     "notas": "Movimientos sociales, perspectiva continental"
-  },
-  {
-    "nivel": 3,
-    "nombre": "La Lupa Bolivia",
-    "url": "",
-    "tipo": "Portal",
-    "plataformas": "web,facebook",
-    "notas": "Investigación, política"
   }
 ]

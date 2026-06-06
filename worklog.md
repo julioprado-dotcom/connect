@@ -17,3 +17,25 @@ Stage Summary:
 - Clasificador V3 listo para procesar notas con pesos
 - Ejes legacy conservados para backward compatibility
 - Pendiente: actualizar seed/route.ts de la app, El Especializado endpoint, prompt extractor LLM, URLs faltantes
+---
+Task ID: 1
+Agent: main
+Task: Actualizar fuentes de noticias (medios.json + scripts)
+
+Work Log:
+- Analyzed medios.json (25 medios → 30 after previous additions)
+- Removed "La Estrella" (duplicate of Leo.bo = La Estrella del Oriente)
+- Removed "Norte de Potosí" (duplicate of El Potosí)
+- Removed "La Lupa Bolivia" (sin URL, eliminada por indicación del usuario)
+- Renamed "Leo.bo" to "La Estrella del Oriente (Leo.bo)" with URL https://leo.bo
+- Verified "El Día" already included at eldia.com.bo ✅
+- Updated FUENTES_OLA1 in src/app/api/productos/route.ts
+- Updated scrape-all-13.ts, scrape-medios-corregidos.ts, scrape-test-medios.ts
+- Updated fix-urls-verificadas.ts with comment
+- Final count: 30 medios (15 nivel 1, 10 nivel 2, 5 nivel 3)
+
+Stage Summary:
+- data/medios.json: 30 medios, 3 eliminados, 1 renombrado
+- All scripts updated to use "La Estrella del Oriente" name
+- FUENTES_OLA1 in productos/route.ts synchronized
+- NOTE: DB still has old entries (La Estrella, Norte de Potosí, La Lupa Bolivia, Leo.bo) — will be cleaned on next re-seed
