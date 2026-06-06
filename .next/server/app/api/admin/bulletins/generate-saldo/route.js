@@ -1,6 +1,6 @@
 var R=require("../../../../../chunks/[turbopack]_runtime.js")("server/app/api/admin/bulletins/generate-saldo/route.js")
 R.c("server/chunks/src_constants_products_ts_0a~osz4._.js")
-R.c("server/chunks/[root-of-the-server]__034mea_._.js")
+R.c("server/chunks/[root-of-the-server]__03gcyt5._.js")
 R.c("server/chunks/src_lib_validations_ts_0qiwmr2._.js")
 R.c("server/chunks/[root-of-the-server]__0e6esfj._.js")
 R.c("server/chunks/node_modules_next_0e1cmes._.js")

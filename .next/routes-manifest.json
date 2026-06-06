@@ -317,6 +317,12 @@
       "namedRegex": "^/api/admin/bulletins/generate\\-boletin\\-grano(?:/)?$"
     },
     {
+      "page": "/api/admin/bulletins/generate-especializado",
+      "regex": "^/api/admin/bulletins/generate\\-especializado(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/bulletins/generate\\-especializado(?:/)?$"
+    },
+    {
       "page": "/api/admin/bulletins/generate-ficha",
       "regex": "^/api/admin/bulletins/generate\\-ficha(?:/)?$",
       "routeKeys": {},
