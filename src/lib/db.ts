@@ -9,8 +9,13 @@ const globalForPrisma = globalThis as unknown as {
 // Está en .gitignore — git nunca la toca.
 // db.ts es el SINGLE SOURCE OF TRUTH para la ruta de la BD.
 // Todos los scripts y el runtime usan esta misma ruta absoluta.
+//
+// FIX: La ruta original apuntaba a 'db/custom.db' (raíz del proyecto) pero
+// la BD real está en 'prisma/db/custom.db'. Esto causaba SQLITE_CANTOPEN
+// en el worker y scheduler (crash loop 432 reinicios). vps-deploy.sh
+// ya usaba la ruta correcta ('prisma/db/custom.db') para prisma db push.
 const PROJECT_ROOT = process.cwd();
-const CANONICAL_DB_PATH = PROJECT_ROOT + '/db/custom.db';
+const CANONICAL_DB_PATH = PROJECT_ROOT + '/prisma/db/custom.db';
 // Sobrescribir process.env para que PrismaClient use la ruta correcta
 process.env.DATABASE_URL = `file:${CANONICAL_DB_PATH}`;
 

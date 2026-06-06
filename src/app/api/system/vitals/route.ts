@@ -87,8 +87,14 @@ function getProcessMemory() {
 
 function getDbSize() {
   try {
+    // FIX: Candidates en orden de prioridad.
+    // 1. DATABASE_URL (ya corregido en db.ts a prisma/db/custom.db)
+    // 2. Ruta canónica prisma/db/custom.db (VPS deploy)
+    // 3. Ruta legacy db/custom.db (compatibilidad)
+    // 4. Ruta dev prisma/dev.db (entorno local)
     const candidates = [
       process.env.DATABASE_URL?.replace('file:', '') || '',
+      path.join(process.cwd(), 'prisma', 'db', 'custom.db'),
       path.join(process.cwd(), 'db', 'custom.db'),
       path.join(process.cwd(), 'prisma', 'dev.db'),
     ];
