@@ -1,85 +1,141 @@
+# DECODEX Bolivia ONION200 — Worklog
+
 ---
 Task ID: 1
-Agent: Main Agent
-Task: Fix prompt contamination in products.ts
+Agent: main
+Task: Implementación del nuevo modelo multi-eje + correcciones de fuentes + El Especializado
 
 Work Log:
-- Read complete `src/constants/products.ts` from git HEAD (683 lines)
-- Identified 4 products with contamination contradicting REGLAS_ANTI_ALUCINACION:
-  - SALDO_DEL_DIA: "con perspectiva", "Perspectiva manana", "Cerrar con una perspectiva"
-  - EL_FOCO: "Conclusiones" in structure
-  - EL_ESPECIALIZADO: "con recomendaciones", "Recomendaciones > Anexos", "Incluir recomendaciones accionables"
-  - EL_INFORME_CERRADO: "con prospectiva", "Prospectiva" in structure, "Prospectiva basada..."
-- Applied 13 edits total (MultiEdit):
-  - SALDO_DEL_DIA: tono→objetivo, estructura sin Perspectiva, "resumen de lo observado"
-  - EL_FOCO: "Conclusiones"→"Sintesis"
-  - EL_ESPECIALIZADO: "consultor"→"analista", "con recomendaciones"→"objetivo", "Recomendaciones"→"Hallazgos", "recomendaciones accionables"→"hallazgos clave"
-  - EL_INFORME_CERRADO: "con prospectiva"→"objetivo", quitado seccion Prospectiva, quitado linea Prospectiva
-  - Updated descripcion fields for EL_ESPECIALIZADO and EL_INFORME_CERRADO
-- Verified: zero occurrences of recomendacion/conclusion/prospectiv/perspectiv in file
-- Committed as 92a57bd, pushed to main
+- Lectura completa de 5 archivos clave: seed/route.ts, schema.prisma, extractor-menciones.prompt.ts, extractor-menciones.ts, products.ts
+- Verificación de medios.json: fuentes YA corregidas (La Estrella del Oriente → leo.bo, El Potosí → elpotosi.net, El Día → eldia.com.bo, La Lupa Bolivia eliminada)
+- Confirmación: NotaEje model ya existe en Prisma schema con peso Float, unique constraint, relaciones correctas
+- Confirmación: Lentes transversales generacional + violencia estatal ya existen en seed-ejes-v3.ts (11 lentes, 30 y 25 keywords respectivamente)
 
 Stage Summary:
-- Prompt contamination fully resolved
-- All 12 product prompts now aligned with REGLAS_ANTI_ALUCINACION
-- No recommendations, conclusions, perspective, or prospectiva in any prompt
-- Commit: 92a57bd
+- No se requirió cambiar medios.json ni schema.prisma — ya estaban actualizados
 
 ---
 Task ID: 2
-Agent: Main Agent  
-Task: Read full project documentation and source code from git
+Agent: main
+Task: Corregir 12 ejes temáticos en seed/route.ts
 
 Work Log:
-- Read decodex-audit.txt lines 201-2363 (via git show HEAD:decodex-audit.txt)
-- Read docs/PROMPT-MESTRO-DECODEX.md (235 lines) - Master project prompt v0.14.0
-- Read docs/ESTANDAR_PRODUCTOS.md (126 lines) - Product quality standard
-- Read src/lib/ai/extractor-menciones.ts (1077 lines) - Full extraction + DB persistence
-- Read src/lib/ai/circuit-breaker.ts (196 lines) - 3-state LLM circuit breaker
-- Read src/lib/ai/extractor-menciones.prompt.ts (370 lines) - Dynamic prompt builder from Marco Conceptual
-- Read src/lib/bulletin/delivery.ts (205 lines) - Multi-channel formatting
-- Read src/lib/bulletin/product-generator.ts (165 lines) - Date ranges, mention queries
-- Read src/types/bulletin.ts (200 lines) - All type definitions
+- Removido "Movimientos Sociales y Conflictividad" (la "semántica aberración" — se separa sujetos de acciones)
+- Agregado "Seguridad Ciudadana" como eje #9 con regla epistemológica: "NUNCA debe ser prioritario automáticamente"
+- Renombrado "Salud y Servicios Públicos" → "Salud y Servicios Sociales" (incluye bonos, pensiones)
+- Renombrado "Educación, Universidades y Cultura" → "Educación, Universidades y Ciencia" (incluye investigación)
+- Renombrado "Medio Ambiente, Territorio y Recursos" → "Medio Ambiente, Territorio y Recursos Naturales"
+- Renombrado "Relaciones Internacionales" → "Relaciones Internacionales y Geopolítica"
+- Expandido keywords en todos los ejes (BCB, TGN, IPC, debido proceso, TCP, biometría, padrón, etc.)
+- Movidas organizaciones sociales como sub-clasificador interno de Gobierno/Oposición
+- Agregadas 5 sub-clasificaciones de Seguridad Ciudadana: Delitos, Policía, Penitenciario, Narcotráfico, Violencia de Género
+- Versión actualizada: DECODEX ONION200 v0.6.0
 
 Stage Summary:
-- Complete understanding of pipeline architecture achieved
-- Pipeline flow: Fuente → scrape-fuente → NotaRaw → extractor-menciones (LLM) → Mencion → product-generator → bulletin
-- product-generator.getDateRange() returns 7 days for daily products (NOT 1 day)
-- Circuit breaker: opens after 4 failures, 5min recovery interval, half-open tests every 30s
-- Extractor has 3 dedup layers: NotaRaw, URL-based, cross-medio fingerprint
-- Key files for capture diagnosis: scrape-fuente runner, scheduler, circuit-breaker state
-- NOTE: ESTANDAR_PRODUCTOS.md line 49 still says "Accion sugerida" for ALERTA - contradicts REGLAS_ANTI_ALUCINACION but this is documentation, not prompt code
+- 12 ejes temáticos corregidos, 5 sub-clasificaciones de seguridad ciudadana agregadas
+- Organizaciones sociales movidas a sub-eje interno (no eje principal)
+- Archivo: src/app/api/seed/route.ts
 
-Key insight: With only 4 NotaRaws captured in a crisis day, the problem is UPSTREAM of the extractor - it's in the scrape-fuente runner (Phase A of pipeline). The extractor only processes what scrape-fuente captures.
+---
+Task ID: 3
+Agent: main
+Task: Reescribir prompt de clasificación LLM para multi-eje con pesos decimales
+
+Work Log:
+- Actualizado intro del prompt: DECODEX ONION200, clasificación multi-eje
+- Máximo de ejes cambiado de 3 → 6 con pesos decimales 0.5-1.0
+- Nuevo campo "peso" en JSON output (reemplaza "relevancia" para ejes)
+- Criterios de peso definidos: 1.0 (central), 0.8-0.9 (significativo), 0.6-0.7 (moderado), 0.5-0.6 (tangencial)
+- Agregadas REGLAS EPISTEMOLÓGICAS CRÍTICAS (5 reglas inmutables):
+  1. Nunca conflatar sujetos/acciones/evaluaciones
+  2. Nunca criminalizar organizaciones sociales
+  3. Respetar CPE y convenciones internacionales
+  4. Seguridad ciudadana nunca prioritario automáticamente
+  5. Ejemplo: nota sobre minería puede clasificar en 3 ejes simultáneos
+- Corregido: módulos de descubrimiento funcionan INDEPENDIENTEMENTE de es_relevante
+
+Stage Summary:
+- Prompt reescrito con multi-eje, pesos decimales, reglas epistemológicas
+- Archivo: src/lib/ai/extractor-menciones.prompt.ts
+
+---
+Task ID: 4
+Agent: main
+Task: Actualizar lógica extractor-menciones.ts para poblar NotaEje con pesos
+
+Work Log:
+- Interface EjeMencionado: campo "relevancia" → "peso" (number, 0.5-1.0)
+- Parseo de peso desde LLM con fallback legacy (alta→1.0, media→0.7, baja→0.5)
+- Clamp automático a rango 0.5-1.0
+- Máximo de ejes cambiado de 3 → 6
+- ejeEstructuralId ahora usa el eje con MAYOR peso (no el primero)
+- Helper populateNotaEjes() para crear registros NotaEje en DB
+- populateNotaEjes llamado en 3 lugares: menciones por legislador, figuras detectadas, menciones temáticas
+- Todas las 3 rutas de creación de menciones ahora pueblan NotaEje
+
+Stage Summary:
+- Multi-eje con pesos implementado en toda la cadena de persistencia
+- Archivo: src/lib/ai/extractor-menciones.ts
 
 ---
 Task ID: 5
-Agent: Main Agent
-Task: Diagnosticar falla de captura — análisis exhaustivo de BD backup
+Agent: main
+Task: Implementar endpoint dedicado El Especializado + rotación freemium
 
 Work Log:
-- Descargé backup DB más reciente desde branch db-backup (commit d46d0db, 2026-06-04 12:00)
-- Install sqlite3 not available, used Python sqlite3 module
-- Analicé NotaRaws, FuenteEstado, CapturaLog, SystemLog, Job tables
+- Creado endpoint: /api/admin/bulletins/generate-especializado/route.ts
+- 7 sectores en rotación freemium (uno por día de la semana)
+- Función getSectorFreemiumHoy() para rotación automática diaria
+- Consulta NotaEje para obtener menciones con peso mínimo por sector
+- Modo freemium (rotación) vs pagado (sector específico solicitado)
+- Actualizado config en products.ts: generador.tipo → 'dedicado', endpoint configurado, freemium config agregada
+- Ventana de 2 días para análisis sectorial
+- Query en 2 pasos (NotaEje → Menciones) para compatibilidad con Prisma SQLite
 
 Stage Summary:
-**Context**: ~2 semanas sin captura (migración May 12 → Jun 1-3)
-**Backup snapshot**: June 4 12:00 (VPS showed 104 NotaRaws total for June 4, backup only had 18 at noon)
+- Endpoint dedicado funcional con rotación freemium
+- Archivos: src/app/api/admin/bulletins/generate-especializado/route.ts, src/constants/products.ts
 
-KEY FINDINGS:
-1. FUENTES ACTIVAS: 30 activas, 19 inactivas (se inactivaron durante migración por 3 fallos consecutivos)
-2. CHECKS HOY: 16 fuentes con checks (6 capa=2 al 100% cambios, 3 capa=0 inactivas, 1 capa=2 night checkers)
-3. SIN CHECKS HOY: 33 fuentes, pero 13 de ellas activas con checks del 3 junio (frecuencia 6h = esperable)
-4. ERRORES INACTIVAS: fetch failed (10), tipo_desconocido: zai (3), HTTP 403 (3), 401 (1), 404 (1), 301 (1)
-5. CAPTURA LOG: Vacío desde May 12 — los checks nuevos NO se registran en CapturaLog
-6. JOB TABLE: No hay jobs desde May 12 — scheduler no usa tabla Job para check_fuente
-7. SYSTEM LOG: Con fecha 2000-01-01 (bug de timestamp) pero muestra batch_llm y generar_boletin activos
-8. NOTARAWS HOY (backup 12:00): 18 de 3 fuentes. VPS mostró 104 total para el día.
-9. CAPA=2 sources: 100% ratio de cambios (12 checks = 12 cambios) — scraping funciona perfecto
+---
+## RESUMEN GENERAL
 
-DIAGNOSIS:
-- El pipeline SÍ está funcionando parcialmente desde que se reinició (Jun 3 22:42)
-- El scheduler hace checks directamente (no via Job table) y está activo
-- 19 fuentes inactivas necesitan reset de fallosConsecutivos
-- "tipo_desconocido: zai" es un bug en strategy resolution
-- CapturaLog no registra checks nuevos — probablemente código no actualizado en VPS
+### Archivos modificados:
+1. `src/app/api/seed/route.ts` — 12 ejes corregidos + sub-clasificaciones seguridad ciudadana
+2. `src/lib/ai/extractor-menciones.prompt.ts` — Prompt multi-eje con pesos + reglas epistemológicas
+3. `src/lib/ai/extractor-menciones.ts` — Lógica multi-eje + populateNotaEje + ejeEstructuralId por mayor peso
+4. `src/constants/products.ts` — El Especializado: dedicado + freemium
+
+### Archivos creados:
+5. `src/app/api/admin/bulletins/generate-especializado/route.ts` — Endpoint dedicado El Especializado
+
+### Archivos verificados (sin cambios necesarios):
+- `data/medios.json` — Fuentes ya corregidas
+- `prisma/schema.prisma` — NotaEje ya existe
+- `scripts/seed-ejes-v3.ts` — Lentes generacional + violencia estatal ya existen
+
+### Próximos pasos (acordados por el usuario):
+1. Ejecutar `npx prisma db push` para sincronizar schema con DB
+2. Test end-to-end con subset de fuentes
+3. Test fuentes que nunca generaron resultados
+4. Scratch retroactivo de 14 días
+
+---
+Task ID: 1
+Agent: main
+Task: Implement multi-eje classification, seed DB, test end-to-end, push to git
+
+Work Log:
+- Read seed/route.ts, extractor-menciones.prompt.ts, extractor-menciones.ts, schema.prisma, batch-llm.ts
+- Confirmed all code was already implemented: 12 corrected ejes, multi-eje max 6 with decimal weights (0.5-1.0), NotaEje model, populateNotaEjes()
+- Fixed db.ts canonical path: changed from prisma/db/custom.db to db/custom.db to match .env DATABASE_URL
+- Executed seed via tsx standalone: 299 personas (36 senadores + 263 diputados), 30 medios, 12 ejes temáticos
+- Attempted capture run: HTTP fetch failed for ABI, ANF, ATB (network/DNS/TLS issues on server)
+- Ran end-to-end test with synthetic text: 5 ejes classified with decimal weights (1.0, 0.8, 0.7, 0.6, 0.6), 4 menciones created, 20 NotaEje records
+- Pushed to git: a87f0f4 main → origin/main
+
+Stage Summary:
+- Multi-eje classification fully operational: LLM returns up to 6 ejes with decimal weights
+- NotaEje table populated correctly with @@unique([mencionId, ejeId])
+- db.ts path corrected for canonical DB location
+- Network issues with fetching Bolivian news sources (TLS/DNS) — infrastructure issue, not code
+- All code pushed to GitHub

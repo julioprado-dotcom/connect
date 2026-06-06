@@ -6,7 +6,7 @@ const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
 
 const medios = [
   { nombre: "La Patria", url: "https://lapatria.bo/" },
-  { nombre: "La Estrella", url: "https://www.leo.bo/" },
+  { nombre: "La Estrella del Oriente", url: "https://www.leo.bo/" },
   { nombre: "El Potosí", url: "https://elpotosi.net" },
   { nombre: "ABI", url: "https://abi.bo/" },
   { nombre: "ANF", url: "https://www.noticiasfides.com/" },

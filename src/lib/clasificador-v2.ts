@@ -1,12 +1,14 @@
-// Clasificador v2 — Ejes estructurales + Lentes transversales
-// DECODEX Bolivia — PASO 3
+// Clasificador v3 — Ejes estructurales + Lentes transversales + Multi-eje con pesos
+// DECODEX Bolivia ONION200
 //
 // Algoritmo:
 // 1. Normalizar texto (título + textoCompleto)
-// 2. Evaluar contra 9 ejes estructurales → eje principal + ejes secundarios
-// 3. Evaluar contra 9 lentes transversales → activar lentes
+// 2. Evaluar contra 12 ejes estructurales → eje principal + ejes secundarios con pesos
+// 3. Evaluar contra 11 lentes transversales → activar lentes
 // 4. REGLA ESPECIAL: movilización social → lente + determinar MOTIVO
-// 5. Asignar ejeEstructuralId + crear MencionLente
+// 5. REGLA ESPECIAL: seguridad ciudadana → NUNCA prioritario (siempre baja prioridad)
+// 6. Max 6 ejes por nota, threshold ≥ 0.5
+// 7. Crear NotaEje (pesos) + MencionLente + ejeEstructuralId (principal)
 
 import db from '@/lib/db'; // Uses canonical DB path
 
@@ -76,23 +78,38 @@ async function getLentes(): Promise<LenteData[]> {
 
 // ─── Classification result ─────────────────────────────────────
 
+export interface EjePeso {
+  id: string;
+  slug: string;
+  nombre: string;
+  peso: number; // 0.0-1.0, threshold >= 0.5
+  coincidencias: number;
+}
+
 export interface ClasificacionV2 {
   ejePrincipalId: string | null;
   ejePrincipalSlug: string | null;
   ejePrincipalNombre: string | null;
   ejesSecundarios: Array<{ id: string; slug: string; coincidencias: number }>;
+  ejesConPeso: EjePeso[]; // multi-eje: todos los ejes con peso >= 0.5, max 6
   lenteIds: string[];
   lenteSlugs: string[];
-  motivoMovilizacion: string | null; // if movilizacion detected, what's the reason
+  motivoMovilizacion: string | null;
   confianza: 'alta' | 'media' | 'baja';
 }
 
 // ─── Main classification function ──────────────────────────────
 
+const MAX_EJES_POR_NOTA = 6;
+const PESO_MINIMO = 0.5;
+const SEGURIDAD_CIUDADANA_SLUG = 'seguridad-ciudadana';
+const MOVILIZACION_SOCIAL_SLUG = 'movilizacion-social';
+
 export async function clasificarV2(titulo: string, texto: string): Promise<ClasificacionV2> {
   const empty: ClasificacionV2 = {
     ejePrincipalId: null, ejePrincipalSlug: null, ejePrincipalNombre: null,
-    ejesSecundarios: [], lenteIds: [], lenteSlugs: [],
+    ejesSecundarios: [], ejesConPeso: [],
+    lenteIds: [], lenteSlugs: [],
     motivoMovilizacion: null, confianza: 'baja',
   };
 
@@ -132,7 +149,9 @@ export async function clasificarV2(titulo: string, texto: string): Promise<Clasi
   }
 
   // ── PASO 4: REGLA ESPECIAL — Movilización Social ──
-  const lenteMovilizacion = lenteActivados.find(l => l.slug === 'movilizacion-social');
+  const lenteMovilizacion = lenteActivados.find(l =>
+    l.slug === 'movilizacion-social' || l.slug === 'movilizacion-social-lente'
+  );
   let motivoMovilizacion: string | null = null;
   let ejeOverride: EjeData | null = null;
 
@@ -140,37 +159,67 @@ export async function clasificarV2(titulo: string, texto: string): Promise<Clasi
     // Determine the MOTIVO of the mobilization
     // Remove movilization keywords from consideration and find the strongest remaining eje
     const movilKwSet = new Set(lenteMovilizacion.keywords.map(k => normalize(k)));
-    
-    // Also remove Eje 8 keywords (movilizacion-social as eje) from consideration
-    const eje8 = ejes.find(e => e.slug === 'movilizacion-social');
-    const eje8KwSet = eje8 ? new Set(eje8.keywords.map(k => normalize(k))) : new Set();
 
-    // Find the motive: which non-mobilization eje has the most keywords?
-    const motiveScores = ejeScores.filter(s => 
-      s.eje.slug !== 'movilizacion-social' && s.coincidencias > 0
+    // Also remove movilizacion-social eje keywords from consideration
+    const movilEje = ejes.find(e =>
+      e.slug === MOVILIZACION_SOCIAL_SLUG ||
+      e.slug === 'movilizacion-social-eje'
     );
 
+    // Find the motive: which non-mobilization eje has the most keywords?
+    const motiveScores = ejeScores.filter(s => {
+      if (movilEje && s.eje.id === movilEje.id) return false;
+      if (s.eje.slug === MOVILIZACION_SOCIAL_SLUG || s.eje.slug === 'movilizacion-social-eje') return false;
+      return s.coincidencias > 0;
+    });
+
     if (motiveScores.length > 0 && motiveScores[0].coincidencias >= 1) {
-      // There IS a clear motive → use that eje as principal, NOT Eje 8
+      // There IS a clear motive → use that eje as principal, NOT movilizacion
       ejeOverride = motiveScores[0].eje;
       motivoMovilizacion = motiveScores[0].kwMatched.slice(0, 3).join(', ');
     } else {
-      // No clear motive → the mobilization IS the topic → use Eje 8
-      ejeOverride = eje8 || null;
+      // No clear motive → the mobilization IS the topic → use movilizacion eje
+      ejeOverride = movilEje || null;
       motivoMovilizacion = 'la movilización es el tema central';
     }
   }
 
+  // ── PASO 5: REGLA ESPECIAL — Seguridad Ciudadana NUNCA prioritaria ──
+  // Si seguridad ciudadana es el eje con más coincidencias PERO hay otro eje
+  // con coincidencias >= 1, degradar seguridad ciudadana a secundario.
+  const seguridadEje = ejeScores.find(s => s.eje.slug === SEGURIDAD_CIUDADANA_SLUG);
+
   // ── Determine final eje principal ──
   let ejePrincipal: EjeData | null = ejeOverride;
   if (!ejePrincipal && ejeScores.length > 0) {
-    ejePrincipal = ejeScores[0].eje;
+    // Si el top es seguridad ciudadana pero hay otros ejes, usar el siguiente
+    if (ejeScores[0].eje.slug === SEGURIDAD_CIUDADANA_SLUG && ejeScores.length > 1) {
+      ejePrincipal = ejeScores[1].eje;
+    } else if (ejeScores[0].eje.slug === SEGURIDAD_CIUDADANA_SLUG) {
+      ejePrincipal = ejeScores[0].eje; // solo queda seguridad como opción
+    } else {
+      ejePrincipal = ejeScores[0].eje;
+    }
   }
 
-  // ── Ejes secundarios (2+ keywords, different from principal) ──
+  // ── PASO 6: Ejes secundarios (2+ keywords, different from principal) ──
   const ejesSec = ejeScores
     .filter(s => s.eje.id !== ejePrincipal?.id && s.coincidencias >= 2)
     .map(s => ({ id: s.eje.id, slug: s.eje.slug, coincidencias: s.coincidencias }));
+
+  // ── PASO 7: Multi-eje con pesos (max 6, threshold >= 0.5) ──
+  const maxCoincidencias = Math.max(...ejeScores.map(s => s.coincidencias), 1);
+  const ejesConPeso: EjePeso[] = ejeScores
+    .map(s => ({
+      id: s.eje.id,
+      slug: s.eje.slug,
+      nombre: s.eje.nombre,
+      coincidencias: s.coincidencias,
+      peso: Math.round((s.coincidencias / maxCoincidencias) * 100) / 100, // normalize 0-1
+    }))
+    .filter(e => e.peso >= PESO_MINIMO)
+    .sort((a, b) => b.peso - a.peso)
+    .slice(0, MAX_EJES_POR_NOTA);
 
   // ── Confidence ──
   const totalKw = ejeScores.reduce((sum, s) => sum + s.coincidencias, 0);
@@ -181,6 +230,7 @@ export async function clasificarV2(titulo: string, texto: string): Promise<Clasi
     ejePrincipalSlug: ejePrincipal?.slug || null,
     ejePrincipalNombre: ejePrincipal?.nombre || null,
     ejesSecundarios: ejesSec,
+    ejesConPeso,
     lenteIds: lenteActivados.map(l => l.id),
     lenteSlugs: lenteActivados.map(l => l.slug),
     motivoMovilizacion,
@@ -216,6 +266,17 @@ export async function reclasificarMencion(mencionId: string): Promise<boolean> {
       try {
         await db.mencionLente.create({
           data: { mencionId, lenteId },
+        });
+      } catch {
+        // Duplicate, ignore
+      }
+    }
+
+    // Create NotaEje records (multi-eje with weights)
+    for (const ejePeso of resultado.ejesConPeso) {
+      try {
+        await db.notaEje.create({
+          data: { mencionId, ejeId: ejePeso.id, peso: ejePeso.peso },
         });
       } catch {
         // Duplicate, ignore

@@ -235,6 +235,27 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       // Si verificacion falla, usar texto original
     }
 
+    // 6.5 Verificacion factual con segundo pase LLM (nombres, cargos, datos duros)
+    try {
+      const { verifyFactualWithLLM } = await import('@/lib/verification/verify-factual')
+      const factualResult = await verifyFactualWithLLM(
+        textoFinal,
+        (menciones as unknown as Array<Record<string, unknown>>).map(m => ({
+          titulo: (m.titulo as string) ?? '',
+          texto: (m.texto as string) ?? '',
+          persona: (m.persona as string) ?? null,
+          medio: (m.medio as string) ?? '',
+        })),
+        tipoBoletin,
+      )
+      if (factualResult.corrected) {
+        textoFinal = factualResult.textoCorregido
+        console.log(`[generar-boletin] Path B: Verificacion factual corrigio ${factualResult.correcciones.length} items`)
+      }
+    } catch {
+      // No bloquear pipeline si falla la verificacion factual
+    }
+
     // 7. Validacion de calidad
     let puntuacionCalidad = 0
     try {

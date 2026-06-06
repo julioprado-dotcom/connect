@@ -21,7 +21,7 @@ interface Correccion {
 
 const correcciones: Correccion[] = [
   { busqueda: "La Patria", url: "https://lapatria.bo/" },
-  { busqueda: "La Estrella", url: "https://www.leo.bo/" },
+  { busqueda: "La Estrella", url: "https://www.leo.bo/" },  // Leo.bo = La Estrella del Oriente
   { busqueda: "El Potosí", url: "https://elpotosi.net" },
   { busqueda: "ABI", url: "https://abi.bo/" },
   { busqueda: "ANF", url: "https://www.noticiasfides.com/" },

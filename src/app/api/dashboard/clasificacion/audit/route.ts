@@ -17,11 +17,12 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     // ── 1. Resumen de NotaRaw ────────────────────────────────
-    const [notaRawTotal, notaRawProcesadas, notaRawPendientes, notaRawDescartadas] = await Promise.all([
+    const [notaRawTotal, notaRawProcesadas, notaRawPendientes, notaRawDescartadas, notaRawConMencion] = await Promise.all([
       db.notaRaw.count(),
       db.notaRaw.count({ where: { procesada: true, descartada: false } }),
       db.notaRaw.count({ where: { procesada: false } }),
       db.notaRaw.count({ where: { procesada: true, descartada: true } }),
+      db.notaRaw.count({ where: { procesada: true, descartada: false, mencionesCreadas: { gt: 0 } } }),
     ]);
 
     const mencionesTotal = await db.mencion.count({ where: { esDuplicado: false } });
@@ -214,9 +215,10 @@ export async function GET() {
         procesadas: notaRawProcesadas,
         pendientes: notaRawPendientes,
         descartadas: notaRawDescartadas,
+        conMencion: notaRawConMencion,
         mencionesTotal,
-        tasaConversion: notaRawProcesadas > 0
-          ? Math.round(((notaRawProcesadas - notaRawDescartadas) / notaRawProcesadas) * 100)
+        tasaConversion: (notaRawProcesadas + notaRawDescartadas) > 0
+          ? Math.round((notaRawProcesadas / (notaRawProcesadas + notaRawDescartadas)) * 100)
           : 0,
       },
 

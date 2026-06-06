@@ -11,7 +11,7 @@ const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
 
 const MEDIOS = [
   { nombre: "La Patria", medioId: "cmoxh9w8d0022nh4e0e8pse6r", url: "https://lapatria.bo/" },
-  { nombre: "La Estrella", medioId: "cmoxh9w8h0027nh4ehd8ceifm", url: "https://www.leo.bo/" },
+  { nombre: "La Estrella del Oriente", medioId: "cmoxh9w8h0027nh4ehd8ceifm", url: "https://www.leo.bo/" },
   { nombre: "El Potosí", medioId: "cmoxh9w8c0021nh4ekjbyutxv", url: "https://elpotosi.net" },
   { nombre: "ABI", medioId: "cmoxh9w8b0020nh4es3cbo80s", url: "https://abi.bo/" },
   { nombre: "ANF (Agencia Fides)", medioId: "cmoxh9w85001snh4epjri4v2o", url: "https://www.noticiasfides.com/" },

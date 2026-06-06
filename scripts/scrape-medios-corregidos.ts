@@ -34,7 +34,7 @@ interface MedioToScrape {
 
 const MEDIOS: MedioToScrape[] = [
   { nombre: "La Patria", medioId: "cmoxh9w8d0022nh4e0e8pse6r", fuenteId: "cmoxh9wcm0089nh4eiu2uk6cf", url: "https://lapatria.bo/" },
-  { nombre: "La Estrella", medioId: "cmoxh9w8h0027nh4ehd8ceifm", fuenteId: "fe-cmoxh9w8h0027nh4ehd8ceifm", url: "https://www.leo.bo/" },
+  { nombre: "La Estrella del Oriente", medioId: "cmoxh9w8h0027nh4ehd8ceifm", fuenteId: "fe-cmoxh9w8h0027nh4ehd8ceifm", url: "https://www.leo.bo/" },
   { nombre: "El Potosí", medioId: "cmoxh9w8c0021nh4ekjbyutxv", fuenteId: "cmoxh9wcl0087nh4eiumjm7g1", url: "https://elpotosi.net" },
   { nombre: "ABI", medioId: "cmoxh9w8b0020nh4es3cbo80s", fuenteId: "cmoxh9wck0085nh4eioit3hyb", url: "https://abi.bo/" },
   { nombre: "ANF (Agencia Fides)", medioId: "cmoxh9w85001snh4epjri4v2o", fuenteId: "cmoxh9wcd007pnh4eu3r1yl3k", url: "https://www.noticiasfides.com/" },

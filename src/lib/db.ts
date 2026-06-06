@@ -10,7 +10,7 @@ const globalForPrisma = globalThis as unknown as {
 // db.ts es el SINGLE SOURCE OF TRUTH para la ruta de la BD.
 // Todos los scripts y el runtime usan esta misma ruta absoluta.
 const PROJECT_ROOT = process.cwd();
-const CANONICAL_DB_PATH = PROJECT_ROOT + '/prisma/db/custom.db';
+const CANONICAL_DB_PATH = PROJECT_ROOT + '/db/custom.db';
 // Sobrescribir process.env para que PrismaClient use la ruta correcta
 process.env.DATABASE_URL = `file:${CANONICAL_DB_PATH}`;
 

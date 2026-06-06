@@ -752,7 +752,7 @@ export function ClasificacionView() {
                   {[
                     { label: 'Total NR', value: auditData.notaRaw.total, color: '#06b6d4' },
                     { label: 'Procesadas', value: auditData.notaRaw.procesadas, color: '#10b981' },
-                    { label: 'Con Menc.', value: auditData.notaRaw.procesadas - auditData.notaRaw.descartadas, color: '#a78bfa' },
+                    { label: 'Con Menc.', value: auditData.notaRaw.conMencion ?? auditData.notaRaw.procesadas, color: '#a78bfa' },
                     { label: 'Descartadas', value: auditData.notaRaw.descartadas, color: '#ef4444' },
                     { label: 'Pendientes', value: auditData.notaRaw.pendientes, color: '#f59e0b' },
                   ].map((kpi) => (

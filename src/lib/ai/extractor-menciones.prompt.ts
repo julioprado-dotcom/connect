@@ -128,10 +128,10 @@ export function buildSystemPrompt(marco: MarcoData | null): string {
     .join('\n');
 
   // ── Assemble full prompt ──
-  return `Eres un extractor avanzado de información política boliviana. Analiza textos de noticias y detecta:
+  return `Eres un extractor avanzado de información política boliviana para el sistema DECODEX ONION200. Analiza textos de noticias y detecta:
 1. Menciones a legisladores bolivianos (de la lista proporcionada)
 2. Menciones a FIGURAS POLÍTICAS RELEVANTES que NO estén en la lista (Presidente, Vicepresidente, Ministros, Gobernadores, Alcaldes, líderes de partido, ex presidentes, figuras institucionales del Estado Plurinacional)
-3. Referencias a ejes temáticos monitoreados
+3. CLASIFICACIÓN MULTI-EJE: cada nota puede tener hasta 6 ejes temáticos con PESOS DECIMALES que reflejan la relevancia proporcional de cada eje en el artículo
 4. Keywords de interés político/económico
 5. Tratamiento periodístico (NUNCA uses la palabra "sentimiento")
 6. Intención del medio (qué busca el medio al publicar)
@@ -210,12 +210,29 @@ La intención y el tratamiento son dimensiones INDEPENDIENTES: una nota puede se
 - contexto debe explicar brevemente la relevancia de la mención
 - Máximo 3 figuras detectadas por artículo
 
-## REGLAS PARA EJES TEMÁTICOS
-- Solo incluir ejes de la lista proporcionada
+## REGLAS PARA EJES TEMÁTICOS (CLASIFICACIÓN MULTI-EJE)
+- Cada nota puede clasificarse en HASTA 6 ejes temáticos simultáneamente
+- Cada eje lleva un PESO DECIMAL entre 0.5 y 1.0 que indica su relevancia proporcional en el artículo
+- El peso total de todos los ejes NO necesita sumar 1.0 — cada peso es independiente
+- Solo incluir ejes con peso >= 0.5 (por debajo, descartar)
 - eje_id debe ser EXACTAMENTE el ID proporcionado
 - cita debe ser un fragmento real del texto que justifica la clasificación
-- relevancia: "alta" (artículo central sobre el tema), "media" (mencionado significativamente), "baja" (referencia tangencial)
-- Máximo 3 ejes por artículo
+- CRITERIOS DE PESO:
+  * peso 1.0 = artículo CENTRAL sobre este eje (noticia principal)
+  * peso 0.8-0.9 = eje mencionado de forma SIGNIFICATIVA con desarrollo sustancial
+  * peso 0.6-0.7 = eje mencionado con contexto moderado
+  * peso 0.5-0.6 = referencia tangencial pero verificable
+  * peso < 0.5 = NO incluir (demasiado tangencial)
+
+## REGLAS EPISTEMOLÓGICAS CRÍTICAS (INMUTABLES)
+1. NUNCA conflatar sujetos, acciones y evaluaciones: una organización social NO es lo mismo que un conflicto social
+2. NUNCA criminalizar organizaciones sociales, sindicatos, comunidades indígenas o campesinas — siempre encuadrar en contexto político/institucional
+3. Respetar la CPE (Constitución Política del Estado) y convenciones internacionales de derechos humanos
+4. SEGURIDAD CIUDADANA: este eje NUNCA debe ser prioritario automáticamente. Ponderar contexto y proporcionalidad.
+   - Un bloqueo de carretera NO es «seguridad ciudadana», es dinámica política (Gobierno/Oposición)
+   - Una protesta social NO es «seguridad ciudadana», es ejercicio de derechos (Gobierno/Oposición)
+   - Solo clasificar como seguridad ciudadana cuando el artículo trata específicamente de delitos, fuerzas policiales, sistema penitenciario o narcotráfico
+5. Una nota sobre minería puede clasificarse simultáneamente en: Minería (0.9), Medio Ambiente (0.6), Economía (0.5) si cubre producción, impacto ambiental y exportaciones
 
 ## REGLAS PARA EJES DEL CLIENTE
 - Solo incluye si se proporciona la sección "EJES TEMÁTICOS DEL CLIENTE"
@@ -293,7 +310,7 @@ Responde ÚNICAMENTE con un JSON válido (sin markdown, sin backticks) con esta 
     { "nombre": "Nombre Completo", "cargo": "Presidente de Bolivia", "partido": "Nombre del partido o null", "cita": "fragmento textual", "contexto": "relevancia de la mención" }
   ],
   "ejes_institucionales": [
-    { "eje_id": "ID_DEL_EJE", "cita": "fragmento relevante del texto", "relevancia": "alta|media|baja" }
+    { "eje_id": "ID_DEL_EJE", "cita": "fragmento relevante del texto", "peso": 0.9 }
   ],
   "ejes_cliente": [
     { "eje_cliente_id": NUMERO_ID, "cita": "fragmento relevante del texto", "relevancia": "alta|media|baja" }
@@ -327,7 +344,13 @@ VALORES VÁLIDOS para intencion_medio:
 informativa, opinion, critica, elogiosa, reactiva, sin_intencion
 
 Si es_relevante = false, devolver:
-{"es_relevante": false, "tratamiento_periodistico": "sin_tratamiento", "intencion_medio": "sin_intencion", "confianza_clasificacion": "baja", "resumen": "", "legisladores_mencionados": [], "personas_detectadas": [], "ejes_institucionales": [], "ejes_cliente": [], "ejes_sugeridos": [], "keywords_nuevas": [], "tendencias": [], "temas_detectados": [], "preguntas_fundamentales": {}}`
+{"es_relevante": false, "tratamiento_periodistico": "sin_tratamiento", "intencion_medio": "sin_intencion", "confianza_clasificacion": "baja", "resumen": "", "legisladores_mencionados": [], "personas_detectadas": [], "ejes_institucionales": [], "ejes_cliente": [], "ejes_sugeridos": [], "keywords_nuevas": [], "tendencias": [], "temas_detectados": [], "preguntas_fundamentales": {}}
+
+NOTA IMPORTANTE: Incluso cuando es_relevante = false, SIEMPRE debes devolver datos en:
+- ejes_sugeridos (si detectas un tema nuevo no cubierto)
+- keywords_nuevas (si detectas términos relevantes no rastreados)
+- tendencias (si detectas patrones emergentes)
+Estos módulos de descubrimiento funcionan INDEPENDIENTEMENTE de la relevancia de la nota.`
 }
 
 /**

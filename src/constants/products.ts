@@ -30,6 +30,8 @@ REGLAS OBLIGATORIAS DE FUENTES Y VERIFICACION:
 
 7. VERIFICACION INTERNA. Antes de generar el texto final, verifica internamente que cada afirmacion esta respaldada por al menos una mencion. Si detectas que no tienes respaldo para algo, eliminalo del texto.
 
+8. VERIFICACION DE NOMBRES Y CARGOS. Cuando menciones a un funcionario publico, autoridad o persona con cargo, NOMBRA EXACTAMENTE como aparece en las menciones fuente. NUNCA cambies el nombre de una persona, NI INVENTES nombres que no esten en las menciones, NI ALTERES el genero de un cargo (ejemplo: si la mencion dice "la ministra Beatriz Garcia", NO escribas "el ministro René Garcia"). Si la mencion dice "ministra" es FEMENINO, si dice "ministro" es MASCULINO. Respecta EXACTAMENTE el nombre completo, cargo y genero que aparece en las menciones fuente.
+
 FORMATO DEL PRODUCTO:
 - Resumen ejecutivo: parrafo basado UNICAMENTE en las menciones proporcionadas, con cifras reales citando fuentes.
 - Desarrollo: agrupar menciones por tema, citando siempre la fuente.
@@ -342,10 +344,16 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     temperatura: 0.2,
     activo: true,
     generador: {
-      tipo: 'generico',
-      ventana: 'estandar',
-      filtros: ['fecha', 'actores', 'ejes'],
+      tipo: 'dedicado',
+      endpoint: '/api/admin/bulletins/generate-especializado',
+      ventana: '2dias',
+      filtros: ['sector', 'fecha', 'pesoEje'],
       requierePreview: false,
+      freemium: {
+        activo: true,
+        modo: 'rotacion_diaria',
+        descripcion: 'Un sector rota diariamente de forma automática (gratuito). Clientes pagantes pueden solicitar sector específico.',
+      },
       panelId: null,
     },
     systemPrompt: SYSTEM_PROMPTS.EL_ESPECIALIZADO,

@@ -39,7 +39,7 @@ interface LegisladorMencionado {
 interface EjeMencionado {
   eje_id: string;
   cita: string;
-  relevancia: 'alta' | 'media' | 'baja';
+  peso: number;  // 0.5-1.0 decimal weight, threshold >= 0.5
 }
 
 interface EjeClienteMencionado {
@@ -255,12 +255,19 @@ export async function extraerMencionesDeTexto(
       indicadoresSection += '\n';
     }
 
-    // 7. Truncar texto si es muy largo (max ~12000 chars para el LLM)
-    // FIX: Aumentado de 4000 a 12000 — artículos bolivianos típicos tienen 8000-15000 chars.
-    // Con 4000 se perdían menciones en la segunda mitad del artículo.
-    const textoTruncado = texto.length > 12000
-      ? texto.substring(0, 12000) + '...'
-      : texto;
+    // 7. Limpiar whitespace excesivo antes de enviar al LLM
+    // FIX: E-Papers y medios con HTML mal limpio generan cientos de líneas vacías
+    // que confunden al LLM y desperdician tokens. Collapse a max 2 newlines consecutivos.
+    const textoLimpio = texto
+      .replace(/\n{3,}/g, '\n\n')  // Collapse 3+ newlines → 2
+      .replace(/[^\S\n]+/g, ' ')     // Collapse multiple spaces/tabs → 1 space
+      .replace(/^ +| +$/gm, '')     // Trim leading/trailing spaces per line
+      .trim();
+
+    // 7b. Truncar texto si es muy largo (max ~12000 chars para el LLM)
+    const textoTruncado = textoLimpio.length > 12000
+      ? textoLimpio.substring(0, 12000) + '...'
+      : textoLimpio;
 
     // 8. Construir prompt del usuario
     let userContent = `LEGISLADORES MONITOREADOS:\n${listaLegisladores}\n\n`;
@@ -666,19 +673,30 @@ export async function extraerMencionesDeTexto(
     }
 
     // Ejes (LLM returns "ejes_institucionales", we map to ejes_mencionados)
+    // MULTI-EJE: max 6 ejes con peso decimal >= 0.5
     const ejesRaw = parsed.ejes_institucionales || parsed.ejes_mencionados;
     const ejesMencionados = ensureArray(ejesRaw)
           .filter((e: Record<string, unknown>) =>
             e.eje_id && validEjeIds.has(e.eje_id as string) && e.cita
           )
-          .slice(0, 3)
-          .map((e: { eje_id: string; cita: string; relevancia?: string }) => ({
-            eje_id: e.eje_id,
-            cita: String(e.cita),
-            relevancia: relevanciasValidas.has(String(e.relevancia || ''))
-              ? String(e.relevancia) as 'alta' | 'media' | 'baja'
-              : 'media' as const,
-          }));
+          .map((e: { eje_id: string; cita: string; peso?: number | string; relevancia?: string }) => {
+            // Parse peso: accept both peso (new) and relevancia (legacy)
+            let peso = 0.7;  // default weight
+            if (e.peso !== undefined && e.peso !== null) {
+              const parsedPeso = typeof e.peso === 'string' ? parseFloat(e.peso) : Number(e.peso);
+              if (!isNaN(parsedPeso)) peso = parsedPeso;
+            } else if (e.relevancia) {
+              // Legacy fallback: alta=1.0, media=0.7, baja=0.5
+              const legacyMap: Record<string, number> = { alta: 1.0, media: 0.7, baja: 0.5 };
+              peso = legacyMap[String(e.relevancia)] || 0.7;
+            }
+            // Clamp to 0.5-1.0 range, enforce threshold
+            peso = Math.round(Math.max(0.5, Math.min(1.0, peso)) * 100) / 100;
+            return { eje_id: e.eje_id, cita: String(e.cita), peso };
+          })
+          .filter((e: { peso: number }) => e.peso >= 0.5)  // enforce threshold
+          .sort((a: { peso: number }, b: { peso: number }) => b.peso - a.peso)  // highest first
+          .slice(0, 6);  // max 6 ejes
 
     // Ejes del cliente (LLM returns "ejes_cliente") — FASE 4D
     const ejesClienteParsed = ensureArray(parsed.ejes_cliente)
@@ -787,16 +805,22 @@ export async function crearMencionesExtraidas(
   titulo: string,
   fechas?: { fechaCaptura?: Date; fechaClasificacion?: Date },
   textoOriginal?: string,
+  notaRawId?: string,
 ): Promise<number> {
   if (!resultado.es_relevante) return 0;
 
   // ──────────────────────────────────────────────
   // DEDUP CAPA 0: Verificar NotaRaw pendiente con misma URL (evitar reprocesamiento)
+  // FIX: Excluir notaRawId para no auto-bloquear la nota que se está procesando
   // ──────────────────────────────────────────────
   try {
     if (url && url.length > 5) {
       const notaPendiente = await db.notaRaw.findFirst({
-        where: { url, procesada: false },
+        where: { 
+          url, 
+          procesada: false,
+          ...(notaRawId ? { id: { not: notaRawId } } : {}),
+        },
         select: { id: true },
       });
       if (notaPendiente) {
@@ -837,6 +861,29 @@ export async function crearMencionesExtraidas(
 
   let creadas = 0;
   const ejeIds = resultado.ejes_mencionados.map(e => e.eje_id);
+  // Build eje→peso map for NotaEje and ejeEstructuralId (highest peso)
+  const ejePesoMap = new Map(resultado.ejes_mencionados.map(e => [e.eje_id, e.peso]));
+  const ejeEstructuralId = resultado.ejes_mencionados.length > 0
+    ? resultado.ejes_mencionados.reduce((best, cur) => cur.peso > best.peso ? cur : best, resultado.ejes_mencionados[0]).eje_id
+    : null;
+
+  // Helper: populate NotaEje with weights for a given mencion
+  async function populateNotaEjes(mencionId: string) {
+    for (const eje of resultado.ejes_mencionados) {
+      try {
+        await db.notaEje.create({
+          data: {
+            id: crypto.randomUUID(),
+            mencionId,
+            ejeId: eje.eje_id,
+            peso: eje.peso,
+          },
+        });
+      } catch {
+        // Duplicado o error, ignorar
+      }
+    }
+  }
 
   // Shared data fields for all menciones — incluye las 3 fechas del pipeline
   const sharedData = {
@@ -913,7 +960,7 @@ export async function crearMencionesExtraidas(
           url,
           tipoMencion: tratamientoToTipoMencion(resultado.tratamientoPeriodistico, Boolean(leg.cita)),
           verificado: false,
-          ejeEstructuralId: ejeIds.length > 0 ? ejeIds[0] : null,
+          ejeEstructuralId,
           ...(dedupResult?.eventoId ? { eventoId: dedupResult.eventoId } : {}),
           deduplicacionLog: dedupLog,
           ...sharedData,
@@ -946,6 +993,8 @@ export async function crearMencionesExtraidas(
         }
       }
 
+      await populateNotaEjes(mencion.id);
+
       // Clasificar con ejes v2 + lentes transversales (keyword match, no LLM)
       try { await reclasificarMencion(mencion.id); } catch { /* no bloquear pipeline */ }
 
@@ -977,7 +1026,7 @@ export async function crearMencionesExtraidas(
           url,
           tipoMencion: tratamientoToTipoMencion(resultado.tratamientoPeriodistico, Boolean(pd.cita)),
           verificado: false,
-          ejeEstructuralId: ejeIds.length > 0 ? ejeIds[0] : null,
+          ejeEstructuralId,
           deduplicacionLog: JSON.stringify({ decision: 'figura_detectada', timestamp: new Date().toISOString() }),
           ...sharedData,
         },
@@ -988,7 +1037,7 @@ export async function crearMencionesExtraidas(
           await db.mencionTema.create({ data: { mencionId: mencion.id, ejeTematicoId: ejeId } });
         } catch { /* duplicado */ }
       }
-
+      await populateNotaEjes(mencion.id);
       try { await reclasificarMencion(mencion.id); } catch { /* no bloquear */ }
       console.log(`[AUTO-FIGURA] Mencion creada: ${pd.nombre} (${pd.persona_id}) → ${url?.substring(0, 60)}`);
       creadas++;
@@ -1008,7 +1057,7 @@ export async function crearMencionesExtraidas(
         // DEBUG: ver datos antes del create
         console.log('[CREAR-MENCION-DBG] Creando mencion tematica:', {
           medioId, url: url?.substring(0, 80),
-          ejeIds, ejeEstructuralId: ejeIds.length > 0 ? ejeIds[0] : null,
+          ejeIds, ejeEstructuralId,
           sharedDataKeys: Object.keys(sharedData),
           temas: resultado.temas_detectados,
           tratamiento: resultado.tratamientoPeriodistico,
@@ -1028,7 +1077,7 @@ export async function crearMencionesExtraidas(
             url,
             tipoMencion: 'referencia_tematica',
             verificado: false,
-            ejeEstructuralId: ejeIds.length > 0 ? ejeIds[0] : null,
+            ejeEstructuralId,
             ...sharedData,
           },
         });
@@ -1058,6 +1107,9 @@ export async function crearMencionesExtraidas(
             // Duplicado o error, ignorar
           }
         }
+
+        // Populate NotaEje with multi-eje weights
+        await populateNotaEjes(mencion.id);
 
         // Clasificar con ejes v2 + lentes transversales (keyword match, no LLM)
         try { await reclasificarMencion(mencion.id); } catch { /* no bloquear pipeline */ }

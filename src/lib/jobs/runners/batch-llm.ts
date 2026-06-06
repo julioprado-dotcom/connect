@@ -138,24 +138,51 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
 
         for (let intento = 1; intento <= MAX_REINTENTOS; intento++) {
           try {
+            // FIX: Marcar como procesada ANTES de la extracción para evitar
+            // que DEDUP CAPA 0 encuentre esta misma nota como "pendiente"
+            // y la bloquee (auto-dedup bug al resetear notas descartadas)
+            await db.notaRaw.update({
+              where: { id: nota.id },
+              data: { procesada: true, fechaProcesada: new Date() },
+            })
+
             // Enviar al LLM individualmente (reutiliza extractor existente)
             const resultado = await extraerMencionesDeTexto(nota.texto, medioId)
             menciones = await crearMencionesExtraidas(
               resultado, medioId, nota.url, nota.titulo,
               { fechaCaptura: nota.fechaCaptura, fechaClasificacion: new Date() },
               nota.texto, // texto original completo de NotaRaw
+              nota.id,   // FIX: pasar notaRawId para excluir del DEDUP CAPA 0
             )
 
-            // Éxito: marcar como procesada
+            // Actualizar mencionesCreadas y descartada
             await db.notaRaw.update({
               where: { id: nota.id },
               data: {
-                procesada: true,
-                fechaProcesada: new Date(),
                 mencionesCreadas: menciones,
                 ...(menciones === 0 ? { descartada: true } : {}),
               },
             })
+
+            // FIX: Log LLM response for debugging descartadas (batch-llm no registraba antes)
+            // FIX: Determinar motivo correcto — si LLM dijo relevante pero menciones=0, es dedup
+            if (menciones === 0) {
+              const motivo = resultado.es_relevante ? 'duplicado' : 'es_relevante_false'
+              registrarRechazo({
+                medioId,
+                url: nota.url,
+                titulo: nota.titulo,
+                texto: nota.texto.substring(0, 500),
+                motivo,
+                respuestaLLM: JSON.stringify(resultado).substring(0, 500),
+                resultado: {
+                  es_relevante: resultado.es_relevante,
+                  tratamientoPeriodistico: resultado.tratamientoPeriodistico,
+                  sentimiento_general: resultado.sentimiento_general,
+                  confianzaClasificacion: resultado.confianzaClasificacion,
+                },
+              }).catch(() => {}) // Non-critical — no bloquear el batch
+            }
 
             procesada = true
             break // Salir del loop de reintentos

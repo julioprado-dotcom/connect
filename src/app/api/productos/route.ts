@@ -62,7 +62,7 @@ const FUENTES_OLA1: Array<{
     departamento: 'Tarija',
   },
   {
-    nombre: 'Leo.bo',
+    nombre: 'La Estrella del Oriente (Leo.bo)',
     url: 'https://leo.bo',
     rssUrl: null,
     tipoCheck: 'head',

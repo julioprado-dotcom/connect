@@ -6,6 +6,7 @@
   "/agente/registros/page": "app/agente/registros/page.js",
   "/agente/suscriptor/page": "app/agente/suscriptor/page.js",
   "/api/admin/bulletins/generate-boletin-grano/route": "app/api/admin/bulletins/generate-boletin-grano/route.js",
+  "/api/admin/bulletins/generate-especializado/route": "app/api/admin/bulletins/generate-especializado/route.js",
   "/api/admin/bulletins/generate-ficha/route": "app/api/admin/bulletins/generate-ficha/route.js",
   "/api/admin/bulletins/generate-foco/route": "app/api/admin/bulletins/generate-foco/route.js",
   "/api/admin/bulletins/generate-generic/route": "app/api/admin/bulletins/generate-generic/route.js",
