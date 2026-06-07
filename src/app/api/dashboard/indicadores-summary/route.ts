@@ -124,10 +124,14 @@ export async function GET() {
       db.mencion.count({ where: { fechaCaptura: { gte: semanaAgoBo } } }),
       db.medio.count(),
       db.fuenteEstado.count({ where: { activo: true } }),
-      db.fuenteEstado.count({ where: { OR: [
-        { fallosConsecutivos: { gte: 3 } },
-        { checksSinCambio: { gte: 7 } },
-      ] } }),
+      db.fuenteEstado.count({ where: {
+        activo: true,
+        totalChecks: { gte: 1 },
+        OR: [
+          { fallosConsecutivos: { gte: 3 } },
+          { checksSinCambio: { gte: 7 } },
+        ],
+      } }),
       db.mencion.findFirst({ orderBy: { fechaCaptura: 'desc' }, select: { fechaCaptura: true } }),
       db.$queryRaw`
         SELECT m.nivel as nivel, COUNT(ml.id) as total
