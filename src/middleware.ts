@@ -24,7 +24,8 @@ const PUBLIC_API_ROUTES = [
   '/api/indicadores/sync/',
   '/api/jobs',           // Job queue: testing + monitoreo VPS
   '/api/stats',          // Health/stats públicas
-  '/api/dashboard',     // Dashboard interno (sin auth de middleware)
+  '/api/dashboard',     // Dashboard interno
+  '/api/system',         // System vitals/processes (monitoreo interno)
 ];
 
 const PUBLIC_PAGE_ROUTES = [

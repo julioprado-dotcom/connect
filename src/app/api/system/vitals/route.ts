@@ -130,8 +130,11 @@ function formatUptime(seconds: number): string {
 
 function safeWorkerStats() {
   try {
-    const { getWorkerStats } = require('@/lib/jobs/worker');
-    return getWorkerStats();
+    const { execSync } = require('child_process');
+    const list = JSON.parse(execSync('pm2 jlist', {encoding:'utf8'}).toString() || '[]');
+    const p = list.find(x => x.name === 'decodex-worker');
+    const on = p && p.pm2_env && p.pm2_env.status === 'online';
+    return { running: on, uptime: on ? 'online' : '0s', jobsCompleted: on ? 1 : 0, jobsFailed: 0, jobsPerHour: 0, lastJobTime: null };
   } catch {
     return { running: false, uptime: '0s', jobsCompleted: 0, jobsFailed: 0, jobsPerHour: 0, lastJobTime: null };
   }
@@ -141,8 +144,10 @@ function safeWorkerStats() {
 
 function safeSchedulerStats() {
   try {
-    const { getSchedulerStatus } = require('@/lib/jobs/scheduler');
-    return getSchedulerStatus();
+    const { execSync } = require('child_process');
+    const list = JSON.parse(execSync('pm2 jlist', {encoding:'utf8'}).toString() || '[]');
+    const p = list.find(x => x.name === 'decodex-scheduler');
+    return { running: p && p.pm2_env && p.pm2_env.status === 'online', totalTasks: p ? 1 : 0 };
   } catch {
     return { running: false, totalTasks: 0 };
   }

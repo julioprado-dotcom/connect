@@ -25,7 +25,7 @@ export async function fetchWithTimeout(
   }
 
   try {
-    return await fetch(input, {
+    return await fetch(input, {credentials: "include",
       ...rest,
       signal: controller.signal,
     });
