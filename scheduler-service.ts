@@ -46,6 +46,13 @@ import { CHECK_FIRST_CONFIG, QUEUE_LIMITS } from './src/lib/jobs/constants';
 import { determinarCapa } from './src/lib/jobs/source-lifecycle';
 
 // ═══════════════════════════════════════════════════════════════
+// CRON OPTIONS — timezone Bolivia (America/La_Paz)
+// FIX: Sin esto, node-cron usa UTC del sistema y las tareas
+// se disparan a horas incorrectas (ej: 7 AM Bolivia → 7 AM UTC).
+// ═══════════════════════════════════════════════════════════════
+const CRON_OPTS = { scheduled: true, timezone: 'America/La_Paz' };
+
+// ═══════════════════════════════════════════════════════════════
 // Health Heartbeat
 // ═══════════════════════════════════════════════════════════════
 
@@ -212,16 +219,25 @@ function scheduleSingleCheck(
 
       if (ultimoCheck?.ultimoCheck) {
         const mins = (Date.now() - ultimoCheck.ultimoCheck.getTime()) / 60000;
-        if (mins < CHECK_FIRST_CONFIG.minTimeBetweenChecks) return;
+        if (mins < CHECK_FIRST_CONFIG.minTimeBetweenChecks) {
+          console.log(`[Scheduler-Service] OMITIDO ${fuente.medioNombre || fuente.id}: último check hace ${Math.round(mins)} min (< ${CHECK_FIRST_CONFIG.minTimeBetweenChecks} min)`);
+          return;
+        }
       }
 
       const pendingJob = await db.job.findFirst({
         where: { tipo: 'check_fuente', estado: 'pendiente', payload: { contains: fuente.id } },
       });
-      if (pendingJob) return;
+      if (pendingJob) {
+        console.log(`[Scheduler-Service] OMITIDO ${fuente.medioNombre || fuente.id}: ya existe check_fuente pendiente (job ${pendingJob.id})`);
+        return;
+      }
 
       const pendingCount = await db.job.count({ where: { estado: 'pendiente' } });
-      if (pendingCount >= QUEUE_LIMITS.maxPendingJobs) return;
+      if (pendingCount >= QUEUE_LIMITS.maxPendingJobs) {
+        console.log(`[Scheduler-Service] OMITIDO ${fuente.medioNombre || fuente.id}: cola llena (${pendingCount}/${QUEUE_LIMITS.maxPendingJobs})`);
+        return;
+      }
 
       await enqueue({
         tipo: 'check_fuente',
@@ -230,11 +246,12 @@ function scheduleSingleCheck(
       });
 
       state.totalScheduled++;
+      console.log(`[Scheduler-Service] check_fuente encolado para ${fuente.medioNombre || fuente.id} (hora ${hora})`);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       console.error(`[Scheduler-Service] Error en tarea ${fuente.medioNombre || fuente.id}: ${msg}`);
     }
-  });
+  }, CRON_OPTS);
 
   state.tasks.push(task);
 }
@@ -266,7 +283,7 @@ function scheduleBoletinJobs(): number {
         const msg = error instanceof Error ? error.message : String(error);
         console.error(`[Scheduler-Service] Error en boletin ${entry.tipo}: ${msg}`);
       }
-    });
+    }, CRON_OPTS);
 
     state.tasks.push(task);
   }
@@ -285,8 +302,8 @@ async function scheduleIndicatorJobs(): Promise<number> {
     return 0;
   }
 
-  // 08:00 AM Bolivia = 12:00 UTC
-  const expresion = '0 12 * * *';
+  // 08:00 AM Bolivia (con timezone corregido)
+  const expresion = '0 8 * * *';
   if (!cron.validate(expresion)) return 0;
 
   const task = cron.schedule(expresion, async () => {
@@ -306,7 +323,7 @@ async function scheduleIndicatorJobs(): Promise<number> {
       const msg = error instanceof Error ? error.message : String(error);
       console.error(`[Scheduler-Service] Error en captura indicadores: ${msg}`);
     }
-  });
+  }, CRON_OPTS);
 
   state.tasks.push(task);
   console.log(`[Scheduler-Service] Captura indicadores Tier 1 programada (08:00 AM) — ${count} indicadores`);
@@ -346,7 +363,7 @@ function scheduleBatchLLM(): number {
         const msg = error instanceof Error ? error.message : String(error);
         console.error(`[Scheduler-Service] Error en batch_llm: ${msg}`);
       }
-    });
+    }, CRON_OPTS);
 
     state.tasks.push(task);
     count++;
@@ -376,7 +393,7 @@ function scheduleMaintenanceJob(): number {
       const msg = error instanceof Error ? error.message : String(error);
       console.error(`[Scheduler-Service] Error en mantenimiento: ${msg}`);
     }
-  });
+  }, CRON_OPTS);
 
   state.tasks.push(task);
   console.log('[Scheduler-Service] Mantenimiento nocturno programado (04:00 AM)');
@@ -415,7 +432,7 @@ function schedulePeriodicReschedule(): void {
       const msg = error instanceof Error ? error.message : String(error);
       console.error(`[Scheduler-Service] Error en reschedule: ${msg}`);
     }
-  });
+  }, CRON_OPTS);
 
   state.tasks.push(task);
 }
@@ -446,11 +463,12 @@ function scheduleProbeCheck(fuente: Record<string, unknown>): void {
       });
 
       state.totalScheduled++;
+      console.log(`[Scheduler-Service] probe check encolado para ${fuente.medioNombre || fuente.id} (capa 0, hora ${hora})`);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       console.error(`[Scheduler-Service] Error en probe ${fuente.medioNombre || fuente.id}: ${msg}`);
     }
-  });
+  }, CRON_OPTS);
 
   state.tasks.push(task);
 }
