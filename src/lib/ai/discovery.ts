@@ -292,9 +292,17 @@ function agruparEntidades(entidades: EntidadDetectada[]): Map<string, {
 
 function calcularConfianza(numMedios: number, frecuencia: number): number {
   // Base: 10 puntos por mención, hasta 30
-  let score = Math.min(frecuencia * 10, 30);
+  let score = 0;
+  if (frecuencia >= 8) score += 30;
+  else if (frecuencia >= 5) score += 22;
+  else if (frecuencia >= 3) score += 14;
+  else if (frecuencia >= 2) score += 8;
+  else score += 3;
   // Bonus por diversidad de medios: 20 por cada medio distinto, hasta 70
-  score += Math.min(numMedios * 20, 70);
+  if (numMedios >= 4) score += 70;
+  else if (numMedios >= 3) score += 55;
+  else if (numMedios >= 2) score += 35;
+  else score += 5;
   return Math.min(score, 100);
 }
 
@@ -381,7 +389,7 @@ export async function ejecutarDescubrimiento(): Promise<DiscoveryResult> {
       const confianza = calcularConfianza(numMedios, grupo.frecuencia);
 
       // Solo sugerir si aparece en al menos 2 medios distintos (confianza >= 30)
-      if (confianza < 30) {
+      if (confianza < 50) {
         result.detalles.push(`${grupo.nombre}: confianza ${confianza} (descartado — aparece en ${numMedios} medio${numMedios > 1 ? 's' : ''})`);
         continue;
       }
