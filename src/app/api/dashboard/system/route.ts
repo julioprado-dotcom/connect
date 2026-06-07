@@ -94,7 +94,7 @@ function readHeartbeat(filePath: string): HeartbeatData {
   }
 }
 
-function safeWorkerStats() {
+function safeWorkerStats_pm2() {
   // PRIMARY: read heartbeat file (works in PM2 multi-process mode)
   const hb = readHeartbeat(WORKER_HB);
   if (hb.online) {
@@ -125,7 +125,7 @@ function safeWorkerStats() {
   return { running: false, uptime: '0s', jobsCompleted: 0, jobsFailed: 0, jobsPerHour: 0, lastJobTime: null };
 }
 
-function safeSchedulerStats() {
+function safeSchedulerStats_pm2() {
   // PRIMARY: read heartbeat file (works in PM2 multi-process mode)
   const hb = readHeartbeat(SCHEDULER_HB);
   if (hb.online) {
@@ -147,6 +147,8 @@ function safeSchedulerStats() {
   return { running: false, totalTasks: 0 };
 }
 
+function safeWorkerStats(){try{const j=JSON.parse(require("child_process").execSync("pm2 jlist",{timeout:5000,encoding:"utf8"}));const p=j.find((x:any)=>x.name==="decodex-worker");if(p&&p.pm2_env?.status==="online")return{running:true,uptime:"online",jobsCompleted:0,jobsFailed:0,jobsPerHour:0,lastJobTime:null};}catch{}return safeWorkerStats_pm2();}
+function safeSchedulerStats(){try{const j=JSON.parse(require("child_process").execSync("pm2 jlist",{timeout:5000,encoding:"utf8"}));const p=j.find((x:any)=>x.name==="decodex-scheduler");if(p&&p.pm2_env?.status==="online")return{running:true,totalTasks:0};}catch{}return safeSchedulerStats_pm2();}
 // ═══════════════════════════════════════════════════════════════
 // Diagnósticos — cada uno atrapa sus propios errores
 // ═══════════════════════════════════════════════════════════════

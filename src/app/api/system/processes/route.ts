@@ -36,6 +36,14 @@ export async function GET() {
 
     const webOnline = true;
 
+    // PM2 detection (multi-process)
+    let pm2WO=false,pm2SO=false;
+    try{
+      const j=JSON.parse(require("child_process").execSync("pm2 jlist",{timeout:5000,encoding:"utf8"}));
+      pm2WO=!!(j.find(x=>x.name==="decodex-worker")?.pm2_env?.status==="online");
+      pm2SO=!!(j.find(x=>x.name==="decodex-scheduler")?.pm2_env?.status==="online");
+    }catch{}
+
     // Intentar obtener estado PM2 si está disponible
     let pm2Status: Array<Record<string, unknown>> | null = null;
     try {
@@ -69,7 +77,7 @@ export async function GET() {
         },
         worker: {
           name: 'decodex-worker',
-          online: workerHB.online,
+          online: pm2WO || workerHB.online,
           pid: workerHB.data.pid ?? null,
           uptime: workerHB.data.uptime ?? 0,
           jobsCompleted: workerHB.data.jobsCompleted ?? 0,
@@ -80,7 +88,7 @@ export async function GET() {
         },
         scheduler: {
           name: 'decodex-scheduler',
-          online: schedulerHB.online,
+          online: pm2SO || schedulerHB.online,
           pid: schedulerHB.data.pid ?? null,
           uptime: schedulerHB.data.uptime ?? 0,
           totalTasks: schedulerHB.data.totalTasks ?? 0,

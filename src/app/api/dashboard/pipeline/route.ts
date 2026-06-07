@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { getWorkerStats } from '@/lib/jobs/worker';
+import { execSync } from 'child_process';
 import { getSchedulerStatus } from '@/lib/jobs/scheduler';
 import { BOLETINES_SCHEDULE, FRECUENCIA_MAP } from '@/lib/jobs/constants';
 import { guardError } from '@/lib/rate-guard';
@@ -147,6 +148,16 @@ export async function GET() {
     // ── Worker + Scheduler stats ────────────────────────────────
     const worker = getWorkerStats();
     const scheduler = getSchedulerStatus();
+
+    // PM2 override for multi-process mode
+    try {
+      const j = JSON.parse(execSync("pm2 jlist",{timeout:5000,encoding:"utf8"}));
+      const wp = j.find(x=>x.name==="decodex-worker");
+      const sp = j.find(x=>x.name==="decodex-scheduler");
+      if (wp?.pm2_env?.status==="online") { worker.running=true; worker.uptime="online"; }
+      if (sp?.pm2_env?.status==="online") { scheduler.running=true; }
+      // pm2PipelineFix marker
+    } catch {}
 
     // ═══════════════════════════════════════════════════════════════
     // PASADO: Lo que ya pasó
