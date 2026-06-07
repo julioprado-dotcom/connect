@@ -148,9 +148,11 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
 
             // Enviar al LLM individualmente (reutiliza extractor existente)
             const resultado = await extraerMencionesDeTexto(nota.texto, medioId)
+            // FIX: Asegurar que fechaCaptura sea Date object (puede ser integer desde DB con engines viejos)
+            const safeFechaCaptura = nota.fechaCaptura instanceof Date ? nota.fechaCaptura : new Date(nota.fechaCaptura)
             menciones = await crearMencionesExtraidas(
               resultado, medioId, nota.url, nota.titulo,
-              { fechaCaptura: nota.fechaCaptura, fechaClasificacion: new Date() },
+              { fechaCaptura: safeFechaCaptura, fechaClasificacion: new Date() },
               nota.texto, // texto original completo de NotaRaw
               nota.id,   // FIX: pasar notaRawId para excluir del DEDUP CAPA 0
             )

@@ -259,6 +259,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
             texto: textoCompleto,
             puntajeTriaje: nota.puntaje,
             razonTriaje: nota.razon || '',
+            fechaCaptura: new Date(), // FIX: explícito para evitar integer timestamp
           },
         })
         guardadas++
@@ -360,6 +361,7 @@ async function procesarUrlsDirectas(
           texto,
           puntajeTriaje: 5, // RSS = ya pre-filtrado
           razonTriaje: 'rss_direct',
+          fechaCaptura: new Date(), // FIX: explícito para evitar integer timestamp
         },
       })
       guardadas++

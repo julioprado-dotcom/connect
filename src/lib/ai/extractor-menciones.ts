@@ -895,9 +895,10 @@ export async function crearMencionesExtraidas(
     temas: resultado.temas_detectados.join(', '),
     // FECHAS DEL PIPELINE:
     // fechaCaptura: cuándo se scrapeó (viene de NotaRaw, no es now())
-    ...(fechas?.fechaCaptura ? { fechaCaptura: fechas.fechaCaptura } : {}),
+    // FIX: type guard — si fechas.fechaCaptura no es Date, convertirlo
+    ...(fechas?.fechaCaptura ? { fechaCaptura: fechas.fechaCaptura instanceof Date ? fechas.fechaCaptura : new Date(fechas.fechaCaptura) } : {}),
     // fechaClasificacion: cuándo el LLM procesó esta nota
-    ...(fechas?.fechaClasificacion ? { fechaClasificacion: fechas.fechaClasificacion } : {}),
+    ...(fechas?.fechaClasificacion ? { fechaClasificacion: fechas.fechaClasificacion instanceof Date ? fechas.fechaClasificacion : new Date(fechas.fechaClasificacion) } : {}),
   };
 
   // 1. Crear menciones por legislador (si hay)
