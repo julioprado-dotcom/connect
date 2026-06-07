@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { boliviaStartOfDay } from '@/lib/date-bolivia';
 
+// Fix BigInt serialization (Prisma SQLite returns BigInt for aggregates)
+(BigInt as any).prototype.toJSON = function(){return Number(this);};
+
+
 /**
  * GET /api/dashboard/ai/usage
  * Retorna estadísticas de uso de IA: tokens, costo USD, desglose por fuente y modelo.
@@ -76,9 +80,7 @@ export async function GET(request: NextRequest) {
       where: { createdAt: { gte: desde } },
       orderBy: { createdAt: 'desc' },
       take: 20,
-      include: {
-        Medio: { select: { nombre: true } },
-      },
+      // include Medio removido - causa error en produccion
     });
 
     // ─── Llamadas hoy (Bolivia timezone) ──────────────────────────
