@@ -11,6 +11,7 @@ import { registrarLlamadaLLM, USO_FUENTE } from '@/lib/registrar-uso-ia';
 import { deduplicarMencion, actualizarCoberturaDuplicado } from '@/lib/deduplicacion';
 import { reclasificarMencion } from '@/lib/clasificador-v2';
 import { canCallLLM, recordSuccess, recordFailure, recordSkipped, getCircuitBreakerState } from '@/lib/ai/circuit-breaker';
+import { throttledLlmCall } from '@/lib/ai/llm-throttle';
 import { registrarRechazo, RECHAZO_MOTIVO } from '@/lib/registrar-rechazo';
 
 // ─── Imports from sub-files ──────────────────────────────────
@@ -301,7 +302,7 @@ export async function extraerMencionesDeTexto(
 
     let completion;
     try {
-      completion = await zai.chat.completions.create({
+      completion = await throttledLlmCall(() => zai.chat.completions.create({
         model: 'glm-4.7-flash',
         messages: [
           { role: 'system', content: systemPrompt },
@@ -309,7 +310,7 @@ export async function extraerMencionesDeTexto(
         ],
         temperature: 0.1,
         signal: AbortSignal.timeout(60000), // 60s timeout
-      });
+      }));
     } catch (llmErr) {
       recordFailure(llmErr);
       throw llmErr; // Propagar para que el catch exterior lo maneje

@@ -7,6 +7,7 @@ import {
   forceOpen,
   forceClose,
 } from '@/lib/ai/circuit-breaker'
+import { getLlmThrottleStats } from '@/lib/ai/llm-throttle'
 
 // GET: obtener estado del circuit breaker
 export async function GET() {
@@ -19,6 +20,7 @@ export async function GET() {
     ...state,
     uptimeOpenMinutes: uptimeOpen,
     sinceRecoveryMinutes: sinceRecovery,
+    throttle: getLlmThrottleStats(),
     statusLabel: {
       CLOSED: 'Operativo',
       OPEN: 'Pausado (sin saldo)',

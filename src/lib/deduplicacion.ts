@@ -1,4 +1,5 @@
 // Deduplicación cross-medio — DECODEX Bolivia
+import { throttledLlmCall } from '@/lib/ai/llm-throttle';
 // FASE 4C: Evita que el mismo evento aparezca como múltiples menciones independientes
 
 import db from '@/lib/db';
@@ -224,7 +225,7 @@ async function verificarConLLM(
 ): Promise<'MISMO_EVENTO' | 'EVENTOS_DISTINTOS' | 'RELACIONADOS_PERO_DISTINTOS' | 'EVENTO_EVOLUTIVO'> {
   try {
     const zai = await ZAI.create();
-    const completion = await zai.chat.completions.create({
+    const completion = await throttledLlmCall(() => zai.chat.completions.create({
       model: 'glm-4.7-flash',
       messages: [
         {
@@ -253,7 +254,7 @@ CONTEXTO BOLIVIANO: En Bolivia, multiples medios reproducen cables de agencia (A
       ],
       temperature: 0.0,
       signal: AbortSignal.timeout(20000), // 20s timeout
-    });
+    }));
 
     const raw = (completion?.choices?.[0]?.message?.content || '').trim().toUpperCase();
 

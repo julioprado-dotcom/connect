@@ -1,4 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════
+import { throttledLlmCall } from '@/lib/ai/llm-throttle';
 // MOTOR DE DESCUBRIMIENTO INTELIGENTE — DECODEX Bolivia
 // ═══════════════════════════════════════════════════════════════════════
 //
@@ -189,7 +190,7 @@ async function extractEntidades(textos: Array<{ texto: string; titulo: string; m
   const systemPrompt = buildDiscoveryPrompt();
 
   try {
-    const completion = await zai.chat.completions.create({
+    const completion = await throttledLlmCall(() => zai.chat.completions.create({
       model: 'glm-4.7-flash',
       messages: [
         { role: 'system', content: systemPrompt },
@@ -197,7 +198,7 @@ async function extractEntidades(textos: Array<{ texto: string; titulo: string; m
       ],
       temperature: 0.1,
       signal: AbortSignal.timeout(45000), // 45s timeout
-    });
+    }));
 
     const raw = (completion?.choices?.[0]?.message?.content || '').trim();
 
