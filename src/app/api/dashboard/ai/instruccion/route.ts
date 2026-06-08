@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import ZAI from 'z-ai-web-dev-sdk';
 import { registrarLlamadaLLM, USO_FUENTE } from '@/lib/registrar-uso-ia';
+import { throttledLlmCall } from '@/lib/ai/llm-throttle';
 
 /* ─── Prompt del sistema para detectar tipo de instrucción ─── */
 const SYSTEM_PROMPT = `Eres un asistente del sistema DECODEX Bolivia, una plataforma de inteligencia de medios que monitorea señales políticas en Bolivia.
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     try {
       const zai = await ZAI.create();
-      const completion = await zai.chat.completions.create({
+      const completion = await throttledLlmCall(() => zai.chat.completions.create({
         model: 'glm-4.7-flash',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
         ],
         temperature: 0.1,
         max_tokens: 300,
-      });
+      }));
 
       const raw = completion.choices?.[0]?.message?.content || '';
 
@@ -348,7 +349,7 @@ async function handleResumirPeriodo(
         `${i + 1}. [${m.Medio?.nombre || 'N/A'}] ${m.titulo} — ${m.persona?.nombre || 'N/A'} (${m.sentimiento})`
       ).join('\n');
 
-      const completion = await zai.chat.completions.create({
+      const completion = await throttledLlmCall(() => zai.chat.completions.create({
         model: 'glm-4.7-flash',
         messages: [
           {
@@ -359,7 +360,7 @@ async function handleResumirPeriodo(
         ],
         temperature: 0.3,
         max_tokens: 400,
-      });
+      }));
 
       summary = completion.choices?.[0]?.message?.content || '';
 

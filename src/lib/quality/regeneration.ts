@@ -14,6 +14,7 @@
 import ZAI from 'z-ai-web-dev-sdk';
 import { PRODUCTOS } from '@/constants/products';
 import { registrarLlamadaLLM, USO_FUENTE } from '@/lib/registrar-uso-ia';
+import { throttledLlmCall } from '@/lib/ai/llm-throttle';
 import { type TipoBoletin, type GenerationResult, type ValidationResult } from '@/types/bulletin';
 import { validateContent } from './validator';
 
@@ -77,7 +78,7 @@ export async function regenerateWithRetry(params: {
       }
 
       const zai = await ZAI.create();
-      const completion = await zai.chat.completions.create({
+      const completion = await throttledLlmCall(() => zai.chat.completions.create({
         model: 'glm-4.7-flash',
         messages: [
           { role: 'system', content: params.systemPrompt },
@@ -85,7 +86,7 @@ export async function regenerateWithRetry(params: {
         ],
         temperature: Math.min(temperatura, 0.8),
         signal: AbortSignal.timeout(60000),
-      });
+      }));
 
       const contenido = completion.choices[0]?.message?.content ?? '';
       const tokensUsados = completion.usage?.total_tokens;

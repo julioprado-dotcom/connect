@@ -19,6 +19,7 @@ import { type MencionEnriquecida } from '@/types/bulletin';
 import { guardedParse, RATE } from '@/lib/rate-guard';
 import { generateFichaSchema } from '@/lib/validations';
 import { safeError } from '@/lib/safe-error';
+import { throttledLlmCall } from '@/lib/ai/llm-throttle';
 
 // ============================================
 // POST Handler
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest) {
     const zai = await ZAI.create();
     const temperatura = temperaturaOverride ?? PRODUCTOS.FICHA_LEGISLADOR.temperatura;
 
-    const completion = await zai.chat.completions.create({
+    const completion = await throttledLlmCall(() => zai.chat.completions.create({
       model: 'glm-4.7-flash',
       messages: [
         { role: 'system', content: PRODUCTOS.FICHA_LEGISLADOR.systemPrompt },
@@ -125,7 +126,7 @@ export async function POST(request: NextRequest) {
       ],
       temperature: temperatura,
       signal: AbortSignal.timeout(60000),
-    });
+    }));
 
     const contenido = completion.choices[0]?.message?.content ?? '';
     const tokensUsados = completion.usage?.total_tokens;

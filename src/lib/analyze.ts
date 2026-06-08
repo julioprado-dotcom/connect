@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import ZAI from 'z-ai-web-dev-sdk';
 import db from '@/lib/db';
 import { registrarLlamadaLLM, USO_FUENTE } from '@/lib/registrar-uso-ia';
+import { throttledLlmCall } from '@/lib/ai/llm-throttle';
 
 // ─── Helpers ──────────────────────────────────────────────────
 
@@ -289,7 +290,7 @@ export async function analyzeMencion(titulo: string, texto: string): Promise<Ana
           await new Promise(r => setTimeout(r, 5000));
         }
         const zai = await ZAI.create();
-        completion = await zai.chat.completions.create({
+        completion = await throttledLlmCall(() => zai.chat.completions.create({
           model: 'glm-4.7-flash',
           messages: [
             { role: 'system', content: systemPrompt },
@@ -300,7 +301,7 @@ export async function analyzeMencion(titulo: string, texto: string): Promise<Ana
           ],
           temperature: 0.2,
           signal: AbortSignal.timeout(60000), // 60s timeout
-        });
+        }));
         // Si llegamos aquí, la llamada fue exitosa
         break;
       } catch (llmErr) {

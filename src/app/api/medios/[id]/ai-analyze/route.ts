@@ -5,6 +5,7 @@ import db from '@/lib/db';
 import { withAuth } from '@/lib/auth-helpers';
 import ZAI from 'z-ai-web-dev-sdk';
 import { registrarLlamadaLLM, USO_FUENTE } from '@/lib/registrar-uso-ia';
+import { throttledLlmCall } from '@/lib/ai/llm-throttle';
 
 export async function POST(
   _request: NextRequest,
@@ -41,7 +42,7 @@ export async function POST(
     }
 
     const zai = await ZAI.create();
-    const completion = await zai.chat.completions.create({
+    const completion = await throttledLlmCall(() => zai.chat.completions.create({
       messages: [
         {
           role: 'system',
@@ -60,7 +61,7 @@ export async function POST(
         },
       ],
       temperature: 0.3,
-    });
+    }));
 
     const content = completion.choices[0]?.message?.content || '';
 

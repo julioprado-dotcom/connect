@@ -9,6 +9,7 @@ import type { EjeAgregado, ActorAgregado, FactorExterno } from './reporte-sector
 import type { AlertaSectorial, MarcoPrinciples } from './reporte-sectorial.alerts';
 import { formatMarcoForPrompt } from './reporte-sectorial.alerts';
 import { registrarLlamadaLLM, USO_FUENTE } from '@/lib/registrar-uso-ia';
+import { throttledLlmCall } from '@/lib/ai/llm-throttle';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -129,7 +130,7 @@ REGLAS ESTRICTAS:
 - Los hitos deben ser eventos concretos, no generalidades.${marcoSection}`;
 
     const zai = await ZAI.create();
-    const completion = await zai.chat.completions.create({
+    const completion = await throttledLlmCall(() => zai.chat.completions.create({
       model: 'glm-4.7-flash',
       messages: [
         { role: 'system', content: systemPrompt },
@@ -137,7 +138,7 @@ REGLAS ESTRICTAS:
       ],
       temperature: 0.3,
       signal: AbortSignal.timeout(60_000),
-    });
+    }));
 
     const raw = (completion?.choices?.[0]?.message?.content || '').trim();
 

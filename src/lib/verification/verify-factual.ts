@@ -10,6 +10,7 @@
  */
 
 import ZAI from 'z-ai-web-dev-sdk';
+import { throttledLlmCall } from '@/lib/ai/llm-throttle';
 
 // ─── Tipos ──────────────────────────────────────────────────────────
 
@@ -120,7 +121,7 @@ Verifica que los nombres, cargos y generos en el texto coincidan EXACTAMENTE con
 
     const zai = await ZAI.create();
     
-    const completion = await zai.chat.completions.create({
+    const completion = await throttledLlmCall(() => zai.chat.completions.create({
       model: 'glm-4.7-flash', // modelo rapido para verificacion
       messages: [
         { role: 'system', content: VERIFY_SYSTEM_PROMPT },
@@ -128,7 +129,7 @@ Verifica que los nombres, cargos y generos en el texto coincidan EXACTAMENTE con
       ],
       temperature: 0.1, // baja temperatura para verificacion precisa
       signal: AbortSignal.timeout(30000), // 30s timeout
-    });
+    }));
 
     const responseText = completion.choices[0]?.message?.content?.trim();
     if (!responseText) {

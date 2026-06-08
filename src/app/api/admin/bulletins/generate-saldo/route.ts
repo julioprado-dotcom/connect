@@ -16,6 +16,7 @@ import { guardedParse, RATE } from '@/lib/rate-guard'
 import { generateSaldoSchema } from '@/lib/validations'
 import { safeError } from '@/lib/safe-error'
 import { verifyProduct } from '@/lib/verification/verify-product'
+import { throttledLlmCall } from '@/lib/ai/llm-throttle'
 
 // ─── Endpoint POST ────────────────────────────────────────────────
 
@@ -92,7 +93,7 @@ REGLA: Compara la evolución del día. Si hay datos del Termómetro (apertura), 
 
     // 5. Generar con GLM
     const zai = await ZAI.create()
-    const completion = await zai.chat.completions.create({
+    const completion = await throttledLlmCall(() => zai.chat.completions.create({
       model: 'glm-4.7-flash',
       messages: [
         { role: 'system', content: PRODUCTOS.SALDO_DEL_DIA.systemPrompt },
@@ -100,7 +101,7 @@ REGLA: Compara la evolución del día. Si hay datos del Termómetro (apertura), 
       ],
       temperature: PRODUCTOS.SALDO_DEL_DIA.temperatura,
       signal: AbortSignal.timeout(60000),
-    })
+    }))
 
     const contenido = completion.choices[0]?.message?.content ?? 'Error: no se generó contenido'
     const duracion = Date.now() - inicio

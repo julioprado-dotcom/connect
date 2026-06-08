@@ -15,6 +15,7 @@ import db from '@/lib/db';
 import { withAuth } from '@/lib/auth-helpers';
 import ZAI from 'z-ai-web-dev-sdk';
 import { registrarLlamadaLLM, USO_FUENTE } from '@/lib/registrar-uso-ia';
+import { throttledLlmCall } from '@/lib/ai/llm-throttle';
 
 interface SignalAnalysis {
   contexto: string;
@@ -69,7 +70,7 @@ URL: ${mencion.url || 'Sin URL'}
     // Call AI for deep analysis
     const zai = await ZAI.create();
 
-    const completion = await zai.chat.completions.create({
+    const completion = await throttledLlmCall(() => zai.chat.completions.create({
       messages: [
         {
           role: 'system',
@@ -94,7 +95,7 @@ Responde SOLO en español. Sé conciso pero preciso. Si la información es insuf
         },
       ],
       temperature: 0.3,
-    });
+    }));
 
     const aiContent = completion.choices[0]?.message?.content || '';
 
