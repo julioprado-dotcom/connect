@@ -26,6 +26,7 @@ export async function GET() {
       OPEN: 'Pausado (sin saldo)',
       HALF: 'Probando recuperación...',
     }[state.state],
+    throttle: getLlmThrottleStats(),
   })
 }
 

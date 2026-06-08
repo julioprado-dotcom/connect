@@ -1,5 +1,4 @@
 // ═══════════════════════════════════════════════════════════════════════
-import { throttledLlmCall } from '@/lib/ai/llm-throttle';
 // MOTOR DE DESCUBRIMIENTO INTELIGENTE — DECODEX Bolivia
 // ═══════════════════════════════════════════════════════════════════════
 //
@@ -19,6 +18,7 @@ import db from '@/lib/db';
 import ZAI from 'z-ai-web-dev-sdk';
 import { registrarLlamadaLLM, USO_FUENTE } from '@/lib/registrar-uso-ia';
 import { boliviaStartOfDay } from '@/lib/date-bolivia';
+import { throttledLlmCall } from '@/lib/ai/llm-throttle';
 
 // ─── Interfaces ──────────────────────────────────────────────────
 
@@ -190,15 +190,17 @@ async function extractEntidades(textos: Array<{ texto: string; titulo: string; m
   const systemPrompt = buildDiscoveryPrompt();
 
   try {
-    const completion = await throttledLlmCall(() => zai.chat.completions.create({
-      model: 'glm-4.7-flash',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Analiza estas notas periodísticas bolivianas y detecta actores/temas emergentes:\n\n${contenido}` },
-      ],
-      temperature: 0.1,
-      signal: AbortSignal.timeout(45000), // 45s timeout
-    }));
+    const completion = await throttledLlmCall(() =>
+      zai.chat.completions.create({
+        model: 'glm-4.7-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Analiza estas notas periodísticas bolivianas y detecta actores/temas emergentes:\n\n${contenido}` },
+        ],
+        temperature: 0.1,
+        signal: AbortSignal.timeout(45000), // 45s timeout
+      })
+    );
 
     const raw = (completion?.choices?.[0]?.message?.content || '').trim();
 

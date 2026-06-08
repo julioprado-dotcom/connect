@@ -295,22 +295,24 @@ export async function extraerMencionesDeTexto(
       throw err;
     }
 
-    // 10. Llamada al LLM
+    // 10. Llamada al LLM (con throttle global antisaturación)
     const zai = await ZAI.create();
     debugWrite('Llamando a LLM (glm-4.7-flash)...');
     const llmStart = Date.now();
 
     let completion;
     try {
-      completion = await throttledLlmCall(() => zai.chat.completions.create({
-        model: 'glm-4.7-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userContent },
-        ],
-        temperature: 0.1,
-        signal: AbortSignal.timeout(60000), // 60s timeout
-      }));
+      completion = await throttledLlmCall(() =>
+        zai.chat.completions.create({
+          model: 'glm-4.7-flash',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userContent },
+          ],
+          temperature: 0.1,
+          signal: AbortSignal.timeout(60000), // 60s timeout
+        })
+      );
     } catch (llmErr) {
       recordFailure(llmErr);
       throw llmErr; // Propagar para que el catch exterior lo maneje
