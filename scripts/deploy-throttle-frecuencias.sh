@@ -1,14 +1,10 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════════════
 # DEPLOY: Throttle LLM + Frecuencias + Gap Recovery + Autodescubrimiento
-# DECODEX Bolivia
+# DECODEX Bolivia — VPS 2GB RAM + 2GB swap
 #
-# Cambios:
-#   1. Throttle entre notas LLM (DELAY_ENTRE_NOTAS = 2s) → evita 429
-#   2. Frecuencias corregidas (max 2h, ABI a 2h, oficiales a 6h)
-#   3. Gap Detector: recupera fuentes tras downtime automático
-#   4. Autodescubrimiento: ajusta frecuencias según publicación real
-#   5. Migración SQL: reactiva fuentes, corrige frecuencias en BD
+# IMPORTANTE: Este script está diseñado para VPS con recursos limitados.
+# Detiene TODO antes de compilar, limpia swap/memoria, y reinicia al final.
 #
 # Ejecutar: bash scripts/deploy-throttle-frecuencias.sh
 # ═══════════════════════════════════════════════════════════════════════
@@ -16,53 +12,161 @@
 set -e
 cd ~/decodex-app
 
-echo "=== DEPLOY: Throttle + Frecuencias + Gap Recovery ==="
+echo "========================================"
+echo "  DEPLOY: Throttle + Frecuencias + Gap"
+echo "========================================"
 echo ""
 
-# 1. Aplicar migración SQL (reactivar fuentes, corregir frecuencias)
-echo "[1/5] Aplicando migración SQL..."
-sqlite3 prisma/dev.db < scripts/migrate-frecuencias-gap-recovery.sql
-echo "      OK: Migración SQL aplicada"
+# ── Memoria antes de empezar ──
+echo "Memoria inicial:"
+free -h | head -2
 echo ""
 
-# 2. Verificar cambios en código
-echo "[2/5] Verificando archivos modificados..."
-grep -q "DELAY_ENTRE_NOTAS = 2000" src/lib/jobs/runners/batch-llm.ts && echo "      OK: Throttle en batch-llm.ts" || echo "      ERROR: Throttle NO encontrado"
-grep -q "AUTODESCUBRIMIENTO_CONFIG" src/lib/jobs/constants.ts && echo "      OK: Autodescubrimiento config" || echo "      ERROR: Autodescubrimiento NO encontrado"
-grep -q "detectarYRecuperarGap" src/lib/jobs/scheduler.ts && echo "      OK: Gap Detector en scheduler" || echo "      ERROR: Gap Detector NO encontrado"
-grep -q "autodescubrirFrecuencias" src/lib/jobs/scheduler.ts && echo "      OK: Autodescubrimiento en scheduler" || echo "      ERROR: Autodescubrimiento NO encontrado"
-echo ""
+# ═══════════════════════════════════════════════════════════
+# FASE 1: Detener todo y limpiar memoria
+# ═══════════════════════════════════════════════════════════
+echo "[FASE 1] Deteniendo procesos y limpiando memoria..."
 
-# 3. Compilar (solo si hay cambios en src/)
-echo "[3/5] Compilando Next.js..."
+# 1a. Detener PM2 completamente (no solo pause — libera memoria)
 pm2 stop all 2>/dev/null || true
+pm2 delete all 2>/dev/null || true
+sleep 3
+
+# 1b. Matar cualquier proceso residual de node/next que PM2 no controló
+pkill -f "next-server" 2>/dev/null || true
+pkill -f "next start" 2>/dev/null || true
+pkill -f "npx tsx" 2>/dev/null || true
 sleep 2
-npx next build 2>&1 | tail -5
+
+# 1c. Limpiar .next anterior (libera disco y memoria de caché)
+echo "      Limpiando .next anterior..."
+rm -rf .next
+echo "      OK: .next eliminado"
+
+# 1d. Forzar liberación de page cache y dentries del kernel
+echo "      Liberando page cache del kernel..."
+sync
+echo 3 > /proc/sys/vm/drop_caches 2>/dev/null || echo "      (drop_caches requiere root, continuando)"
+
+# 1e. Limpiar swap (forzar swap out → RAM → liberar)
+echo "      Limpiando swap..."
+sync
+# Verificar memoria libre post-limpieza
+MEM_FREE=$(free -m | awk '/^Mem:/{print $4}')
+SWAP_USED=$(free -m | awk '/^Swap:/{print $3}')
+echo "      RAM libre: ${MEM_FREE}MB, Swap usado: ${SWAP_USED}MB"
+
+if [ "$SWAP_USED" -gt 100 ]; then
+  echo "      Swap tiene ${SWAP_USED}MB — intentando liberar..."
+  # swapoff/swapon fuerza toda la swap a RAM y viceversa
+  # Solo si hay suficiente RAM libre para absorber la swap
+  if [ "$MEM_FREE" -gt "$SWAP_USED" ]; then
+    swapoff -a && swapon -a 2>/dev/null && echo "      OK: Swap liberado" || echo "      (requiere root)"
+  else
+    echo "      No hay suficiente RAM para mover swap (${MEM_FREE}MB < ${SWAP_USED}MB)"
+    echo "      Eliminando .next para liberar más espacio..."
+  fi
+fi
+
+echo ""
+echo "Memoria tras limpieza:"
+free -h | head -2
+echo ""
+
+# ═══════════════════════════════════════════════════════════
+# FASE 2: Pull del código
+# ═══════════════════════════════════════════════════════════
+echo "[FASE 2] Pull del código..."
+git fetch origin main
+git reset --hard origin/main
+echo "      OK: Código actualizado a latest"
+echo ""
+
+# ═══════════════════════════════════════════════════════════
+# FASE 3: Migración SQL
+# ═══════════════════════════════════════════════════════════
+echo "[FASE 3] Aplicando migración SQL..."
+sqlite3 prisma/dev.db < scripts/migrate-frecuencias-gap-recovery.sql
+echo "      OK: Fuentes reactivadas y frecuencias corregidas"
+echo ""
+
+# ═══════════════════════════════════════════════════════════
+# FASE 4: Compilar (sin procesos corriendo)
+# ═══════════════════════════════════════════════════════════
+echo "[FASE 4] Compilando Next.js (solo, sin otros procesos)..."
+echo "      Esto puede tardar 2-4 minutos en VPS 2GB..."
+
+# Limitar memoria del build con NODE_OPTIONS
+export NODE_OPTIONS="--max-old-space-size=512"
+export NEXT_TELEMETRY_DISABLED=1
+
+npx next build 2>&1 | tail -10
+BUILD_EXIT=$?
+
+if [ $BUILD_EXIT -ne 0 ]; then
+  echo ""
+  echo "      ERROR: Build falló. Verificar errores arriba."
+  echo "      Memoria disponible:"
+  free -h | head -2
+  exit 1
+fi
+
 echo "      OK: Build completado"
 echo ""
 
-# 4. Reiniciar procesos
-echo "[4/5] Reiniciando PM2..."
-pm2 start npm --name "decodex-web" -- start
-sleep 3
-pm2 start npm --name "decodex-worker" -- run start:worker
-sleep 2
-pm2 start npm --name "decodex-scheduler" -- run start:scheduler
-sleep 2
+# Limpiar page cache después del build (el compilador dejó basura)
+sync
+echo 3 > /proc/sys/vm/drop_caches 2>/dev/null || true
 echo ""
+
+# ═══════════════════════════════════════════════════════════
+# FASE 5: Reiniciar PM2 con procesos configurados
+# ═══════════════════════════════════════════════════════════
+echo "[FASE 5] Reiniciando PM2..."
+
+# Si existe ecosystem.config.js, usarlo; si no, crear los procesos manualmente
+if [ -f ecosystem.config.js ]; then
+  pm2 start ecosystem.config.js
+else
+  # Web (puerto 3000)
+  pm2 start npm --name "decodex-web" -- start
+  sleep 3
+  # Worker
+  pm2 start npm --name "decodex-worker" -- run start:worker
+  sleep 2
+  # Scheduler
+  pm2 start npm --name "decodex-scheduler" -- run start:scheduler
+  sleep 2
+fi
+
+pm2 save
+echo ""
+echo "      Procesos PM2:"
 pm2 list
 echo ""
 
-# 5. Verificar que el gap detector se ejecutó
-echo "[5/5] Verificando Gap Detector en logs..."
+# ═══════════════════════════════════════════════════════════
+# FASE 6: Verificación
+# ═══════════════════════════════════════════════════════════
+echo "[FASE 6] Verificación..."
+echo "      Esperando 10s a que procesos se estabilicen..."
 sleep 10
-pm2 logs decodex-scheduler --lines 30 --nostream 2>&1 | grep -i "gap\|autodescubrimiento\|reactiva" || echo "      Revisar logs manualmente: pm2 logs decodex-scheduler"
-echo ""
 
-echo "=== DEPLOY COMPLETADO ==="
 echo ""
-echo "Próximos pasos:"
-echo "  - Verificar dashboard: Worker/Scheduler EN LÍNEA"
-echo "  - Verificar logs: pm2 logs decodex-scheduler --lines 50"
-echo "  - Verificar capturas: pm2 logs decodex-worker --lines 50"
-echo "  - Verificar LLM: pm2 logs decodex-worker | grep batch-llm"
+echo "      === Logs del Scheduler (Gap Detector + Autodescubrimiento) ==="
+pm2 logs decodex-scheduler --lines 20 --nostream 2>&1 | grep -iE "gap|autodescubrim|reactiva|frecuen|program" || echo "      (revisar con: pm2 logs decodex-scheduler --lines 50)"
+
+echo ""
+echo "      === Memoria final ==="
+free -h | head -2
+
+echo ""
+echo "========================================"
+echo "  DEPLOY COMPLETADO"
+echo "========================================"
+echo ""
+echo "Comandos de verificación:"
+echo "  pm2 logs decodex-scheduler --lines 50    # Ver Gap Detector"
+echo "  pm2 logs decodex-worker --lines 50       # Ver capturas"
+echo "  pm2 logs decodex-worker | grep batch-llm # Ver procesamiento LLM"
+echo "  free -h                                   # Memoria"
