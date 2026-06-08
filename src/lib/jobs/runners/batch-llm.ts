@@ -25,6 +25,7 @@ const MAX_BACHES_POR_EJECUCION = 30 // Procesar TODAS las fuentes (antes era 8)
 const DELAY_ENTRE_BATCHES = 5000   // 5s entre batches de distintas fuentes (reducir 429 rate limit)
 const MAX_REINTENTOS = 3           // Max reintentos antes de descartar una nota
 const RETRY_DELAY = 10000         // 10s entre reintentos de la misma nota
+const DELAY_ENTRE_NOTAS = 2000     // 2s entre notas de una misma fuente (evitar 429 rate limit LLM)
 
 // ─── Runner principal ────────────────────────────────────────
 
@@ -235,6 +236,13 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
               }
             }
           }
+        }
+
+        // Throttle: pausa entre notas para evitar saturar el API LLM (429 rate limit)
+        // Se ejecuta después de cada nota (éxito o error) antes de la siguiente
+        const notaIndex = notas.indexOf(nota)
+        if (notaIndex < notas.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, DELAY_ENTRE_NOTAS))
         }
 
         if (procesada) {

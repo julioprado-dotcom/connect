@@ -46,64 +46,91 @@ export const DEGRADACION_CHAIN: string[] = [
 ]
 
 // ── Frecuencias base por categoria de medio ────────────────────────────
+// REGLA: frecuencia máxima = 2h (protege API LLM y VPS 2GB RAM)
+// El autodescubrimiento (gap-detector) ajustará dinámicamente según publicación real
 
 export const FRECUENCIA_BASE_POR_CATEGORIA: Record<string, string> = {
-  // Nivel 1 — Nacionales corporativos: 4h (optimizado, Bolivia actualiza 3-4x/día)
-  corporativo: '4h',
-  // Nivel 1 — Oficiales (gobierno, indicadores)
-  oficial: '1d',
+  // Nivel 1 — Nacionales corporativos: 2h (máximo permitido, publican 3-4x/día)
+  corporativo: '2h',
+  // Nivel 1 — Oficiales (gobierno, indicadores): 6h (publican 1-2x/día normalmente)
+  oficial: '6h',
   // Nivel 2 — Regionales: 6h (actualizan 2-3x/día)
   regional: '6h',
-  // Nivel 3 — Alternativos/independientes: 1x/día
-  alternativo: '1d',
-  // Nivel 4 — Redes sociales
-  red_social: '1d',
+  // Nivel 3 — Alternativos/independientes: 6h (publican 1-2x/día)
+  alternativo: '6h',
+  // Nivel 4 — Redes sociales: 6h (monitoreo constante pero no saturante)
+  red_social: '6h',
+}
+
+// ── Autodescubrimiento: umbrales para ajuste automático de frecuencias ──
+
+export const AUTODESCUBRIMIENTO_CONFIG = {
+  /** Notas mínimas en historial para calcular frecuencia óptima (sin historial suficiente usa categoría) */
+  minNotasParaAutoajuste: 10,
+  /** Ventana de tiempo (horas) para analizar patrón de publicación */
+  ventanaAnalisisHoras: 168, // 7 días
+  /** Frecuencia mínima absoluta (nunca chequear más seguido) */
+  frecuenciaMinima: '2h' as const,
+  /** Frecuencia máxima absoluta (nunca esperar más que esto) */
+  frecuenciaMaxima: '6h' as const,
+  /** Factor de seguridad: si fuente publica cada X min, chequear cada X * factor */
+  factorSeguridad: 0.7, // Si publica cada 100min, chequear cada 70min → redondea a 2h
+  /** Umbral de desviación para justificar cambio de frecuencia (%) */
+  umbralCambio: 30, // Cambiar solo si nueva frecuencia difiere >30% de la actual
 }
 
 // ── Frecuencias base por medio especifico (override de categoria) ──────
 
 export const FRECUENCIA_BASE_POR_MEDIO: Record<string, string> = {
-  // PRIORIDAD MAXIMA — Los Tiempos: cada 2h (sitios bolivianos actualizan 3-4x/día max)
+  // PRIORIDAD MAXIMA — Los Tiempos: 2h (máximo permitido, publica muy frecuentemente)
   'lostiempos.com': '2h',
 
-  // Nivel 1 — Nacionales: 4h (actualizan 3-4x/día, no necesitamos más frecuencia)
-  'la-razon.com': '4h',
-  'eldeber.com.bo': '4h',
-  'rtpbolivia.com.bo': '4h',
-  'abi.bo': '4h',
+  // Nivel 1 — Nacionales: 2h (publican 3-4x/día)
+  'la-razon.com': '2h',
+  'eldeber.com.bo': '2h',
+  'rtpbolivia.com.bo': '2h',
 
-  // TV principales — 6h (contenido audiovisual menos urgente)
-  'unitel.bo': '6h',
-  'reduno.tv': '6h',
-  'atb.com.bo': '6h',
+  // ABI — Agencia Boliviana de Información: 2h (oficial pero publica constantemente)
+  'abi.bo': '2h',
 
-  // Fuentes oficiales lentas — 1x/semana (SENASAG, IBCE, etc.)
-  'tribunal sup electoral': '1w',
-  'contraloria': '1w',
-  'tribunal constitucional': '1w',
-  'senasag': '1w',
-  'ibce': '1w',
+  // TV principales — 4h (contenido audiovisual, actualizan 2-3x/día)
+  'unitel.bo': '4h',
+  'reduno.tv': '4h',
+  'atb.com.bo': '4h',
 
-  // Indicadores — 1x/dia
-  'bcb': '1d',
+  // Fuentes oficiales lentas — 6h (SENASAG, IBCE, etc. publican poco)
+  'tribunal sup electoral': '6h',
+  'contraloria': '6h',
+  'tribunal constitucional': '6h',
+  'senasag': '6h',
+  'ibce': '6h',
+
+  // Indicadores — 6h (datos macroeconómicos se actualizan 1-2x/día)
+  'bcb': '6h',
 }
 
 // ── Horarios por defecto (sin datos de histograma) ─────────────────────
 
 export const HORARIOS_DEFAULT: Record<string, number[]> = {
-  // Los Tiempos — 2h frecuencia: 9 checks/día (06:00–22:00, ventana operativa)
-  'lostiempos.com': [6, 8, 10, 12, 14, 16, 18, 20, 22],
-  // Nacionales 4h: 4 checks/día
-  'la-razon.com': [7, 11, 15, 19],
-  'eldeber.com.bo': [7, 11, 15, 19],
-  'rtpbolivia.com.bo': [7, 11, 15, 19],
-  'abi.bo': [8, 12, 16, 20],
-  // TV 6h: 3 checks/día
-  'unitel.bo': [7, 13, 19],
-  'reduno.tv': [7, 13, 19],
-  'atb.com.bo': [7, 13, 19],
-  // Indicadores 1x/día
-  'bcb': [9],
+  // Los Tiempos — 2h: 8 checks/día (06:00–21:00, ventana operativa)
+  'lostiempos.com': [6, 8, 10, 12, 14, 16, 18, 20],
+  // Nacionales 2h: 8 checks/día
+  'la-razon.com': [6, 8, 10, 12, 14, 16, 18, 20],
+  'eldeber.com.bo': [6, 8, 10, 12, 14, 16, 18, 20],
+  'rtpbolivia.com.bo': [6, 8, 10, 12, 14, 16, 18, 20],
+  // ABI 2h: 8 checks/día (oficial pero alta frecuencia de publicación)
+  'abi.bo': [6, 8, 10, 12, 14, 16, 18, 20],
+  // TV 4h: 4 checks/día
+  'unitel.bo': [7, 11, 15, 19],
+  'reduno.tv': [7, 11, 15, 19],
+  'atb.com.bo': [7, 11, 15, 19],
+  // Oficiales lentas / Indicadores 6h: 3 checks/día
+  'tribunal sup electoral': [8, 14, 20],
+  'contraloria': [8, 14, 20],
+  'tribunal constitucional': [8, 14, 20],
+  'senasag': [8, 14, 20],
+  'ibce': [8, 14, 20],
+  'bcb': [8, 14, 20],
 }
 
 export const HORARIOS_CONFIG_DEFAULT: HorariosConfig = {

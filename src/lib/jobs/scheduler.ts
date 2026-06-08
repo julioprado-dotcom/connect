@@ -5,10 +5,10 @@ import cron from 'node-cron'
 import type { ScheduledTask } from 'node-cron'
 import db from '@/lib/db'
 import { enqueue } from './queue'
-import { getFrecuenciaEfectiva, frecuenciaToChecksDia } from './frequency/calculator'
+import { getFrecuenciaEfectiva, frecuenciaToChecksDia, frecuenciaToMs, getFrecuenciaBase } from './frequency/calculator'
 import { calcularHorariosOptimos, getHorariosDefault } from './histogram/calculator'
 import { buildCronEntries, getBoletinCronEntries, getMantenimientoCronEntry, formatCronHuman } from './histogram/cron-builder'
-import { CHECK_FIRST_CONFIG, QUEUE_LIMITS } from './constants'
+import { CHECK_FIRST_CONFIG, QUEUE_LIMITS, AUTODESCUBRIMIENTO_CONFIG } from './constants'
 import { determinarCapa, descripcionCapa, evaluarDegradacionMasiva } from './source-lifecycle'
 import { PRODUCTOS } from '@/constants/products'
 
@@ -55,6 +55,12 @@ export async function startScheduler(): Promise<void> {
 
   console.log('[Scheduler] Iniciando programacion de jobs...')
 
+  // 0. GAP DETECTOR: detectar downtime y recuperar fuentes/capturas perdidas
+  await detectarYRecuperarGap()
+
+  // 0b. AUTODESCUBRIMIENTO: ajustar frecuencias según patrón de publicación real
+  await autodescubrirFrecuencias()
+
   // 1. Programar checks de fuentes
   await scheduleCheckJobs()
 
@@ -82,6 +88,315 @@ export function stopScheduler(): void {
   state.tasks.length = 0
   state.running = false
   console.log('[Scheduler] Detenido')
+}
+
+// ── GAP DETECTOR: Recuperación automática tras downtime ─────────────────
+//
+// Al iniciar el scheduler, verifica si hubo un período sin capturas (gap).
+// Si el gap supera un umbral, reactiva fuentes inactivas por la caída,
+// resetea fallos injustos, y dispara checks inmediatos para todas las fuentes.
+// Esto resuelve el problema de 18h sin capturas que nadie detectó.
+
+async function detectarYRecuperarGap(): Promise<void> {
+  console.log('[Scheduler] Ejecutando Gap Detector...')
+
+  try {
+    // 1. Determinar el momento de la última captura exitosa en todo el sistema
+    const ultimaFuenteCheck = await db.fuenteEstado.findFirst({
+      where: { ultimoCheckOk: { not: null } },
+      orderBy: { ultimoCheckOk: 'desc' },
+      select: { ultimoCheckOk: true, Medio: { select: { nombre: true } } },
+    })
+
+    const ahora = Date.now()
+
+    // Si nunca hubo un check, no hay gap — es un sistema nuevo
+    if (!ultimaFuenteCheck?.ultimoCheckOk) {
+      console.log('[Scheduler] Gap Detector: sin historial de checks, saltando')
+      return
+    }
+
+    const gapMs = ahora - ultimaFuenteCheck.ultimoCheckOk.getTime()
+    const gapHoras = gapMs / (1000 * 60 * 60)
+
+    // Umbral: si el gap es menor a 2 horas, no hay recuperación necesaria
+    const UMBRAL_GAP_HORAS = 2
+
+    if (gapHoras < UMBRAL_GAP_HORAS) {
+      console.log(`[Scheduler] Gap Detector: último check hace ${gapHoras.toFixed(1)}h — sin gap significativo`)
+      return
+    }
+
+    // ── GAP DETECTADO: el sistema estuvo caído ──
+    console.warn(`[Scheduler] ⚠️ GAP DETECTADO: ${gapHoras.toFixed(1)} horas sin capturas (último: ${ultimaFuenteCheck.ultimoCheckOk.toISOString()}, fuente: ${ultimaFuenteCheck.Medio.nombre})`)
+
+    // 2. Reactivar fuentes que fueron desactivadas durante el gap
+    //    (los fallos fueron causados por la caída del sistema, no de la fuente)
+    const fuentesInactivas = await db.fuenteEstado.findMany({
+      where: {
+        estado: 'inactiva',
+        ultimoCheckOk: { not: null }, // Tuvo checks OK antes
+      },
+      include: { Medio: { select: { nombre: true, categoria: true, url: true } } },
+    })
+
+    let reactivadas = 0
+    for (const fuente of fuentesInactivas) {
+      await db.fuenteEstado.update({
+        where: { id: fuente.id },
+        data: {
+          estado: 'activa',
+          activo: true,
+          fallosConsecutivos: 0, // Resetear — los fallos son del sistema, no de la fuente
+        },
+      })
+      reactivadas++
+      console.log(`[Scheduler] Fuente reactivada tras gap: ${fuente.Medio.nombre} (estaba inactiva con ${fuente.fallosConsecutivos} fallos)`)
+    }
+
+    // 3. Resetear fallos consecutivos de fuentes activas que fallaron durante el gap
+    const fuentesConFallos = await db.fuenteEstado.findMany({
+      where: {
+        estado: 'activa',
+        fallosConsecutivos: { gt: 0 },
+      },
+      include: { Medio: { select: { nombre: true } } },
+    })
+
+    let fallosReseteados = 0
+    for (const fuente of fuentesConFallos) {
+      // Solo resetear si el último fallo probablemente ocurrió durante el gap
+      await db.fuenteEstado.update({
+        where: { id: fuente.id },
+        data: { fallosConsecutivos: 0 },
+      })
+      fallosReseteados++
+    }
+
+    // 4. Disparar checks inmediatos para todas las fuentes activas
+    //    (limitar a 5 checks concurrentes para no saturar)
+    const fuentesActivas = await db.fuenteEstado.findMany({
+      where: { estado: 'activa', activo: true },
+      include: { Medio: { select: { nombre: true, nivel: string } } },
+    })
+
+    let checksDisparados = 0
+    const MAX_CHECKS_INMEDIATOS = 5
+
+    for (const fuente of fuentesActivas.slice(0, MAX_CHECKS_INMEDIATOS)) {
+      // Verificar que no haya un check pendiente ya
+      const pendingJob = await db.job.findFirst({
+        where: {
+          tipo: 'check_fuente',
+          estado: 'pendiente',
+          payload: { contains: fuente.id },
+        },
+      })
+      if (pendingJob) continue
+
+      // Verificar que no se haya checkeado en los últimos 10 minutos
+      if (fuente.ultimoCheck) {
+        const minutosDesdeUltimo = (ahora - fuente.ultimoCheck.getTime()) / 60000
+        if (minutosDesdeUltimo < 10) continue
+      }
+
+      const prioridad = fuente.Medio.nivel === '1' ? 1 : 3
+      await enqueue({
+        tipo: 'check_fuente',
+        prioridad: prioridad as 0 | 1 | 3 | 5 | 7 | 9,
+        payload: { fuenteId: fuente.id, medioId: fuente.medioId },
+      })
+      checksDisparados++
+    }
+
+    // 5. Disparar batch LLM si hay notas pendientes
+    const pendientesLLM = await db.notaRaw.count({
+      where: { procesada: false, descartada: false },
+    })
+
+    if (pendientesLLM > 0) {
+      const pendingBatch = await db.job.findFirst({
+        where: { tipo: 'batch_llm', estado: 'pendiente' },
+      })
+      if (!pendingBatch) {
+        await enqueue({ tipo: 'batch_llm', prioridad: 3, payload: {} })
+        console.log(`[Scheduler] batch_llm encolado tras gap (${pendientesLLM} notas pendientes)`)
+      }
+    }
+
+    // 6. Registrar en SystemLog
+    await db.systemLog.create({
+      data: {
+        modulo: 'scheduler',
+        accion: 'gap_recovery',
+        detalle: `Gap de ${gapHoras.toFixed(1)}h detectado y recuperado: ${reactivadas} fuentes reactivadas, ${fallosReseteados} fallos reseteados, ${checksDisparados} checks inmediatos, ${pendientesLLM} notas pendientes LLM`,
+        automatica: true,
+        datos: JSON.stringify({
+          gapHoras: Math.round(gapHoras * 10) / 10,
+          reactivadas,
+          fallosReseteados,
+          checksDisparados,
+          pendientesLLM,
+        }),
+      },
+    }).catch(() => {})
+
+    console.log(`[Scheduler] ✓ Gap Recovery completado: ${reactivadas} reactivadas, ${fallosReseteados} fallos reseteados, ${checksDisparados} checks inmediatos`)
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error(`[Scheduler] Error en Gap Detector: ${msg}`)
+  }
+}
+
+// ── AUTODESCUBRIMIENTO: Ajuste automático de frecuencias ──────────────
+//
+// Analiza el patrón de publicación real de cada fuente (usando NotaRaw)
+// y ajusta la frecuenciaBase/frecuenciaActual para reflejar la realidad.
+// Se ejecuta al iniciar el scheduler y durante el mantenimiento nocturno.
+//
+// Lógica:
+//   - Si una fuente tiene ≥10 notas en los últimos 7 días, calcula intervalo promedio
+//   - Aplica factor de seguridad (0.7) para chequear antes de que publique
+//   - Redondea al nivel de frecuencia más cercano (2h, 4h, 6h)
+//   - Respeta bounds: mínimo 2h, máximo 6h
+//   - Solo cambia si la nueva frecuencia difiere >30% de la actual
+
+async function autodescubrirFrecuencias(): Promise<void> {
+  console.log('[Scheduler] Ejecutando autodescubrimiento de frecuencias...')
+
+  try {
+    const config = AUTODESCUBRIMIENTO_CONFIG
+    const ventanaInicio = new Date(Date.now() - config.ventanaAnalisisHoras * 60 * 60 * 1000)
+
+    // Obtener todas las fuentes con suficientes datos
+    const fuentes = await db.fuenteEstado.findMany({
+      where: { estado: { not: 'deprecada' } },
+      include: { Medio: { select: { nombre: true, categoria: true, url: true } } },
+    })
+
+    let ajustadas = 0
+    const FRECUENCIA_LEVELS = [
+      { key: '2h', minutos: 120 },
+      { key: '4h', minutos: 240 },
+      { key: '6h', minutos: 360 },
+    ]
+
+    for (const fuente of fuentes) {
+      try {
+        // Contar notas capturadas en la ventana de análisis
+        const notasRecientes = await db.notaRaw.count({
+          where: {
+            medioId: fuente.medioId,
+            fechaCaptura: { gte: ventanaInicio },
+          },
+        })
+
+        // Si no hay suficientes datos, mantener frecuencia de categoría
+        if (notasRecientes < config.minNotasParaAutoajuste) {
+          // Pero sí asegurarnos que tenga la frecuencia correcta de su categoría
+          const freqBaseCorrecta = getFrecuenciaBase(
+            fuente.Medio.nombre,
+            fuente.Medio.categoria,
+            fuente.Medio.url,
+          )
+          if (fuente.frecuenciaBase !== freqBaseCorrecta) {
+            await db.fuenteEstado.update({
+              where: { id: fuente.id },
+              data: {
+                frecuenciaBase: freqBaseCorrecta,
+                frecuenciaActual: freqBaseCorrecta,
+              },
+            })
+            ajustadas++
+            console.log(`[Scheduler] Autodescubrimiento: ${fuente.Medio.nombre} frecuencia corregida a ${freqBaseCorrecta} (sin historial, usa categoría)`)
+          }
+          continue
+        }
+
+        // Calcular intervalo promedio entre publicaciones
+        const notasConFecha = await db.notaRaw.findMany({
+          where: {
+            medioId: fuente.medioId,
+            fechaCaptura: { gte: ventanaInicio },
+          },
+          orderBy: { fechaCaptura: 'asc' },
+          select: { fechaCaptura: true },
+        })
+
+        if (notasConFecha.length < 2) continue
+
+        // Calcular intervalos entre publicaciones consecutivas
+        let totalIntervaloMin = 0
+        let intervalos = 0
+        for (let i = 1; i < notasConFecha.length; i++) {
+          const diff = notasConFecha[i].fechaCaptura.getTime() - notasConFecha[i - 1].fechaCaptura.getTime()
+          // Ignorar intervalos > 24h (probablemente gap del sistema, no patrón real)
+          if (diff < 24 * 60 * 60 * 1000) {
+            totalIntervaloMin += diff / (1000 * 60)
+            intervalos++
+          }
+        }
+
+        if (intervalos === 0) continue
+
+        const intervaloPromedioMin = totalIntervaloMin / intervalos
+        // Aplicar factor de seguridad: chequear antes de que publique
+        const intervaloAjustadoMin = intervaloPromedioMin * config.factorSeguridad
+
+        // Encontrar el nivel de frecuencia más cercano
+        let nuevaFreq: string | null = null
+        for (const level of FRECUENCIA_LEVELS) {
+          if (intervaloAjustadoMin <= level.minutos) {
+            nuevaFreq = level.key
+            break
+          }
+        }
+        // Si el intervalo es mayor que 6h, usar 6h como máximo
+        if (!nuevaFreq) nuevaFreq = config.frecuenciaMaxima
+
+        // Verificar si el cambio es significativo (>30%)
+        const freqActualMs = frecuenciaToMs(fuente.frecuenciaActual)
+        const nuevaFreqMs = frecuenciaToMs(nuevaFreq)
+        const diffPct = Math.abs(nuevaFreqMs - freqActualMs) / freqActualMs * 100
+
+        if (diffPct > config.umbralCambio) {
+          await db.fuenteEstado.update({
+            where: { id: fuente.id },
+            data: {
+              frecuenciaBase: nuevaFreq,
+              frecuenciaActual: nuevaFreq,
+            },
+          })
+          ajustadas++
+          console.log(
+            `[Scheduler] Autodescubrimiento: ${fuente.Medio.nombre} ${fuente.frecuenciaActual} → ${nuevaFreq} ` +
+            `(intervalo promedio: ${Math.round(intervaloPromedioMin)}min, ${notasRecientes} notas en ${config.ventanaAnalisisHoras}h)`
+          )
+        }
+      } catch (err) {
+        // Error individual no debe detener el proceso completo
+        console.warn(`[Scheduler] Error autodescubriendo ${fuente.Medio.nombre}: ${err instanceof Error ? err.message : String(err)}`)
+      }
+    }
+
+    if (ajustadas > 0) {
+      console.log(`[Scheduler] ✓ Autodescubrimiento: ${ajustadas} fuentes ajustadas de ${fuentes.length} evaluadas`)
+      await db.systemLog.create({
+        data: {
+          modulo: 'scheduler',
+          accion: 'autodescubrimiento_frecuencias',
+          detalle: `${ajustadas} fuentes con frecuencia ajustada por autodescubrimiento de ${fuentes.length} evaluadas`,
+          automatica: true,
+          datos: JSON.stringify({ ajustadas, total: fuentes.length }),
+        },
+      }).catch(() => {})
+    } else {
+      console.log(`[Scheduler] Autodescubrimiento: sin cambios necesarios (${fuentes.length} fuentes evaluadas)`)
+    }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error(`[Scheduler] Error en autodescubrimiento: ${msg}`)
+  }
 }
 
 // Programar checks para todas las fuentes activas (lifecycle: estado='activa')
@@ -454,8 +769,9 @@ function scheduleMaintenanceJob(): void {
             'degradar_fuentes',
             'recalcular_horarios',
             'recalcular_scheduler',
+            'autodescubrir_frecuencias',
             'limpiar_jobs',
-            'purge_notas_raw',  // NUEVO: limpiar NotaRaw > 48h sin procesar
+            'purge_notas_raw',  // limpiar NotaRaw > 48h sin procesar
           ],
         },
       })
@@ -503,6 +819,7 @@ export async function rescheduleAll(): Promise<void> {
   getState().running = true // mantener flag
 
   // Re-programar
+  await autodescubrirFrecuencias()
   await scheduleCheckJobs()
   await scheduleIndicatorJobs()
   scheduleBoletinJobs()
