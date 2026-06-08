@@ -6,6 +6,10 @@
 # IMPORTANTE: Este script está diseñado para VPS con recursos limitados.
 # Detiene TODO antes de compilar, limpia swap/memoria, y reinicia al final.
 #
+# NOTA: Ya NO usa migración SQL. El scheduler maneja todo vía Prisma:
+#   - Gap Detector: reactiva fuentes, resetea fallos, dispara checks inmediatos
+#   - Autodescubrimiento: ajusta frecuencias según patrón de publicación real
+#
 # Ejecutar: bash scripts/deploy-throttle-frecuencias.sh
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -83,17 +87,9 @@ echo "      OK: Código actualizado a latest"
 echo ""
 
 # ═══════════════════════════════════════════════════════════
-# FASE 3: Migración SQL
+# FASE 3: Compilar (sin procesos corriendo)
 # ═══════════════════════════════════════════════════════════
-echo "[FASE 3] Aplicando migración SQL..."
-sqlite3 prisma/dev.db < scripts/migrate-frecuencias-gap-recovery.sql
-echo "      OK: Fuentes reactivadas y frecuencias corregidas"
-echo ""
-
-# ═══════════════════════════════════════════════════════════
-# FASE 4: Compilar (sin procesos corriendo)
-# ═══════════════════════════════════════════════════════════
-echo "[FASE 4] Compilando Next.js (solo, sin otros procesos)..."
+echo "[FASE 3] Compilando Next.js (solo, sin otros procesos)..."
 echo "      Esto puede tardar 2-4 minutos en VPS 2GB..."
 
 # Limitar memoria del build con NODE_OPTIONS
@@ -120,9 +116,9 @@ echo 3 > /proc/sys/vm/drop_caches 2>/dev/null || true
 echo ""
 
 # ═══════════════════════════════════════════════════════════
-# FASE 5: Reiniciar PM2 con procesos configurados
+# FASE 4: Reiniciar PM2 con procesos configurados
 # ═══════════════════════════════════════════════════════════
-echo "[FASE 5] Reiniciando PM2..."
+echo "[FASE 4] Reiniciando PM2..."
 
 # Si existe ecosystem.config.js, usarlo; si no, crear los procesos manualmente
 if [ -f ecosystem.config.js ]; then
@@ -146,9 +142,9 @@ pm2 list
 echo ""
 
 # ═══════════════════════════════════════════════════════════
-# FASE 6: Verificación
+# FASE 5: Verificación
 # ═══════════════════════════════════════════════════════════
-echo "[FASE 6] Verificación..."
+echo "[FASE 5] Verificación..."
 echo "      Esperando 10s a que procesos se estabilicen..."
 sleep 10
 
