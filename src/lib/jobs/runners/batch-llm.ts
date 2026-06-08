@@ -132,20 +132,24 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
 
       let mencionesFuente = 0
       let erroredNotas = 0
+      let circuitBreakerOpen = false
 
       for (const nota of notas) {
         let procesada = false
         let menciones = 0
+        let marcadaProcesada = false // Rastrear si ya marcamos procesada=true en DB
 
         for (let intento = 1; intento <= MAX_REINTENTOS; intento++) {
           try {
             // FIX: Marcar como procesada ANTES de la extracción para evitar
             // que DEDUP CAPA 0 encuentre esta misma nota como "pendiente"
             // y la bloquee (auto-dedup bug al resetear notas descartadas)
+            // NOTA: Si falla con circuit breaker o error transitorio, se REVIERTE
             await db.notaRaw.update({
               where: { id: nota.id },
               data: { procesada: true, fechaProcesada: new Date() },
             })
+            marcadaProcesada = true
 
             // Enviar al LLM individualmente (reutiliza extractor existente)
             const resultado = await extraerMencionesDeTexto(nota.texto, medioId)
@@ -200,10 +204,20 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
             console.error(`[batch-llm] Error (intento ${intento}/${MAX_REINTENTOS}) nota ${nota.id.substring(0, 8)}: ${msg.substring(0, 150)}`)
 
             if (isCircuitBreaker) {
-              // Circuit breaker abierto → NO reintentar, dejar para próximo ciclo
-              console.warn(`[batch-llm] Nota ${nota.id.substring(0, 8)} skipeada: circuit breaker abierto. Se reintentará en proximo ciclo.`)
+              // Circuit breaker abierto → REVERTIR marca de procesada para que se reintente en próximo ciclo
+              if (marcadaProcesada) {
+                await db.notaRaw.update({
+                  where: { id: nota.id },
+                  data: { procesada: false, fechaProcesada: null },
+                }).catch(revertErr => {
+                  console.error(`[batch-llm] ERROR CRÍTICO: No se pudo revertir procesada para nota ${nota.id.substring(0, 8)}: ${String(revertErr).substring(0, 100)}`)
+                })
+                marcadaProcesada = false
+              }
+              console.warn(`[batch-llm] Nota ${nota.id.substring(0, 8)} revertida: circuit breaker abierto. Se reintentará en próximo ciclo.`)
               erroredNotas++
-              break
+              circuitBreakerOpen = true
+              break // Salir del loop de reintentos para esta nota
             }
 
             if (intento < MAX_REINTENTOS && isTransient) {
@@ -217,8 +231,17 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
             // Último intento o error no transitorio: marcar como descartada SOLO si no es parseable
             if (intento === MAX_REINTENTOS) {
               if (isTransient) {
-                // Error transitorio persistente → NO descartar, dejar para próximo ciclo
-                console.warn(`[batch-llm] Nota ${nota.id.substring(0, 8)} con error transitorio persistente, se reintentará en proximo ciclo`)
+                // Error transitorio persistente → REVERTIR marca de procesada para reintento
+                if (marcadaProcesada) {
+                  await db.notaRaw.update({
+                    where: { id: nota.id },
+                    data: { procesada: false, fechaProcesada: null },
+                  }).catch(revertErr => {
+                    console.error(`[batch-llm] ERROR: No se pudo revertir procesada para nota ${nota.id.substring(0, 8)}: ${String(revertErr).substring(0, 100)}`)
+                  })
+                  marcadaProcesada = false
+                }
+                console.warn(`[batch-llm] Nota ${nota.id.substring(0, 8)} revertida: error transitorio persistente, se reintentará en próximo ciclo`)
                 erroredNotas++
               } else {
                 // Error permanente (parse, DB, etc.) → descartar
@@ -250,11 +273,19 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
           totalMenciones += menciones
           totalProcesadas++
         }
+
+        // Si el circuit breaker se abrió, detener procesamiento de esta fuente y las siguientes
+        if (circuitBreakerOpen) break
       }
 
-      console.log(`[batch-llm] ✓ Fuente ${medioId.substring(0, 8)}: ${mencionesFuente} menciones, ${erroredNotas} errores transitorios`)
-
+      console.log(`[batch-llm] ${circuitBreakerOpen ? '⚠️' : '✓'} Fuente ${medioId.substring(0, 8)}: ${mencionesFuente} menciones, ${erroredNotas} errores transitorios${circuitBreakerOpen ? ' (circuit breaker abierto - detenido)' : ''}`)
       fuentesProcesadas++
+
+      // Si el circuit breaker se abrió, no procesar más fuentes
+      if (circuitBreakerOpen) {
+        console.warn(`[batch-llm] Circuit breaker abierto: deteniendo procesamiento de fuentes restantes. ${limit - i - 1} fuentes pendientes para próximo ciclo.`)
+        break
+      }
     }
 
     // 4. Registrar en SystemLog (auditoría)

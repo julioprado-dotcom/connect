@@ -28,7 +28,8 @@ export interface CircuitBreakerState {
 // ─── Configuración ─────────────────────────────────────────────────────────
 
 const CIRCUIT_CONFIG = {
-  failureThreshold: 4,        // errores consecutivos para abrir el circuit (era 2, muy sensible)
+  failureThreshold: 4,        // errores consecutivos para abrir el circuit
+  immediateOpenErrors: ['1113', '余额不足'], // Solo estos errores abren inmediatamente (saldo agotado real)
   recoveryIntervalMs: 5 * 60 * 1000,  // 5 minutos antes de intentar recuperación
   halfOpenTestIntervalMs: 30 * 1000,  // cada 30s hacer 1 prueba en half-open
   maxHalfOpenTests: 3,        // máx pruebas en half-open antes de re-abrir
@@ -126,14 +127,16 @@ export function recordFailure(error: unknown): void {
   const msg = error instanceof Error ? error.message : String(error)
   s.lastError = msg.substring(0, 200)
 
-  // Detectar 429 (sin saldo) o errores de quota
-  const is429 = msg.includes('429') || msg.includes('1113') || msg.includes('余额不足') || msg.includes('rate limit')
+  // Detectar errores que indican saldo agotado REAL (no rate limit transitorio)
+  // NOTA: Un 429 simple puede ser rate limit transitorio → NO abrir inmediatamente
+  // Solo 1113 (DashScope saldo agotado) o 余额不足 abren inmediatamente
+  const isSaldoAgotado = CIRCUIT_CONFIG.immediateOpenErrors.some(code => msg.includes(code))
 
-  if (is429 && s.state === 'CLOSED') {
-    // Error de saldo → abrir inmediatamente (no esperar threshold)
+  if (isSaldoAgotado && (s.state === 'CLOSED' || s.state === 'HALF')) {
+    // Saldo real agotado → abrir inmediatamente (no esperar threshold)
     s.state = 'OPEN'
     s.openedAt = Date.now()
-    console.warn(`[Circuit-Breaker] CLOSED → OPEN: Error 429 (sin saldo en DashScope). Fase 3 pausada.`)
+    console.warn(`[Circuit-Breaker] → OPEN: Saldo agotado en DashScope (${CIRCUIT_CONFIG.immediateOpenErrors.filter(c => msg.includes(c)).join(', ')}). Fase 3 pausada.`)
     console.warn(`[Circuit-Breaker] El pipeline continuará con Fases 1-2 (check + triaje) sin LLM.`)
     console.warn(`[Circuit-Breaker] Reintentará automáticamente en ${Math.round(CIRCUIT_CONFIG.recoveryIntervalMs / 60000)}min.`)
     return
