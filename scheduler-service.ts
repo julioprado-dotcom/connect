@@ -476,7 +476,9 @@ function scheduleSingleCheck(
       console.log(`[Scheduler-Service] check_fuente encolado para ${fuente.medioNombre || fuente.id} (hora ${hora})`);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      console.error(`[Scheduler-Service] Error en tarea ${fuente.medioNombre || fuente.id}: ${msg}`);
+      const stack = error instanceof Error ? error.stack : '';
+      console.error(`[Scheduler-Service] FATAL en tarea ${fuente.medioNombre || fuente.id}: ${msg}`);
+      if (stack) console.error(`[Scheduler-Service] Stack trace:`, stack);
     }
   }, CRON_OPTS);
 
@@ -508,7 +510,9 @@ function scheduleBoletinJobs(): number {
         console.log(`[Scheduler-Service] Boletin ${productType} encolado`);
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        console.error(`[Scheduler-Service] Error en boletin ${entry.tipo}: ${msg}`);
+        const stack = error instanceof Error ? error.stack : '';
+        console.error(`[Scheduler-Service] FATAL en boletin ${entry.tipo}: ${msg}`);
+        if (stack) console.error(`[Scheduler-Service] Stack trace:`, stack);
       }
     }, CRON_OPTS);
 
@@ -548,7 +552,9 @@ async function scheduleIndicatorJobs(): Promise<number> {
       console.log('[Scheduler-Service] capture_indicador encolado (Tier 1 batch)');
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      console.error(`[Scheduler-Service] Error en captura indicadores: ${msg}`);
+      const stack = error instanceof Error ? error.stack : '';
+      console.error(`[Scheduler-Service] FATAL en captura indicadores: ${msg}`);
+      if (stack) console.error(`[Scheduler-Service] Stack trace:`, stack);
     }
   }, CRON_OPTS);
 
@@ -601,7 +607,9 @@ function scheduleBatchLLM(): number {
         console.log(`[Scheduler-Service] batch_llm encolado (${pendientes} notas pendientes)`);
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        console.error(`[Scheduler-Service] Error en batch_llm: ${msg}`);
+        const stack = error instanceof Error ? error.stack : '';
+        console.error(`[Scheduler-Service] FATAL en batch_llm: ${msg}`);
+        if (stack) console.error(`[Scheduler-Service] Stack trace:`, stack);
       }
     }, CRON_OPTS);
 

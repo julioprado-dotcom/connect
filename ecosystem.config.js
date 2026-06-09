@@ -34,14 +34,15 @@ module.exports = {
 
     // ═══════════════════════════════════════════════════
     // 2. WORKER — Proceso dedicado de ejecución de jobs
+    // FIX: Usa ./node_modules/.bin/tsx directo en vez de npx
+    // para evitar que npx descargue tsx on-the-fly si no está
+    // en node_modules (tsx ahora es dependency, no devDependency)
     // ═══════════════════════════════════════════════════
     {
       name: 'decodex-worker',
-      script: 'npx',
-      args: 'tsx worker-service.ts',
+      script: './node_modules/.bin/tsx',
+      args: 'worker-service.ts',
       cwd: __dirname,
-      exec_mode: 'fork',
-      exec_mode: 'fork',
       exec_mode: 'fork',
       instances: 1,
       autorestart: true,
@@ -59,14 +60,13 @@ module.exports = {
 
     // ═══════════════════════════════════════════════════
     // 3. SCHEDULER — Proceso dedicado de programación
+    // FIX: Usa ./node_modules/.bin/tsx directo (ver worker)
     // ═══════════════════════════════════════════════════
     {
       name: 'decodex-scheduler',
-      script: 'npx',
-      args: 'tsx scheduler-service.ts',
+      script: './node_modules/.bin/tsx',
+      args: 'scheduler-service.ts',
       cwd: __dirname,
-      exec_mode: 'fork',
-      exec_mode: 'fork',
       exec_mode: 'fork',
       instances: 1,
       autorestart: true,
