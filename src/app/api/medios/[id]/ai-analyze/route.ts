@@ -43,6 +43,7 @@ export async function POST(
 
     const zai = await ZAI.create();
     const completion = await throttledLlmCall(() => zai.chat.completions.create({
+      model: 'glm-4.7-flash',
       messages: [
         {
           role: 'system',
