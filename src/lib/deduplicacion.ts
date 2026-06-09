@@ -15,6 +15,8 @@ interface DedupInput {
   fecha: Date;
   medioId: string;
   textoOriginal: string;
+  /** Si true, saltea verificación LLM en paso 4 (usa solo heurísticas DB). Para batch_llm. */
+  skipLlm?: boolean;
 }
 
 interface DedupResult {
@@ -437,6 +439,25 @@ export async function deduplicarMencion(
   }
 
   // ─── PASO 4: Verificación con LLM (solo top 3 dudosos) ───────
+  // OPTIMIZACIÓN: Si skipLlm=true (batch_llm), saltamos LLM para evitar
+  // multiplicador de llamadas. Con heurísticas DB es suficiente para batch.
+  if (input.skipLlm && dudosos.length > 0) {
+    const topCandidato = dudosos[0];
+    console.log(`[DEDUP] Batch mode (skipLLM): usando heurística DB para ${dudosos.length} candidatos, mejor match: #${topCandidato.id} (score ${topCandidato.score})`);
+    // Si el mejor candidato tiene score alto (>= 0.6), considerarlo duplicado
+    if (topCandidato.score >= 0.6) {
+      return {
+        decision: 'es_duplicado',
+        mencionOriginalId: topCandidato.id,
+        razon: `Batch dedup heurística: score ${topCandidato.score.toFixed(2)} vs #${topCandidato.id}`,
+      };
+    }
+    return {
+      decision: 'crear_original',
+      razon: `Batch dedup heurística: score bajo (${topCandidato.score.toFixed(2)}), creando original`,
+    };
+  }
+
   const topDudosos = dudosos.slice(0, 3);
 
   // Pre-cargar nombres de medios en una sola query (evitar N+1)
