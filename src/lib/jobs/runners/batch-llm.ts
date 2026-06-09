@@ -24,7 +24,7 @@ const MAX_NOTAS_POR_MEDIO = 20    // Max notas por medio en una sola ejecución
 const MAX_BACHES_POR_EJECUCION = 30 // Procesar TODAS las fuentes (antes era 8)
 const DELAY_ENTRE_BATCHES = 5000   // 5s entre batches de distintas fuentes (reducir 429 rate limit)
 const MAX_REINTENTOS = 3           // Max reintentos antes de descartar una nota
-const RETRY_DELAY = 10000         // 10s entre reintentos de la misma nota
+const RETRY_DELAY = 15000         // 15s entre reintentos de la misma nota (DashScope 429 recovery)
 const DELAY_ENTRE_NOTAS = 2000     // 2s entre notas de una misma fuente (evitar 429 rate limit LLM)
 
 // ─── Runner principal ────────────────────────────────────────

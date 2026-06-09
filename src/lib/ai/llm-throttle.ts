@@ -13,10 +13,10 @@
 
 // ─── Configuración ────────────────────────────────────────────────────────
 
-const LLM_THROTTLE_BASE_MS = 3000     // 3s entre llamadas LLM (base)
-const LLM_THROTTLE_MAX_MS = 10000     // 10s máximo (si hay 429s recientes)
-const BACKOFF_FACTOR = 1.5            // Multiplicador al recibir 429
-const BACKOFF_RESET_AFTER = 300_000    // Resetear backoff después de 5min sin 429
+const LLM_THROTTLE_BASE_MS = 8000     // 8s entre llamadas LLM (base — DashScope free tier limit)
+const LLM_THROTTLE_MAX_MS = 30000     // 30s máximo (si hay 429s recientes)
+const BACKOFF_FACTOR = 2.0            // Multiplicador al recibir 429 (agresivo)
+const BACKOFF_RESET_AFTER = 600_000   // Resetear backoff después de 10min sin 429
 
 // ─── Estado global (globalThis para persistir entre contextos) ────────────
 
