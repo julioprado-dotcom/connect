@@ -917,8 +917,7 @@ export async function crearMencionesExtraidas(
       }
 
       // DEDUPLICACION CROSS-MEDIO (FASE 4C)
-      // skipLlm=true: evita multiplicador de llamadas LLM en batch.
-      // Usa heurísticas DB (score >= 0.6 = duplicado).
+      // LLM dedup limitado a top 1 candidato (no 3) para evitar 429s.
       let dedupResult: Awaited<ReturnType<typeof deduplicarMencion>> | null = null;
       try {
         dedupResult = await deduplicarMencion({
@@ -928,7 +927,6 @@ export async function crearMencionesExtraidas(
           fecha: new Date(),
           medioId,
           textoOriginal: leg.contexto || leg.cita,
-          skipLlm: true,
         });
       } catch (dedupError) {
         console.error('[DEDUP-ERROR] Deduplicacion fallo, creando como original:', dedupError instanceof Error ? dedupError.message : dedupError);

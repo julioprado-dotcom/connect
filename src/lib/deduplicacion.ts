@@ -438,13 +438,13 @@ export async function deduplicarMencion(
     };
   }
 
-  // ─── PASO 4: Verificación con LLM (solo top 3 dudosos) ───────
-  // OPTIMIZACIÓN: Si skipLlm=true (batch_llm), saltamos LLM para evitar
-  // multiplicador de llamadas. Con heurísticas DB es suficiente para batch.
+  // ─── PASO 4: Verificación con LLM (solo top 1 dudoso) ───────
+  // OPTIMIZACIÓN: Antes verificaba top 3 candidatos con LLM (hasta 3 llamadas
+  // extra por legislador). Ahora solo el top 1 — reduce multiplicador de 16x a 5x.
+  // Los otros 2 candidatos se manejan por heurística DB (score).
   if (input.skipLlm && dudosos.length > 0) {
     const topCandidato = dudosos[0];
     console.log(`[DEDUP] Batch mode (skipLLM): usando heurística DB para ${dudosos.length} candidatos, mejor match: #${topCandidato.id} (score ${topCandidato.score})`);
-    // Si el mejor candidato tiene score alto (>= 0.6), considerarlo duplicado
     if (topCandidato.score >= 0.6) {
       return {
         decision: 'es_duplicado',
@@ -458,7 +458,7 @@ export async function deduplicarMencion(
     };
   }
 
-  const topDudosos = dudosos.slice(0, 3);
+  const topDudosos = dudosos.slice(0, 1); // Solo top 1 (antes: top 3)
 
   // Pre-cargar nombres de medios en una sola query (evitar N+1)
   const medioNuevoObj = await db.medio.findUnique({
