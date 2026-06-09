@@ -468,9 +468,29 @@ export async function POST(request: NextRequest) {
         departamento: medio.departamento || null,
         plataformas: medio.plataformas || '',
         notas: medio.notas || '',
+        naturaleza: medio.naturaleza || undefined,
+        ambito: medio.ambito || undefined,
+        categoria: medio.categoria || undefined,
+        enfoque: medio.enfoque || undefined,
       })),
       skipDuplicates: true,
     });
+
+    // Actualizar clasificación de medios existentes (si tienen campos en JSON)
+    const mediosConClasificacion = medios.filter(m => m.naturaleza || m.ambito || m.categoria || m.enfoque);
+    if (mediosConClasificacion.length > 0) {
+      await Promise.all(mediosConClasificacion.map(m =>
+        db.medio.updateMany({
+          where: { nombre: m.nombre },
+          data: {
+            ...(m.naturaleza ? { naturaleza: m.naturaleza } : {}),
+            ...(m.ambito ? { ambito: m.ambito } : {}),
+            ...(m.categoria ? { categoria: m.categoria } : {}),
+            ...(m.enfoque ? { enfoque: m.enfoque } : {}),
+          },
+        }).catch(() => {})
+      ));
+    }
 
     // 3. Seed senadores from senadores_completo.json (batch createMany)
     console.log('Seeding senadores...');

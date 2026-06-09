@@ -3,7 +3,7 @@ import { guardedParse, rateGuard, RATE, guardError } from '@/lib/rate-guard';
 import { searchSchema } from '@/lib/validations';
 import { webSearchNative } from '@/lib/web-search-native';
 
-const BOLIVIA_SITES = 'site:la-razon.com OR site:paginasiete.bo OR site:eldeber.com.bo OR site:lostiempos.com OR site:opinion.com.bo OR site:correodelsur.com OR site:elpotosi.net OR site:lapatria.bo OR site:eldiario.net OR site:jornadanet.com OR site:unitel.bo OR site:reduno.bo OR site:atb.com.bo OR site:boliviaverifica.bo OR site:abi.bo';
+const BOLIVIA_SITES = 'site:la-razon.com OR site:eldeber.com.bo OR site:lostiempos.com OR site:opinion.com.bo OR site:correodelsur.com OR site:elpotosi.net OR site:lapatria.bo OR site:eldiario.net OR site:unitel.bo OR site:reduno.bo OR site:atb.com.bo OR site:boliviaverifica.bo OR site:abi.bo';
 
 export async function GET(request: NextRequest) {
   try {

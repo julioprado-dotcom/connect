@@ -87,6 +87,13 @@ export async function DELETE(
     }
     if (medio._count.Mencion > 0) {
       await db.medio.update({ where: { id }, data: { activo: false } });
+      // FIX: También deprecar FuenteEstado asociado para que el scheduler lo ignore
+      await db.fuenteEstado.updateMany({
+        where: { medioId: id },
+        data: { activo: false, estado: 'deprecada' },
+      }).catch(err => {
+        console.warn(`[medios/[id] DELETE] Error deprecando FuenteEstado para ${id}:`, err);
+      });
       return NextResponse.json({
         message: `Medio desactivado (tiene ${medio._count.Mencion} menciones asociadas)`,
         deactivated: true,

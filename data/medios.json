@@ -1,227 +1,535 @@
 [
   {
-    "nivel": 1,
-    "nombre": "La Razón",
-    "url": "https://la-razon.com",
-    "tipo": "Digital",
-    "plataformas": "web,facebook,x,tiktok"
-  },
-  {
-    "nivel": 1,
-    "nombre": "El Deber",
-    "url": "https://deber.com.bo",
-    "tipo": "Digital+Impreso",
-    "plataformas": "web,facebook,x,instagram"
-  },
-  {
-    "nivel": 1,
+    "nivel": "1",
     "nombre": "Los Tiempos",
     "url": "https://www.lostiempos.com/",
     "tipo": "Digital+Impreso",
-    "plataformas": "web,facebook,x"
+    "plataformas": "web,facebook,x",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "NACIONAL",
+    "categoria": "PRENSA_GENERAL",
+    "enfoque": "GENERALISTA"
   },
   {
-    "nivel": 1,
+    "nivel": "1",
+    "nombre": "El Deber",
+    "url": "https://deber.com.bo",
+    "tipo": "Digital+Impreso",
+    "plataformas": "web,facebook,x,instagram",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "NACIONAL",
+    "categoria": "PRENSA_GENERAL",
+    "enfoque": "GENERALISTA"
+  },
+  {
+    "nivel": "1",
+    "nombre": "La Razón",
+    "url": "https://la-razon.com",
+    "tipo": "Digital",
+    "plataformas": "web,facebook,x,tiktok",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "NACIONAL",
+    "categoria": "PRENSA_GENERAL",
+    "enfoque": "GENERALISTA"
+  },
+  {
+    "nivel": "1",
     "nombre": "El Diario",
     "url": "https://eldiario.net.bo",
     "tipo": "Impreso+Digital",
-    "plataformas": "web,facebook"
+    "plataformas": "web,facebook",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "NACIONAL",
+    "categoria": "PRENSA_GENERAL",
+    "enfoque": "GENERALISTA"
   },
   {
-    "nivel": 1,
+    "nivel": "1",
     "nombre": "Opinión",
     "url": "https://opinion.com.bo",
     "tipo": "Digital+Impreso",
-    "plataformas": "web,facebook"
+    "plataformas": "web,facebook",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "NACIONAL",
+    "categoria": "PRENSA_GENERAL",
+    "enfoque": "GENERALISTA"
   },
   {
-    "nivel": 1,
+    "nivel": "1",
     "nombre": "eju.tv",
     "url": "https://eju.tv",
     "tipo": "Digital",
-    "plataformas": "web,facebook"
+    "plataformas": "web,facebook",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "NACIONAL",
+    "categoria": "PRENSA_GENERAL",
+    "enfoque": "GENERALISTA"
   },
   {
-    "nivel": 1,
+    "nivel": "1",
     "nombre": "ANF (Agencia Fides)",
     "url": "https://anf.com.bo",
     "tipo": "Agencia",
-    "plataformas": "web,facebook"
+    "plataformas": "web,facebook",
+    "naturaleza": "RELIGIOSO",
+    "ambito": "NACIONAL",
+    "categoria": "AGENCIA_NOTICIAS",
+    "enfoque": "GENERALISTA"
   },
   {
-    "nivel": 1,
+    "nivel": "1",
     "nombre": "Bolivia Verifica",
     "url": "https://boliviaverifica.bo",
     "tipo": "Fact-checking",
-    "plataformas": "web,facebook,x,instagram,tiktok"
+    "plataformas": "web,facebook,x,instagram,tiktok",
+    "naturaleza": "ONG",
+    "ambito": "NACIONAL",
+    "categoria": "VERIFICACION_HECHOS",
+    "enfoque": "VERIFICACION"
   },
   {
-    "nivel": 1,
+    "nivel": "1",
     "nombre": "El Mundo",
     "url": "https://elmundo.com.bo",
     "tipo": "Digital",
-    "plataformas": "web,facebook"
+    "plataformas": "web,facebook",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "NACIONAL",
+    "categoria": "PRENSA_GENERAL",
+    "enfoque": "GENERALISTA"
   },
   {
-    "nivel": 1,
+    "nivel": "1",
     "nombre": "Visión 360",
     "url": "https://vision360.bo",
     "tipo": "Digital",
-    "plataformas": "web,facebook"
+    "plataformas": "web,facebook",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "NACIONAL",
+    "categoria": "PRENSA_GENERAL",
+    "enfoque": "GENERALISTA"
   },
   {
-    "nivel": 1,
+    "nivel": "1",
     "nombre": "Unitel",
     "url": "https://unitel.bo",
     "tipo": "TV",
-    "plataformas": "web,facebook,youtube,x,tiktok"
+    "plataformas": "web,facebook,youtube,x,tiktok",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "NACIONAL",
+    "categoria": "TELEVISION",
+    "enfoque": "GENERALISTA"
   },
   {
-    "nivel": 1,
+    "nivel": "1",
     "nombre": "Red Uno",
     "url": "https://reduno.tv",
     "tipo": "TV",
-    "plataformas": "web,facebook,youtube"
+    "plataformas": "web,facebook,youtube",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "NACIONAL",
+    "categoria": "TELEVISION",
+    "enfoque": "GENERALISTA"
   },
   {
-    "nivel": 1,
+    "nivel": "1",
     "nombre": "ATB",
     "url": "https://atb.com.bo",
     "tipo": "TV",
-    "plataformas": "web,facebook,youtube"
+    "plataformas": "web,facebook,youtube",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "NACIONAL",
+    "categoria": "TELEVISION",
+    "enfoque": "GENERALISTA"
   },
   {
-    "nivel": 1,
+    "nivel": "1",
     "nombre": "Bolivia TV",
     "url": "https://tvbolivia.tv",
     "tipo": "TV estatal",
-    "plataformas": "web,facebook,youtube"
+    "plataformas": "web,facebook,youtube",
+    "naturaleza": "ESTATAL",
+    "ambito": "NACIONAL",
+    "categoria": "TELEVISION",
+    "enfoque": "GENERALISTA"
   },
   {
-    "nivel": 1,
+    "nivel": "1",
     "nombre": "ABI",
     "url": "https://abi.bo",
     "tipo": "Agencia estatal",
-    "plataformas": "web,facebook"
+    "plataformas": "web,facebook",
+    "naturaleza": "ESTATAL",
+    "ambito": "NACIONAL",
+    "categoria": "AGENCIA_ESTATAL",
+    "enfoque": "GENERALISTA"
   },
   {
-    "nivel": 2,
+    "nivel": "1",
+    "nombre": "IBCE",
+    "url": "https://ibce.org.bo",
+    "tipo": "Cámara empresarial",
+    "plataformas": "web",
+    "naturaleza": "CAMARAL",
+    "ambito": "NACIONAL",
+    "categoria": "DATOS_INDICADORES",
+    "enfoque": "ECONOMICO"
+  },
+  {
+    "nivel": "1",
+    "nombre": "SENASAG",
+    "url": "https://senasag.gob.bo",
+    "tipo": "Institución estatal",
+    "plataformas": "web",
+    "naturaleza": "ESTATAL",
+    "ambito": "NACIONAL",
+    "categoria": "DATOS_INDICADORES",
+    "enfoque": "DATOS_ESTADISTICOS"
+  },
+  {
+    "nivel": "1",
+    "nombre": "BCB",
+    "url": "https://bcb.gob.bo",
+    "tipo": "Institución estatal",
+    "plataformas": "web",
+    "naturaleza": "ESTATAL",
+    "ambito": "NACIONAL",
+    "categoria": "DATOS_INDICADORES",
+    "enfoque": "DATOS_ESTADISTICOS"
+  },
+  {
+    "nivel": "1",
+    "nombre": "Senado de Bolivia",
+    "url": "https://senado.bo",
+    "tipo": "Institución legislativa",
+    "plataformas": "web",
+    "naturaleza": "ESTATAL",
+    "ambito": "NACIONAL",
+    "categoria": "INSTITUCIONAL_LEGISLATIVO",
+    "enfoque": "LEGISLATIVO"
+  },
+  {
+    "nivel": "1",
+    "nombre": "Cámara de Diputados",
+    "url": "https://camara.bo",
+    "tipo": "Institución legislativa",
+    "plataformas": "web",
+    "naturaleza": "ESTATAL",
+    "ambito": "NACIONAL",
+    "categoria": "INSTITUCIONAL_LEGISLATIVO",
+    "enfoque": "LEGISLATIVO"
+  },
+  {
+    "nivel": "2",
     "nombre": "El Potosí",
     "url": "https://elpotosi.net",
     "tipo": "Impreso+Digital",
     "departamento": "Potosí",
-    "plataformas": "web,facebook"
+    "plataformas": "web,facebook",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "REGIONAL",
+    "categoria": "PRENSA_REGIONAL",
+    "enfoque": "GENERALISTA"
   },
   {
-    "nivel": 2,
+    "nivel": "2",
     "nombre": "La Patria",
     "url": "https://lapatriaenlinea.com",
     "tipo": "Digital",
     "departamento": "Oruro",
-    "plataformas": "web,facebook"
+    "plataformas": "web,facebook",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "REGIONAL",
+    "categoria": "PRENSA_REGIONAL",
+    "enfoque": "GENERALISTA"
   },
   {
-    "nivel": 2,
+    "nivel": "2",
     "nombre": "Correo del Sur",
     "url": "https://correodelsur.com",
     "tipo": "Digital+Impreso",
     "departamento": "Chuquisaca",
-    "plataformas": "web,facebook"
+    "plataformas": "web,facebook",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "REGIONAL",
+    "categoria": "PRENSA_REGIONAL",
+    "enfoque": "GENERALISTA"
   },
   {
-    "nivel": 2,
+    "nivel": "2",
     "nombre": "El Periódico",
     "url": "https://elperiodico.com.bo",
     "tipo": "Digital+Impreso",
     "departamento": "Tarija",
-    "plataformas": "web,facebook"
+    "plataformas": "web,facebook",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "REGIONAL",
+    "categoria": "PRENSA_REGIONAL",
+    "enfoque": "GENERALISTA"
   },
   {
-    "nivel": 2,
+    "nivel": "2",
     "nombre": "El País (Tarija)",
     "url": "https://elpais.bo",
     "tipo": "Digital",
     "departamento": "Tarija",
-    "plataformas": "web,facebook"
+    "plataformas": "web,facebook",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "REGIONAL",
+    "categoria": "PRENSA_REGIONAL",
+    "enfoque": "GENERALISTA"
   },
   {
-    "nivel": 2,
-    "nombre": "Ahora El Pueblo",
-    "url": "https://ahoraelpueblo.bo",
-    "tipo": "Impreso+Digital",
-    "departamento": "La Paz",
-    "plataformas": "web,facebook,x"
-  },
-  {
-    "nivel": 2,
-    "nombre": "El Día",
-    "url": "https://eldia.com.bo",
-    "tipo": "Digital",
-    "departamento": "Santa Cruz",
-    "plataformas": "web,facebook"
-  },
-  {
-    "nivel": 2,
+    "nivel": "2",
     "nombre": "La Voz de Tarija",
     "url": "https://lavozdetarija.com",
     "tipo": "Digital",
     "departamento": "Tarija",
-    "plataformas": "web,facebook"
+    "plataformas": "web,facebook",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "REGIONAL",
+    "categoria": "PRENSA_REGIONAL",
+    "enfoque": "GENERALISTA"
   },
   {
-    "nivel": 2,
+    "nivel": "2",
+    "nombre": "Ahora El Pueblo",
+    "url": "https://ahoraelpueblo.bo",
+    "tipo": "Impreso+Digital",
+    "departamento": "La Paz",
+    "plataformas": "web,facebook,x",
+    "naturaleza": "ESTATAL",
+    "ambito": "NACIONAL",
+    "categoria": "PRENSA_GENERAL",
+    "enfoque": "GENERALISTA",
+    "notas": "Posiblemente cerrado. Verificar existencia."
+  },
+  {
+    "nivel": "2",
+    "nombre": "El Día",
+    "url": "https://eldia.com.bo",
+    "tipo": "Digital",
+    "departamento": "Santa Cruz",
+    "plataformas": "web,facebook",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "REGIONAL",
+    "categoria": "PRENSA_REGIONAL",
+    "enfoque": "GENERALISTA"
+  },
+  {
+    "nivel": "2",
     "nombre": "La Estrella del Oriente (Leo.bo)",
     "url": "https://leo.bo",
     "tipo": "Digital",
     "departamento": "Santa Cruz",
-    "plataformas": "web,facebook"
+    "plataformas": "web,facebook",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "REGIONAL",
+    "categoria": "PRENSA_REGIONAL",
+    "enfoque": "GENERALISTA"
   },
   {
-    "nivel": 2,
+    "nivel": "2",
     "nombre": "Sol de Pando",
     "url": "https://sdepando.com",
     "tipo": "Digital",
     "departamento": "Pando",
-    "plataformas": "web,facebook"
+    "plataformas": "web,facebook",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "REGIONAL",
+    "categoria": "PRENSA_REGIONAL",
+    "enfoque": "GENERALISTA"
   },
   {
-    "nivel": 3,
+    "nivel": "2",
+    "nombre": "CAO",
+    "url": "https://cao.org.bo",
+    "tipo": "Cámara empresarial",
+    "departamento": "Santa Cruz",
+    "plataformas": "web",
+    "naturaleza": "CAMARAL",
+    "ambito": "REGIONAL",
+    "categoria": "DATOS_INDICADORES",
+    "enfoque": "ECONOMICO"
+  },
+  {
+    "nivel": "3",
     "nombre": "Abya Yala TV",
     "url": "https://abyayalatv.com",
     "tipo": "TV+Digital",
     "plataformas": "web,facebook,youtube,tiktok",
+    "naturaleza": "PRIVADO_INDEPENDIENTE",
+    "ambito": "NACIONAL",
+    "categoria": "COMUNITARIO",
+    "enfoque": "SOCIAL_COMUNITARIO",
     "notas": "Medio alternativo con presencia activa en redes sociales"
   },
   {
-    "nivel": 3,
+    "nivel": "3",
     "nombre": "Radio Kawsachun Coca",
     "url": "https://radiokawsachuncoca.com",
     "tipo": "Radio+Digital",
     "plataformas": "web,app,facebook,youtube",
+    "naturaleza": "PRIVADO_INDEPENDIENTE",
+    "ambito": "NACIONAL",
+    "categoria": "ALTERNATIVO",
+    "enfoque": "POLITICO",
     "notas": "Reabierta tras cierre de FB. Trópico cochabambino, movimientos sociales"
   },
   {
-    "nivel": 3,
+    "nivel": "3",
     "nombre": "Bolpress",
     "url": "https://bolpress.com",
     "tipo": "Portal",
     "plataformas": "web,facebook",
+    "naturaleza": "PRIVADO_INDEPENDIENTE",
+    "ambito": "NACIONAL",
+    "categoria": "ALTERNATIVO",
+    "enfoque": "POLITICO",
     "notas": "Derechos humanos, política"
   },
   {
-    "nivel": 3,
+    "nivel": "3",
     "nombre": "CEDIB",
     "url": "https://cedib.org",
     "tipo": "Centro de documentación",
     "plataformas": "web",
+    "naturaleza": "PRIVADO_INDEPENDIENTE",
+    "ambito": "NACIONAL",
+    "categoria": "ALTERNATIVO",
+    "enfoque": "SOCIAL_COMUNITARIO",
     "notas": "Medio ambiente, extractivismo, derechos indígenas"
   },
   {
-    "nivel": 3,
+    "nivel": "3",
+    "nombre": "ERBOL",
+    "url": "https://erbol.com.bo",
+    "tipo": "Radio+Digital",
+    "plataformas": "web,facebook",
+    "naturaleza": "RELIGIOSO",
+    "ambito": "NACIONAL",
+    "categoria": "COMUNITARIO",
+    "enfoque": "SOCIAL_COMUNITARIO",
+    "notas": "Red de radios de la Iglesia Católica (Conferencia Episcopal Boliviana)"
+  },
+  {
+    "nivel": "3",
     "nombre": "Resumen Latinoamericano",
     "url": "https://resumenlatinoamericano.org",
     "tipo": "Portal",
     "plataformas": "web,facebook",
-    "notas": "Movimientos sociales, perspectiva continental"
+    "naturaleza": "PRIVADO_INDEPENDIENTE",
+    "ambito": "INTERNACIONAL",
+    "categoria": "ALTERNATIVO",
+    "enfoque": "POLITICO",
+    "notas": "Movimientos sociales, perspectiva continental. Tag Bolivia."
+  },
+  {
+    "nivel": "3",
+    "nombre": "Reuters Commodities",
+    "url": "https://reuters.com",
+    "tipo": "Agencia internacional",
+    "plataformas": "web",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "INTERNACIONAL",
+    "categoria": "MERCADOS",
+    "enfoque": "ECONOMICO",
+    "notas": "Cobertura global commodities con tag Bolivia"
+  },
+  {
+    "nivel": "3",
+    "nombre": "Investing.com",
+    "url": "https://investing.com",
+    "tipo": "Plataforma financiera",
+    "plataformas": "web",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "INTERNACIONAL",
+    "categoria": "MERCADOS",
+    "enfoque": "ECONOMICO",
+    "notas": "Mercados financieros con tag Bolivia"
+  },
+  {
+    "nivel": "3",
+    "nombre": "TradingView",
+    "url": "https://tradingview.com",
+    "tipo": "Plataforma financiera",
+    "plataformas": "web",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "INTERNACIONAL",
+    "categoria": "MERCADOS",
+    "enfoque": "ECONOMICO",
+    "notas": "Gráficos y mercados con tag Bolivia"
+  },
+  {
+    "nivel": "3",
+    "nombre": "Perfect Daily Grind",
+    "url": "https://perfectdailygrind.com",
+    "tipo": "Portal especializado café",
+    "plataformas": "web",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "INTERNACIONAL",
+    "categoria": "CAFETERO",
+    "enfoque": "CAFETERO",
+    "notas": "Noticias café con tag Bolivia"
+  },
+  {
+    "nivel": "3",
+    "nombre": "Sprudge",
+    "url": "https://sprudge.com",
+    "tipo": "Portal especializado café",
+    "plataformas": "web",
+    "naturaleza": "PRIVADO_INDEPENDIENTE",
+    "ambito": "INTERNACIONAL",
+    "categoria": "CAFETERO",
+    "enfoque": "CAFETERO",
+    "notas": "Cultura café con tag Bolivia"
+  },
+  {
+    "nivel": "3",
+    "nombre": "Coffee Review",
+    "url": "https://coffeereview.com",
+    "tipo": "Portal especializado café",
+    "plataformas": "web",
+    "naturaleza": "PRIVADO_INDEPENDIENTE",
+    "ambito": "INTERNACIONAL",
+    "categoria": "CAFETERO",
+    "enfoque": "CAFETERO",
+    "notas": "Reviews café con tag Bolivia"
+  },
+  {
+    "nivel": "3",
+    "nombre": "World Coffee Research",
+    "url": "https://worldcoffeeresearch.org",
+    "tipo": "Investigación académica",
+    "plataformas": "web",
+    "naturaleza": "ACADEMICO",
+    "ambito": "INTERNACIONAL",
+    "categoria": "CAFETERO",
+    "enfoque": "CAFETERO",
+    "notas": "Investigación café con tag Bolivia"
+  },
+  {
+    "nivel": "3",
+    "nombre": "SCA",
+    "url": "https://sca.coffee",
+    "tipo": "Asociación industria café",
+    "plataformas": "web",
+    "naturaleza": "ONG",
+    "ambito": "INTERNACIONAL",
+    "categoria": "CAFETERO",
+    "enfoque": "CAFETERO",
+    "notas": "Specialty Coffee Association con tag Bolivia"
+  },
+  {
+    "nivel": "3",
+    "nombre": "OIC Café",
+    "url": "https://oic.org.bo",
+    "tipo": "Organización cafetera",
+    "plataformas": "web",
+    "naturaleza": "CAMARAL",
+    "ambito": "INTERNACIONAL",
+    "categoria": "CAFETERO",
+    "enfoque": "CAFETERO",
+    "notas": "Organización Internacional del Café con tag Bolivia"
   }
 ]
