@@ -33,7 +33,7 @@ try {
   }
 } catch { /* ignore */ }
 
-import { dequeue, complete, fail, reclaimOrphanJobs } from './src/lib/jobs/queue';
+import { dequeue, complete, fail, reclaimOrphanJobs, cleanStaleHeavyJobs } from './src/lib/jobs/queue';
 import { WORKER_CONFIG, FLOW_CONTROL } from './src/lib/jobs/constants';
 import { registerDefaultRunners } from './src/lib/jobs/worker';
 import { run as runCheckFuente } from './src/lib/jobs/runners/check-fuente';
@@ -176,33 +176,34 @@ async function main(): Promise<void> {
     console.error('[Worker-Service] Error iniciando container guardian:', err);
   }
 
-  // Limpiar jobs residuales del pipeline viejo que bloquean la cola
-  // FIX: Estados en español (pendiente, en_progreso, fallido) — NO inglés
-  // También limpia scrape_fuente_light atascados en en_progreso > 30min
+  // Limpiar jobs residuales que bloquean flow control (maxHeavyPending: 1)
+  // Estrategia: borrar scrape jobs antiguos (no los recién creados).
+  // reclaimOrphanJobs() ya reseteó en_progreso > 10min → pendiente.
+  // Este paso limpia los pendientes que llevan > 30min sin procesarse.
   try {
-    // 1. Borrar scrape_fuente (pipeline legacy) en estados inválidos
+    const cutoff = new Date(Date.now() - 30 * 60 * 1000);
+
+    // 1. Borrar scrape jobs antiguos en estados non-completado
     const deleted = await db.job.deleteMany({
       where: {
         tipo: { in: ['scrape_fuente', 'scrape_fuente_light'] },
         estado: { in: ['pendiente', 'en_progreso', 'fallido'] },
+        fechaCreacion: { lt: cutoff },
       },
     });
     if (deleted.count > 0) {
-      console.log(`[Worker-Service] Cleanup: ${deleted.count} jobs scrape residuales eliminados`);
+      console.log(`[Worker-Service] Cleanup: ${deleted.count} stale scrape jobs eliminados (>30min)`);
     }
 
-    // 2. Marcar como pendientes los scrape atascados en en_progreso > 30min (huérfanos)
-    const cutoff = new Date(Date.now() - 30 * 60 * 1000);
-    const stuck = await db.job.updateMany({
+    // 2. Borrar fallido scrape jobs de cualquier edad (ya fallaron, no sirven)
+    const deletedFailed = await db.job.deleteMany({
       where: {
         tipo: { in: ['scrape_fuente', 'scrape_fuente_light'] },
-        estado: 'en_progreso',
-        fechaInicio: { lt: cutoff },
+        estado: 'fallido',
       },
-      data: { estado: 'pendiente', fechaInicio: null, proximaEjecucion: new Date() },
     });
-    if (stuck.count > 0) {
-      console.log(`[Worker-Service] Cleanup: ${stuck.count} scrape atascados reseteados a pendiente`);
+    if (deletedFailed.count > 0) {
+      console.log(`[Worker-Service] Cleanup: ${deletedFailed.count} fallido scrape jobs eliminados`);
     }
 
     // 3. Resetear batch_llm atascados en pendiente > 60min
@@ -225,9 +226,28 @@ async function main(): Promise<void> {
     console.error('[Worker-Service] Error en cleanup jobs residuales:', err);
   }
 
+  // Safety net: limpieza periódica de stale heavy jobs (cada 30min)
+  // Evita que flow control se bloquee permanentemente entre reinicios
+  let lastCleanupTime = Date.now();
+  const CLEANUP_INTERVAL_MS = 30 * 60 * 1000;
+
   // Main loop
   while (state.running) {
     try {
+      // Safety net: limpieza periódica de stale heavy jobs
+      const nowLoop = Date.now();
+      if (nowLoop - lastCleanupTime > CLEANUP_INTERVAL_MS) {
+        try {
+          const cleaned = await cleanStaleHeavyJobs(60);
+          lastCleanupTime = nowLoop;
+          if (cleaned > 0) {
+            console.log(`[Worker-Service] Periodic cleanup: ${cleaned} stale scrapes removed`);
+          }
+        } catch (err) {
+          console.error('[Worker-Service] Error en cleanup periódico:', err);
+        }
+      }
+
       // Flow control: event loop lag
       const lag = await measureEventLoopLag();
       if (lag > FLOW_CONTROL.eventLoopLagThresholdMs) {

@@ -391,6 +391,27 @@ export async function purgeFailed(days: number = 7): Promise<number> {
   return result.count
 }
 
+// Limpiar stale heavy jobs (scrape) que llevan mucho tiempo pendientes.
+// Safety net: evita que flow control (maxHeavyPending) se bloquee permanentemente.
+// El worker llama esto periódicamente (cada 30 min).
+export async function cleanStaleHeavyJobs(maxAgeMinutes: number = 60): Promise<number> {
+  const cutoff = new Date(Date.now() - maxAgeMinutes * 60 * 1000)
+
+  const result = await db.job.deleteMany({
+    where: {
+      tipo: { in: ['scrape_fuente', 'scrape_fuente_light'] },
+      estado: 'pendiente',
+      fechaCreacion: { lt: cutoff },
+    },
+  })
+
+  if (result.count > 0) {
+    console.log(`[Queue] Cleanup: ${result.count} stale scrape jobs eliminados (>${maxAgeMinutes}min)`)
+  }
+
+  return result.count
+}
+
 // Recuperar jobs huerfanos atascados en en_progreso
 // Un job es huerfano si lleva > timeoutMs en en_progreso sin completar.
 // Se resetea a pendiente para que el worker lo reintente.
