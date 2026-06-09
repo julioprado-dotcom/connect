@@ -16,6 +16,20 @@ function generateJobId(): string {
 
 async function checkHeavyPressure(): Promise<boolean> {
   try {
+    // Self-heal: limpiar stale scrapes (>30min pendiente) ANTES de contar.
+    // Esto previene que flow control se bloquee por jobs olvidados.
+    const staleCutoff = new Date(Date.now() - 30 * 60 * 1000)
+    const staleDeleted = await db.job.deleteMany({
+      where: {
+        tipo: { in: ['scrape_fuente', 'scrape_fuente_light'] },
+        estado: 'pendiente',
+        fechaCreacion: { lt: staleCutoff },
+      },
+    })
+    if (staleDeleted.count > 0) {
+      console.log(`[Queue] checkHeavyPressure self-heal: ${staleDeleted.count} stale scrapes purgados antes de contar`)
+    }
+
     const heavyCount = await db.job.count({
       where: {
         estado: 'pendiente',

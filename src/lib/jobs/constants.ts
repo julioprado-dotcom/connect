@@ -247,7 +247,7 @@ export const RETRY_CONFIG = {
 
 export const QUEUE_LIMITS = {
   maxPendingJobs: 100,      // pausar scheduler si se alcanza
-  maxHeavyPending: 1,       // max scrape_fuente pendientes (jobs pesados) — UNO A LA VEZ
+  maxHeavyPending: 2,       // max scrape_fuente pendientes (jobs pesados) — breathing room para evitar deadlock
   maxBatchEnqueue: 5,       // max jobs por batch desde el endpoint de captura
   jobRetentionDays: 30,     // purgar jobs completados > 30 dias
   capturaLogRetentionDays: 90,
