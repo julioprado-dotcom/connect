@@ -89,6 +89,28 @@
   },
   {
     "nivel": "1",
+    "nombre": "Brújula Digital",
+    "url": "https://brujuladigital.com.bo",
+    "tipo": "Digital",
+    "plataformas": "web,facebook",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "NACIONAL",
+    "categoria": "PRENSA_GENERAL",
+    "enfoque": "GENERALISTA"
+  },
+  {
+    "nivel": "1",
+    "nombre": "Urgente Bolivia",
+    "url": "https://urgente.bo",
+    "tipo": "Digital",
+    "plataformas": "web,facebook",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "NACIONAL",
+    "categoria": "PRENSA_GENERAL",
+    "enfoque": "GENERALISTA"
+  },
+  {
+    "nivel": "1",
     "nombre": "El Mundo",
     "url": "https://elmundo.com.bo",
     "tipo": "Digital",
@@ -531,5 +553,62 @@
     "categoria": "CAFETERO",
     "enfoque": "CAFETERO",
     "notas": "Organización Internacional del Café con tag Bolivia"
+  },
+  {
+    "nivel": "2",
+    "nombre": "El Alteño",
+    "url": "https://elalteno.bo",
+    "tipo": "Digital",
+    "departamento": "La Paz",
+    "plataformas": "web,facebook",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "REGIONAL",
+    "categoria": "PRENSA_REGIONAL",
+    "enfoque": "GENERALISTA"
+  },
+  {
+    "nivel": "2",
+    "nombre": "RTP Bolivia",
+    "url": "https://rptbolivia.com",
+    "tipo": "TV",
+    "departamento": "Cochabamba",
+    "plataformas": "web,facebook",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "REGIONAL",
+    "categoria": "PRENSA_GENERAL",
+    "enfoque": "GENERALISTA"
+  },
+  {
+    "nivel": "2",
+    "nombre": "REVISTA PUBLIAGRO",
+    "url": "https://publiagro.com.bo",
+    "tipo": "Revista agrícola",
+    "plataformas": "web",
+    "naturaleza": "ONG",
+    "ambito": "NACIONAL",
+    "categoria": "AGROPECUARIO",
+    "enfoque": "AGROPECUARIO"
+  },
+  {
+    "nivel": "3",
+    "nombre": "Coffee Universe",
+    "url": "https://coffeeuniverse.com",
+    "tipo": "Portal especializado café",
+    "plataformas": "web",
+    "naturaleza": "PRIVADO_CORPORATIVO",
+    "ambito": "INTERNACIONAL",
+    "categoria": "CAFETERO",
+    "enfoque": "CAFETERO"
+  },
+  {
+    "nivel": "3",
+    "nombre": "Minuta de Café",
+    "url": "https://minutadecafe.com",
+    "tipo": "Portal especializado café",
+    "plataformas": "web",
+    "naturaleza": "PRIVADO_INDEPENDIENTE",
+    "ambito": "INTERNACIONAL",
+    "categoria": "CAFETERO",
+    "enfoque": "CAFETERO"
   }
 ]
