@@ -315,19 +315,6 @@
   },
   {
     "nivel": "2",
-    "nombre": "Ahora El Pueblo",
-    "url": "https://ahoraelpueblo.bo",
-    "tipo": "Impreso+Digital",
-    "departamento": "La Paz",
-    "plataformas": "web,facebook,x",
-    "naturaleza": "ESTATAL",
-    "ambito": "NACIONAL",
-    "categoria": "PRENSA_GENERAL",
-    "enfoque": "GENERALISTA",
-    "notas": "Posiblemente cerrado. Verificar existencia."
-  },
-  {
-    "nivel": "2",
     "nombre": "El Día",
     "url": "https://eldia.com.bo",
     "tipo": "Digital",
