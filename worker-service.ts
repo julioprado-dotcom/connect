@@ -176,20 +176,53 @@ async function main(): Promise<void> {
     console.error('[Worker-Service] Error iniciando container guardian:', err);
   }
 
-  // Limpiar jobs residuales del pipeline viejo (scrape_fuente) que bloquean la cola
+  // Limpiar jobs residuales del pipeline viejo que bloquean la cola
+  // FIX: Estados en español (pendiente, en_progreso, fallido) — NO inglés
+  // También limpia scrape_fuente_light atascados en en_progreso > 30min
   try {
+    // 1. Borrar scrape_fuente (pipeline legacy) en estados inválidos
     const deleted = await db.job.deleteMany({
       where: {
-        tipo: 'scrape_fuente',
-        estado: { in: ['pending', 'en_progreso', 'fallido'] },
+        tipo: { in: ['scrape_fuente', 'scrape_fuente_light'] },
+        estado: { in: ['pendiente', 'en_progreso', 'fallido'] },
       },
     });
     if (deleted.count > 0) {
-      console.log(`[Worker-Service] Cleanup: ${deleted.count} jobs scrape_fuente (pipeline viejo) eliminados`);
+      console.log(`[Worker-Service] Cleanup: ${deleted.count} jobs scrape residuales eliminados`);
+    }
+
+    // 2. Marcar como pendientes los scrape atascados en en_progreso > 30min (huérfanos)
+    const cutoff = new Date(Date.now() - 30 * 60 * 1000);
+    const stuck = await db.job.updateMany({
+      where: {
+        tipo: { in: ['scrape_fuente', 'scrape_fuente_light'] },
+        estado: 'en_progreso',
+        fechaInicio: { lt: cutoff },
+      },
+      data: { estado: 'pendiente', fechaInicio: null, proximaEjecucion: new Date() },
+    });
+    if (stuck.count > 0) {
+      console.log(`[Worker-Service] Cleanup: ${stuck.count} scrape atascados reseteados a pendiente`);
+    }
+
+    // 3. Resetear batch_llm atascados en pendiente > 60min
+    const batchCutoff = new Date(Date.now() - 60 * 60 * 1000);
+    const stuckBatch = await db.job.findMany({
+      where: {
+        tipo: 'batch_llm',
+        estado: 'pendiente',
+        fechaCreacion: { lt: batchCutoff },
+      },
+    });
+    for (const job of stuckBatch) {
+      await db.job.update({
+        where: { id: job.id },
+        data: { estado: 'completado', fechaFin: new Date(), resultado: JSON.stringify({ clean: true, reason: 'batch_llm pendiente > 60min, liberando cola' }) },
+      });
+      console.log(`[Worker-Service] Cleanup: batch_llm ${job.id} liberado (pendiente > 60min)`);
     }
   } catch (err) {
-    // Tabla Job puede no existir — no es fatal
-    console.error('[Worker-Service] Error en cleanup scrape_fuente:', err);
+    console.error('[Worker-Service] Error en cleanup jobs residuales:', err);
   }
 
   // Main loop

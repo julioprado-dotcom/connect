@@ -580,7 +580,20 @@ function scheduleBatchLLM(): number {
         const pending = await db.job.findFirst({
           where: { tipo: 'batch_llm', estado: 'pendiente' },
         });
-        if (pending) return;
+        if (pending) {
+          // FIX: Si batch_llm lleva > 30min pendiente, cancelarlo y reencolar
+          // (previene deadlock permanente si un batch_llm se atasca)
+          const pendingAge = Date.now() - pending.fechaCreacion.getTime();
+          if (pendingAge > 30 * 60 * 1000) {
+            await db.job.update({
+              where: { id: pending.id },
+              data: { estado: 'completado', fechaFin: new Date(), resultado: JSON.stringify({ clean: true, reason: 'batch_llm stale > 30min, reencolado' }) },
+            });
+            console.warn(`[Scheduler-Service] batch_llm ${pending.id} liberado (pendiente > 30min), reencolando...`);
+          } else {
+            return; // batch_llm reciente pendiente, esperar
+          }
+        }
 
         await enqueue({ tipo: 'batch_llm', prioridad: 3, payload: {} });
         state.totalScheduled++;
@@ -741,7 +754,49 @@ async function main(): Promise<void> {
   setInterval(writeHeartbeat, 5000);
   writeHeartbeat();
 
-  console.log(`[Scheduler-Service] ${state.tasks.length} tareas cron activas`);
+  // FIX: NotaRaw Watchdog — verifica cada 10 min si hay notas pendientes sin batch_llm
+  // Esto cubre la ventana entre los cron de batch_llm (cada 45min) y evita que
+  // notas se queden sin procesar por horas si el cron se pierde por un restart
+  setInterval(async () => {
+    try {
+      const pendientes = await db.notaRaw.count({
+        where: { procesada: false, descartada: false },
+      });
+      if (pendientes === 0) return;
+
+      // Verificar si hay un batch_llm activo (pendiente o en_progreso reciente)
+      const activeBatch = await db.job.findFirst({
+        where: {
+          tipo: 'batch_llm',
+          estado: { in: ['pendiente', 'en_progreso'] },
+        },
+        orderBy: { fechaCreacion: 'desc' },
+      });
+
+      if (activeBatch) {
+        // Si lleva > 45min, liberarlo
+        const age = Date.now() - activeBatch.fechaCreacion.getTime();
+        if (age > 45 * 60 * 1000) {
+          await db.job.update({
+            where: { id: activeBatch.id },
+            data: { estado: 'completado', fechaFin: new Date(), resultado: JSON.stringify({ clean: true, reason: 'watchdog: batch_llm stale > 45min' }) },
+          });
+          console.warn(`[Scheduler-Service] Watchdog: batch_llm ${activeBatch.id} liberado (stale > 45min)`);
+        } else {
+          return; // batch activo reciente, no reencolar
+        }
+      }
+
+      // No batch activo y hay notas pendientes → encolar
+      await enqueue({ tipo: 'batch_llm', prioridad: 3, payload: {} });
+      state.totalScheduled++;
+      console.log(`[Scheduler-Service] Watchdog: batch_llm encolado (${pendientes} notas pendientes sin batch activo)`);
+    } catch (err) {
+      // Non-critical — solo log
+    }
+  }, 10 * 60 * 1000); // cada 10 min
+
+  console.log(`[Scheduler-Service] ${state.tasks.length} tareas cron activas + watchdog activo`);
 
   // Mantener proceso vivo
   await new Promise<void>(() => {

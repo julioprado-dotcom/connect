@@ -32,17 +32,35 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
         if (homepageHtml) {
           setHtml(fuenteId, homepageHtml)
         }
-        await enqueue({
-          tipo: 'scrape_fuente_light',  // Pipeline desacoplado: scrape sin LLM → NotaRaw
-          payload: {
-            fuenteId,
-            medioId,
-            ...(urls?.length ? { urls } : {}),
-          },
-          prioridad: 1,
-        }).catch(err => {
-          console.warn(`[check-fuente] Error encolando scrape para fuente ${fuenteId}:`, err)
-        })
+        // FIX: Intentar encolar scrape con retry — si flow control bloquea,
+        // reintentar una vez después de 5s. Si sigue bloqueado, loggear como ERROR
+        // (no warning silencioso que se pierde).
+        let scrapeEncolado = false
+        let scrapeError = ''
+        for (let intento = 0; intento < 2; intento++) {
+          if (intento > 0) {
+            await new Promise(resolve => setTimeout(resolve, 5000))
+          }
+          try {
+            await enqueue({
+              tipo: 'scrape_fuente_light',  // Pipeline desacoplado: scrape sin LLM → NotaRaw
+              payload: {
+                fuenteId,
+                medioId,
+                ...(urls?.length ? { urls } : {}),
+              },
+              prioridad: 1,
+            })
+            scrapeEncolado = true
+            break
+          } catch (err: unknown) {
+            scrapeError = err instanceof Error ? err.message : String(err)
+            console.warn(`[check-fuente] Intento ${intento + 1} fallido para fuente ${fuenteId}: ${scrapeError}`)
+          }
+        }
+        if (!scrapeEncolado) {
+          console.error(`[check-fuente] ⚠️ SCRAPE BLOQUEADO para fuente ${fuenteId}: ${scrapeError} — cambio detectado PERO NO procesado`)
+        }
       }
 
       return {
@@ -56,7 +74,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
           datosNuevos: result.datosNuevos,
           responseTime: result.responseTime,
           tipoCheckUsado: result.tipoCheckUsado,
-          scrapeEncolado: !!medioId,
+          scrapeEncolado: !!medioId && scrapeEncolado,
           ...(result.error ? { error: result.error } : {}),
           ...(result.estrategiasProbadas ? { estrategiasProbadas: result.estrategiasProbadas } : {}),
         },
