@@ -21,6 +21,10 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
     const result = await checkFuente(fuenteId)
 
     if (result.cambiado) {
+      // FIX: Declarar fuera del if(medioId) para que sea accesible en el return
+      let scrapeEncolado = false
+      let scrapeError = ''
+
       // Encolar scrape_fuente automaticamente al detectar cambio
       // FIX MEMORIA: Si check-first descargó HTML, guardarlo en cache compartido
       // en lugar de pasarlo por payload del job (evita serializar MB en la tabla Job)
@@ -35,8 +39,6 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
         // FIX: Intentar encolar scrape con retry — si flow control bloquea,
         // reintentar una vez después de 5s. Si sigue bloqueado, loggear como ERROR
         // (no warning silencioso que se pierde).
-        let scrapeEncolado = false
-        let scrapeError = ''
         for (let intento = 0; intento < 2; intento++) {
           if (intento > 0) {
             await new Promise(resolve => setTimeout(resolve, 5000))
