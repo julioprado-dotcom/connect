@@ -47,10 +47,13 @@ prisma/db/custom.db.vacio
 # Sensitive / session files
 agent-ctx/
 
-# Environment
+# Environment (plain text — NEVER commit)
 .env
 .env.local
 upload/.env*
+# Encrypted backups ARE tracked (AES-256)
+!.env.enc
+!.z-ai-config.enc
 
 # Next.js
 .next/
@@ -73,9 +76,10 @@ server.pid
 tmp-query.cjs
 connect/
 
-# ZAI SDK config (contains API key — never commit this)
+# ZAI SDK config (plain text — never commit this)
 .z-ai-config
-.z-ai-config.*
+# Exception: encrypted backups are tracked
+!.z-ai-config.enc
 !/.z-ai-config.example
 
 # Z.ai skills (managed externally)
