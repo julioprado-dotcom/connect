@@ -43,6 +43,7 @@ export interface FuenteCapacidadData {
   activo: boolean
   fallosConsecutivos: number
   checksSinCambio?: number
+  totalChecks?: number  // FIX: Fuente con checks previos = capacidad demostrada
 }
 
 // ── Umbrales de tiempo ───────────────────────────────────────────────
@@ -53,7 +54,10 @@ const UMBRALES = {
   /** Advertencia si check OK fue hace más de esto (no degrada, solo warn) */
   CHECK_OK_WARNING_MS: 96 * 60 * 60 * 1000,       // 96 horas (4 días — warn antes de degradar a capa 0)
   /** Fallos consecutivos para desactivar automáticamente */
-  FALLOS_PARA_INACTIVAR: 3,
+  FALLOS_PARA_INACTIVAR: 5,  // FIX: Aumentado de 3 a 5. En VPS con 2GB RAM,
+  // los HTTP requests fallan frecuentemente por saturación del sistema
+  // (event loop lag, memory pressure), no porque la fuente esté caída.
+  // 5 fallos da más margen para distinguir fuente caída vs sistema saturado.
   /** Días inactiva antes de degradar a deprecada */
   DIAS_PARA_DEPRECADA: 30,
 } as const
@@ -73,13 +77,19 @@ const UMBRALES = {
 export function determinarCapa(fuente: FuenteCapacidadData): CapaFuente {
   const now = Date.now()
 
-  // Capa 0: Sin check exitoso reciente
+  // Capa 0: Sin check exitoso reciente Y sin historial
+  // FIX: Si la fuente tiene totalChecks > 0, ya demostró capacidad antes.
+  // No mandarla a capa 0 por un ultimoCheckOk viejo — eso crea un círculo vicioso
+  // donde capa 0 → solo probe a las 0-4 AM → probe falla → nunca se recupera.
+  // Fuentes con historial reciben capa mínima 1 para que el scheduler las programe normally.
+  const tieneHistorial = (fuente.totalChecks || 0) > 0
+
   if (!fuente.ultimoCheckOk) {
-    return 0
+    return tieneHistorial ? 1 : 0
   }
   const checkOkMs = now - new Date(fuente.ultimoCheckOk).getTime()
   if (checkOkMs > UMBRALES.CHECK_OK_FRESHNESS_MS) {
-    return 0
+    return tieneHistorial ? 1 : 0
   }
 
   // Capa 1: Check-First OK reciente (ya validado arriba)
@@ -238,6 +248,7 @@ export async function registrarResultadoCheck(
     estado: estadoActual,
     activo: fuente.activo,
     fallosConsecutivos: nuevosFallos,
+    totalChecks: (fuente.totalChecks || 0) + 1,  // Se incrementa con este check
   }
   const nuevaCapa = determinarCapa(fuenteData)
 
@@ -344,6 +355,7 @@ export async function evaluarDegradacionMasiva(): Promise<{
       activo: fuente.activo,
       fallosConsecutivos: fuente.fallosConsecutivos || 0,
       checksSinCambio: fuente.checksSinCambio,
+      totalChecks: fuente.totalChecks || 0,
     }
 
     const nuevaCapa = determinarCapa(fuenteData)

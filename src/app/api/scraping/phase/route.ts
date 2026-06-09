@@ -569,11 +569,19 @@ export async function POST(request: NextRequest) {
         scrapingState.scrapeEnProgreso = false
         scrapingState.scrapePausado = false
 
-        // Reset lifecycle: marcar todas las fuentes no-deprecadas como creadas
-        // (no deprecadas porque esas requieren intervención manual)
+        // FIX: Reset lifecycle SIN destruir configuración descubierta.
+        // Antes: reseteaba estado='creada' y activo=false → fuentes perdían
+        // fingerprint/tipoCheck porque scheduler filtraba por estado='activa'.
+        // Ahora: resetea lifecycle pero PRESERVA config ganada.
         await db.fuenteEstado.updateMany({
           where: { estado: { not: 'deprecada' } },
-          data: { estado: 'creada', activo: false },
+          data: {
+            estado: 'validando',
+            activo: true,
+            fallosConsecutivos: 0,
+            checksSinCambio: 0,
+            // fingerprint, tipoCheck, etag, ultimosIds SE PRESERVAN
+          },
         })
 
         scrapingState.faseActual = 0
@@ -586,7 +594,7 @@ export async function POST(request: NextRequest) {
         scrapeResultados = []
         ultimoScrapeInicio = null
 
-        console.log('[ScrapingPhase] Sistema reiniciado — todas las fuentes desactivadas')
+        console.log('[ScrapingPhase] Sistema reiniciado — fuentes en "validando" (config preservada)')
 
         return NextResponse.json({
           exito: true,

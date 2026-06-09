@@ -328,7 +328,7 @@ async function scheduleCheckJobs(): Promise<number> {
       fe.id, fe.medioId, fe.url, fe.frecuenciaBase, fe.frecuenciaActual,
       fe.horasPublicacion, fe.ultimoCheckOk, fe.ultimoHeadline,
       fe.ultimoTexto, fe.ultimoMencion, fe.estado, fe.activo,
-      fe.fallosConsecutivos,
+      fe.fallosConsecutivos, fe.totalChecks,
       m.nombre AS medioNombre, m.categoria AS medioCategoria,
       m.nivel AS medioNivel, m.frecuenciaOverride AS medioFrecuenciaOverride
     FROM FuenteEstado fe
@@ -364,6 +364,7 @@ async function scheduleCheckJobs(): Promise<number> {
         estado: (fuente.estado as string) || 'creada',
         activo: fuente.activo as boolean,
         fallosConsecutivos: (fuente.fallosConsecutivos as number) || 0,
+        totalChecks: (fuente.totalChecks as number) || 0,
       });
 
       if (capa < 1) {

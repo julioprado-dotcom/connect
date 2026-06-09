@@ -84,7 +84,10 @@ export async function POST(request: NextRequest) {
           tipoCheck,
           frecuenciaBase,
           frecuenciaActual: frecuenciaBase,
-          activo: medio.nivel === '1',
+          activo: true,  // FIX: Activar TODAS las fuentes, no solo nivel 1.
+          // El lifecycle engine las degradará si fallan, pero al menos
+          // tienen oportunidad de descubrir su estrategia óptima.
+          estado: 'validando',
         })
       }
     }
@@ -100,7 +103,7 @@ export async function POST(request: NextRequest) {
             detalles.push({
               medio: medio.nombre,
               estado: 'creado',
-              razon: `nivel ${medio.nivel}, freq ${(found as Record<string, string>).frecuenciaBase}, check ${(found as Record<string, string>).tipoCheck}, activo ${medio.nivel === '1'}`,
+              razon: `nivel ${medio.nivel}, freq ${(found as Record<string, string>).frecuenciaBase}, check ${(found as Record<string, string>).tipoCheck}, activo true (validando)`,
             })
           }
         }
@@ -111,19 +114,29 @@ export async function POST(request: NextRequest) {
     }
 
     // Batch update existing fuentes (when forzar=true)
+    // FIX: No sobreescribir tipoCheck si la fuente ya tiene uno descubierto.
+    // Solo actualizar URL y reactivar. Preservar config ganada (fingerprint, etag, etc.)
     if (fuentesToUpdate.length > 0) {
       try {
         await Promise.all(fuentesToUpdate.map(f =>
           db.fuenteEstado.update({
             where: { medioId: f.medioId },
-            data: { url: f.url, tipoCheck: f.tipoCheck, frecuenciaBase: f.frecuenciaBase, frecuenciaActual: f.frecuenciaBase, activo: true },
+            data: {
+              url: f.url,
+              // NO sobreescribir tipoCheck — podría destruir estrategia descubierta
+              frecuenciaBase: f.frecuenciaBase,
+              frecuenciaActual: f.frecuenciaBase,
+              activo: true,
+              estado: 'validando',
+              fallosConsecutivos: 0,
+            },
           })
         ))
         creados += fuentesToUpdate.length
         for (const f of fuentesToUpdate) {
           const medio = medios.find(m => m.id === f.medioId)
           if (medio) {
-            detalles.push({ medio: medio.nombre, estado: 'actualizado', razon: `freq ${f.frecuenciaBase}, check ${f.tipoCheck}` })
+            detalles.push({ medio: medio.nombre, estado: 'actualizado', razon: `reactivada, freq ${f.frecuenciaBase} (tipoCheck preservado)` })
           }
         }
       } catch (error: unknown) {
