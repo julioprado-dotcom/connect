@@ -108,7 +108,7 @@ export function registerLlm429(): void {
  * @example
  * const zai = await ZAI.create()
  * const completion = await throttledLlmCall(
- *   () => zai.chat.completions.create({ model: 'glm-4.7-flash', messages: [...] })
+ *   () => zai.chat.completions.create({ model: 'glm-4.5-flash', messages: [...] })
  * )
  */
 export async function throttledLlmCall<T>(

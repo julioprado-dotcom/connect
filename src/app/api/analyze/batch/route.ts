@@ -7,7 +7,7 @@ import { extraerMencionesDeTexto, crearMencionesExtraidas, type ExtractionResult
 import { safeError } from '@/lib/safe-error';
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
-// Rate limit del modelo gratis glm-4.7-flash: ~3 req/s
+// Rate limit del modelo gratis glm-4.5-flash: ~3 req/s
 const LLM_DELAY_MS = 3000;
 
 export async function POST(request: NextRequest) {

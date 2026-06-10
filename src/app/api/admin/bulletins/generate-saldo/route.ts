@@ -94,7 +94,7 @@ REGLA: Compara la evolución del día. Si hay datos del Termómetro (apertura), 
     // 5. Generar con GLM
     const zai = await ZAI.create()
     const completion = await throttledLlmCall(() => zai.chat.completions.create({
-      model: 'glm-4.7-flash',
+      model: 'glm-4.5-flash',
       messages: [
         { role: 'system', content: PRODUCTOS.SALDO_DEL_DIA.systemPrompt },
         { role: 'user', content: userPrompt },

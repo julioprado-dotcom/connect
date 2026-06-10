@@ -122,7 +122,7 @@ Verifica que los nombres, cargos y generos en el texto coincidan EXACTAMENTE con
     const zai = await ZAI.create();
     
     const completion = await throttledLlmCall(() => zai.chat.completions.create({
-      model: 'glm-4.7-flash', // modelo rapido para verificacion
+      model: 'glm-4.5-flash', // modelo rapido para verificacion
       messages: [
         { role: 'system', content: VERIFY_SYSTEM_PROMPT },
         { role: 'user', content: userPrompt },

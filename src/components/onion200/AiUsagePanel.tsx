@@ -180,7 +180,7 @@ export function AiUsagePanel() {
       {/* Modelo */}
       <div className="mt-2 flex items-center gap-1.5 text-[8px] font-mono text-slate-600">
         <Zap className="w-2.5 h-2.5" />
-        glm-4.7-flash · Free tier
+        glm-4.5-flash · Free tier
       </div>
     </PanelShell>
   );

@@ -291,7 +291,7 @@ export async function analyzeMencion(titulo: string, texto: string): Promise<Ana
         }
         const zai = await ZAI.create();
         completion = await throttledLlmCall(() => zai.chat.completions.create({
-          model: 'glm-4.7-flash',
+          model: 'glm-4.5-flash',
           messages: [
             { role: 'system', content: systemPrompt },
             {
@@ -323,7 +323,7 @@ export async function analyzeMencion(titulo: string, texto: string): Promise<Ana
       detalles: `mencionId=${mencionId || 'batch'}`,
     }).catch(() => {});
 
-    // Strip markdown code blocks if present (glm-4.7-flash wraps in ```json ... ```)
+    // Strip markdown code blocks if present (glm-4.5-flash wraps in ```json ... ```)
     let cleanRaw = raw;
     if (cleanRaw.startsWith('```')) {
       cleanRaw = cleanRaw.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');

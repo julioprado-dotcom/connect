@@ -71,7 +71,7 @@ URL: ${mencion.url || 'Sin URL'}
     const zai = await ZAI.create();
 
     const completion = await throttledLlmCall(() => zai.chat.completions.create({
-      model: 'glm-4.7-flash',
+      model: 'glm-4.5-flash',
       messages: [
         {
           role: 'system',

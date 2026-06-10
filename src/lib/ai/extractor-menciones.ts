@@ -357,14 +357,14 @@ export async function extraerMencionesDeTexto(
 
     // 10. Llamada al LLM (con throttle global antisaturación)
     const zai = await ZAI.create();
-    debugWrite('Llamando a LLM (glm-4.7-flash)...');
+    debugWrite('Llamando a LLM (glm-4.5-flash)...');
     const llmStart = Date.now();
 
     let completion;
     try {
       completion = await throttledLlmCall(() =>
         zai.chat.completions.create({
-          model: 'glm-4.7-flash',
+          model: 'glm-4.5-flash',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userContent },
@@ -397,7 +397,7 @@ export async function extraerMencionesDeTexto(
     // FIX: Log de respuesta cruda en consola para debuggear sin activar DECODEX_DEBUG
     console.warn(`[EXTRACTOR] LLM raw (${llmElapsed}ms, ${raw.length} chars): ${raw.substring(0, 500)}`);
 
-    // Strip markdown code blocks if present (glm-4.7-flash wraps in ```json ... ```)
+    // Strip markdown code blocks if present (glm-4.5-flash wraps in ```json ... ```)
     let cleanRaw = raw;
     if (cleanRaw.startsWith('```')) {
       cleanRaw = cleanRaw.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
