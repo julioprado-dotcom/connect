@@ -35,6 +35,10 @@ interface LegisladorMencionado {
   persona_id: string;
   cita: string;
   contexto: string;
+  // FASE 5: campos de dedup integrada (del LLM)
+  veredicto_dedup?: 'es_nuevo' | 'es_duplicado' | 'es_evolutivo';
+  mencion_original_id?: string | null;
+  razon_dedup?: string;
 }
 
 interface EjeMencionado {
@@ -78,6 +82,14 @@ interface TendenciaDetectada {
   impacto_potencial: string;
 }
 
+interface DedupGlobal {
+  es_duplicado_total: boolean;
+  mencion_original_id: string | null;
+  razon: string;
+  ejes_duplicados: string[];
+  cables_agencia_detectados: boolean;
+}
+
 export interface ExtractionResult {
   es_relevante: boolean;
   tratamientoPeriodistico: string;
@@ -94,6 +106,8 @@ export interface ExtractionResult {
   temas_detectados: string[];
   preguntas_fundamentales: Record<string, unknown>;
   sentimiento_general: string; // backward compatibility
+  // FASE 5: dedup integrada del LLM
+  dedup_global?: DedupGlobal;
 }
 
 // ─── Main extraction function ─────────────────────────────────
@@ -104,8 +118,24 @@ export interface ExtractionResult {
  * FASE 4D: Añadido soporte para clientId (ejes personalizados) e intencionMedio.
  * Tolerancia a fallos: si el LLM falla, devuelve resultado vacío.
  */
+export interface MencionExistenteInput {
+  id: string;
+  personaId?: string | null;
+  personaNombre?: string | null;
+  medioId: string;
+  medioNombre?: string | null;
+  texto?: string | null;
+  temas?: string | null;
+  ejeEstructuralId?: string | null;
+  ejeEstructuralNombre?: string | null;
+  fechaCaptura?: string | null;
+  tratamientoPeriodistico?: string | null;
+}
+
 export interface ExtractorOptions {
   clientId?: string;
+  // FASE 5: menciones existentes pre-fetched para dedup integrada
+  mencionesExistentes?: MencionExistenteInput[];
 }
 
 export async function extraerMencionesDeTexto(
@@ -129,6 +159,7 @@ export async function extraerMencionesDeTexto(
     temas_detectados: [],
     preguntas_fundamentales: {},
     sentimiento_general: 'no_clasificado',
+    dedup_global: undefined,
   };
 
   // ─── Debug logging (activable con env DECODEX_DEBUG=1) ─────
@@ -278,9 +309,38 @@ export async function extraerMencionesDeTexto(
       userContent += `KEYWORDS DE INTERÉS: ${listaKeywords}\n\n`;
     }
     userContent += indicadoresSection;
+    // 8b. FASE 5: Sección de menciones existentes para dedup integrada
+    if (options?.mencionesExistentes && options.mencionesExistentes.length > 0) {
+      userContent += `\n\n═══════════════════════════════════════════\nMENCIONES EXISTENTES (últimas 72h) — CONTEXTO PARA DEDUPLICACIÓN\n═══════════════════════════════════════════\n`;
+      userContent += `IMPORTANTE: Compara la nota nueva con ESTAS menciones existentes.\n`;
+      userContent += `Si el evento es el MISMO → marca como "es_duplicado".\n`;
+      userContent += `Si es una evolución → marca como "es_evolutivo".\n`;
+      userContent += `Si es distinto → marca como "es_nuevo".\n\n`;
+      for (let i = 0; i < options.mencionesExistentes.length; i++) {
+        const m = options.mencionesExistentes[i];
+        userContent += `--- MENCION EXISTENTE #${i + 1} ---\n`;
+        userContent += `ID: ${m.id}\n`;
+        userContent += `Medio: ${m.medioNombre || m.medioId}\n`;
+        userContent += `Fecha: ${m.fechaCaptura || 'desconocida'}\n`;
+        if (m.personaNombre) userContent += `Persona: ${m.personaNombre} (${m.personaId || ''})\n`;
+        if (m.ejeEstructuralNombre) userContent += `Eje principal: ${m.ejeEstructuralNombre} (${m.ejeEstructuralId || ''})\n`;
+        if (m.tratamientoPeriodistico) userContent += `Tratamiento: ${m.tratamientoPeriodistico}\n`;
+        userContent += `Temas: ${m.temas || 'sin temas'}\n`;
+        const textoTrunc = m.texto && m.texto.length > 300 ? m.texto.substring(0, 300) + '...' : (m.texto || 'sin texto');
+        userContent += `Texto: ${textoTrunc}\n\n`;
+      }
+    } else {
+      // Sin menciones existentes: indicar al LLM que todo es nuevo
+      userContent += `\n\n═══════════════════════════════════════════\nMENCIONES EXISTENTES: No se encontraron menciones recientes (72h)\n═══════════════════════════════════════════\nTodos los legisladores deben marcarse como "es_nuevo".\n`;
+    }
+
+    userContent += `\n═══════════════════════════════════════════\nNOTA NUEVA A ANALIZAR:\n═══════════════════════════════════════════\n`;
     userContent += `TEXTO DE LA NOTICIA:\n${textoTruncado}`;
 
     debugWrite(`Prompt usuario longitud: ${userContent.length} chars, texto truncado: ${textoTruncado.length} chars`);
+    if (options?.mencionesExistentes) {
+      debugWrite(`Menciones existentes incluidas: ${options.mencionesExistentes.length}`);
+    }
     debugWrite(`System prompt longitud: ${systemPrompt.length} chars`);
 
     // 9. Circuit Breaker: verificar si LLM está disponible
@@ -443,15 +503,27 @@ export async function extraerMencionesDeTexto(
             return true;
           })
           .slice(0, 5)
-          .map((m: { persona_id: string; cita: string; contexto: string }) => ({
-            persona_id: m.persona_id,
-            cita: String(m.cita),
-            contexto: String(m.contexto || ''),
-          }));
+          .map((m: { persona_id: string; cita: string; contexto: string; _raw: Record<string, unknown> }) => {
+            // FASE 5: Parsear campos de dedup integrada
+            const veredictoRaw = String(m._raw.veredicto_dedup || m._raw.veredictoDedup || 'es_nuevo');
+            const veredictosValidos = new Set(['es_nuevo', 'es_duplicado', 'es_evolutivo']);
+            const veredicto = veredictosValidos.has(veredictoRaw) ? veredictoRaw as 'es_nuevo' | 'es_duplicado' | 'es_evolutivo' : 'es_nuevo';
+            const mencionOriginalId = m._raw.mencion_original_id || m._raw.mencionOriginalId ? String(m._raw.mencion_original_id || m._raw.mencionOriginalId) : null;
+            const razonDedup = m._raw.razon_dedup || m._raw.razonDedup ? String(m._raw.razon_dedup || m._raw.razonDedup) : undefined;
+
+            return {
+              persona_id: m.persona_id,
+              cita: String(m.cita),
+              contexto: String(m.contexto || ''),
+              veredicto_dedup: veredicto,
+              mencion_original_id: mencionOriginalId,
+              razon_dedup: razonDedup,
+            };
+          });
 
     debugWrite(`Legisladores válidos después de parseo: ${legisladores.length}`);
     for (const leg of legisladores) {
-      debugWrite(`  → ${leg.persona_id}: "${leg.cita.substring(0, 80)}"`);
+      debugWrite(`  → ${leg.persona_id}: "${leg.cita.substring(0, 80)}" [dedup: ${leg.veredicto_dedup}${leg.mencion_original_id ? ' → ' + leg.mencion_original_id : ''}]`);
     }
 
     // Personas detectadas (figuras políticas NO en la lista de legisladores)
@@ -743,6 +815,28 @@ export async function extraerMencionesDeTexto(
     // Backward-compatible sentimiento
     const sentimiento = tratamientoToSentimiento(tratamiento);
 
+    // FASE 5: Parsear dedup_global del LLM
+    let dedupGlobal: DedupGlobal | undefined;
+    if (parsed.dedup_global && typeof parsed.dedup_global === 'object') {
+      const dg = parsed.dedup_global as Record<string, unknown>;
+      dedupGlobal = {
+        es_duplicado_total: dg.es_duplicado_total === true,
+        mencion_original_id: dg.mencion_original_id ? String(dg.mencion_original_id) : null,
+        razon: String(dg.razon || ''),
+        ejes_duplicados: Array.isArray(dg.ejes_duplicados) ? dg.ejes_duplicados.map(String) : [],
+        cables_agencia_detectados: dg.cables_agencia_detectados === true,
+      };
+      debugWrite(`DEDUP GLOBAL: duplicado=${dedupGlobal.es_duplicado_total}, cables=${dedupGlobal.cables_agencia_detectados}`);
+    }
+
+    // FASE 5: Log resumen de dedup por legislador
+    const dupCount = legisladores.filter(l => l.veredicto_dedup === 'es_duplicado').length;
+    const evoCount = legisladores.filter(l => l.veredicto_dedup === 'es_evolutivo').length;
+    const newCount = legisladores.filter(l => l.veredicto_dedup === 'es_nuevo').length;
+    if (dupCount + evoCount > 0) {
+      debugWrite(`DEDUP RESUMEN: ${dupCount} duplicados, ${evoCount} evolutivos, ${newCount} nuevos → AHORRO: ${dupCount + evoCount} llamadas LLM evitadas`);
+    }
+
     const esRelevanteFinal = parsed.es_relevante === true || legisladores.length > 0 || ejesMencionados.length > 0 || personasDetectadasConId.length > 0;
     debugWrite(`RESULTADO FINAL: relevante=${esRelevanteFinal}, legislators=${legisladores.length}, detectadas=${personasDetectadasConId.length}, ejes=${ejesMencionados.length}`);
 
@@ -780,6 +874,7 @@ export async function extraerMencionesDeTexto(
       temas_detectados: temas,
       preguntas_fundamentales,
       sentimiento_general: sentimiento,
+      dedup_global: dedupGlobal,
     };
   } catch (err) {
     debugWrite(`ERROR FATAL en extracción LLM: ${err instanceof Error ? err.message : String(err)}`);
@@ -916,20 +1011,88 @@ export async function crearMencionesExtraidas(
         continue;
       }
 
-      // DEDUPLICACION CROSS-MEDIO (FASE 4C)
-      // LLM dedup limitado a top 1 candidato (no 3) para evitar 429s.
-      let dedupResult: Awaited<ReturnType<typeof deduplicarMencion>> | null = null;
-      try {
-        dedupResult = await deduplicarMencion({
-          personaId: leg.persona_id,
-          ejesTematicos: ejeIds,
-          resumen: resultado.resumen,
-          fecha: new Date(),
-          medioId,
-          textoOriginal: leg.contexto || leg.cita,
+      // DEDUPLICACION CROSS-MEDIO — FASE 5: Usar veredicto del LLM (integrado en extracción)
+      // Fallback: si el LLM no devolvió veredicto dedup (ej: no se pasaron menciones existentes),
+      // usar el método tradicional (deduplicarMencion) como fallback.
+      const llmVeredicto = leg.veredicto_dedup;
+      const llmOriginalId = leg.mencion_original_id;
+
+      if (llmVeredicto === 'es_duplicado' && llmOriginalId) {
+        // El LLM determinó que es duplicado — actualizar cobertura del original
+        try {
+          const medioObj = await db.medio.findUnique({ where: { id: medioId }, select: { nombre: true } });
+          await actualizarCoberturaDuplicado(llmOriginalId, {
+            medioId,
+            medioNombre: medioObj?.nombre || 'Desconocido',
+            resumen: resultado.resumen,
+            fecha: new Date(),
+            tratamientoPeriodistico: resultado.tratamientoPeriodistico,
+          });
+          console.log(`[DEDUP-LLM] Mencion deduplicada (veredicto LLM): medio ${medioObj?.nombre || medioId} → original #${llmOriginalId} | razón: ${leg.razon_dedup || 'N/A'}`);
+        } catch (covErr) {
+          console.error('[DEDUP-LLM] Error actualizando cobertura duplicado:', covErr instanceof Error ? covErr.message : String(covErr));
+        }
+        creadas++;
+        continue;
+      }
+
+      if (llmVeredicto === 'es_evolutivo' && llmOriginalId) {
+        // El LLM determinó que es evolutivo — crear como nueva pero vincular al evento original
+        const dedupLog = JSON.stringify({
+          decision: 'es_evolutivo',
+          razon: leg.razon_dedup || 'evolución del LLM',
+          timestamp: new Date().toISOString(),
+          eventoOriginalId: llmOriginalId,
+          metodo: 'llm_integrado',
         });
-      } catch (dedupError) {
-        console.error('[DEDUP-ERROR] Deduplicacion fallo, creando como original:', dedupError instanceof Error ? dedupError.message : dedupError);
+
+        const mencion = await db.mencion.create({
+          data: {
+            id: crypto.randomUUID(),
+            personaId: leg.persona_id,
+            medioId,
+            titulo,
+            texto: leg.cita,
+            textoCompleto: textoOriginal || resultado.resumen || leg.contexto,
+            url,
+            tipoMencion: tratamientoToTipoMencion(resultado.tratamientoPeriodistico, Boolean(leg.cita)),
+            verificado: false,
+            ejeEstructuralId,
+            eventoId: llmOriginalId, // Vincular al evento original
+            deduplicacionLog: dedupLog,
+            ...sharedData,
+          },
+        });
+
+        // Vincular ejes temáticos via MencionTema
+        for (const ejeId of ejeIds) {
+          try { await db.mencionTema.create({ data: { mencionId: mencion.id, ejeTematicoId: ejeId } }); } catch { /* */ }
+        }
+        // Vincular ejes del cliente via MencionClienteEje (FASE 4D)
+        for (const ejeCli of resultado.ejes_cliente) {
+          try {
+            await db.mencionClienteEje.create({
+              data: { mencionId: mencion.id, ejeClienteId: ejeCli.eje_cliente_id, confianza: ejeCli.relevancia === 'alta' ? 0.9 : ejeCli.relevancia === 'media' ? 0.7 : 0.5 },
+            });
+          } catch { /* */ }
+        }
+        await populateNotaEjes(mencion.id);
+        try { await reclasificarMencion(mencion.id); } catch { /* no bloquear pipeline */ }
+        console.log(`[DEDUP-LLM] Mencion evolutiva creada: ${mencion.id} → evento original #${llmOriginalId}`);
+        creadas++;
+        continue;
+      }
+
+      // es_nuevo (o sin veredicto): Fallback al método tradicional SOLO si no hay veredicto LLM
+      // Si el LLM dijo "es_nuevo", creamos directamente sin llamar a deduplicarMencion
+      let dedupResult: Awaited<ReturnType<typeof deduplicarMencion>> | null = null;
+      let dedupMetodo = 'llm_integrado'; // track which method was used
+
+      if (!llmVeredicto || llmVeredicto === 'es_nuevo') {
+        // El LLM dijo "es_nuevo" — confiar en el veredicto, NO llamar a deduplicarMencion
+        // Esto es la optimización clave: eliminamos N llamadas LLM de dedup
+        dedupResult = null;
+        dedupMetodo = llmVeredicto ? 'llm_integrado_es_nuevo' : 'sin_veredicto';
       }
 
       if (dedupResult && dedupResult.decision === 'es_duplicado' && dedupResult.mencionOriginalId) {
@@ -949,9 +1112,11 @@ export async function crearMencionesExtraidas(
       // Build dedup log
       const dedupLog = JSON.stringify({
         decision: dedupResult?.decision || 'crear_original',
-        razon: dedupResult?.razon || 'dedup_fallo',
+        razon: dedupResult?.razon || (llmVeredicto === 'es_nuevo' ? 'llm_integrado_es_nuevo' : 'dedup_fallo'),
         timestamp: new Date().toISOString(),
         ...(dedupResult?.mencionOriginalId ? { candidatoId: dedupResult.mencionOriginalId } : {}),
+        metodo: dedupMetodo,
+        ...(llmVeredicto ? { llm_veredicto: llmVeredicto } : {}),
       });
 
       const mencion = await db.mencion.create({

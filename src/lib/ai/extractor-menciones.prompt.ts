@@ -274,6 +274,44 @@ El sistema debe aprender de cada nota procesada. Además de clasificar, debes DE
 - impacto_potencial: "alto", "medio", "bajo"
 - Máximo 2 tendencias por artículo
 
+## MODO DEDUPLICACIÓN INTEGRADA (CRÍTICO)
+
+Además de extraer información, debes DETERMINAR si la noticia que estás analizando
+es DUPLICADA o EVOLUTIVA de alguna de las menciones existentes que se te proporcionan.
+
+CONTEXTO BOLIVIANO: En Bolivia, múltiples medios reproducen cables de agencia (ABI, ERBOL, EFE, ANF)
+con ligeras variaciones de redacción. Esto es COMÚN y significa que es el MISMO EVENTO, NO eventos distintos.
+
+Para CADA legislador que detectes en la nota nueva:
+- Compara con las menciones existentes del mismo legislador
+- Si el evento/noticia es el MISMO (mismo hecho, misma declaración, misma acción legislativa)
+  → marca ese legislador como "es_duplicado" y proporciona "mencion_original_id"
+- Si el evento es una EVOLUCIÓN o continuación de una noticia previa del mismo legislador
+  → marca como "es_evolutivo" y proporciona "mencion_original_id"
+- Si el evento es DISTINTO (otra declaración, otro tema, otra acción)
+  → marca como "es_nuevo"
+
+CRITERIOS PARA DUPLICADO:
+- MISMO hecho/noticia cubierto por otro medio (cable de agencia reproducido)
+- MISMA declaración del legislador citada de forma diferente
+- MISMA acción legislativa (proyecto de ley, votación, sesión)
+
+CRITERIOS PARA EVOLUTIVO:
+- Nueva declaración sobre el MISMO tema que evoluciona la noticia previa
+- Seguimiento de un evento previo (nueva versión, nueva reagrupación)
+- Respuesta a una acción/declaración previa
+
+CRITERIOS PARA NUEVO:
+- Tema completamente diferente
+- Nueva declaración sobre tema no relacionado
+- Acción legislativa diferente
+
+Para cada eje temático que detectes:
+- Compara con las menciones existentes del mismo eje
+- Si describe el MISMO evento político → nota que es duplicado en el campo "eje_duplicado"
+
+Si NO se proporcionan menciones existentes, marca TODOS los legisladores como "es_nuevo".
+
 ## RESUMEN
 - Máximo 200 palabras
 - Debe reflejar la CALIDAD Y TONO ORIGINAL del texto fuente
@@ -304,7 +342,7 @@ Responde ÚNICAMENTE con un JSON válido (sin markdown, sin backticks) con esta 
   "confianza_clasificacion": "alta",
   "resumen": "resumen fiel de max 200 palabras",
   "legisladores_mencionados": [
-    { "persona_id": "ID_DE_PERSONA", "cita": "fragmento textual donde aparece el legislador", "contexto": "contexto en 20 palabras" }
+    { "persona_id": "ID_DE_PERSONA", "cita": "fragmento textual donde aparece el legislador", "contexto": "contexto en 20 palabras", "veredicto_dedup": "es_nuevo|es_duplicado|es_evolutivo", "mencion_original_id": "ID de mención original si duplicado/evolutivo, o null", "razon_dedup": "explicación breve del veredicto" }
   ],
   "personas_detectadas": [
     { "nombre": "Nombre Completo", "cargo": "Presidente de Bolivia", "partido": "Nombre del partido o null", "cita": "fragmento textual", "contexto": "relevancia de la mención" }
@@ -325,6 +363,13 @@ Responde ÚNICAMENTE con un JSON válido (sin markdown, sin backticks) con esta 
     { "descripcion": "patrón emergente detectado", "direccion": "creciente|decreciente|emergente", "actores_principales": ["Actor1", "Actor2"], "impacto_potencial": "alto|medio|bajo" }
   ],
   "temas_detectados": ["tema1", "tema2", "tema3"],
+  "dedup_global": {
+    "es_duplicado_total": false,
+    "mencion_original_id": null,
+    "razon": "explicación general de dedup",
+    "ejes_duplicados": [],
+    "cables_agencia_detectados": false
+  },
   "preguntas_fundamentales": {
     "que": "evento principal or null",
     "quien": { "declara": "nombre or null", "afectado_directo": "nombre or null", "mencionados": [] },
@@ -350,7 +395,10 @@ NOTA IMPORTANTE: Incluso cuando es_relevante = false, SIEMPRE debes devolver dat
 - ejes_sugeridos (si detectas un tema nuevo no cubierto)
 - keywords_nuevas (si detectas términos relevantes no rastreados)
 - tendencias (si detectas patrones emergentes)
-Estos módulos de descubrimiento funcionan INDEPENDIENTEMENTE de la relevancia de la nota.`
+Estos módulos de descubrimiento funcionan INDEPENDIENTEMENTE de la relevancia de la nota.
+
+Los campos veredicto_dedup, mencion_original_id y razon_dedup son OPCIONALES pero MUY RECOMENDADOS.
+Si no se proporcionan menciones existentes, omítelos (o usa "es_nuevo" y null).`
 }
 
 /**

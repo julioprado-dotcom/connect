@@ -16,6 +16,7 @@
 import db from '@/lib/db'
 import type { JobPayload, RunnerResult } from '../types'
 import { extraerMencionesDeTexto, crearMencionesExtraidas } from '@/lib/ai/extractor-menciones'
+import { prebuscarMencionesRelevantes } from '@/lib/deduplicacion-prebusqueda'
 import { registrarRechazo } from '@/lib/registrar-rechazo'
 
 // ─── Configuración ───────────────────────────────────────────
@@ -151,8 +152,21 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
             })
             marcadaProcesada = true
 
+            // FASE 5: Pre-buscar menciones existentes para dedup integrada (1 sola llamada LLM)
+            // Esto reemplaza las N llamadas individuales a deduplicarMencion() por legislador
+            let mencionesExistentes: any[] = [];
+            try {
+              mencionesExistentes = await prebuscarMencionesRelevantes(nota.texto);
+            } catch (prebusqErr) {
+              console.error('[BATCH-LLM] Error en pre-búsqueda de dedup:', prebusqErr instanceof Error ? prebusqErr.message : String(prebusqErr));
+              // No bloquear — si falla la pre-búsqueda, se procesa sin dedup integrada
+            }
+
             // Enviar al LLM individualmente (reutiliza extractor existente)
-            const resultado = await extraerMencionesDeTexto(nota.texto, medioId)
+            // FASE 5: Pasar menciones existentes para dedup integrada en 1 sola llamada
+            const resultado = await extraerMencionesDeTexto(nota.texto, medioId, {
+              mencionesExistentes,
+            })
             // FIX: Asegurar que fechaCaptura sea Date object (puede ser integer desde DB con engines viejos)
             const safeFechaCaptura = nota.fechaCaptura instanceof Date ? nota.fechaCaptura : new Date(nota.fechaCaptura)
             menciones = await crearMencionesExtraidas(
