@@ -2,8 +2,7 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { getStats, ensureWorkerRunning } from '@/lib/jobs';
-import { getSchedulerStatus } from '@/lib/jobs/scheduler';
-import { startScheduler, stopScheduler } from '@/lib/jobs/scheduler';
+import { getSchedulerStatus, startScheduler, stopScheduler } from '@/lib/jobs/scheduler-bridge';
 import { startWorker, stopWorker } from '@/lib/jobs/worker';
 
 export async function GET() {
@@ -35,11 +34,11 @@ export async function POST(request: Request) {
 
       case 'start-scheduler':
         await startScheduler();
-        return NextResponse.json({ message: 'Scheduler iniciado', scheduler: getSchedulerStatus() });
+        return NextResponse.json({ message: 'Scheduler iniciado via PM2', scheduler: getSchedulerStatus() });
 
       case 'stop-scheduler':
         stopScheduler();
-        return NextResponse.json({ message: 'Scheduler detenido', scheduler: getSchedulerStatus() });
+        return NextResponse.json({ message: 'Scheduler detenido via PM2', scheduler: getSchedulerStatus() });
 
       case 'start-worker':
         startWorker();

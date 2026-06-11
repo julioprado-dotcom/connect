@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
 import { enqueue } from '@/lib/jobs/queue'
 import { ensureWorkerRunning } from '@/lib/jobs'
-import { rescheduleAll } from '@/lib/jobs/scheduler'
+import { execSync } from 'child_process'
 import { scrapingState } from '@/lib/scraping-state'
 
 // ── Configuración de fases ─────────────────────────────────────────
@@ -295,9 +295,11 @@ export async function POST(request: NextRequest) {
           `[ScrapingPhase] Fuentes: ${fuentes.map(f => f.Medio.nombre).join(', ')}`,
         )
 
-        // Actualizar scheduler con las nuevas fuentes activas
+        // Actualizar scheduler con las nuevas fuentes activas (PM2 restart)
         ensureWorkerRunning()
-        await rescheduleAll()
+        try {
+          execSync('pm2 restart decodex-scheduler', { timeout: 15000 })
+        } catch { /* scheduler no disponible */ }
 
         return NextResponse.json({
           exito: true,

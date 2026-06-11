@@ -16,7 +16,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { execSync } from 'child_process'
 import fs from 'fs'
 import os from 'os'
-import { rescheduleAll, startScheduler, stopScheduler, getSchedulerStatus } from '@/lib/jobs/scheduler'
+// Scheduler control now goes through PM2 CLI directly (see POST handler below)
+// Old in-process scheduler removed — see scheduler-bridge.ts for status reading
 import { getBackupSchedulerStatus } from '@/lib/jobs/backup-scheduler'
 import { guardError } from '@/lib/rate-guard'
 import { withAuth } from '@/lib/auth-helpers'
@@ -70,38 +71,14 @@ export async function GET() {
 
     // Verificar estado real del proceso PM2 (no solo heartbeat)
     const pm2State = getPm2SchedulerState()
-    const isPm2Process = pm2State !== 'none' // El proceso existe en PM2
 
-    // Leer estado in-process (para modo monolítico)
-    let inProcess = { running: false, totalTasks: 0, tasks: [] as Array<{ humana?: string; expresion: string }> }
-    try {
-      inProcess = getSchedulerStatus()
-    } catch { /* globalThis no disponible */ }
+    // Estado: heartbeat + PM2 process status
+    const running = hb.online || pm2State === 'online'
+    const totalTasks = (hb.data.totalTasks as number) ?? 0
+    const totalScheduled = (hb.data.totalScheduled as number) ?? 0
 
-    // Determinar modo y estado
-    // En PM2 mode: heartbeat freshness determina running, pm2State confirma
-    // En modo monolítico: in-process.running
-    const isPm2Mode = isPm2Process
-    const running = isPm2Mode
-      ? (hb.online || pm2State === 'online')  // heartbeat fresco O proceso PM2 online
-      : inProcess.running
-
-    const totalTasks = isPm2Mode
-      ? (hb.data.totalTasks as number) ?? 0
-      : inProcess.totalTasks
-    const totalScheduled = isPm2Mode
-      ? (hb.data.totalScheduled as number) ?? 0
-      : 0
-
-    // Tareas: en PM2 no tenemos detalle individual desde heartbeat
-    const tasks = isPm2Mode
-      ? []  // El scheduler-service.ts no expone tareas individuales via heartbeat
-      : inProcess.tasks.map(t => ({
-          name: t.humana || t.expresion,
-          expression: t.expresion,
-          nextRun: null as string | null,
-          active: true,
-        }))
+    // Tareas: el scheduler-service.ts no expone tareas individuales via heartbeat
+    const tasks: Array<{ name: string; expression: string; nextRun: string | null; active: boolean }> = []
 
     const backupStatus = getBackupSchedulerStatus()
 
@@ -110,13 +87,13 @@ export async function GET() {
       totalTasks,
       totalScheduled,
       tasks,
-      mode: isPm2Mode ? 'pm2' : 'in-process',
-      pm2Status: isPm2Mode ? pm2State : undefined,  // 'online' | 'stopped' | 'errored' — útil para UI
-      heartbeat: isPm2Mode ? {
+      mode: 'pm2' as const,
+      pm2Status: pm2State,  // 'online' | 'stopped' | 'errored' | 'none'
+      heartbeat: {
         uptime: hb.data.uptime,
         lastReschedule: hb.data.lastReschedule,
         pid: hb.data.pid,
-      } : undefined,
+      },
       backup: {
         ...backupStatus,
         politica: '4x/día — NUNCA se borran — GitHub',
@@ -143,13 +120,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Detectar si estamos en modo PM2: verificar si el proceso EXISTE
-    // (no depender del heartbeat que puede expirar tras un pause/restart)
-    const pm2State = getPm2SchedulerState()
-    const isPm2Mode = pm2State !== 'none'
-
-    if (isPm2Mode) {
-      // Modo PM2: usar pm2 CLI para controlar el proceso scheduler standalone
+    // Control siempre via PM2 CLI (monolithic mode removed)
+    if (pm2State !== 'none') {
       if (accion === 'recalcular') {
         // Restart = equivale a recalcular (relee DB y reprograma tareas)
         try {
@@ -202,24 +174,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Modo in-process: usar funciones directas del scheduler
-    if (accion === 'pause') {
-      stopScheduler()
-      return NextResponse.json({ exito: true, estado: 'paused', mensaje: 'Scheduler pausado' })
-    }
-
-    if (accion === 'resume') {
-      await startScheduler()
-      return NextResponse.json({ exito: true, estado: 'running', mensaje: 'Scheduler reanudado' })
-    }
-
-    // recalcular
-    await rescheduleAll()
-
+    // Sin proceso PM2: no hay scheduler para controlar
     return NextResponse.json({
-      exito: true,
-      mensaje: 'Scheduler recalculado',
-    })
+      exito: false,
+      error: 'No se encontró el proceso decodex-scheduler en PM2',
+    }, { status: 400 })
   } catch (error: unknown) {
     console.error('[API /jobs/scheduler POST]', error)
     return NextResponse.json({ error: guardError(error, 'jobs/scheduler') }, { status: 500 })

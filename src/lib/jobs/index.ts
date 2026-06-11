@@ -77,13 +77,12 @@ export async function activateProductiveMode(): Promise<void> {
 
   // Dynamic imports
   const { startWorker } = await import('./worker')
-  const { startScheduler } = await import('./scheduler')
 
   // 1. Activar worker (sale de idle, comienza a ejecutar jobs)
   startWorker()
 
-  // 2. Iniciar scheduler automáticamente — arranca con todas las fuentes programadas
-  await startScheduler()
+  // NOTA: El scheduler corre como proceso PM2 independiente (scheduler-service.ts).
+  // No se inicia desde aquí. Ver scheduler-bridge.ts para comunicación.
 
   // 3. Backup scheduler — desactivado por defecto
   // const { startBackupScheduler } = await import('./backup-scheduler')
@@ -125,11 +124,6 @@ export async function shutdownJobSystem(): Promise<void> {
     const { stopBackupScheduler } = await import('./backup-scheduler')
     stopBackupScheduler()
   } catch { /* backup scheduler no disponible */ }
-
-  try {
-    const { stopScheduler } = await import('./scheduler')
-    stopScheduler()
-  } catch { /* scheduler no disponible */ }
 
   try {
     const { stopContainerGuardian } = await import('./container-guardian')

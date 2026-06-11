@@ -95,18 +95,9 @@ export async function GET() {
       } catch { /* globalThis no disponible */ }
     }
 
-    // Scheduler: heartbeat tiene prioridad sobre globalThis (PM2 mode)
+    // Scheduler: heartbeat is the only source (PM2 mode — monolithic removed)
     if (schedulerHB.online) {
       scheduler = schedulerFromHeartbeat(schedulerHB)
-    } else {
-      // Fallback: intentar globalThis (modo monolítico)
-      try {
-        const { getSchedulerStatus } = await import('@/lib/jobs/scheduler')
-        const inProcess = getSchedulerStatus()
-        if (inProcess.running) {
-          scheduler = { running: true, totalTasks: inProcess.totalTasks }
-        }
-      } catch { /* globalThis no disponible */ }
     }
 
     return NextResponse.json({

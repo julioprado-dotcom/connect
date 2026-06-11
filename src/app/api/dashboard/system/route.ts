@@ -126,22 +126,13 @@ function safeWorkerStats_pm2() {
 }
 
 function safeSchedulerStats_pm2() {
-  // PRIMARY: read heartbeat file (works in PM2 multi-process mode)
+  // Read heartbeat file (PM2 multi-process mode — monolithic removed)
   const hb = readHeartbeat(SCHEDULER_HB);
   if (hb.online) {
     return {
       running: true,
       totalTasks: (hb.data.totalTasks as number) || 0,
     };
-  }
-
-  // FALLBACK: try globalThis require (monolithic mode)
-  try {
-    const { getSchedulerStatus } = require('@/lib/jobs/scheduler');
-    const stats = getSchedulerStatus();
-    if (stats.running) return stats;
-  } catch {
-    // globalThis not available
   }
 
   return { running: false, totalTasks: 0 };

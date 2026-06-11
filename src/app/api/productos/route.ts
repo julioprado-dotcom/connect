@@ -263,14 +263,14 @@ export async function POST(request: NextRequest) {
       resultados.push({ nombre: e.nombre, estado: 'error', error: e.error })
     }
 
-    // 3. Intentar reschedulear el sistema de jobs
+    // 3. Restart scheduler PM2 to pick up new fuentes
     let schedulerStatus = 'no_iniciado'
     try {
-      const { rescheduleAll } = await import('@/lib/jobs/scheduler')
-      await rescheduleAll()
+      const { execSync } = await import('child_process')
+      execSync('pm2 restart decodex-scheduler', { timeout: 15000 })
       schedulerStatus = 'rescheduleado'
     } catch {
-      schedulerStatus = 'job_system_no_disponible'
+      schedulerStatus = 'pm2_no_disponible'
     }
 
     const creados = resultados.filter(r => r.estado === 'creada').length

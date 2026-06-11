@@ -9,7 +9,7 @@ import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { getWorkerStats } from '@/lib/jobs/worker';
 import { execSync } from 'child_process';
-import { getSchedulerStatus } from '@/lib/jobs/scheduler';
+import { getSchedulerStatus } from '@/lib/jobs/scheduler-bridge';
 import { BOLETINES_SCHEDULE, FRECUENCIA_MAP } from '@/lib/jobs/constants';
 import { guardError } from '@/lib/rate-guard';
 
@@ -156,7 +156,6 @@ export async function GET() {
       const sp = j.find(x=>x.name==="decodex-scheduler");
       if (wp?.pm2_env?.status==="online") { worker.running=true; worker.uptime="online"; }
       if (sp?.pm2_env?.status==="online") { scheduler.running=true; }
-      // pm2PipelineFix marker
     } catch {}
 
     // ═══════════════════════════════════════════════════════════════

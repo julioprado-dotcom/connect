@@ -116,17 +116,20 @@ function purgeNextDevCache(): number {
 
 function pauseScheduler(): void {
   try {
-    const { stopScheduler } = require('./scheduler') as { stopScheduler: () => void }
-    stopScheduler()
+    const { execSync } = require('child_process') as { execSync: (cmd: string, opts?: Record<string, unknown>) => string }
+    execSync('pm2 stop decodex-scheduler', { timeout: 10000 })
     status.schedulerPaused = true
-  } catch { /* scheduler puede no estar accesible */ }
+    console.log('[Guardian] Scheduler detenido via PM2 (memoria alta)')
+  } catch { /* PM2 no disponible */ }
 }
 
 function resumeScheduler(): void {
   try {
-    const { startScheduler } = require('./scheduler') as { startScheduler: () => Promise<void> }
-    startScheduler().then(() => { status.schedulerPaused = false }).catch(() => {})
-  } catch { /* scheduler puede no estar accesible */ }
+    const { execSync } = require('child_process') as { execSync: (cmd: string, opts?: Record<string, unknown>) => string }
+    execSync('pm2 restart decodex-scheduler', { timeout: 15000 })
+    status.schedulerPaused = false
+    console.log('[Guardian] Scheduler reiniciado via PM2 (memoria recuperada)')
+  } catch { /* PM2 no disponible */ }
 }
 
 function pauseWorker(): void {
