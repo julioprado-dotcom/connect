@@ -103,32 +103,33 @@ async function detectarYRecuperarGap(): Promise<void> {
   console.log('[Scheduler-Service] Ejecutando Gap Detector...');
 
   try {
-    const ultimaFuenteCheck = await db.fuenteEstado.findFirst({
-      where: { ultimoCheckOk: { not: null } },
-      orderBy: { ultimoCheckOk: 'desc' },
-      select: { ultimoCheckOk: true, medioId: true },
+    // Fuente de verdad: última NotaRaw capturada (no ultimoCheckOk que solo
+    // indica que un HEAD request respondió 200, sin garantizar capturas)
+    const ultimaCaptura = await db.notaRaw.findFirst({
+      orderBy: { fechaCaptura: 'desc' },
+      select: { fechaCaptura: true, medioId: true },
     });
 
     const ahora = Date.now();
 
-    if (!ultimaFuenteCheck?.ultimoCheckOk) {
-      console.log('[Scheduler-Service] Gap Detector: sin historial de checks, saltando');
+    if (!ultimaCaptura?.fechaCaptura) {
+      console.log('[Scheduler-Service] Gap Detector: sin capturas previas, saltando');
       return;
     }
 
-    const gapMs = ahora - ultimaFuenteCheck.ultimoCheckOk.getTime();
+    const gapMs = ahora - ultimaCaptura.fechaCaptura.getTime();
     const gapHoras = gapMs / (1000 * 60 * 60);
     const UMBRAL_GAP_HORAS = 2;
 
     if (gapHoras < UMBRAL_GAP_HORAS) {
-      console.log(`[Scheduler-Service] Gap Detector: último check hace ${gapHoras.toFixed(1)}h — sin gap significativo`);
+      console.log(`[Scheduler-Service] Gap Detector: última captura hace ${gapHoras.toFixed(1)}h — sin gap significativo`);
       return;
     }
 
     // ── GAP DETECTADO ──
-    console.warn(`[Scheduler-Service] ⚠️ GAP DETECTADO: ${gapHoras.toFixed(1)}h sin capturas (último: ${ultimaFuenteCheck.ultimoCheckOk.toISOString()})`);
+    console.warn(`[Scheduler-Service] ⚠️ GAP DETECTADO: ${gapHoras.toFixed(1)}h sin capturas (última NotaRaw: ${ultimaCaptura.fechaCaptura.toISOString()})`);
 
-    // 1. Reactivar fuentes inactivas
+    // 1. Reactivar fuentes inactivas (fueron desactivadas durante el gap)
     const fuentesInactivas = await db.fuenteEstado.findMany({
       where: { estado: 'inactiva' },
     });
@@ -142,34 +143,17 @@ async function detectarYRecuperarGap(): Promise<void> {
     }
     if (reactivadas > 0) console.log(`[Scheduler-Service] Gap Recovery: ${reactivadas} fuentes reactivadas`);
 
-    // 2. Resetear fallos de fuentes activas
+    // 2. Resetear fallos de fuentes activas (los fallos son del sistema, no de la fuente)
     const resetResult = await db.fuenteEstado.updateMany({
       where: { fallosConsecutivos: { gt: 0 } },
       data: { fallosConsecutivos: 0 },
     });
     if (resetResult.count > 0) console.log(`[Scheduler-Service] Gap Recovery: ${resetResult.count} fallos reseteados`);
 
-    // 3. Disparar checks inmediatos (max 5)
-    const fuentesActivas = await db.fuenteEstado.findMany({
-      where: { estado: 'activa', activo: true },
-    });
-    let checksDisparados = 0;
-    for (const fuente of fuentesActivas.slice(0, 5)) {
-      const pendingJob = await db.job.findFirst({
-        where: { tipo: 'check_fuente', estado: 'pendiente', payload: { contains: fuente.id } },
-      });
-      if (pendingJob) continue;
+    // NOTA: Los checks inmediatos los maneja catchUpOverdueSources() en scheduleCheckJobs().
+    // Ya no se disparan checks aquí para evitar duplicados.
 
-      await enqueue({
-        tipo: 'check_fuente',
-        prioridad: 1 as 0 | 1 | 3 | 5 | 7 | 9,
-        payload: { fuenteId: fuente.id, medioId: fuente.medioId },
-      });
-      checksDisparados++;
-    }
-    if (checksDisparados > 0) console.log(`[Scheduler-Service] Gap Recovery: ${checksDisparados} checks inmediatos`);
-
-    // 4. Encolar batch_llm si hay notas pendientes
+    // 3. Encolar batch_llm si hay notas pendientes
     const pendientesLLM = await db.notaRaw.count({ where: { procesada: false, descartada: false } });
     if (pendientesLLM > 0) {
       const pendingBatch = await db.job.findFirst({ where: { tipo: 'batch_llm', estado: 'pendiente' } });
@@ -179,18 +163,18 @@ async function detectarYRecuperarGap(): Promise<void> {
       }
     }
 
-    // 5. Registrar en SystemLog
+    // 4. Registrar en SystemLog
     await db.systemLog.create({
       data: {
         modulo: 'scheduler',
         accion: 'gap_recovery',
-        detalle: `Gap de ${gapHoras.toFixed(1)}h: ${reactivadas} reactivadas, ${resetResult.count} fallos reseteados, ${checksDisparados} checks, ${pendientesLLM} notas LLM`,
+        detalle: `Gap de ${gapHoras.toFixed(1)}h (basado en NotaRaw): ${reactivadas} reactivadas, ${resetResult.count} fallos reseteados, ${pendientesLLM} notas LLM pendientes`,
         automatica: true,
-        datos: JSON.stringify({ gapHoras: Math.round(gapHoras * 10) / 10, reactivadas, fallosReseteados: resetResult.count, checksDisparados, pendientesLLM }),
+        datos: JSON.stringify({ gapHoras: Math.round(gapHoras * 10) / 10, reactivadas, fallosReseteados: resetResult.count, pendientesLLM }),
       },
     }).catch(() => {});
 
-    console.log(`[Scheduler-Service] ✓ Gap Recovery completado`);
+    console.log(`[Scheduler-Service] ✓ Gap Recovery completado (los checks inmediatos corren via catch-up)`);
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error(`[Scheduler-Service] Error en Gap Detector: ${msg}`);
