@@ -452,7 +452,87 @@ async function scheduleCheckJobs(): Promise<void> {
   if (omitidasPorCapa > 0) {
     console.warn(`[Scheduler] ${omitidasPorCapa} fuentes omitidas por capa 0 (sin respuesta reciente)`)
   }
-  console.log(`[Scheduler] Programados checks para ${fuentes.length} fuentes (${scheduledCount} tareas, ${omitidasPorCapa} omitidas por capa 0)`)
+  console.log(`[Scheduler] ${fuentes.length} fuentes: ${scheduledCount} tareas, ${omitidasPorCapa} omitidas (capa 0), 0 probes`)
+
+  // 6. CATCH-UP POST-RESTART: ejecutar inmediatamente fuentes con checks vencidos
+  // Cuando el scheduler reinicia, los cron jobs (0 HH * * *) esperan a la próxima hora.
+  // Este catch-up evita el "hueco post-restart" verificando cada fuente activa
+  // y disparando un check si su último check es más antiguo que 60% de su frecuencia.
+  await catchUpOverdueSources(fuentes)
+}
+
+// ── CATCH-UP POST-RESTART ────────────────────────────────────────────────
+// Ejecuta inmediatamente checks para fuentes cuyo último check es más antiguo
+// que 60% de su frecuencia. Esto elimina el "hueco post-restart" donde los
+// cron jobs (0 HH * * *) pueden tardar hasta 1h en disparar tras un reinicio.
+async function catchUpOverdueSources(
+  fuentes: Array<{
+    id: string
+    medioId: string
+    ultimoCheck: Date | null
+    frecuenciaBase: string
+    frecuenciaActual: string
+    Medio: { nombre: string; nivel: string; frecuenciaOverride: string }
+  }>,
+): Promise<void> {
+  const ahora = Date.now()
+  let catchUps = 0
+
+  // Ordenar por más vencidas primero (null = nunca checkeada = máxima prioridad)
+  const sorted = [...fuentes].sort((a, b) => {
+    if (!a.ultimoCheck) return -1
+    if (!b.ultimoCheck) return 1
+    return a.ultimoCheck.getTime() - b.ultimoCheck.getTime()
+  })
+
+  for (const fuente of sorted) {
+    try {
+      // Skip si se checkeó hace menos de 10 minutos (acaba de ejecutarse)
+      if (fuente.ultimoCheck) {
+        const minsAgo = (ahora - fuente.ultimoCheck.getTime()) / 60000
+        if (minsAgo < 10) continue
+
+        // Verificar si está vencida: más de 60% de su frecuencia
+        const { efectiva } = getFrecuenciaEfectiva(
+          fuente.frecuenciaBase,
+          fuente.frecuenciaActual,
+          fuente.Medio.frecuenciaOverride || null,
+        )
+        const freqMin = frecuenciaToMs(efectiva) / 60000
+        if (minsAgo < freqMin * 0.6) continue
+      }
+      // Si ultimoCheck es null, la fuente nunca fue checkeada → ejecutar
+
+      // No duplicar: verificar que no haya un job pendiente para esta fuente
+      const pending = await db.job.findFirst({
+        where: {
+          tipo: 'check_fuente',
+          estado: 'pendiente',
+          payload: { contains: fuente.id },
+        },
+      })
+      if (pending) continue
+
+      const prioridad = fuente.Medio.nivel === '1' ? 1 : 3
+      await enqueue({
+        tipo: 'check_fuente',
+        prioridad: prioridad as 0 | 1 | 3 | 5 | 7 | 9,
+        payload: { fuenteId: fuente.id, medioId: fuente.medioId },
+      })
+      catchUps++
+
+      const minsAgo = fuente.ultimoCheck
+        ? Math.round((ahora - fuente.ultimoCheck.getTime()) / 60000)
+        : 'nunca'
+      console.log(`[Scheduler] Catch-up: ${fuente.Medio.nombre} (${minsAgo}min sin check, freq=${fuente.frecuenciaActual})`)
+    } catch {
+      // Error individual no debe bloquear el catch-up del resto
+    }
+  }
+
+  if (catchUps > 0) {
+    console.log(`[Scheduler] Catch-up: ${catchUps} fuentes vencidas ejecutadas inmediatamente`)
+  }
 }
 
 // Programar checks para una fuente individual
