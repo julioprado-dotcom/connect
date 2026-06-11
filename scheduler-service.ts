@@ -661,13 +661,12 @@ function schedulePeriodicReschedule(): void {
     try {
       console.log('[Scheduler-Service] Reschedule periódico iniciando...');
 
-      // Detener todas las tareas de fuentes (no boletines/mantenimiento)
-      for (const t of state.tasks) {
-        t.stop();
-      }
-      state.tasks.length = 0;
+      // FIX: Crear nuevas tareas ANTES de destruir las viejas
+      // para evitar que un error deje el scheduler sin tareas.
+      const oldTasks = [...state.tasks];
+      const newTasks: ScheduledTask[] = [];
+      state.tasks = newTasks;
 
-      // Re-programar todo
       await autodescubrirFrecuencias();
       await scheduleCheckJobs();
       await scheduleIndicatorJobs();
@@ -675,15 +674,49 @@ function schedulePeriodicReschedule(): void {
       scheduleBatchLLM();
       scheduleMaintenanceJob();
 
+      // Detener tareas viejas solo DESPUÉS de crear las nuevas
+      for (const t of oldTasks) {
+        try { t.stop(); } catch { /* ignore */ }
+      }
+
+      // FIX: Re-registrar el reschedule a sí mismo (antes se suicidaba)
+      schedulePeriodicReschedule();
+
       state.lastReschedule = new Date();
       console.log(`[Scheduler-Service] Reschedule completo: ${state.tasks.length} tareas`);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       console.error(`[Scheduler-Service] Error en reschedule: ${msg}`);
+      // FIX: Intentar recuperación en vez de dejar el scheduler muerto
+      console.log('[Scheduler-Service] Intentando recuperación tras error de reschedule...');
+      try {
+        await fullReschedule();
+      } catch (recoveryErr) {
+        console.error(`[Scheduler-Service] Recuperación fallida, forzando reinicio: ${recoveryErr instanceof Error ? recoveryErr.message : String(recoveryErr)}`);
+        process.exit(1);
+      }
     }
   }, CRON_OPTS);
 
   state.tasks.push(task);
+}
+
+/** Reschedule completo desde cero — usado para recuperación */
+async function fullReschedule(): Promise<void> {
+  for (const t of state.tasks) {
+    try { t.stop(); } catch { /* ignore */ }
+  }
+  state.tasks.length = 0;
+
+  await autodescubrirFrecuencias();
+  await scheduleCheckJobs();
+  await scheduleIndicatorJobs();
+  scheduleBoletinJobs();
+  scheduleBatchLLM();
+  scheduleMaintenanceJob();
+  schedulePeriodicReschedule();
+
+  console.log(`[Scheduler-Service] fullReschedule completado: ${state.tasks.length} tareas`);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -833,13 +866,29 @@ function shutdown(signal: string): void {
 
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('uncaughtException', (err) => {
+process.on('uncaughtException', async (err) => {
   console.error('[Scheduler-Service] Uncaught exception:', err);
   writeHeartbeat();
+  // FIX: Intentar recuperar tareas; si falla, PM2 reiniciará el proceso
+  try {
+    console.log('[Scheduler-Service] Recuperando tareas tras uncaughtException...');
+    await fullReschedule();
+  } catch {
+    console.error('[Scheduler-Service] Recuperación fallida — forzando exit para PM2 restart');
+    process.exit(1);
+  }
 });
-process.on('unhandledRejection', (reason) => {
+process.on('unhandledRejection', async (reason) => {
   console.error('[Scheduler-Service] Unhandled rejection:', reason);
   writeHeartbeat();
+  // FIX: Intentar recuperar tareas; si falla, PM2 reiniciará el proceso
+  try {
+    console.log('[Scheduler-Service] Recuperando tareas tras unhandledRejection...');
+    await fullReschedule();
+  } catch {
+    console.error('[Scheduler-Service] Recuperación fallida — forzando exit para PM2 restart');
+    process.exit(1);
+  }
 });
 
 // ═══════════════════════════════════════════════════════════════
