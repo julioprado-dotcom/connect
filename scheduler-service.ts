@@ -326,7 +326,7 @@ async function scheduleCheckJobs(): Promise<number> {
   const fuentes = await db.$queryRaw`
     SELECT
       fe.id, fe.medioId, fe.url, fe.frecuenciaBase, fe.frecuenciaActual,
-      fe.horasPublicacion, fe.ultimoCheckOk, fe.ultimoHeadline,
+      fe.horasPublicacion, fe.ultimoCheck, fe.ultimoCheckOk, fe.ultimoHeadline,
       fe.ultimoTexto, fe.ultimoMencion, fe.estado, fe.activo,
       fe.fallosConsecutivos, fe.totalChecks,
       m.nombre AS medioNombre, m.categoria AS medioCategoria,
@@ -383,6 +383,10 @@ async function scheduleCheckJobs(): Promise<number> {
   }
 
   console.log(`[Scheduler-Service] ${validFuentes.length} fuentes: ${scheduledCount} tareas, ${omitidas} omitidas (capa 0), ${probes} probes`);
+
+  // CATCH-UP POST-RESTART: ejecutar inmediatamente fuentes con checks vencidos
+  await catchUpOverdueSources(validFuentes);
+
   return scheduledCount;
 }
 
@@ -483,6 +487,82 @@ function scheduleSingleCheck(
   }, CRON_OPTS);
 
   state.tasks.push(task);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CATCH-UP POST-RESTART
+// ═══════════════════════════════════════════════════════════════
+// Ejecuta inmediatamente checks para fuentes cuyo último check
+// es más antiguo que 60% de su frecuencia. Elimina el hueco
+// post-restart donde los cron jobs pueden tardar hasta 1h.
+
+async function catchUpOverdueSources(fuentes: Array<Record<string, unknown>>): Promise<void> {
+  const ahora = Date.now();
+  let catchUps = 0;
+
+  console.log(`[Scheduler-Service] Catch-up: evaluando ${fuentes.length} fuentes...`);
+
+  // Ordenar por más vencidas primero (null ultimoCheck = máxima prioridad)
+  const sorted = [...fuentes].sort((a, b) => {
+    if (!a.ultimoCheck) return -1;
+    if (!b.ultimoCheck) return 1;
+    return new Date(a.ultimoCheck as string | number).getTime() - new Date(b.ultimoCheck as string | number).getTime();
+  });
+
+  for (const fuente of sorted) {
+    try {
+      const medioNombre = String(fuente.medioNombre || fuente.id);
+
+      // Skip si se checkeó hace menos de 10 minutos
+      if (fuente.ultimoCheck) {
+        const ultimoCheckDate = new Date(fuente.ultimoCheck as string | number);
+        const minsAgo = (ahora - ultimoCheckDate.getTime()) / 60000;
+        if (minsAgo < 10) continue;
+
+        // Verificar si está vencida: más de 60% de su frecuencia
+        const { efectiva } = getFrecuenciaEfectiva(
+          String(fuente.frecuenciaBase || '6h'),
+          String(fuente.frecuenciaActual || '6h'),
+          String(fuente.medioFrecuenciaOverride || '') || null,
+        );
+        const freqMin = frecuenciaToMs(efectiva) / 60000;
+        if (minsAgo < freqMin * 0.6) continue;
+      }
+      // Si ultimoCheck es null, la fuente nunca fue checkeada → ejecutar
+
+      // No duplicar: verificar que no haya un job pendiente
+      const pending = await db.job.findFirst({
+        where: {
+          tipo: 'check_fuente',
+          estado: 'pendiente',
+          payload: { contains: fuente.id },
+        },
+      });
+      if (pending) continue;
+
+      const medioNivel = String(fuente.medioNivel || '3');
+      const prioridad = medioNivel === '1' ? 1 : 3;
+
+      await enqueue({
+        tipo: 'check_fuente',
+        prioridad: prioridad as 0 | 1 | 3 | 5 | 7 | 9,
+        payload: { fuenteId: fuente.id, medioId: fuente.medioId },
+      });
+      catchUps++;
+
+      const minsAgo = fuente.ultimoCheck
+        ? Math.round((ahora - new Date(fuente.ultimoCheck as string | number).getTime()) / 60000)
+        : 'nunca';
+      console.log(`[Scheduler-Service] Catch-up: ${medioNombre} (${minsAgo}min sin check, freq=${String(fuente.frecuenciaActual || '?')})`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[Scheduler-Service] Catch-up error ${String(fuente.medioNombre || fuente.id)}: ${msg}`);
+    }
+  }
+
+  if (catchUps > 0) {
+    console.log(`[Scheduler-Service] Catch-up: ${catchUps} fuentes vencidas ejecutadas inmediatamente`);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
