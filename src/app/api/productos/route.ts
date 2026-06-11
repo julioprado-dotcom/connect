@@ -29,8 +29,8 @@ const FUENTES_OLA1: Array<{
   },
   {
     nombre: 'El Deber',
-    url: 'https://deber.com.bo',
-    rssUrl: 'https://deber.com.bo/feed/',
+    url: 'https://eldeber.com.bo',
+    rssUrl: 'https://eldeber.com.bo/feed/',
     tipoCheck: 'rss',
     frecuenciaBase: '1h',
     nivel: '1',

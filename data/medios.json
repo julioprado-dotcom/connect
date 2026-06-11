@@ -13,7 +13,7 @@
   {
     "nivel": "1",
     "nombre": "El Deber",
-    "url": "https://deber.com.bo",
+    "url": "https://eldeber.com.bo",
     "tipo": "Digital+Impreso",
     "plataformas": "web,facebook,x,instagram",
     "naturaleza": "PRIVADO_CORPORATIVO",
@@ -35,7 +35,7 @@
   {
     "nivel": "1",
     "nombre": "El Diario",
-    "url": "https://eldiario.net.bo",
+    "url": "https://www.eldiario.net",
     "tipo": "Impreso+Digital",
     "plataformas": "web,facebook",
     "naturaleza": "PRIVADO_CORPORATIVO",

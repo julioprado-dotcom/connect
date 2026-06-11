@@ -48,8 +48,6 @@ const DOMINIOS_DEPRECADOS = new Set([
   'anf.com.bo',       // DNS could not be resolved
   'atb.com.bo',       // ERR_CERT_COMMON_NAME_INVALID
   'tvbolivia.tv',     // DNS could not be resolved
-  'deber.com.bo',     // DNS could not be resolved
-  'eldiario.net.bo',  // DNS could not be resolved
 ])
 
 function dominioDeprecado(url: string): boolean {
