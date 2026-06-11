@@ -179,6 +179,7 @@ model EjeTematico {
   Keyword           Keyword[]
   Mencion           Mencion[]
   MencionTema       MencionTema[]
+  NotaEje           NotaEje[]     @relation("NotaEjeEje")
 
   @@index([activo])
   @@index([tipo, activo])
@@ -420,8 +421,9 @@ model Mencion {
   titulo                  String
   texto                   String                @default("")
   url                     String                @default("")
-  fechaPublicacion        DateTime?
-  fechaCaptura            DateTime              @default(now())
+  fechaPublicacion        DateTime? // 1. Fecha que el medio publicó el artículo
+  fechaCaptura            DateTime              @default(now()) // 2. Fecha de scrape/captura (de NotaRaw, no del LLM)
+  fechaClasificacion      DateTime? // 3. Fecha de clasificación por IA (batch_llm)
   tipoMencion             String                @default("mencion_pasiva")
   temas                   String                @default("")
   reach                   Int                   @default(0)
@@ -456,11 +458,13 @@ model Mencion {
   EjeTematico             EjeTematico?          @relation(fields: [ejeEstructuralId], references: [id], onDelete: SetNull)
   MencionLente            MencionLente[]
   MencionTema             MencionTema[]
+  NotaEje                 NotaEje[]
   mencion_cliente_eje     mencion_cliente_eje[]
 
   @@index([ejeEstructuralId])
   @@index([medioId])
   @@index([fechaCaptura])
+  @@index([fechaClasificacion])
   @@index([personaId])
   @@index([sentimiento])
   @@index([fechaPublicacion])
@@ -806,6 +810,25 @@ model FuenteErrorLog {
   @@index([tipoError])
   @@index([fecha])
   @@index([resuelto])
+}
+
+/**
+ * ──── NotaEje: multi-eje classification with weights (forward-looking) ────
+ */
+model NotaEje {
+  id        String   @id @default(uuid())
+  mencionId String
+  ejeId     String
+  peso      Float    @default(1.0) // weight 0.0-1.0, threshold >= 0.5
+  createdAt DateTime @default(now())
+
+  Mencion     Mencion     @relation(fields: [mencionId], references: [id], onDelete: Cascade)
+  EjeTematico EjeTematico @relation("NotaEjeEje", fields: [ejeId], references: [id], onDelete: Cascade)
+
+  @@unique([mencionId, ejeId])
+  @@index([mencionId])
+  @@index([ejeId])
+  @@index([peso])
 }
 
 /**

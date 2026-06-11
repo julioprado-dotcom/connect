@@ -423,6 +423,7 @@ exports.Prisma.MencionScalarFieldEnum = {
   url: 'url',
   fechaPublicacion: 'fechaPublicacion',
   fechaCaptura: 'fechaCaptura',
+  fechaClasificacion: 'fechaClasificacion',
   tipoMencion: 'tipoMencion',
   temas: 'temas',
   reach: 'reach',
@@ -698,6 +699,14 @@ exports.Prisma.FuenteErrorLogScalarFieldEnum = {
   fecha: 'fecha'
 };
 
+exports.Prisma.NotaEjeScalarFieldEnum = {
+  id: 'id',
+  mencionId: 'mencionId',
+  ejeId: 'ejeId',
+  peso: 'peso',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SystemLogScalarFieldEnum = {
   id: 'id',
   modulo: 'modulo',
@@ -778,6 +787,7 @@ exports.Prisma.ModelName = {
   UsoIA: 'UsoIA',
   NotaRaw: 'NotaRaw',
   FuenteErrorLog: 'FuenteErrorLog',
+  NotaEje: 'NotaEje',
   SystemLog: 'SystemLog'
 };
 

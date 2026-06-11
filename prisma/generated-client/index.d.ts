@@ -206,6 +206,11 @@ export type NotaRaw = $Result.DefaultSelection<Prisma.$NotaRawPayload>
  */
 export type FuenteErrorLog = $Result.DefaultSelection<Prisma.$FuenteErrorLogPayload>
 /**
+ * Model NotaEje
+ * ──── NotaEje: multi-eje classification with weights (forward-looking) ────
+ */
+export type NotaEje = $Result.DefaultSelection<Prisma.$NotaEjePayload>
+/**
  * Model SystemLog
  * ──── Auditoría: registro de decisiones automáticas y manuales ────
  */
@@ -710,6 +715,16 @@ export class PrismaClient<
   get fuenteErrorLog(): Prisma.FuenteErrorLogDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.notaEje`: Exposes CRUD operations for the **NotaEje** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more NotaEjes
+    * const notaEjes = await prisma.notaEje.findMany()
+    * ```
+    */
+  get notaEje(): Prisma.NotaEjeDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.systemLog`: Exposes CRUD operations for the **SystemLog** model.
     * Example usage:
     * ```ts
@@ -1197,6 +1212,7 @@ export namespace Prisma {
     UsoIA: 'UsoIA',
     NotaRaw: 'NotaRaw',
     FuenteErrorLog: 'FuenteErrorLog',
+    NotaEje: 'NotaEje',
     SystemLog: 'SystemLog'
   };
 
@@ -1216,7 +1232,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "account" | "adminFeedback" | "aprendizajeSistema" | "capturaLog" | "cliente" | "comentario" | "contrato" | "ejeTematico" | "entrega" | "envioReporte" | "fuenteEstado" | "indicador" | "indicadorEvaluacion" | "indicadorValor" | "job" | "keyword" | "lente" | "medio" | "mencion" | "mencionLente" | "mencionTema" | "persona" | "reporte" | "reporteEje" | "reporteSectorial" | "session" | "sugerenciaInteligencia" | "suscriptorGratuito" | "user" | "verificationToken" | "cambio_marco_conceptual" | "eje_tematico_cliente" | "marco_conceptual" | "rechazoCaptura" | "mencion_cliente_eje" | "usoIA" | "notaRaw" | "fuenteErrorLog" | "systemLog"
+      modelProps: "account" | "adminFeedback" | "aprendizajeSistema" | "capturaLog" | "cliente" | "comentario" | "contrato" | "ejeTematico" | "entrega" | "envioReporte" | "fuenteEstado" | "indicador" | "indicadorEvaluacion" | "indicadorValor" | "job" | "keyword" | "lente" | "medio" | "mencion" | "mencionLente" | "mencionTema" | "persona" | "reporte" | "reporteEje" | "reporteSectorial" | "session" | "sugerenciaInteligencia" | "suscriptorGratuito" | "user" | "verificationToken" | "cambio_marco_conceptual" | "eje_tematico_cliente" | "marco_conceptual" | "rechazoCaptura" | "mencion_cliente_eje" | "usoIA" | "notaRaw" | "fuenteErrorLog" | "notaEje" | "systemLog"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -4032,6 +4048,80 @@ export namespace Prisma {
           }
         }
       }
+      NotaEje: {
+        payload: Prisma.$NotaEjePayload<ExtArgs>
+        fields: Prisma.NotaEjeFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.NotaEjeFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotaEjePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.NotaEjeFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotaEjePayload>
+          }
+          findFirst: {
+            args: Prisma.NotaEjeFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotaEjePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.NotaEjeFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotaEjePayload>
+          }
+          findMany: {
+            args: Prisma.NotaEjeFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotaEjePayload>[]
+          }
+          create: {
+            args: Prisma.NotaEjeCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotaEjePayload>
+          }
+          createMany: {
+            args: Prisma.NotaEjeCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.NotaEjeCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotaEjePayload>[]
+          }
+          delete: {
+            args: Prisma.NotaEjeDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotaEjePayload>
+          }
+          update: {
+            args: Prisma.NotaEjeUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotaEjePayload>
+          }
+          deleteMany: {
+            args: Prisma.NotaEjeDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.NotaEjeUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.NotaEjeUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotaEjePayload>[]
+          }
+          upsert: {
+            args: Prisma.NotaEjeUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotaEjePayload>
+          }
+          aggregate: {
+            args: Prisma.NotaEjeAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateNotaEje>
+          }
+          groupBy: {
+            args: Prisma.NotaEjeGroupByArgs<ExtArgs>
+            result: $Utils.Optional<NotaEjeGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.NotaEjeCountArgs<ExtArgs>
+            result: $Utils.Optional<NotaEjeCountAggregateOutputType> | number
+          }
+        }
+      }
       SystemLog: {
         payload: Prisma.$SystemLogPayload<ExtArgs>
         fields: Prisma.SystemLogFieldRefs
@@ -4240,6 +4330,7 @@ export namespace Prisma {
     usoIA?: UsoIAOmit
     notaRaw?: NotaRawOmit
     fuenteErrorLog?: FuenteErrorLogOmit
+    notaEje?: NotaEjeOmit
     systemLog?: SystemLogOmit
   }
 
@@ -4396,6 +4487,7 @@ export namespace Prisma {
     Keyword: number
     Mencion: number
     MencionTema: number
+    NotaEje: number
   }
 
   export type EjeTematicoCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -4403,6 +4495,7 @@ export namespace Prisma {
     Keyword?: boolean | EjeTematicoCountOutputTypeCountKeywordArgs
     Mencion?: boolean | EjeTematicoCountOutputTypeCountMencionArgs
     MencionTema?: boolean | EjeTematicoCountOutputTypeCountMencionTemaArgs
+    NotaEje?: boolean | EjeTematicoCountOutputTypeCountNotaEjeArgs
   }
 
   // Custom InputTypes
@@ -4442,6 +4535,13 @@ export namespace Prisma {
    */
   export type EjeTematicoCountOutputTypeCountMencionTemaArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: MencionTemaWhereInput
+  }
+
+  /**
+   * EjeTematicoCountOutputType without action
+   */
+  export type EjeTematicoCountOutputTypeCountNotaEjeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: NotaEjeWhereInput
   }
 
 
@@ -4640,6 +4740,7 @@ export namespace Prisma {
     Comentario: number
     MencionLente: number
     MencionTema: number
+    NotaEje: number
     mencion_cliente_eje: number
   }
 
@@ -4647,6 +4748,7 @@ export namespace Prisma {
     Comentario?: boolean | MencionCountOutputTypeCountComentarioArgs
     MencionLente?: boolean | MencionCountOutputTypeCountMencionLenteArgs
     MencionTema?: boolean | MencionCountOutputTypeCountMencionTemaArgs
+    NotaEje?: boolean | MencionCountOutputTypeCountNotaEjeArgs
     mencion_cliente_eje?: boolean | MencionCountOutputTypeCountMencion_cliente_ejeArgs
   }
 
@@ -4680,6 +4782,13 @@ export namespace Prisma {
    */
   export type MencionCountOutputTypeCountMencionTemaArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: MencionTemaWhereInput
+  }
+
+  /**
+   * MencionCountOutputType without action
+   */
+  export type MencionCountOutputTypeCountNotaEjeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: NotaEjeWhereInput
   }
 
   /**
@@ -13322,6 +13431,7 @@ export namespace Prisma {
     Keyword?: boolean | EjeTematico$KeywordArgs<ExtArgs>
     Mencion?: boolean | EjeTematico$MencionArgs<ExtArgs>
     MencionTema?: boolean | EjeTematico$MencionTemaArgs<ExtArgs>
+    NotaEje?: boolean | EjeTematico$NotaEjeArgs<ExtArgs>
     _count?: boolean | EjeTematicoCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["ejeTematico"]>
 
@@ -13379,6 +13489,7 @@ export namespace Prisma {
     Keyword?: boolean | EjeTematico$KeywordArgs<ExtArgs>
     Mencion?: boolean | EjeTematico$MencionArgs<ExtArgs>
     MencionTema?: boolean | EjeTematico$MencionTemaArgs<ExtArgs>
+    NotaEje?: boolean | EjeTematico$NotaEjeArgs<ExtArgs>
     _count?: boolean | EjeTematicoCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type EjeTematicoIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -13396,6 +13507,7 @@ export namespace Prisma {
       Keyword: Prisma.$KeywordPayload<ExtArgs>[]
       Mencion: Prisma.$MencionPayload<ExtArgs>[]
       MencionTema: Prisma.$MencionTemaPayload<ExtArgs>[]
+      NotaEje: Prisma.$NotaEjePayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -13809,6 +13921,7 @@ export namespace Prisma {
     Keyword<T extends EjeTematico$KeywordArgs<ExtArgs> = {}>(args?: Subset<T, EjeTematico$KeywordArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$KeywordPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     Mencion<T extends EjeTematico$MencionArgs<ExtArgs> = {}>(args?: Subset<T, EjeTematico$MencionArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MencionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     MencionTema<T extends EjeTematico$MencionTemaArgs<ExtArgs> = {}>(args?: Subset<T, EjeTematico$MencionTemaArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MencionTemaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    NotaEje<T extends EjeTematico$NotaEjeArgs<ExtArgs> = {}>(args?: Subset<T, EjeTematico$NotaEjeArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NotaEjePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -14356,6 +14469,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: MencionTemaScalarFieldEnum | MencionTemaScalarFieldEnum[]
+  }
+
+  /**
+   * EjeTematico.NotaEje
+   */
+  export type EjeTematico$NotaEjeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotaEje
+     */
+    select?: NotaEjeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the NotaEje
+     */
+    omit?: NotaEjeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotaEjeInclude<ExtArgs> | null
+    where?: NotaEjeWhereInput
+    orderBy?: NotaEjeOrderByWithRelationInput | NotaEjeOrderByWithRelationInput[]
+    cursor?: NotaEjeWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: NotaEjeScalarFieldEnum | NotaEjeScalarFieldEnum[]
   }
 
   /**
@@ -26685,6 +26822,7 @@ export namespace Prisma {
     url: string | null
     fechaPublicacion: Date | null
     fechaCaptura: Date | null
+    fechaClasificacion: Date | null
     tipoMencion: string | null
     temas: string | null
     reach: number | null
@@ -26723,6 +26861,7 @@ export namespace Prisma {
     url: string | null
     fechaPublicacion: Date | null
     fechaCaptura: Date | null
+    fechaClasificacion: Date | null
     tipoMencion: string | null
     temas: string | null
     reach: number | null
@@ -26761,6 +26900,7 @@ export namespace Prisma {
     url: number
     fechaPublicacion: number
     fechaCaptura: number
+    fechaClasificacion: number
     tipoMencion: number
     temas: number
     reach: number
@@ -26814,6 +26954,7 @@ export namespace Prisma {
     url?: true
     fechaPublicacion?: true
     fechaCaptura?: true
+    fechaClasificacion?: true
     tipoMencion?: true
     temas?: true
     reach?: true
@@ -26852,6 +26993,7 @@ export namespace Prisma {
     url?: true
     fechaPublicacion?: true
     fechaCaptura?: true
+    fechaClasificacion?: true
     tipoMencion?: true
     temas?: true
     reach?: true
@@ -26890,6 +27032,7 @@ export namespace Prisma {
     url?: true
     fechaPublicacion?: true
     fechaCaptura?: true
+    fechaClasificacion?: true
     tipoMencion?: true
     temas?: true
     reach?: true
@@ -27016,6 +27159,7 @@ export namespace Prisma {
     url: string
     fechaPublicacion: Date | null
     fechaCaptura: Date
+    fechaClasificacion: Date | null
     tipoMencion: string
     temas: string
     reach: number
@@ -27074,6 +27218,7 @@ export namespace Prisma {
     url?: boolean
     fechaPublicacion?: boolean
     fechaCaptura?: boolean
+    fechaClasificacion?: boolean
     tipoMencion?: boolean
     temas?: boolean
     reach?: boolean
@@ -27108,6 +27253,7 @@ export namespace Prisma {
     EjeTematico?: boolean | Mencion$EjeTematicoArgs<ExtArgs>
     MencionLente?: boolean | Mencion$MencionLenteArgs<ExtArgs>
     MencionTema?: boolean | Mencion$MencionTemaArgs<ExtArgs>
+    NotaEje?: boolean | Mencion$NotaEjeArgs<ExtArgs>
     mencion_cliente_eje?: boolean | Mencion$mencion_cliente_ejeArgs<ExtArgs>
     _count?: boolean | MencionCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["mencion"]>
@@ -27121,6 +27267,7 @@ export namespace Prisma {
     url?: boolean
     fechaPublicacion?: boolean
     fechaCaptura?: boolean
+    fechaClasificacion?: boolean
     tipoMencion?: boolean
     temas?: boolean
     reach?: boolean
@@ -27163,6 +27310,7 @@ export namespace Prisma {
     url?: boolean
     fechaPublicacion?: boolean
     fechaCaptura?: boolean
+    fechaClasificacion?: boolean
     tipoMencion?: boolean
     temas?: boolean
     reach?: boolean
@@ -27205,6 +27353,7 @@ export namespace Prisma {
     url?: boolean
     fechaPublicacion?: boolean
     fechaCaptura?: boolean
+    fechaClasificacion?: boolean
     tipoMencion?: boolean
     temas?: boolean
     reach?: boolean
@@ -27235,7 +27384,7 @@ export namespace Prisma {
     evidenciaTamanoBytes?: boolean
   }
 
-  export type MencionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "personaId" | "medioId" | "titulo" | "texto" | "url" | "fechaPublicacion" | "fechaCaptura" | "tipoMencion" | "temas" | "reach" | "verificado" | "fechaCreacion" | "enlaceActivo" | "fechaVerificacion" | "textoCompleto" | "comentariosCount" | "comentariosResumen" | "sentimiento" | "tratamientoPeriodistico" | "confianzaClasificacion" | "preguntasFundamentales" | "esDuplicado" | "mencionOriginalId" | "mediosRelacionados" | "eventoId" | "coberturasAdicionales" | "deduplicacionLog" | "intencionMedio" | "ejeEstructuralId" | "evidenciaHtmlRuta" | "evidenciaPngRuta" | "evidenciaHashSha256" | "evidenciaTimestamp" | "evidenciaUrlOriginal" | "evidenciaTamanoBytes", ExtArgs["result"]["mencion"]>
+  export type MencionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "personaId" | "medioId" | "titulo" | "texto" | "url" | "fechaPublicacion" | "fechaCaptura" | "fechaClasificacion" | "tipoMencion" | "temas" | "reach" | "verificado" | "fechaCreacion" | "enlaceActivo" | "fechaVerificacion" | "textoCompleto" | "comentariosCount" | "comentariosResumen" | "sentimiento" | "tratamientoPeriodistico" | "confianzaClasificacion" | "preguntasFundamentales" | "esDuplicado" | "mencionOriginalId" | "mediosRelacionados" | "eventoId" | "coberturasAdicionales" | "deduplicacionLog" | "intencionMedio" | "ejeEstructuralId" | "evidenciaHtmlRuta" | "evidenciaPngRuta" | "evidenciaHashSha256" | "evidenciaTimestamp" | "evidenciaUrlOriginal" | "evidenciaTamanoBytes", ExtArgs["result"]["mencion"]>
   export type MencionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     Comentario?: boolean | Mencion$ComentarioArgs<ExtArgs>
     Persona?: boolean | Mencion$PersonaArgs<ExtArgs>
@@ -27243,6 +27392,7 @@ export namespace Prisma {
     EjeTematico?: boolean | Mencion$EjeTematicoArgs<ExtArgs>
     MencionLente?: boolean | Mencion$MencionLenteArgs<ExtArgs>
     MencionTema?: boolean | Mencion$MencionTemaArgs<ExtArgs>
+    NotaEje?: boolean | Mencion$NotaEjeArgs<ExtArgs>
     mencion_cliente_eje?: boolean | Mencion$mencion_cliente_ejeArgs<ExtArgs>
     _count?: boolean | MencionCountOutputTypeDefaultArgs<ExtArgs>
   }
@@ -27266,6 +27416,7 @@ export namespace Prisma {
       EjeTematico: Prisma.$EjeTematicoPayload<ExtArgs> | null
       MencionLente: Prisma.$MencionLentePayload<ExtArgs>[]
       MencionTema: Prisma.$MencionTemaPayload<ExtArgs>[]
+      NotaEje: Prisma.$NotaEjePayload<ExtArgs>[]
       mencion_cliente_eje: Prisma.$mencion_cliente_ejePayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
@@ -27277,6 +27428,7 @@ export namespace Prisma {
       url: string
       fechaPublicacion: Date | null
       fechaCaptura: Date
+      fechaClasificacion: Date | null
       tipoMencion: string
       temas: string
       reach: number
@@ -27705,6 +27857,7 @@ export namespace Prisma {
     EjeTematico<T extends Mencion$EjeTematicoArgs<ExtArgs> = {}>(args?: Subset<T, Mencion$EjeTematicoArgs<ExtArgs>>): Prisma__EjeTematicoClient<$Result.GetResult<Prisma.$EjeTematicoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     MencionLente<T extends Mencion$MencionLenteArgs<ExtArgs> = {}>(args?: Subset<T, Mencion$MencionLenteArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MencionLentePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     MencionTema<T extends Mencion$MencionTemaArgs<ExtArgs> = {}>(args?: Subset<T, Mencion$MencionTemaArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MencionTemaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    NotaEje<T extends Mencion$NotaEjeArgs<ExtArgs> = {}>(args?: Subset<T, Mencion$NotaEjeArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NotaEjePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     mencion_cliente_eje<T extends Mencion$mencion_cliente_ejeArgs<ExtArgs> = {}>(args?: Subset<T, Mencion$mencion_cliente_ejeArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$mencion_cliente_ejePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -27743,6 +27896,7 @@ export namespace Prisma {
     readonly url: FieldRef<"Mencion", 'String'>
     readonly fechaPublicacion: FieldRef<"Mencion", 'DateTime'>
     readonly fechaCaptura: FieldRef<"Mencion", 'DateTime'>
+    readonly fechaClasificacion: FieldRef<"Mencion", 'DateTime'>
     readonly tipoMencion: FieldRef<"Mencion", 'String'>
     readonly temas: FieldRef<"Mencion", 'String'>
     readonly reach: FieldRef<"Mencion", 'Int'>
@@ -28272,6 +28426,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: MencionTemaScalarFieldEnum | MencionTemaScalarFieldEnum[]
+  }
+
+  /**
+   * Mencion.NotaEje
+   */
+  export type Mencion$NotaEjeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotaEje
+     */
+    select?: NotaEjeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the NotaEje
+     */
+    omit?: NotaEjeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotaEjeInclude<ExtArgs> | null
+    where?: NotaEjeWhereInput
+    orderBy?: NotaEjeOrderByWithRelationInput | NotaEjeOrderByWithRelationInput[]
+    cursor?: NotaEjeWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: NotaEjeScalarFieldEnum | NotaEjeScalarFieldEnum[]
   }
 
   /**
@@ -50042,6 +50220,1104 @@ export namespace Prisma {
 
 
   /**
+   * Model NotaEje
+   */
+
+  export type AggregateNotaEje = {
+    _count: NotaEjeCountAggregateOutputType | null
+    _avg: NotaEjeAvgAggregateOutputType | null
+    _sum: NotaEjeSumAggregateOutputType | null
+    _min: NotaEjeMinAggregateOutputType | null
+    _max: NotaEjeMaxAggregateOutputType | null
+  }
+
+  export type NotaEjeAvgAggregateOutputType = {
+    peso: number | null
+  }
+
+  export type NotaEjeSumAggregateOutputType = {
+    peso: number | null
+  }
+
+  export type NotaEjeMinAggregateOutputType = {
+    id: string | null
+    mencionId: string | null
+    ejeId: string | null
+    peso: number | null
+    createdAt: Date | null
+  }
+
+  export type NotaEjeMaxAggregateOutputType = {
+    id: string | null
+    mencionId: string | null
+    ejeId: string | null
+    peso: number | null
+    createdAt: Date | null
+  }
+
+  export type NotaEjeCountAggregateOutputType = {
+    id: number
+    mencionId: number
+    ejeId: number
+    peso: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type NotaEjeAvgAggregateInputType = {
+    peso?: true
+  }
+
+  export type NotaEjeSumAggregateInputType = {
+    peso?: true
+  }
+
+  export type NotaEjeMinAggregateInputType = {
+    id?: true
+    mencionId?: true
+    ejeId?: true
+    peso?: true
+    createdAt?: true
+  }
+
+  export type NotaEjeMaxAggregateInputType = {
+    id?: true
+    mencionId?: true
+    ejeId?: true
+    peso?: true
+    createdAt?: true
+  }
+
+  export type NotaEjeCountAggregateInputType = {
+    id?: true
+    mencionId?: true
+    ejeId?: true
+    peso?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type NotaEjeAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which NotaEje to aggregate.
+     */
+    where?: NotaEjeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NotaEjes to fetch.
+     */
+    orderBy?: NotaEjeOrderByWithRelationInput | NotaEjeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: NotaEjeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NotaEjes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NotaEjes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned NotaEjes
+    **/
+    _count?: true | NotaEjeCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: NotaEjeAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: NotaEjeSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: NotaEjeMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: NotaEjeMaxAggregateInputType
+  }
+
+  export type GetNotaEjeAggregateType<T extends NotaEjeAggregateArgs> = {
+        [P in keyof T & keyof AggregateNotaEje]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateNotaEje[P]>
+      : GetScalarType<T[P], AggregateNotaEje[P]>
+  }
+
+
+
+
+  export type NotaEjeGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: NotaEjeWhereInput
+    orderBy?: NotaEjeOrderByWithAggregationInput | NotaEjeOrderByWithAggregationInput[]
+    by: NotaEjeScalarFieldEnum[] | NotaEjeScalarFieldEnum
+    having?: NotaEjeScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: NotaEjeCountAggregateInputType | true
+    _avg?: NotaEjeAvgAggregateInputType
+    _sum?: NotaEjeSumAggregateInputType
+    _min?: NotaEjeMinAggregateInputType
+    _max?: NotaEjeMaxAggregateInputType
+  }
+
+  export type NotaEjeGroupByOutputType = {
+    id: string
+    mencionId: string
+    ejeId: string
+    peso: number
+    createdAt: Date
+    _count: NotaEjeCountAggregateOutputType | null
+    _avg: NotaEjeAvgAggregateOutputType | null
+    _sum: NotaEjeSumAggregateOutputType | null
+    _min: NotaEjeMinAggregateOutputType | null
+    _max: NotaEjeMaxAggregateOutputType | null
+  }
+
+  type GetNotaEjeGroupByPayload<T extends NotaEjeGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<NotaEjeGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof NotaEjeGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], NotaEjeGroupByOutputType[P]>
+            : GetScalarType<T[P], NotaEjeGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type NotaEjeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    mencionId?: boolean
+    ejeId?: boolean
+    peso?: boolean
+    createdAt?: boolean
+    Mencion?: boolean | MencionDefaultArgs<ExtArgs>
+    EjeTematico?: boolean | EjeTematicoDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["notaEje"]>
+
+  export type NotaEjeSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    mencionId?: boolean
+    ejeId?: boolean
+    peso?: boolean
+    createdAt?: boolean
+    Mencion?: boolean | MencionDefaultArgs<ExtArgs>
+    EjeTematico?: boolean | EjeTematicoDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["notaEje"]>
+
+  export type NotaEjeSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    mencionId?: boolean
+    ejeId?: boolean
+    peso?: boolean
+    createdAt?: boolean
+    Mencion?: boolean | MencionDefaultArgs<ExtArgs>
+    EjeTematico?: boolean | EjeTematicoDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["notaEje"]>
+
+  export type NotaEjeSelectScalar = {
+    id?: boolean
+    mencionId?: boolean
+    ejeId?: boolean
+    peso?: boolean
+    createdAt?: boolean
+  }
+
+  export type NotaEjeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "mencionId" | "ejeId" | "peso" | "createdAt", ExtArgs["result"]["notaEje"]>
+  export type NotaEjeInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    Mencion?: boolean | MencionDefaultArgs<ExtArgs>
+    EjeTematico?: boolean | EjeTematicoDefaultArgs<ExtArgs>
+  }
+  export type NotaEjeIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    Mencion?: boolean | MencionDefaultArgs<ExtArgs>
+    EjeTematico?: boolean | EjeTematicoDefaultArgs<ExtArgs>
+  }
+  export type NotaEjeIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    Mencion?: boolean | MencionDefaultArgs<ExtArgs>
+    EjeTematico?: boolean | EjeTematicoDefaultArgs<ExtArgs>
+  }
+
+  export type $NotaEjePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "NotaEje"
+    objects: {
+      Mencion: Prisma.$MencionPayload<ExtArgs>
+      EjeTematico: Prisma.$EjeTematicoPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      mencionId: string
+      ejeId: string
+      peso: number
+      createdAt: Date
+    }, ExtArgs["result"]["notaEje"]>
+    composites: {}
+  }
+
+  type NotaEjeGetPayload<S extends boolean | null | undefined | NotaEjeDefaultArgs> = $Result.GetResult<Prisma.$NotaEjePayload, S>
+
+  type NotaEjeCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<NotaEjeFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: NotaEjeCountAggregateInputType | true
+    }
+
+  export interface NotaEjeDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['NotaEje'], meta: { name: 'NotaEje' } }
+    /**
+     * Find zero or one NotaEje that matches the filter.
+     * @param {NotaEjeFindUniqueArgs} args - Arguments to find a NotaEje
+     * @example
+     * // Get one NotaEje
+     * const notaEje = await prisma.notaEje.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends NotaEjeFindUniqueArgs>(args: SelectSubset<T, NotaEjeFindUniqueArgs<ExtArgs>>): Prisma__NotaEjeClient<$Result.GetResult<Prisma.$NotaEjePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one NotaEje that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {NotaEjeFindUniqueOrThrowArgs} args - Arguments to find a NotaEje
+     * @example
+     * // Get one NotaEje
+     * const notaEje = await prisma.notaEje.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends NotaEjeFindUniqueOrThrowArgs>(args: SelectSubset<T, NotaEjeFindUniqueOrThrowArgs<ExtArgs>>): Prisma__NotaEjeClient<$Result.GetResult<Prisma.$NotaEjePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first NotaEje that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NotaEjeFindFirstArgs} args - Arguments to find a NotaEje
+     * @example
+     * // Get one NotaEje
+     * const notaEje = await prisma.notaEje.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends NotaEjeFindFirstArgs>(args?: SelectSubset<T, NotaEjeFindFirstArgs<ExtArgs>>): Prisma__NotaEjeClient<$Result.GetResult<Prisma.$NotaEjePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first NotaEje that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NotaEjeFindFirstOrThrowArgs} args - Arguments to find a NotaEje
+     * @example
+     * // Get one NotaEje
+     * const notaEje = await prisma.notaEje.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends NotaEjeFindFirstOrThrowArgs>(args?: SelectSubset<T, NotaEjeFindFirstOrThrowArgs<ExtArgs>>): Prisma__NotaEjeClient<$Result.GetResult<Prisma.$NotaEjePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more NotaEjes that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NotaEjeFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all NotaEjes
+     * const notaEjes = await prisma.notaEje.findMany()
+     * 
+     * // Get first 10 NotaEjes
+     * const notaEjes = await prisma.notaEje.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const notaEjeWithIdOnly = await prisma.notaEje.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends NotaEjeFindManyArgs>(args?: SelectSubset<T, NotaEjeFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NotaEjePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a NotaEje.
+     * @param {NotaEjeCreateArgs} args - Arguments to create a NotaEje.
+     * @example
+     * // Create one NotaEje
+     * const NotaEje = await prisma.notaEje.create({
+     *   data: {
+     *     // ... data to create a NotaEje
+     *   }
+     * })
+     * 
+     */
+    create<T extends NotaEjeCreateArgs>(args: SelectSubset<T, NotaEjeCreateArgs<ExtArgs>>): Prisma__NotaEjeClient<$Result.GetResult<Prisma.$NotaEjePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many NotaEjes.
+     * @param {NotaEjeCreateManyArgs} args - Arguments to create many NotaEjes.
+     * @example
+     * // Create many NotaEjes
+     * const notaEje = await prisma.notaEje.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends NotaEjeCreateManyArgs>(args?: SelectSubset<T, NotaEjeCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many NotaEjes and returns the data saved in the database.
+     * @param {NotaEjeCreateManyAndReturnArgs} args - Arguments to create many NotaEjes.
+     * @example
+     * // Create many NotaEjes
+     * const notaEje = await prisma.notaEje.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many NotaEjes and only return the `id`
+     * const notaEjeWithIdOnly = await prisma.notaEje.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends NotaEjeCreateManyAndReturnArgs>(args?: SelectSubset<T, NotaEjeCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NotaEjePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a NotaEje.
+     * @param {NotaEjeDeleteArgs} args - Arguments to delete one NotaEje.
+     * @example
+     * // Delete one NotaEje
+     * const NotaEje = await prisma.notaEje.delete({
+     *   where: {
+     *     // ... filter to delete one NotaEje
+     *   }
+     * })
+     * 
+     */
+    delete<T extends NotaEjeDeleteArgs>(args: SelectSubset<T, NotaEjeDeleteArgs<ExtArgs>>): Prisma__NotaEjeClient<$Result.GetResult<Prisma.$NotaEjePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one NotaEje.
+     * @param {NotaEjeUpdateArgs} args - Arguments to update one NotaEje.
+     * @example
+     * // Update one NotaEje
+     * const notaEje = await prisma.notaEje.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends NotaEjeUpdateArgs>(args: SelectSubset<T, NotaEjeUpdateArgs<ExtArgs>>): Prisma__NotaEjeClient<$Result.GetResult<Prisma.$NotaEjePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more NotaEjes.
+     * @param {NotaEjeDeleteManyArgs} args - Arguments to filter NotaEjes to delete.
+     * @example
+     * // Delete a few NotaEjes
+     * const { count } = await prisma.notaEje.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends NotaEjeDeleteManyArgs>(args?: SelectSubset<T, NotaEjeDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more NotaEjes.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NotaEjeUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many NotaEjes
+     * const notaEje = await prisma.notaEje.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends NotaEjeUpdateManyArgs>(args: SelectSubset<T, NotaEjeUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more NotaEjes and returns the data updated in the database.
+     * @param {NotaEjeUpdateManyAndReturnArgs} args - Arguments to update many NotaEjes.
+     * @example
+     * // Update many NotaEjes
+     * const notaEje = await prisma.notaEje.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more NotaEjes and only return the `id`
+     * const notaEjeWithIdOnly = await prisma.notaEje.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends NotaEjeUpdateManyAndReturnArgs>(args: SelectSubset<T, NotaEjeUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NotaEjePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one NotaEje.
+     * @param {NotaEjeUpsertArgs} args - Arguments to update or create a NotaEje.
+     * @example
+     * // Update or create a NotaEje
+     * const notaEje = await prisma.notaEje.upsert({
+     *   create: {
+     *     // ... data to create a NotaEje
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the NotaEje we want to update
+     *   }
+     * })
+     */
+    upsert<T extends NotaEjeUpsertArgs>(args: SelectSubset<T, NotaEjeUpsertArgs<ExtArgs>>): Prisma__NotaEjeClient<$Result.GetResult<Prisma.$NotaEjePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of NotaEjes.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NotaEjeCountArgs} args - Arguments to filter NotaEjes to count.
+     * @example
+     * // Count the number of NotaEjes
+     * const count = await prisma.notaEje.count({
+     *   where: {
+     *     // ... the filter for the NotaEjes we want to count
+     *   }
+     * })
+    **/
+    count<T extends NotaEjeCountArgs>(
+      args?: Subset<T, NotaEjeCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], NotaEjeCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a NotaEje.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NotaEjeAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends NotaEjeAggregateArgs>(args: Subset<T, NotaEjeAggregateArgs>): Prisma.PrismaPromise<GetNotaEjeAggregateType<T>>
+
+    /**
+     * Group by NotaEje.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NotaEjeGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends NotaEjeGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: NotaEjeGroupByArgs['orderBy'] }
+        : { orderBy?: NotaEjeGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, NotaEjeGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetNotaEjeGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the NotaEje model
+   */
+  readonly fields: NotaEjeFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for NotaEje.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__NotaEjeClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    Mencion<T extends MencionDefaultArgs<ExtArgs> = {}>(args?: Subset<T, MencionDefaultArgs<ExtArgs>>): Prisma__MencionClient<$Result.GetResult<Prisma.$MencionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    EjeTematico<T extends EjeTematicoDefaultArgs<ExtArgs> = {}>(args?: Subset<T, EjeTematicoDefaultArgs<ExtArgs>>): Prisma__EjeTematicoClient<$Result.GetResult<Prisma.$EjeTematicoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the NotaEje model
+   */
+  interface NotaEjeFieldRefs {
+    readonly id: FieldRef<"NotaEje", 'String'>
+    readonly mencionId: FieldRef<"NotaEje", 'String'>
+    readonly ejeId: FieldRef<"NotaEje", 'String'>
+    readonly peso: FieldRef<"NotaEje", 'Float'>
+    readonly createdAt: FieldRef<"NotaEje", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * NotaEje findUnique
+   */
+  export type NotaEjeFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotaEje
+     */
+    select?: NotaEjeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the NotaEje
+     */
+    omit?: NotaEjeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotaEjeInclude<ExtArgs> | null
+    /**
+     * Filter, which NotaEje to fetch.
+     */
+    where: NotaEjeWhereUniqueInput
+  }
+
+  /**
+   * NotaEje findUniqueOrThrow
+   */
+  export type NotaEjeFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotaEje
+     */
+    select?: NotaEjeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the NotaEje
+     */
+    omit?: NotaEjeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotaEjeInclude<ExtArgs> | null
+    /**
+     * Filter, which NotaEje to fetch.
+     */
+    where: NotaEjeWhereUniqueInput
+  }
+
+  /**
+   * NotaEje findFirst
+   */
+  export type NotaEjeFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotaEje
+     */
+    select?: NotaEjeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the NotaEje
+     */
+    omit?: NotaEjeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotaEjeInclude<ExtArgs> | null
+    /**
+     * Filter, which NotaEje to fetch.
+     */
+    where?: NotaEjeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NotaEjes to fetch.
+     */
+    orderBy?: NotaEjeOrderByWithRelationInput | NotaEjeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for NotaEjes.
+     */
+    cursor?: NotaEjeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NotaEjes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NotaEjes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of NotaEjes.
+     */
+    distinct?: NotaEjeScalarFieldEnum | NotaEjeScalarFieldEnum[]
+  }
+
+  /**
+   * NotaEje findFirstOrThrow
+   */
+  export type NotaEjeFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotaEje
+     */
+    select?: NotaEjeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the NotaEje
+     */
+    omit?: NotaEjeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotaEjeInclude<ExtArgs> | null
+    /**
+     * Filter, which NotaEje to fetch.
+     */
+    where?: NotaEjeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NotaEjes to fetch.
+     */
+    orderBy?: NotaEjeOrderByWithRelationInput | NotaEjeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for NotaEjes.
+     */
+    cursor?: NotaEjeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NotaEjes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NotaEjes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of NotaEjes.
+     */
+    distinct?: NotaEjeScalarFieldEnum | NotaEjeScalarFieldEnum[]
+  }
+
+  /**
+   * NotaEje findMany
+   */
+  export type NotaEjeFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotaEje
+     */
+    select?: NotaEjeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the NotaEje
+     */
+    omit?: NotaEjeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotaEjeInclude<ExtArgs> | null
+    /**
+     * Filter, which NotaEjes to fetch.
+     */
+    where?: NotaEjeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NotaEjes to fetch.
+     */
+    orderBy?: NotaEjeOrderByWithRelationInput | NotaEjeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing NotaEjes.
+     */
+    cursor?: NotaEjeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NotaEjes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NotaEjes.
+     */
+    skip?: number
+    distinct?: NotaEjeScalarFieldEnum | NotaEjeScalarFieldEnum[]
+  }
+
+  /**
+   * NotaEje create
+   */
+  export type NotaEjeCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotaEje
+     */
+    select?: NotaEjeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the NotaEje
+     */
+    omit?: NotaEjeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotaEjeInclude<ExtArgs> | null
+    /**
+     * The data needed to create a NotaEje.
+     */
+    data: XOR<NotaEjeCreateInput, NotaEjeUncheckedCreateInput>
+  }
+
+  /**
+   * NotaEje createMany
+   */
+  export type NotaEjeCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many NotaEjes.
+     */
+    data: NotaEjeCreateManyInput | NotaEjeCreateManyInput[]
+  }
+
+  /**
+   * NotaEje createManyAndReturn
+   */
+  export type NotaEjeCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotaEje
+     */
+    select?: NotaEjeSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the NotaEje
+     */
+    omit?: NotaEjeOmit<ExtArgs> | null
+    /**
+     * The data used to create many NotaEjes.
+     */
+    data: NotaEjeCreateManyInput | NotaEjeCreateManyInput[]
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotaEjeIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * NotaEje update
+   */
+  export type NotaEjeUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotaEje
+     */
+    select?: NotaEjeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the NotaEje
+     */
+    omit?: NotaEjeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotaEjeInclude<ExtArgs> | null
+    /**
+     * The data needed to update a NotaEje.
+     */
+    data: XOR<NotaEjeUpdateInput, NotaEjeUncheckedUpdateInput>
+    /**
+     * Choose, which NotaEje to update.
+     */
+    where: NotaEjeWhereUniqueInput
+  }
+
+  /**
+   * NotaEje updateMany
+   */
+  export type NotaEjeUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update NotaEjes.
+     */
+    data: XOR<NotaEjeUpdateManyMutationInput, NotaEjeUncheckedUpdateManyInput>
+    /**
+     * Filter which NotaEjes to update
+     */
+    where?: NotaEjeWhereInput
+    /**
+     * Limit how many NotaEjes to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * NotaEje updateManyAndReturn
+   */
+  export type NotaEjeUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotaEje
+     */
+    select?: NotaEjeSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the NotaEje
+     */
+    omit?: NotaEjeOmit<ExtArgs> | null
+    /**
+     * The data used to update NotaEjes.
+     */
+    data: XOR<NotaEjeUpdateManyMutationInput, NotaEjeUncheckedUpdateManyInput>
+    /**
+     * Filter which NotaEjes to update
+     */
+    where?: NotaEjeWhereInput
+    /**
+     * Limit how many NotaEjes to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotaEjeIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * NotaEje upsert
+   */
+  export type NotaEjeUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotaEje
+     */
+    select?: NotaEjeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the NotaEje
+     */
+    omit?: NotaEjeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotaEjeInclude<ExtArgs> | null
+    /**
+     * The filter to search for the NotaEje to update in case it exists.
+     */
+    where: NotaEjeWhereUniqueInput
+    /**
+     * In case the NotaEje found by the `where` argument doesn't exist, create a new NotaEje with this data.
+     */
+    create: XOR<NotaEjeCreateInput, NotaEjeUncheckedCreateInput>
+    /**
+     * In case the NotaEje was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<NotaEjeUpdateInput, NotaEjeUncheckedUpdateInput>
+  }
+
+  /**
+   * NotaEje delete
+   */
+  export type NotaEjeDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotaEje
+     */
+    select?: NotaEjeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the NotaEje
+     */
+    omit?: NotaEjeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotaEjeInclude<ExtArgs> | null
+    /**
+     * Filter which NotaEje to delete.
+     */
+    where: NotaEjeWhereUniqueInput
+  }
+
+  /**
+   * NotaEje deleteMany
+   */
+  export type NotaEjeDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which NotaEjes to delete
+     */
+    where?: NotaEjeWhereInput
+    /**
+     * Limit how many NotaEjes to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * NotaEje without action
+   */
+  export type NotaEjeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotaEje
+     */
+    select?: NotaEjeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the NotaEje
+     */
+    omit?: NotaEjeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotaEjeInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model SystemLog
    */
 
@@ -51430,6 +52706,7 @@ export namespace Prisma {
     url: 'url',
     fechaPublicacion: 'fechaPublicacion',
     fechaCaptura: 'fechaCaptura',
+    fechaClasificacion: 'fechaClasificacion',
     tipoMencion: 'tipoMencion',
     temas: 'temas',
     reach: 'reach',
@@ -51763,6 +53040,17 @@ export namespace Prisma {
   };
 
   export type FuenteErrorLogScalarFieldEnum = (typeof FuenteErrorLogScalarFieldEnum)[keyof typeof FuenteErrorLogScalarFieldEnum]
+
+
+  export const NotaEjeScalarFieldEnum: {
+    id: 'id',
+    mencionId: 'mencionId',
+    ejeId: 'ejeId',
+    peso: 'peso',
+    createdAt: 'createdAt'
+  };
+
+  export type NotaEjeScalarFieldEnum = (typeof NotaEjeScalarFieldEnum)[keyof typeof NotaEjeScalarFieldEnum]
 
 
   export const SystemLogScalarFieldEnum: {
@@ -52568,6 +53856,7 @@ export namespace Prisma {
     Keyword?: KeywordListRelationFilter
     Mencion?: MencionListRelationFilter
     MencionTema?: MencionTemaListRelationFilter
+    NotaEje?: NotaEjeListRelationFilter
   }
 
   export type EjeTematicoOrderByWithRelationInput = {
@@ -52588,6 +53877,7 @@ export namespace Prisma {
     Keyword?: KeywordOrderByRelationAggregateInput
     Mencion?: MencionOrderByRelationAggregateInput
     MencionTema?: MencionTemaOrderByRelationAggregateInput
+    NotaEje?: NotaEjeOrderByRelationAggregateInput
   }
 
   export type EjeTematicoWhereUniqueInput = Prisma.AtLeast<{
@@ -52611,6 +53901,7 @@ export namespace Prisma {
     Keyword?: KeywordListRelationFilter
     Mencion?: MencionListRelationFilter
     MencionTema?: MencionTemaListRelationFilter
+    NotaEje?: NotaEjeListRelationFilter
   }, "id" | "slug">
 
   export type EjeTematicoOrderByWithAggregationInput = {
@@ -53707,6 +54998,7 @@ export namespace Prisma {
     url?: StringFilter<"Mencion"> | string
     fechaPublicacion?: DateTimeNullableFilter<"Mencion"> | Date | string | null
     fechaCaptura?: DateTimeFilter<"Mencion"> | Date | string
+    fechaClasificacion?: DateTimeNullableFilter<"Mencion"> | Date | string | null
     tipoMencion?: StringFilter<"Mencion"> | string
     temas?: StringFilter<"Mencion"> | string
     reach?: IntFilter<"Mencion"> | number
@@ -53741,6 +55033,7 @@ export namespace Prisma {
     EjeTematico?: XOR<EjeTematicoNullableScalarRelationFilter, EjeTematicoWhereInput> | null
     MencionLente?: MencionLenteListRelationFilter
     MencionTema?: MencionTemaListRelationFilter
+    NotaEje?: NotaEjeListRelationFilter
     mencion_cliente_eje?: Mencion_cliente_ejeListRelationFilter
   }
 
@@ -53753,6 +55046,7 @@ export namespace Prisma {
     url?: SortOrder
     fechaPublicacion?: SortOrderInput | SortOrder
     fechaCaptura?: SortOrder
+    fechaClasificacion?: SortOrderInput | SortOrder
     tipoMencion?: SortOrder
     temas?: SortOrder
     reach?: SortOrder
@@ -53787,6 +55081,7 @@ export namespace Prisma {
     EjeTematico?: EjeTematicoOrderByWithRelationInput
     MencionLente?: MencionLenteOrderByRelationAggregateInput
     MencionTema?: MencionTemaOrderByRelationAggregateInput
+    NotaEje?: NotaEjeOrderByRelationAggregateInput
     mencion_cliente_eje?: mencion_cliente_ejeOrderByRelationAggregateInput
   }
 
@@ -53802,6 +55097,7 @@ export namespace Prisma {
     url?: StringFilter<"Mencion"> | string
     fechaPublicacion?: DateTimeNullableFilter<"Mencion"> | Date | string | null
     fechaCaptura?: DateTimeFilter<"Mencion"> | Date | string
+    fechaClasificacion?: DateTimeNullableFilter<"Mencion"> | Date | string | null
     tipoMencion?: StringFilter<"Mencion"> | string
     temas?: StringFilter<"Mencion"> | string
     reach?: IntFilter<"Mencion"> | number
@@ -53836,6 +55132,7 @@ export namespace Prisma {
     EjeTematico?: XOR<EjeTematicoNullableScalarRelationFilter, EjeTematicoWhereInput> | null
     MencionLente?: MencionLenteListRelationFilter
     MencionTema?: MencionTemaListRelationFilter
+    NotaEje?: NotaEjeListRelationFilter
     mencion_cliente_eje?: Mencion_cliente_ejeListRelationFilter
   }, "id">
 
@@ -53848,6 +55145,7 @@ export namespace Prisma {
     url?: SortOrder
     fechaPublicacion?: SortOrderInput | SortOrder
     fechaCaptura?: SortOrder
+    fechaClasificacion?: SortOrderInput | SortOrder
     tipoMencion?: SortOrder
     temas?: SortOrder
     reach?: SortOrder
@@ -53895,6 +55193,7 @@ export namespace Prisma {
     url?: StringWithAggregatesFilter<"Mencion"> | string
     fechaPublicacion?: DateTimeNullableWithAggregatesFilter<"Mencion"> | Date | string | null
     fechaCaptura?: DateTimeWithAggregatesFilter<"Mencion"> | Date | string
+    fechaClasificacion?: DateTimeNullableWithAggregatesFilter<"Mencion"> | Date | string | null
     tipoMencion?: StringWithAggregatesFilter<"Mencion"> | string
     temas?: StringWithAggregatesFilter<"Mencion"> | string
     reach?: IntWithAggregatesFilter<"Mencion"> | number
@@ -55479,6 +56778,67 @@ export namespace Prisma {
     fecha?: DateTimeWithAggregatesFilter<"FuenteErrorLog"> | Date | string
   }
 
+  export type NotaEjeWhereInput = {
+    AND?: NotaEjeWhereInput | NotaEjeWhereInput[]
+    OR?: NotaEjeWhereInput[]
+    NOT?: NotaEjeWhereInput | NotaEjeWhereInput[]
+    id?: StringFilter<"NotaEje"> | string
+    mencionId?: StringFilter<"NotaEje"> | string
+    ejeId?: StringFilter<"NotaEje"> | string
+    peso?: FloatFilter<"NotaEje"> | number
+    createdAt?: DateTimeFilter<"NotaEje"> | Date | string
+    Mencion?: XOR<MencionScalarRelationFilter, MencionWhereInput>
+    EjeTematico?: XOR<EjeTematicoScalarRelationFilter, EjeTematicoWhereInput>
+  }
+
+  export type NotaEjeOrderByWithRelationInput = {
+    id?: SortOrder
+    mencionId?: SortOrder
+    ejeId?: SortOrder
+    peso?: SortOrder
+    createdAt?: SortOrder
+    Mencion?: MencionOrderByWithRelationInput
+    EjeTematico?: EjeTematicoOrderByWithRelationInput
+  }
+
+  export type NotaEjeWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    mencionId_ejeId?: NotaEjeMencionIdEjeIdCompoundUniqueInput
+    AND?: NotaEjeWhereInput | NotaEjeWhereInput[]
+    OR?: NotaEjeWhereInput[]
+    NOT?: NotaEjeWhereInput | NotaEjeWhereInput[]
+    mencionId?: StringFilter<"NotaEje"> | string
+    ejeId?: StringFilter<"NotaEje"> | string
+    peso?: FloatFilter<"NotaEje"> | number
+    createdAt?: DateTimeFilter<"NotaEje"> | Date | string
+    Mencion?: XOR<MencionScalarRelationFilter, MencionWhereInput>
+    EjeTematico?: XOR<EjeTematicoScalarRelationFilter, EjeTematicoWhereInput>
+  }, "id" | "mencionId_ejeId">
+
+  export type NotaEjeOrderByWithAggregationInput = {
+    id?: SortOrder
+    mencionId?: SortOrder
+    ejeId?: SortOrder
+    peso?: SortOrder
+    createdAt?: SortOrder
+    _count?: NotaEjeCountOrderByAggregateInput
+    _avg?: NotaEjeAvgOrderByAggregateInput
+    _max?: NotaEjeMaxOrderByAggregateInput
+    _min?: NotaEjeMinOrderByAggregateInput
+    _sum?: NotaEjeSumOrderByAggregateInput
+  }
+
+  export type NotaEjeScalarWhereWithAggregatesInput = {
+    AND?: NotaEjeScalarWhereWithAggregatesInput | NotaEjeScalarWhereWithAggregatesInput[]
+    OR?: NotaEjeScalarWhereWithAggregatesInput[]
+    NOT?: NotaEjeScalarWhereWithAggregatesInput | NotaEjeScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"NotaEje"> | string
+    mencionId?: StringWithAggregatesFilter<"NotaEje"> | string
+    ejeId?: StringWithAggregatesFilter<"NotaEje"> | string
+    peso?: FloatWithAggregatesFilter<"NotaEje"> | number
+    createdAt?: DateTimeWithAggregatesFilter<"NotaEje"> | Date | string
+  }
+
   export type SystemLogWhereInput = {
     AND?: SystemLogWhereInput | SystemLogWhereInput[]
     OR?: SystemLogWhereInput[]
@@ -56336,6 +57696,7 @@ export namespace Prisma {
     Keyword?: KeywordCreateNestedManyWithoutEjeTematicoInput
     Mencion?: MencionCreateNestedManyWithoutEjeTematicoInput
     MencionTema?: MencionTemaCreateNestedManyWithoutEjeTematicoInput
+    NotaEje?: NotaEjeCreateNestedManyWithoutEjeTematicoInput
   }
 
   export type EjeTematicoUncheckedCreateInput = {
@@ -56355,6 +57716,7 @@ export namespace Prisma {
     Keyword?: KeywordUncheckedCreateNestedManyWithoutEjeTematicoInput
     Mencion?: MencionUncheckedCreateNestedManyWithoutEjeTematicoInput
     MencionTema?: MencionTemaUncheckedCreateNestedManyWithoutEjeTematicoInput
+    NotaEje?: NotaEjeUncheckedCreateNestedManyWithoutEjeTematicoInput
   }
 
   export type EjeTematicoUpdateInput = {
@@ -56374,6 +57736,7 @@ export namespace Prisma {
     Keyword?: KeywordUpdateManyWithoutEjeTematicoNestedInput
     Mencion?: MencionUpdateManyWithoutEjeTematicoNestedInput
     MencionTema?: MencionTemaUpdateManyWithoutEjeTematicoNestedInput
+    NotaEje?: NotaEjeUpdateManyWithoutEjeTematicoNestedInput
   }
 
   export type EjeTematicoUncheckedUpdateInput = {
@@ -56393,6 +57756,7 @@ export namespace Prisma {
     Keyword?: KeywordUncheckedUpdateManyWithoutEjeTematicoNestedInput
     Mencion?: MencionUncheckedUpdateManyWithoutEjeTematicoNestedInput
     MencionTema?: MencionTemaUncheckedUpdateManyWithoutEjeTematicoNestedInput
+    NotaEje?: NotaEjeUncheckedUpdateManyWithoutEjeTematicoNestedInput
   }
 
   export type EjeTematicoCreateManyInput = {
@@ -57684,6 +59048,7 @@ export namespace Prisma {
     url?: string
     fechaPublicacion?: Date | string | null
     fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
     tipoMencion?: string
     temas?: string
     reach?: number
@@ -57717,6 +59082,7 @@ export namespace Prisma {
     EjeTematico?: EjeTematicoCreateNestedOneWithoutMencionInput
     MencionLente?: MencionLenteCreateNestedManyWithoutMencionInput
     MencionTema?: MencionTemaCreateNestedManyWithoutMencionInput
+    NotaEje?: NotaEjeCreateNestedManyWithoutMencionInput
     mencion_cliente_eje?: mencion_cliente_ejeCreateNestedManyWithoutMencionInput
   }
 
@@ -57729,6 +59095,7 @@ export namespace Prisma {
     url?: string
     fechaPublicacion?: Date | string | null
     fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
     tipoMencion?: string
     temas?: string
     reach?: number
@@ -57760,6 +59127,7 @@ export namespace Prisma {
     Comentario?: ComentarioUncheckedCreateNestedManyWithoutMencionInput
     MencionLente?: MencionLenteUncheckedCreateNestedManyWithoutMencionInput
     MencionTema?: MencionTemaUncheckedCreateNestedManyWithoutMencionInput
+    NotaEje?: NotaEjeUncheckedCreateNestedManyWithoutMencionInput
     mencion_cliente_eje?: mencion_cliente_ejeUncheckedCreateNestedManyWithoutMencionInput
   }
 
@@ -57770,6 +59138,7 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tipoMencion?: StringFieldUpdateOperationsInput | string
     temas?: StringFieldUpdateOperationsInput | string
     reach?: IntFieldUpdateOperationsInput | number
@@ -57803,6 +59172,7 @@ export namespace Prisma {
     EjeTematico?: EjeTematicoUpdateOneWithoutMencionNestedInput
     MencionLente?: MencionLenteUpdateManyWithoutMencionNestedInput
     MencionTema?: MencionTemaUpdateManyWithoutMencionNestedInput
+    NotaEje?: NotaEjeUpdateManyWithoutMencionNestedInput
     mencion_cliente_eje?: mencion_cliente_ejeUpdateManyWithoutMencionNestedInput
   }
 
@@ -57815,6 +59185,7 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tipoMencion?: StringFieldUpdateOperationsInput | string
     temas?: StringFieldUpdateOperationsInput | string
     reach?: IntFieldUpdateOperationsInput | number
@@ -57846,6 +59217,7 @@ export namespace Prisma {
     Comentario?: ComentarioUncheckedUpdateManyWithoutMencionNestedInput
     MencionLente?: MencionLenteUncheckedUpdateManyWithoutMencionNestedInput
     MencionTema?: MencionTemaUncheckedUpdateManyWithoutMencionNestedInput
+    NotaEje?: NotaEjeUncheckedUpdateManyWithoutMencionNestedInput
     mencion_cliente_eje?: mencion_cliente_ejeUncheckedUpdateManyWithoutMencionNestedInput
   }
 
@@ -57858,6 +59230,7 @@ export namespace Prisma {
     url?: string
     fechaPublicacion?: Date | string | null
     fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
     tipoMencion?: string
     temas?: string
     reach?: number
@@ -57895,6 +59268,7 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tipoMencion?: StringFieldUpdateOperationsInput | string
     temas?: StringFieldUpdateOperationsInput | string
     reach?: IntFieldUpdateOperationsInput | number
@@ -57933,6 +59307,7 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tipoMencion?: StringFieldUpdateOperationsInput | string
     temas?: StringFieldUpdateOperationsInput | string
     reach?: IntFieldUpdateOperationsInput | number
@@ -59682,6 +61057,60 @@ export namespace Prisma {
     fecha?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type NotaEjeCreateInput = {
+    id?: string
+    peso?: number
+    createdAt?: Date | string
+    Mencion: MencionCreateNestedOneWithoutNotaEjeInput
+    EjeTematico: EjeTematicoCreateNestedOneWithoutNotaEjeInput
+  }
+
+  export type NotaEjeUncheckedCreateInput = {
+    id?: string
+    mencionId: string
+    ejeId: string
+    peso?: number
+    createdAt?: Date | string
+  }
+
+  export type NotaEjeUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    peso?: FloatFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    Mencion?: MencionUpdateOneRequiredWithoutNotaEjeNestedInput
+    EjeTematico?: EjeTematicoUpdateOneRequiredWithoutNotaEjeNestedInput
+  }
+
+  export type NotaEjeUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mencionId?: StringFieldUpdateOperationsInput | string
+    ejeId?: StringFieldUpdateOperationsInput | string
+    peso?: FloatFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NotaEjeCreateManyInput = {
+    id?: string
+    mencionId: string
+    ejeId: string
+    peso?: number
+    createdAt?: Date | string
+  }
+
+  export type NotaEjeUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    peso?: FloatFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NotaEjeUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mencionId?: StringFieldUpdateOperationsInput | string
+    ejeId?: StringFieldUpdateOperationsInput | string
+    peso?: FloatFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type SystemLogCreateInput = {
     id?: string
     modulo: string
@@ -60411,6 +61840,12 @@ export namespace Prisma {
     none?: MencionTemaWhereInput
   }
 
+  export type NotaEjeListRelationFilter = {
+    every?: NotaEjeWhereInput
+    some?: NotaEjeWhereInput
+    none?: NotaEjeWhereInput
+  }
+
   export type EjeTematicoOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -60424,6 +61859,10 @@ export namespace Prisma {
   }
 
   export type MencionTemaOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type NotaEjeOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -61228,6 +62667,7 @@ export namespace Prisma {
     url?: SortOrder
     fechaPublicacion?: SortOrder
     fechaCaptura?: SortOrder
+    fechaClasificacion?: SortOrder
     tipoMencion?: SortOrder
     temas?: SortOrder
     reach?: SortOrder
@@ -61273,6 +62713,7 @@ export namespace Prisma {
     url?: SortOrder
     fechaPublicacion?: SortOrder
     fechaCaptura?: SortOrder
+    fechaClasificacion?: SortOrder
     tipoMencion?: SortOrder
     temas?: SortOrder
     reach?: SortOrder
@@ -61311,6 +62752,7 @@ export namespace Prisma {
     url?: SortOrder
     fechaPublicacion?: SortOrder
     fechaCaptura?: SortOrder
+    fechaClasificacion?: SortOrder
     tipoMencion?: SortOrder
     temas?: SortOrder
     reach?: SortOrder
@@ -62379,6 +63821,43 @@ export namespace Prisma {
     responseTime?: SortOrder
   }
 
+  export type NotaEjeMencionIdEjeIdCompoundUniqueInput = {
+    mencionId: string
+    ejeId: string
+  }
+
+  export type NotaEjeCountOrderByAggregateInput = {
+    id?: SortOrder
+    mencionId?: SortOrder
+    ejeId?: SortOrder
+    peso?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type NotaEjeAvgOrderByAggregateInput = {
+    peso?: SortOrder
+  }
+
+  export type NotaEjeMaxOrderByAggregateInput = {
+    id?: SortOrder
+    mencionId?: SortOrder
+    ejeId?: SortOrder
+    peso?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type NotaEjeMinOrderByAggregateInput = {
+    id?: SortOrder
+    mencionId?: SortOrder
+    ejeId?: SortOrder
+    peso?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type NotaEjeSumOrderByAggregateInput = {
+    peso?: SortOrder
+  }
+
   export type SystemLogCountOrderByAggregateInput = {
     id?: SortOrder
     modulo?: SortOrder
@@ -62669,6 +64148,13 @@ export namespace Prisma {
     connect?: MencionTemaWhereUniqueInput | MencionTemaWhereUniqueInput[]
   }
 
+  export type NotaEjeCreateNestedManyWithoutEjeTematicoInput = {
+    create?: XOR<NotaEjeCreateWithoutEjeTematicoInput, NotaEjeUncheckedCreateWithoutEjeTematicoInput> | NotaEjeCreateWithoutEjeTematicoInput[] | NotaEjeUncheckedCreateWithoutEjeTematicoInput[]
+    connectOrCreate?: NotaEjeCreateOrConnectWithoutEjeTematicoInput | NotaEjeCreateOrConnectWithoutEjeTematicoInput[]
+    createMany?: NotaEjeCreateManyEjeTematicoInputEnvelope
+    connect?: NotaEjeWhereUniqueInput | NotaEjeWhereUniqueInput[]
+  }
+
   export type EjeTematicoUncheckedCreateNestedManyWithoutEjeTematicoInput = {
     create?: XOR<EjeTematicoCreateWithoutEjeTematicoInput, EjeTematicoUncheckedCreateWithoutEjeTematicoInput> | EjeTematicoCreateWithoutEjeTematicoInput[] | EjeTematicoUncheckedCreateWithoutEjeTematicoInput[]
     connectOrCreate?: EjeTematicoCreateOrConnectWithoutEjeTematicoInput | EjeTematicoCreateOrConnectWithoutEjeTematicoInput[]
@@ -62695,6 +64181,13 @@ export namespace Prisma {
     connectOrCreate?: MencionTemaCreateOrConnectWithoutEjeTematicoInput | MencionTemaCreateOrConnectWithoutEjeTematicoInput[]
     createMany?: MencionTemaCreateManyEjeTematicoInputEnvelope
     connect?: MencionTemaWhereUniqueInput | MencionTemaWhereUniqueInput[]
+  }
+
+  export type NotaEjeUncheckedCreateNestedManyWithoutEjeTematicoInput = {
+    create?: XOR<NotaEjeCreateWithoutEjeTematicoInput, NotaEjeUncheckedCreateWithoutEjeTematicoInput> | NotaEjeCreateWithoutEjeTematicoInput[] | NotaEjeUncheckedCreateWithoutEjeTematicoInput[]
+    connectOrCreate?: NotaEjeCreateOrConnectWithoutEjeTematicoInput | NotaEjeCreateOrConnectWithoutEjeTematicoInput[]
+    createMany?: NotaEjeCreateManyEjeTematicoInputEnvelope
+    connect?: NotaEjeWhereUniqueInput | NotaEjeWhereUniqueInput[]
   }
 
   export type EjeTematicoUpdateOneWithoutOther_EjeTematicoNestedInput = {
@@ -62763,6 +64256,20 @@ export namespace Prisma {
     deleteMany?: MencionTemaScalarWhereInput | MencionTemaScalarWhereInput[]
   }
 
+  export type NotaEjeUpdateManyWithoutEjeTematicoNestedInput = {
+    create?: XOR<NotaEjeCreateWithoutEjeTematicoInput, NotaEjeUncheckedCreateWithoutEjeTematicoInput> | NotaEjeCreateWithoutEjeTematicoInput[] | NotaEjeUncheckedCreateWithoutEjeTematicoInput[]
+    connectOrCreate?: NotaEjeCreateOrConnectWithoutEjeTematicoInput | NotaEjeCreateOrConnectWithoutEjeTematicoInput[]
+    upsert?: NotaEjeUpsertWithWhereUniqueWithoutEjeTematicoInput | NotaEjeUpsertWithWhereUniqueWithoutEjeTematicoInput[]
+    createMany?: NotaEjeCreateManyEjeTematicoInputEnvelope
+    set?: NotaEjeWhereUniqueInput | NotaEjeWhereUniqueInput[]
+    disconnect?: NotaEjeWhereUniqueInput | NotaEjeWhereUniqueInput[]
+    delete?: NotaEjeWhereUniqueInput | NotaEjeWhereUniqueInput[]
+    connect?: NotaEjeWhereUniqueInput | NotaEjeWhereUniqueInput[]
+    update?: NotaEjeUpdateWithWhereUniqueWithoutEjeTematicoInput | NotaEjeUpdateWithWhereUniqueWithoutEjeTematicoInput[]
+    updateMany?: NotaEjeUpdateManyWithWhereWithoutEjeTematicoInput | NotaEjeUpdateManyWithWhereWithoutEjeTematicoInput[]
+    deleteMany?: NotaEjeScalarWhereInput | NotaEjeScalarWhereInput[]
+  }
+
   export type EjeTematicoUncheckedUpdateManyWithoutEjeTematicoNestedInput = {
     create?: XOR<EjeTematicoCreateWithoutEjeTematicoInput, EjeTematicoUncheckedCreateWithoutEjeTematicoInput> | EjeTematicoCreateWithoutEjeTematicoInput[] | EjeTematicoUncheckedCreateWithoutEjeTematicoInput[]
     connectOrCreate?: EjeTematicoCreateOrConnectWithoutEjeTematicoInput | EjeTematicoCreateOrConnectWithoutEjeTematicoInput[]
@@ -62817,6 +64324,20 @@ export namespace Prisma {
     update?: MencionTemaUpdateWithWhereUniqueWithoutEjeTematicoInput | MencionTemaUpdateWithWhereUniqueWithoutEjeTematicoInput[]
     updateMany?: MencionTemaUpdateManyWithWhereWithoutEjeTematicoInput | MencionTemaUpdateManyWithWhereWithoutEjeTematicoInput[]
     deleteMany?: MencionTemaScalarWhereInput | MencionTemaScalarWhereInput[]
+  }
+
+  export type NotaEjeUncheckedUpdateManyWithoutEjeTematicoNestedInput = {
+    create?: XOR<NotaEjeCreateWithoutEjeTematicoInput, NotaEjeUncheckedCreateWithoutEjeTematicoInput> | NotaEjeCreateWithoutEjeTematicoInput[] | NotaEjeUncheckedCreateWithoutEjeTematicoInput[]
+    connectOrCreate?: NotaEjeCreateOrConnectWithoutEjeTematicoInput | NotaEjeCreateOrConnectWithoutEjeTematicoInput[]
+    upsert?: NotaEjeUpsertWithWhereUniqueWithoutEjeTematicoInput | NotaEjeUpsertWithWhereUniqueWithoutEjeTematicoInput[]
+    createMany?: NotaEjeCreateManyEjeTematicoInputEnvelope
+    set?: NotaEjeWhereUniqueInput | NotaEjeWhereUniqueInput[]
+    disconnect?: NotaEjeWhereUniqueInput | NotaEjeWhereUniqueInput[]
+    delete?: NotaEjeWhereUniqueInput | NotaEjeWhereUniqueInput[]
+    connect?: NotaEjeWhereUniqueInput | NotaEjeWhereUniqueInput[]
+    update?: NotaEjeUpdateWithWhereUniqueWithoutEjeTematicoInput | NotaEjeUpdateWithWhereUniqueWithoutEjeTematicoInput[]
+    updateMany?: NotaEjeUpdateManyWithWhereWithoutEjeTematicoInput | NotaEjeUpdateManyWithWhereWithoutEjeTematicoInput[]
+    deleteMany?: NotaEjeScalarWhereInput | NotaEjeScalarWhereInput[]
   }
 
   export type ContratoCreateNestedOneWithoutEntregaInput = {
@@ -63454,6 +64975,13 @@ export namespace Prisma {
     connect?: MencionTemaWhereUniqueInput | MencionTemaWhereUniqueInput[]
   }
 
+  export type NotaEjeCreateNestedManyWithoutMencionInput = {
+    create?: XOR<NotaEjeCreateWithoutMencionInput, NotaEjeUncheckedCreateWithoutMencionInput> | NotaEjeCreateWithoutMencionInput[] | NotaEjeUncheckedCreateWithoutMencionInput[]
+    connectOrCreate?: NotaEjeCreateOrConnectWithoutMencionInput | NotaEjeCreateOrConnectWithoutMencionInput[]
+    createMany?: NotaEjeCreateManyMencionInputEnvelope
+    connect?: NotaEjeWhereUniqueInput | NotaEjeWhereUniqueInput[]
+  }
+
   export type mencion_cliente_ejeCreateNestedManyWithoutMencionInput = {
     create?: XOR<mencion_cliente_ejeCreateWithoutMencionInput, mencion_cliente_ejeUncheckedCreateWithoutMencionInput> | mencion_cliente_ejeCreateWithoutMencionInput[] | mencion_cliente_ejeUncheckedCreateWithoutMencionInput[]
     connectOrCreate?: mencion_cliente_ejeCreateOrConnectWithoutMencionInput | mencion_cliente_ejeCreateOrConnectWithoutMencionInput[]
@@ -63480,6 +65008,13 @@ export namespace Prisma {
     connectOrCreate?: MencionTemaCreateOrConnectWithoutMencionInput | MencionTemaCreateOrConnectWithoutMencionInput[]
     createMany?: MencionTemaCreateManyMencionInputEnvelope
     connect?: MencionTemaWhereUniqueInput | MencionTemaWhereUniqueInput[]
+  }
+
+  export type NotaEjeUncheckedCreateNestedManyWithoutMencionInput = {
+    create?: XOR<NotaEjeCreateWithoutMencionInput, NotaEjeUncheckedCreateWithoutMencionInput> | NotaEjeCreateWithoutMencionInput[] | NotaEjeUncheckedCreateWithoutMencionInput[]
+    connectOrCreate?: NotaEjeCreateOrConnectWithoutMencionInput | NotaEjeCreateOrConnectWithoutMencionInput[]
+    createMany?: NotaEjeCreateManyMencionInputEnvelope
+    connect?: NotaEjeWhereUniqueInput | NotaEjeWhereUniqueInput[]
   }
 
   export type mencion_cliente_ejeUncheckedCreateNestedManyWithoutMencionInput = {
@@ -63559,6 +65094,20 @@ export namespace Prisma {
     deleteMany?: MencionTemaScalarWhereInput | MencionTemaScalarWhereInput[]
   }
 
+  export type NotaEjeUpdateManyWithoutMencionNestedInput = {
+    create?: XOR<NotaEjeCreateWithoutMencionInput, NotaEjeUncheckedCreateWithoutMencionInput> | NotaEjeCreateWithoutMencionInput[] | NotaEjeUncheckedCreateWithoutMencionInput[]
+    connectOrCreate?: NotaEjeCreateOrConnectWithoutMencionInput | NotaEjeCreateOrConnectWithoutMencionInput[]
+    upsert?: NotaEjeUpsertWithWhereUniqueWithoutMencionInput | NotaEjeUpsertWithWhereUniqueWithoutMencionInput[]
+    createMany?: NotaEjeCreateManyMencionInputEnvelope
+    set?: NotaEjeWhereUniqueInput | NotaEjeWhereUniqueInput[]
+    disconnect?: NotaEjeWhereUniqueInput | NotaEjeWhereUniqueInput[]
+    delete?: NotaEjeWhereUniqueInput | NotaEjeWhereUniqueInput[]
+    connect?: NotaEjeWhereUniqueInput | NotaEjeWhereUniqueInput[]
+    update?: NotaEjeUpdateWithWhereUniqueWithoutMencionInput | NotaEjeUpdateWithWhereUniqueWithoutMencionInput[]
+    updateMany?: NotaEjeUpdateManyWithWhereWithoutMencionInput | NotaEjeUpdateManyWithWhereWithoutMencionInput[]
+    deleteMany?: NotaEjeScalarWhereInput | NotaEjeScalarWhereInput[]
+  }
+
   export type mencion_cliente_ejeUpdateManyWithoutMencionNestedInput = {
     create?: XOR<mencion_cliente_ejeCreateWithoutMencionInput, mencion_cliente_ejeUncheckedCreateWithoutMencionInput> | mencion_cliente_ejeCreateWithoutMencionInput[] | mencion_cliente_ejeUncheckedCreateWithoutMencionInput[]
     connectOrCreate?: mencion_cliente_ejeCreateOrConnectWithoutMencionInput | mencion_cliente_ejeCreateOrConnectWithoutMencionInput[]
@@ -63613,6 +65162,20 @@ export namespace Prisma {
     update?: MencionTemaUpdateWithWhereUniqueWithoutMencionInput | MencionTemaUpdateWithWhereUniqueWithoutMencionInput[]
     updateMany?: MencionTemaUpdateManyWithWhereWithoutMencionInput | MencionTemaUpdateManyWithWhereWithoutMencionInput[]
     deleteMany?: MencionTemaScalarWhereInput | MencionTemaScalarWhereInput[]
+  }
+
+  export type NotaEjeUncheckedUpdateManyWithoutMencionNestedInput = {
+    create?: XOR<NotaEjeCreateWithoutMencionInput, NotaEjeUncheckedCreateWithoutMencionInput> | NotaEjeCreateWithoutMencionInput[] | NotaEjeUncheckedCreateWithoutMencionInput[]
+    connectOrCreate?: NotaEjeCreateOrConnectWithoutMencionInput | NotaEjeCreateOrConnectWithoutMencionInput[]
+    upsert?: NotaEjeUpsertWithWhereUniqueWithoutMencionInput | NotaEjeUpsertWithWhereUniqueWithoutMencionInput[]
+    createMany?: NotaEjeCreateManyMencionInputEnvelope
+    set?: NotaEjeWhereUniqueInput | NotaEjeWhereUniqueInput[]
+    disconnect?: NotaEjeWhereUniqueInput | NotaEjeWhereUniqueInput[]
+    delete?: NotaEjeWhereUniqueInput | NotaEjeWhereUniqueInput[]
+    connect?: NotaEjeWhereUniqueInput | NotaEjeWhereUniqueInput[]
+    update?: NotaEjeUpdateWithWhereUniqueWithoutMencionInput | NotaEjeUpdateWithWhereUniqueWithoutMencionInput[]
+    updateMany?: NotaEjeUpdateManyWithWhereWithoutMencionInput | NotaEjeUpdateManyWithWhereWithoutMencionInput[]
+    deleteMany?: NotaEjeScalarWhereInput | NotaEjeScalarWhereInput[]
   }
 
   export type mencion_cliente_ejeUncheckedUpdateManyWithoutMencionNestedInput = {
@@ -64199,6 +65762,34 @@ export namespace Prisma {
     upsert?: MedioUpsertWithoutErrorLogsInput
     connect?: MedioWhereUniqueInput
     update?: XOR<XOR<MedioUpdateToOneWithWhereWithoutErrorLogsInput, MedioUpdateWithoutErrorLogsInput>, MedioUncheckedUpdateWithoutErrorLogsInput>
+  }
+
+  export type MencionCreateNestedOneWithoutNotaEjeInput = {
+    create?: XOR<MencionCreateWithoutNotaEjeInput, MencionUncheckedCreateWithoutNotaEjeInput>
+    connectOrCreate?: MencionCreateOrConnectWithoutNotaEjeInput
+    connect?: MencionWhereUniqueInput
+  }
+
+  export type EjeTematicoCreateNestedOneWithoutNotaEjeInput = {
+    create?: XOR<EjeTematicoCreateWithoutNotaEjeInput, EjeTematicoUncheckedCreateWithoutNotaEjeInput>
+    connectOrCreate?: EjeTematicoCreateOrConnectWithoutNotaEjeInput
+    connect?: EjeTematicoWhereUniqueInput
+  }
+
+  export type MencionUpdateOneRequiredWithoutNotaEjeNestedInput = {
+    create?: XOR<MencionCreateWithoutNotaEjeInput, MencionUncheckedCreateWithoutNotaEjeInput>
+    connectOrCreate?: MencionCreateOrConnectWithoutNotaEjeInput
+    upsert?: MencionUpsertWithoutNotaEjeInput
+    connect?: MencionWhereUniqueInput
+    update?: XOR<XOR<MencionUpdateToOneWithWhereWithoutNotaEjeInput, MencionUpdateWithoutNotaEjeInput>, MencionUncheckedUpdateWithoutNotaEjeInput>
+  }
+
+  export type EjeTematicoUpdateOneRequiredWithoutNotaEjeNestedInput = {
+    create?: XOR<EjeTematicoCreateWithoutNotaEjeInput, EjeTematicoUncheckedCreateWithoutNotaEjeInput>
+    connectOrCreate?: EjeTematicoCreateOrConnectWithoutNotaEjeInput
+    upsert?: EjeTematicoUpsertWithoutNotaEjeInput
+    connect?: EjeTematicoWhereUniqueInput
+    update?: XOR<XOR<EjeTematicoUpdateToOneWithWhereWithoutNotaEjeInput, EjeTematicoUpdateWithoutNotaEjeInput>, EjeTematicoUncheckedUpdateWithoutNotaEjeInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -64828,6 +66419,7 @@ export namespace Prisma {
     url?: string
     fechaPublicacion?: Date | string | null
     fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
     tipoMencion?: string
     temas?: string
     reach?: number
@@ -64860,6 +66452,7 @@ export namespace Prisma {
     EjeTematico?: EjeTematicoCreateNestedOneWithoutMencionInput
     MencionLente?: MencionLenteCreateNestedManyWithoutMencionInput
     MencionTema?: MencionTemaCreateNestedManyWithoutMencionInput
+    NotaEje?: NotaEjeCreateNestedManyWithoutMencionInput
     mencion_cliente_eje?: mencion_cliente_ejeCreateNestedManyWithoutMencionInput
   }
 
@@ -64872,6 +66465,7 @@ export namespace Prisma {
     url?: string
     fechaPublicacion?: Date | string | null
     fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
     tipoMencion?: string
     temas?: string
     reach?: number
@@ -64902,6 +66496,7 @@ export namespace Prisma {
     evidenciaTamanoBytes?: number | null
     MencionLente?: MencionLenteUncheckedCreateNestedManyWithoutMencionInput
     MencionTema?: MencionTemaUncheckedCreateNestedManyWithoutMencionInput
+    NotaEje?: NotaEjeUncheckedCreateNestedManyWithoutMencionInput
     mencion_cliente_eje?: mencion_cliente_ejeUncheckedCreateNestedManyWithoutMencionInput
   }
 
@@ -64928,6 +66523,7 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tipoMencion?: StringFieldUpdateOperationsInput | string
     temas?: StringFieldUpdateOperationsInput | string
     reach?: IntFieldUpdateOperationsInput | number
@@ -64960,6 +66556,7 @@ export namespace Prisma {
     EjeTematico?: EjeTematicoUpdateOneWithoutMencionNestedInput
     MencionLente?: MencionLenteUpdateManyWithoutMencionNestedInput
     MencionTema?: MencionTemaUpdateManyWithoutMencionNestedInput
+    NotaEje?: NotaEjeUpdateManyWithoutMencionNestedInput
     mencion_cliente_eje?: mencion_cliente_ejeUpdateManyWithoutMencionNestedInput
   }
 
@@ -64972,6 +66569,7 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tipoMencion?: StringFieldUpdateOperationsInput | string
     temas?: StringFieldUpdateOperationsInput | string
     reach?: IntFieldUpdateOperationsInput | number
@@ -65002,6 +66600,7 @@ export namespace Prisma {
     evidenciaTamanoBytes?: NullableIntFieldUpdateOperationsInput | number | null
     MencionLente?: MencionLenteUncheckedUpdateManyWithoutMencionNestedInput
     MencionTema?: MencionTemaUncheckedUpdateManyWithoutMencionNestedInput
+    NotaEje?: NotaEjeUncheckedUpdateManyWithoutMencionNestedInput
     mencion_cliente_eje?: mencion_cliente_ejeUncheckedUpdateManyWithoutMencionNestedInput
   }
 
@@ -65193,6 +66792,7 @@ export namespace Prisma {
     Keyword?: KeywordCreateNestedManyWithoutEjeTematicoInput
     Mencion?: MencionCreateNestedManyWithoutEjeTematicoInput
     MencionTema?: MencionTemaCreateNestedManyWithoutEjeTematicoInput
+    NotaEje?: NotaEjeCreateNestedManyWithoutEjeTematicoInput
   }
 
   export type EjeTematicoUncheckedCreateWithoutOther_EjeTematicoInput = {
@@ -65211,6 +66811,7 @@ export namespace Prisma {
     Keyword?: KeywordUncheckedCreateNestedManyWithoutEjeTematicoInput
     Mencion?: MencionUncheckedCreateNestedManyWithoutEjeTematicoInput
     MencionTema?: MencionTemaUncheckedCreateNestedManyWithoutEjeTematicoInput
+    NotaEje?: NotaEjeUncheckedCreateNestedManyWithoutEjeTematicoInput
   }
 
   export type EjeTematicoCreateOrConnectWithoutOther_EjeTematicoInput = {
@@ -65234,6 +66835,7 @@ export namespace Prisma {
     Keyword?: KeywordCreateNestedManyWithoutEjeTematicoInput
     Mencion?: MencionCreateNestedManyWithoutEjeTematicoInput
     MencionTema?: MencionTemaCreateNestedManyWithoutEjeTematicoInput
+    NotaEje?: NotaEjeCreateNestedManyWithoutEjeTematicoInput
   }
 
   export type EjeTematicoUncheckedCreateWithoutEjeTematicoInput = {
@@ -65252,6 +66854,7 @@ export namespace Prisma {
     Keyword?: KeywordUncheckedCreateNestedManyWithoutEjeTematicoInput
     Mencion?: MencionUncheckedCreateNestedManyWithoutEjeTematicoInput
     MencionTema?: MencionTemaUncheckedCreateNestedManyWithoutEjeTematicoInput
+    NotaEje?: NotaEjeUncheckedCreateNestedManyWithoutEjeTematicoInput
   }
 
   export type EjeTematicoCreateOrConnectWithoutEjeTematicoInput = {
@@ -65297,6 +66900,7 @@ export namespace Prisma {
     url?: string
     fechaPublicacion?: Date | string | null
     fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
     tipoMencion?: string
     temas?: string
     reach?: number
@@ -65329,6 +66933,7 @@ export namespace Prisma {
     Medio: MedioCreateNestedOneWithoutMencionInput
     MencionLente?: MencionLenteCreateNestedManyWithoutMencionInput
     MencionTema?: MencionTemaCreateNestedManyWithoutMencionInput
+    NotaEje?: NotaEjeCreateNestedManyWithoutMencionInput
     mencion_cliente_eje?: mencion_cliente_ejeCreateNestedManyWithoutMencionInput
   }
 
@@ -65341,6 +66946,7 @@ export namespace Prisma {
     url?: string
     fechaPublicacion?: Date | string | null
     fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
     tipoMencion?: string
     temas?: string
     reach?: number
@@ -65371,6 +66977,7 @@ export namespace Prisma {
     Comentario?: ComentarioUncheckedCreateNestedManyWithoutMencionInput
     MencionLente?: MencionLenteUncheckedCreateNestedManyWithoutMencionInput
     MencionTema?: MencionTemaUncheckedCreateNestedManyWithoutMencionInput
+    NotaEje?: NotaEjeUncheckedCreateNestedManyWithoutMencionInput
     mencion_cliente_eje?: mencion_cliente_ejeUncheckedCreateNestedManyWithoutMencionInput
   }
 
@@ -65402,6 +67009,29 @@ export namespace Prisma {
     data: MencionTemaCreateManyEjeTematicoInput | MencionTemaCreateManyEjeTematicoInput[]
   }
 
+  export type NotaEjeCreateWithoutEjeTematicoInput = {
+    id?: string
+    peso?: number
+    createdAt?: Date | string
+    Mencion: MencionCreateNestedOneWithoutNotaEjeInput
+  }
+
+  export type NotaEjeUncheckedCreateWithoutEjeTematicoInput = {
+    id?: string
+    mencionId: string
+    peso?: number
+    createdAt?: Date | string
+  }
+
+  export type NotaEjeCreateOrConnectWithoutEjeTematicoInput = {
+    where: NotaEjeWhereUniqueInput
+    create: XOR<NotaEjeCreateWithoutEjeTematicoInput, NotaEjeUncheckedCreateWithoutEjeTematicoInput>
+  }
+
+  export type NotaEjeCreateManyEjeTematicoInputEnvelope = {
+    data: NotaEjeCreateManyEjeTematicoInput | NotaEjeCreateManyEjeTematicoInput[]
+  }
+
   export type EjeTematicoUpsertWithoutOther_EjeTematicoInput = {
     update: XOR<EjeTematicoUpdateWithoutOther_EjeTematicoInput, EjeTematicoUncheckedUpdateWithoutOther_EjeTematicoInput>
     create: XOR<EjeTematicoCreateWithoutOther_EjeTematicoInput, EjeTematicoUncheckedCreateWithoutOther_EjeTematicoInput>
@@ -65429,6 +67059,7 @@ export namespace Prisma {
     Keyword?: KeywordUpdateManyWithoutEjeTematicoNestedInput
     Mencion?: MencionUpdateManyWithoutEjeTematicoNestedInput
     MencionTema?: MencionTemaUpdateManyWithoutEjeTematicoNestedInput
+    NotaEje?: NotaEjeUpdateManyWithoutEjeTematicoNestedInput
   }
 
   export type EjeTematicoUncheckedUpdateWithoutOther_EjeTematicoInput = {
@@ -65447,6 +67078,7 @@ export namespace Prisma {
     Keyword?: KeywordUncheckedUpdateManyWithoutEjeTematicoNestedInput
     Mencion?: MencionUncheckedUpdateManyWithoutEjeTematicoNestedInput
     MencionTema?: MencionTemaUncheckedUpdateManyWithoutEjeTematicoNestedInput
+    NotaEje?: NotaEjeUncheckedUpdateManyWithoutEjeTematicoNestedInput
   }
 
   export type EjeTematicoUpsertWithWhereUniqueWithoutEjeTematicoInput = {
@@ -65540,6 +67172,7 @@ export namespace Prisma {
     url?: StringFilter<"Mencion"> | string
     fechaPublicacion?: DateTimeNullableFilter<"Mencion"> | Date | string | null
     fechaCaptura?: DateTimeFilter<"Mencion"> | Date | string
+    fechaClasificacion?: DateTimeNullableFilter<"Mencion"> | Date | string | null
     tipoMencion?: StringFilter<"Mencion"> | string
     temas?: StringFilter<"Mencion"> | string
     reach?: IntFilter<"Mencion"> | number
@@ -65593,6 +67226,33 @@ export namespace Prisma {
     id?: StringFilter<"MencionTema"> | string
     mencionId?: StringFilter<"MencionTema"> | string
     ejeTematicoId?: StringFilter<"MencionTema"> | string
+  }
+
+  export type NotaEjeUpsertWithWhereUniqueWithoutEjeTematicoInput = {
+    where: NotaEjeWhereUniqueInput
+    update: XOR<NotaEjeUpdateWithoutEjeTematicoInput, NotaEjeUncheckedUpdateWithoutEjeTematicoInput>
+    create: XOR<NotaEjeCreateWithoutEjeTematicoInput, NotaEjeUncheckedCreateWithoutEjeTematicoInput>
+  }
+
+  export type NotaEjeUpdateWithWhereUniqueWithoutEjeTematicoInput = {
+    where: NotaEjeWhereUniqueInput
+    data: XOR<NotaEjeUpdateWithoutEjeTematicoInput, NotaEjeUncheckedUpdateWithoutEjeTematicoInput>
+  }
+
+  export type NotaEjeUpdateManyWithWhereWithoutEjeTematicoInput = {
+    where: NotaEjeScalarWhereInput
+    data: XOR<NotaEjeUpdateManyMutationInput, NotaEjeUncheckedUpdateManyWithoutEjeTematicoInput>
+  }
+
+  export type NotaEjeScalarWhereInput = {
+    AND?: NotaEjeScalarWhereInput | NotaEjeScalarWhereInput[]
+    OR?: NotaEjeScalarWhereInput[]
+    NOT?: NotaEjeScalarWhereInput | NotaEjeScalarWhereInput[]
+    id?: StringFilter<"NotaEje"> | string
+    mencionId?: StringFilter<"NotaEje"> | string
+    ejeId?: StringFilter<"NotaEje"> | string
+    peso?: FloatFilter<"NotaEje"> | number
+    createdAt?: DateTimeFilter<"NotaEje"> | Date | string
   }
 
   export type ContratoCreateWithoutEntregaInput = {
@@ -66394,6 +68054,7 @@ export namespace Prisma {
     other_EjeTematico?: EjeTematicoCreateNestedManyWithoutEjeTematicoInput
     Mencion?: MencionCreateNestedManyWithoutEjeTematicoInput
     MencionTema?: MencionTemaCreateNestedManyWithoutEjeTematicoInput
+    NotaEje?: NotaEjeCreateNestedManyWithoutEjeTematicoInput
   }
 
   export type EjeTematicoUncheckedCreateWithoutKeywordInput = {
@@ -66412,6 +68073,7 @@ export namespace Prisma {
     other_EjeTematico?: EjeTematicoUncheckedCreateNestedManyWithoutEjeTematicoInput
     Mencion?: MencionUncheckedCreateNestedManyWithoutEjeTematicoInput
     MencionTema?: MencionTemaUncheckedCreateNestedManyWithoutEjeTematicoInput
+    NotaEje?: NotaEjeUncheckedCreateNestedManyWithoutEjeTematicoInput
   }
 
   export type EjeTematicoCreateOrConnectWithoutKeywordInput = {
@@ -66479,6 +68141,7 @@ export namespace Prisma {
     other_EjeTematico?: EjeTematicoUpdateManyWithoutEjeTematicoNestedInput
     Mencion?: MencionUpdateManyWithoutEjeTematicoNestedInput
     MencionTema?: MencionTemaUpdateManyWithoutEjeTematicoNestedInput
+    NotaEje?: NotaEjeUpdateManyWithoutEjeTematicoNestedInput
   }
 
   export type EjeTematicoUncheckedUpdateWithoutKeywordInput = {
@@ -66497,6 +68160,7 @@ export namespace Prisma {
     other_EjeTematico?: EjeTematicoUncheckedUpdateManyWithoutEjeTematicoNestedInput
     Mencion?: MencionUncheckedUpdateManyWithoutEjeTematicoNestedInput
     MencionTema?: MencionTemaUncheckedUpdateManyWithoutEjeTematicoNestedInput
+    NotaEje?: NotaEjeUncheckedUpdateManyWithoutEjeTematicoNestedInput
   }
 
   export type KeywordCreateWithoutLenteInput = {
@@ -66704,6 +68368,7 @@ export namespace Prisma {
     url?: string
     fechaPublicacion?: Date | string | null
     fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
     tipoMencion?: string
     temas?: string
     reach?: number
@@ -66736,6 +68401,7 @@ export namespace Prisma {
     EjeTematico?: EjeTematicoCreateNestedOneWithoutMencionInput
     MencionLente?: MencionLenteCreateNestedManyWithoutMencionInput
     MencionTema?: MencionTemaCreateNestedManyWithoutMencionInput
+    NotaEje?: NotaEjeCreateNestedManyWithoutMencionInput
     mencion_cliente_eje?: mencion_cliente_ejeCreateNestedManyWithoutMencionInput
   }
 
@@ -66747,6 +68413,7 @@ export namespace Prisma {
     url?: string
     fechaPublicacion?: Date | string | null
     fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
     tipoMencion?: string
     temas?: string
     reach?: number
@@ -66778,6 +68445,7 @@ export namespace Prisma {
     Comentario?: ComentarioUncheckedCreateNestedManyWithoutMencionInput
     MencionLente?: MencionLenteUncheckedCreateNestedManyWithoutMencionInput
     MencionTema?: MencionTemaUncheckedCreateNestedManyWithoutMencionInput
+    NotaEje?: NotaEjeUncheckedCreateNestedManyWithoutMencionInput
     mencion_cliente_eje?: mencion_cliente_ejeUncheckedCreateNestedManyWithoutMencionInput
   }
 
@@ -67342,6 +69010,7 @@ export namespace Prisma {
     other_EjeTematico?: EjeTematicoCreateNestedManyWithoutEjeTematicoInput
     Keyword?: KeywordCreateNestedManyWithoutEjeTematicoInput
     MencionTema?: MencionTemaCreateNestedManyWithoutEjeTematicoInput
+    NotaEje?: NotaEjeCreateNestedManyWithoutEjeTematicoInput
   }
 
   export type EjeTematicoUncheckedCreateWithoutMencionInput = {
@@ -67360,6 +69029,7 @@ export namespace Prisma {
     other_EjeTematico?: EjeTematicoUncheckedCreateNestedManyWithoutEjeTematicoInput
     Keyword?: KeywordUncheckedCreateNestedManyWithoutEjeTematicoInput
     MencionTema?: MencionTemaUncheckedCreateNestedManyWithoutEjeTematicoInput
+    NotaEje?: NotaEjeUncheckedCreateNestedManyWithoutEjeTematicoInput
   }
 
   export type EjeTematicoCreateOrConnectWithoutMencionInput = {
@@ -67405,6 +69075,29 @@ export namespace Prisma {
 
   export type MencionTemaCreateManyMencionInputEnvelope = {
     data: MencionTemaCreateManyMencionInput | MencionTemaCreateManyMencionInput[]
+  }
+
+  export type NotaEjeCreateWithoutMencionInput = {
+    id?: string
+    peso?: number
+    createdAt?: Date | string
+    EjeTematico: EjeTematicoCreateNestedOneWithoutNotaEjeInput
+  }
+
+  export type NotaEjeUncheckedCreateWithoutMencionInput = {
+    id?: string
+    ejeId: string
+    peso?: number
+    createdAt?: Date | string
+  }
+
+  export type NotaEjeCreateOrConnectWithoutMencionInput = {
+    where: NotaEjeWhereUniqueInput
+    create: XOR<NotaEjeCreateWithoutMencionInput, NotaEjeUncheckedCreateWithoutMencionInput>
+  }
+
+  export type NotaEjeCreateManyMencionInputEnvelope = {
+    data: NotaEjeCreateManyMencionInput | NotaEjeCreateManyMencionInput[]
   }
 
   export type mencion_cliente_ejeCreateWithoutMencionInput = {
@@ -67599,6 +69292,7 @@ export namespace Prisma {
     other_EjeTematico?: EjeTematicoUpdateManyWithoutEjeTematicoNestedInput
     Keyword?: KeywordUpdateManyWithoutEjeTematicoNestedInput
     MencionTema?: MencionTemaUpdateManyWithoutEjeTematicoNestedInput
+    NotaEje?: NotaEjeUpdateManyWithoutEjeTematicoNestedInput
   }
 
   export type EjeTematicoUncheckedUpdateWithoutMencionInput = {
@@ -67617,6 +69311,7 @@ export namespace Prisma {
     other_EjeTematico?: EjeTematicoUncheckedUpdateManyWithoutEjeTematicoNestedInput
     Keyword?: KeywordUncheckedUpdateManyWithoutEjeTematicoNestedInput
     MencionTema?: MencionTemaUncheckedUpdateManyWithoutEjeTematicoNestedInput
+    NotaEje?: NotaEjeUncheckedUpdateManyWithoutEjeTematicoNestedInput
   }
 
   export type MencionLenteUpsertWithWhereUniqueWithoutMencionInput = {
@@ -67649,6 +69344,22 @@ export namespace Prisma {
   export type MencionTemaUpdateManyWithWhereWithoutMencionInput = {
     where: MencionTemaScalarWhereInput
     data: XOR<MencionTemaUpdateManyMutationInput, MencionTemaUncheckedUpdateManyWithoutMencionInput>
+  }
+
+  export type NotaEjeUpsertWithWhereUniqueWithoutMencionInput = {
+    where: NotaEjeWhereUniqueInput
+    update: XOR<NotaEjeUpdateWithoutMencionInput, NotaEjeUncheckedUpdateWithoutMencionInput>
+    create: XOR<NotaEjeCreateWithoutMencionInput, NotaEjeUncheckedCreateWithoutMencionInput>
+  }
+
+  export type NotaEjeUpdateWithWhereUniqueWithoutMencionInput = {
+    where: NotaEjeWhereUniqueInput
+    data: XOR<NotaEjeUpdateWithoutMencionInput, NotaEjeUncheckedUpdateWithoutMencionInput>
+  }
+
+  export type NotaEjeUpdateManyWithWhereWithoutMencionInput = {
+    where: NotaEjeScalarWhereInput
+    data: XOR<NotaEjeUpdateManyMutationInput, NotaEjeUncheckedUpdateManyWithoutMencionInput>
   }
 
   export type mencion_cliente_ejeUpsertWithWhereUniqueWithoutMencionInput = {
@@ -67684,6 +69395,7 @@ export namespace Prisma {
     url?: string
     fechaPublicacion?: Date | string | null
     fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
     tipoMencion?: string
     temas?: string
     reach?: number
@@ -67716,6 +69428,7 @@ export namespace Prisma {
     Medio: MedioCreateNestedOneWithoutMencionInput
     EjeTematico?: EjeTematicoCreateNestedOneWithoutMencionInput
     MencionTema?: MencionTemaCreateNestedManyWithoutMencionInput
+    NotaEje?: NotaEjeCreateNestedManyWithoutMencionInput
     mencion_cliente_eje?: mencion_cliente_ejeCreateNestedManyWithoutMencionInput
   }
 
@@ -67728,6 +69441,7 @@ export namespace Prisma {
     url?: string
     fechaPublicacion?: Date | string | null
     fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
     tipoMencion?: string
     temas?: string
     reach?: number
@@ -67758,6 +69472,7 @@ export namespace Prisma {
     evidenciaTamanoBytes?: number | null
     Comentario?: ComentarioUncheckedCreateNestedManyWithoutMencionInput
     MencionTema?: MencionTemaUncheckedCreateNestedManyWithoutMencionInput
+    NotaEje?: NotaEjeUncheckedCreateNestedManyWithoutMencionInput
     mencion_cliente_eje?: mencion_cliente_ejeUncheckedCreateNestedManyWithoutMencionInput
   }
 
@@ -67811,6 +69526,7 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tipoMencion?: StringFieldUpdateOperationsInput | string
     temas?: StringFieldUpdateOperationsInput | string
     reach?: IntFieldUpdateOperationsInput | number
@@ -67843,6 +69559,7 @@ export namespace Prisma {
     Medio?: MedioUpdateOneRequiredWithoutMencionNestedInput
     EjeTematico?: EjeTematicoUpdateOneWithoutMencionNestedInput
     MencionTema?: MencionTemaUpdateManyWithoutMencionNestedInput
+    NotaEje?: NotaEjeUpdateManyWithoutMencionNestedInput
     mencion_cliente_eje?: mencion_cliente_ejeUpdateManyWithoutMencionNestedInput
   }
 
@@ -67855,6 +69572,7 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tipoMencion?: StringFieldUpdateOperationsInput | string
     temas?: StringFieldUpdateOperationsInput | string
     reach?: IntFieldUpdateOperationsInput | number
@@ -67885,6 +69603,7 @@ export namespace Prisma {
     evidenciaTamanoBytes?: NullableIntFieldUpdateOperationsInput | number | null
     Comentario?: ComentarioUncheckedUpdateManyWithoutMencionNestedInput
     MencionTema?: MencionTemaUncheckedUpdateManyWithoutMencionNestedInput
+    NotaEje?: NotaEjeUncheckedUpdateManyWithoutMencionNestedInput
     mencion_cliente_eje?: mencion_cliente_ejeUncheckedUpdateManyWithoutMencionNestedInput
   }
 
@@ -67928,6 +69647,7 @@ export namespace Prisma {
     url?: string
     fechaPublicacion?: Date | string | null
     fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
     tipoMencion?: string
     temas?: string
     reach?: number
@@ -67960,6 +69680,7 @@ export namespace Prisma {
     Medio: MedioCreateNestedOneWithoutMencionInput
     EjeTematico?: EjeTematicoCreateNestedOneWithoutMencionInput
     MencionLente?: MencionLenteCreateNestedManyWithoutMencionInput
+    NotaEje?: NotaEjeCreateNestedManyWithoutMencionInput
     mencion_cliente_eje?: mencion_cliente_ejeCreateNestedManyWithoutMencionInput
   }
 
@@ -67972,6 +69693,7 @@ export namespace Prisma {
     url?: string
     fechaPublicacion?: Date | string | null
     fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
     tipoMencion?: string
     temas?: string
     reach?: number
@@ -68002,6 +69724,7 @@ export namespace Prisma {
     evidenciaTamanoBytes?: number | null
     Comentario?: ComentarioUncheckedCreateNestedManyWithoutMencionInput
     MencionLente?: MencionLenteUncheckedCreateNestedManyWithoutMencionInput
+    NotaEje?: NotaEjeUncheckedCreateNestedManyWithoutMencionInput
     mencion_cliente_eje?: mencion_cliente_ejeUncheckedCreateNestedManyWithoutMencionInput
   }
 
@@ -68026,6 +69749,7 @@ export namespace Prisma {
     other_EjeTematico?: EjeTematicoCreateNestedManyWithoutEjeTematicoInput
     Keyword?: KeywordCreateNestedManyWithoutEjeTematicoInput
     Mencion?: MencionCreateNestedManyWithoutEjeTematicoInput
+    NotaEje?: NotaEjeCreateNestedManyWithoutEjeTematicoInput
   }
 
   export type EjeTematicoUncheckedCreateWithoutMencionTemaInput = {
@@ -68044,6 +69768,7 @@ export namespace Prisma {
     other_EjeTematico?: EjeTematicoUncheckedCreateNestedManyWithoutEjeTematicoInput
     Keyword?: KeywordUncheckedCreateNestedManyWithoutEjeTematicoInput
     Mencion?: MencionUncheckedCreateNestedManyWithoutEjeTematicoInput
+    NotaEje?: NotaEjeUncheckedCreateNestedManyWithoutEjeTematicoInput
   }
 
   export type EjeTematicoCreateOrConnectWithoutMencionTemaInput = {
@@ -68069,6 +69794,7 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tipoMencion?: StringFieldUpdateOperationsInput | string
     temas?: StringFieldUpdateOperationsInput | string
     reach?: IntFieldUpdateOperationsInput | number
@@ -68101,6 +69827,7 @@ export namespace Prisma {
     Medio?: MedioUpdateOneRequiredWithoutMencionNestedInput
     EjeTematico?: EjeTematicoUpdateOneWithoutMencionNestedInput
     MencionLente?: MencionLenteUpdateManyWithoutMencionNestedInput
+    NotaEje?: NotaEjeUpdateManyWithoutMencionNestedInput
     mencion_cliente_eje?: mencion_cliente_ejeUpdateManyWithoutMencionNestedInput
   }
 
@@ -68113,6 +69840,7 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tipoMencion?: StringFieldUpdateOperationsInput | string
     temas?: StringFieldUpdateOperationsInput | string
     reach?: IntFieldUpdateOperationsInput | number
@@ -68143,6 +69871,7 @@ export namespace Prisma {
     evidenciaTamanoBytes?: NullableIntFieldUpdateOperationsInput | number | null
     Comentario?: ComentarioUncheckedUpdateManyWithoutMencionNestedInput
     MencionLente?: MencionLenteUncheckedUpdateManyWithoutMencionNestedInput
+    NotaEje?: NotaEjeUncheckedUpdateManyWithoutMencionNestedInput
     mencion_cliente_eje?: mencion_cliente_ejeUncheckedUpdateManyWithoutMencionNestedInput
   }
 
@@ -68173,6 +69902,7 @@ export namespace Prisma {
     other_EjeTematico?: EjeTematicoUpdateManyWithoutEjeTematicoNestedInput
     Keyword?: KeywordUpdateManyWithoutEjeTematicoNestedInput
     Mencion?: MencionUpdateManyWithoutEjeTematicoNestedInput
+    NotaEje?: NotaEjeUpdateManyWithoutEjeTematicoNestedInput
   }
 
   export type EjeTematicoUncheckedUpdateWithoutMencionTemaInput = {
@@ -68191,6 +69921,7 @@ export namespace Prisma {
     other_EjeTematico?: EjeTematicoUncheckedUpdateManyWithoutEjeTematicoNestedInput
     Keyword?: KeywordUncheckedUpdateManyWithoutEjeTematicoNestedInput
     Mencion?: MencionUncheckedUpdateManyWithoutEjeTematicoNestedInput
+    NotaEje?: NotaEjeUncheckedUpdateManyWithoutEjeTematicoNestedInput
   }
 
   export type MencionCreateWithoutPersonaInput = {
@@ -68200,6 +69931,7 @@ export namespace Prisma {
     url?: string
     fechaPublicacion?: Date | string | null
     fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
     tipoMencion?: string
     temas?: string
     reach?: number
@@ -68232,6 +69964,7 @@ export namespace Prisma {
     EjeTematico?: EjeTematicoCreateNestedOneWithoutMencionInput
     MencionLente?: MencionLenteCreateNestedManyWithoutMencionInput
     MencionTema?: MencionTemaCreateNestedManyWithoutMencionInput
+    NotaEje?: NotaEjeCreateNestedManyWithoutMencionInput
     mencion_cliente_eje?: mencion_cliente_ejeCreateNestedManyWithoutMencionInput
   }
 
@@ -68243,6 +69976,7 @@ export namespace Prisma {
     url?: string
     fechaPublicacion?: Date | string | null
     fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
     tipoMencion?: string
     temas?: string
     reach?: number
@@ -68274,6 +70008,7 @@ export namespace Prisma {
     Comentario?: ComentarioUncheckedCreateNestedManyWithoutMencionInput
     MencionLente?: MencionLenteUncheckedCreateNestedManyWithoutMencionInput
     MencionTema?: MencionTemaUncheckedCreateNestedManyWithoutMencionInput
+    NotaEje?: NotaEjeUncheckedCreateNestedManyWithoutMencionInput
     mencion_cliente_eje?: mencion_cliente_ejeUncheckedCreateNestedManyWithoutMencionInput
   }
 
@@ -69315,6 +71050,7 @@ export namespace Prisma {
     url?: string
     fechaPublicacion?: Date | string | null
     fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
     tipoMencion?: string
     temas?: string
     reach?: number
@@ -69348,6 +71084,7 @@ export namespace Prisma {
     EjeTematico?: EjeTematicoCreateNestedOneWithoutMencionInput
     MencionLente?: MencionLenteCreateNestedManyWithoutMencionInput
     MencionTema?: MencionTemaCreateNestedManyWithoutMencionInput
+    NotaEje?: NotaEjeCreateNestedManyWithoutMencionInput
   }
 
   export type MencionUncheckedCreateWithoutMencion_cliente_ejeInput = {
@@ -69359,6 +71096,7 @@ export namespace Prisma {
     url?: string
     fechaPublicacion?: Date | string | null
     fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
     tipoMencion?: string
     temas?: string
     reach?: number
@@ -69390,6 +71128,7 @@ export namespace Prisma {
     Comentario?: ComentarioUncheckedCreateNestedManyWithoutMencionInput
     MencionLente?: MencionLenteUncheckedCreateNestedManyWithoutMencionInput
     MencionTema?: MencionTemaUncheckedCreateNestedManyWithoutMencionInput
+    NotaEje?: NotaEjeUncheckedCreateNestedManyWithoutMencionInput
   }
 
   export type MencionCreateOrConnectWithoutMencion_cliente_ejeInput = {
@@ -69445,6 +71184,7 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tipoMencion?: StringFieldUpdateOperationsInput | string
     temas?: StringFieldUpdateOperationsInput | string
     reach?: IntFieldUpdateOperationsInput | number
@@ -69478,6 +71218,7 @@ export namespace Prisma {
     EjeTematico?: EjeTematicoUpdateOneWithoutMencionNestedInput
     MencionLente?: MencionLenteUpdateManyWithoutMencionNestedInput
     MencionTema?: MencionTemaUpdateManyWithoutMencionNestedInput
+    NotaEje?: NotaEjeUpdateManyWithoutMencionNestedInput
   }
 
   export type MencionUncheckedUpdateWithoutMencion_cliente_ejeInput = {
@@ -69489,6 +71230,7 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tipoMencion?: StringFieldUpdateOperationsInput | string
     temas?: StringFieldUpdateOperationsInput | string
     reach?: IntFieldUpdateOperationsInput | number
@@ -69520,6 +71262,7 @@ export namespace Prisma {
     Comentario?: ComentarioUncheckedUpdateManyWithoutMencionNestedInput
     MencionLente?: MencionLenteUncheckedUpdateManyWithoutMencionNestedInput
     MencionTema?: MencionTemaUncheckedUpdateManyWithoutMencionNestedInput
+    NotaEje?: NotaEjeUncheckedUpdateManyWithoutMencionNestedInput
   }
 
   export type eje_tematico_clienteUpsertWithoutMencion_cliente_ejeInput = {
@@ -70118,6 +71861,290 @@ export namespace Prisma {
     NotaRaw?: NotaRawUncheckedUpdateManyWithoutMedioNestedInput
   }
 
+  export type MencionCreateWithoutNotaEjeInput = {
+    id: string
+    titulo: string
+    texto?: string
+    url?: string
+    fechaPublicacion?: Date | string | null
+    fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
+    tipoMencion?: string
+    temas?: string
+    reach?: number
+    verificado?: boolean
+    fechaCreacion?: Date | string
+    enlaceActivo?: boolean
+    fechaVerificacion?: Date | string | null
+    textoCompleto?: string
+    comentariosCount?: number
+    comentariosResumen?: string
+    sentimiento?: string
+    tratamientoPeriodistico?: string | null
+    confianzaClasificacion?: string | null
+    preguntasFundamentales?: NullableJsonNullValueInput | InputJsonValue
+    esDuplicado?: boolean
+    mencionOriginalId?: string | null
+    mediosRelacionados?: string | null
+    eventoId?: string | null
+    coberturasAdicionales?: string | null
+    deduplicacionLog?: string | null
+    intencionMedio?: string | null
+    evidenciaHtmlRuta?: string | null
+    evidenciaPngRuta?: string | null
+    evidenciaHashSha256?: string | null
+    evidenciaTimestamp?: Date | string | null
+    evidenciaUrlOriginal?: string | null
+    evidenciaTamanoBytes?: number | null
+    Comentario?: ComentarioCreateNestedManyWithoutMencionInput
+    Persona?: PersonaCreateNestedOneWithoutMencionInput
+    Medio: MedioCreateNestedOneWithoutMencionInput
+    EjeTematico?: EjeTematicoCreateNestedOneWithoutMencionInput
+    MencionLente?: MencionLenteCreateNestedManyWithoutMencionInput
+    MencionTema?: MencionTemaCreateNestedManyWithoutMencionInput
+    mencion_cliente_eje?: mencion_cliente_ejeCreateNestedManyWithoutMencionInput
+  }
+
+  export type MencionUncheckedCreateWithoutNotaEjeInput = {
+    id: string
+    personaId?: string | null
+    medioId: string
+    titulo: string
+    texto?: string
+    url?: string
+    fechaPublicacion?: Date | string | null
+    fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
+    tipoMencion?: string
+    temas?: string
+    reach?: number
+    verificado?: boolean
+    fechaCreacion?: Date | string
+    enlaceActivo?: boolean
+    fechaVerificacion?: Date | string | null
+    textoCompleto?: string
+    comentariosCount?: number
+    comentariosResumen?: string
+    sentimiento?: string
+    tratamientoPeriodistico?: string | null
+    confianzaClasificacion?: string | null
+    preguntasFundamentales?: NullableJsonNullValueInput | InputJsonValue
+    esDuplicado?: boolean
+    mencionOriginalId?: string | null
+    mediosRelacionados?: string | null
+    eventoId?: string | null
+    coberturasAdicionales?: string | null
+    deduplicacionLog?: string | null
+    intencionMedio?: string | null
+    ejeEstructuralId?: string | null
+    evidenciaHtmlRuta?: string | null
+    evidenciaPngRuta?: string | null
+    evidenciaHashSha256?: string | null
+    evidenciaTimestamp?: Date | string | null
+    evidenciaUrlOriginal?: string | null
+    evidenciaTamanoBytes?: number | null
+    Comentario?: ComentarioUncheckedCreateNestedManyWithoutMencionInput
+    MencionLente?: MencionLenteUncheckedCreateNestedManyWithoutMencionInput
+    MencionTema?: MencionTemaUncheckedCreateNestedManyWithoutMencionInput
+    mencion_cliente_eje?: mencion_cliente_ejeUncheckedCreateNestedManyWithoutMencionInput
+  }
+
+  export type MencionCreateOrConnectWithoutNotaEjeInput = {
+    where: MencionWhereUniqueInput
+    create: XOR<MencionCreateWithoutNotaEjeInput, MencionUncheckedCreateWithoutNotaEjeInput>
+  }
+
+  export type EjeTematicoCreateWithoutNotaEjeInput = {
+    id: string
+    nombre: string
+    slug: string
+    icono?: string
+    color?: string
+    descripcion?: string
+    keywords?: string
+    dimension?: string
+    activo?: boolean
+    orden?: number
+    tipo?: string
+    EjeTematico?: EjeTematicoCreateNestedOneWithoutOther_EjeTematicoInput
+    other_EjeTematico?: EjeTematicoCreateNestedManyWithoutEjeTematicoInput
+    Keyword?: KeywordCreateNestedManyWithoutEjeTematicoInput
+    Mencion?: MencionCreateNestedManyWithoutEjeTematicoInput
+    MencionTema?: MencionTemaCreateNestedManyWithoutEjeTematicoInput
+  }
+
+  export type EjeTematicoUncheckedCreateWithoutNotaEjeInput = {
+    id: string
+    parentId?: string | null
+    nombre: string
+    slug: string
+    icono?: string
+    color?: string
+    descripcion?: string
+    keywords?: string
+    dimension?: string
+    activo?: boolean
+    orden?: number
+    tipo?: string
+    other_EjeTematico?: EjeTematicoUncheckedCreateNestedManyWithoutEjeTematicoInput
+    Keyword?: KeywordUncheckedCreateNestedManyWithoutEjeTematicoInput
+    Mencion?: MencionUncheckedCreateNestedManyWithoutEjeTematicoInput
+    MencionTema?: MencionTemaUncheckedCreateNestedManyWithoutEjeTematicoInput
+  }
+
+  export type EjeTematicoCreateOrConnectWithoutNotaEjeInput = {
+    where: EjeTematicoWhereUniqueInput
+    create: XOR<EjeTematicoCreateWithoutNotaEjeInput, EjeTematicoUncheckedCreateWithoutNotaEjeInput>
+  }
+
+  export type MencionUpsertWithoutNotaEjeInput = {
+    update: XOR<MencionUpdateWithoutNotaEjeInput, MencionUncheckedUpdateWithoutNotaEjeInput>
+    create: XOR<MencionCreateWithoutNotaEjeInput, MencionUncheckedCreateWithoutNotaEjeInput>
+    where?: MencionWhereInput
+  }
+
+  export type MencionUpdateToOneWithWhereWithoutNotaEjeInput = {
+    where?: MencionWhereInput
+    data: XOR<MencionUpdateWithoutNotaEjeInput, MencionUncheckedUpdateWithoutNotaEjeInput>
+  }
+
+  export type MencionUpdateWithoutNotaEjeInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    titulo?: StringFieldUpdateOperationsInput | string
+    texto?: StringFieldUpdateOperationsInput | string
+    url?: StringFieldUpdateOperationsInput | string
+    fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    tipoMencion?: StringFieldUpdateOperationsInput | string
+    temas?: StringFieldUpdateOperationsInput | string
+    reach?: IntFieldUpdateOperationsInput | number
+    verificado?: BoolFieldUpdateOperationsInput | boolean
+    fechaCreacion?: DateTimeFieldUpdateOperationsInput | Date | string
+    enlaceActivo?: BoolFieldUpdateOperationsInput | boolean
+    fechaVerificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    textoCompleto?: StringFieldUpdateOperationsInput | string
+    comentariosCount?: IntFieldUpdateOperationsInput | number
+    comentariosResumen?: StringFieldUpdateOperationsInput | string
+    sentimiento?: StringFieldUpdateOperationsInput | string
+    tratamientoPeriodistico?: NullableStringFieldUpdateOperationsInput | string | null
+    confianzaClasificacion?: NullableStringFieldUpdateOperationsInput | string | null
+    preguntasFundamentales?: NullableJsonNullValueInput | InputJsonValue
+    esDuplicado?: BoolFieldUpdateOperationsInput | boolean
+    mencionOriginalId?: NullableStringFieldUpdateOperationsInput | string | null
+    mediosRelacionados?: NullableStringFieldUpdateOperationsInput | string | null
+    eventoId?: NullableStringFieldUpdateOperationsInput | string | null
+    coberturasAdicionales?: NullableStringFieldUpdateOperationsInput | string | null
+    deduplicacionLog?: NullableStringFieldUpdateOperationsInput | string | null
+    intencionMedio?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenciaHtmlRuta?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenciaPngRuta?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenciaHashSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenciaTimestamp?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    evidenciaUrlOriginal?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenciaTamanoBytes?: NullableIntFieldUpdateOperationsInput | number | null
+    Comentario?: ComentarioUpdateManyWithoutMencionNestedInput
+    Persona?: PersonaUpdateOneWithoutMencionNestedInput
+    Medio?: MedioUpdateOneRequiredWithoutMencionNestedInput
+    EjeTematico?: EjeTematicoUpdateOneWithoutMencionNestedInput
+    MencionLente?: MencionLenteUpdateManyWithoutMencionNestedInput
+    MencionTema?: MencionTemaUpdateManyWithoutMencionNestedInput
+    mencion_cliente_eje?: mencion_cliente_ejeUpdateManyWithoutMencionNestedInput
+  }
+
+  export type MencionUncheckedUpdateWithoutNotaEjeInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    personaId?: NullableStringFieldUpdateOperationsInput | string | null
+    medioId?: StringFieldUpdateOperationsInput | string
+    titulo?: StringFieldUpdateOperationsInput | string
+    texto?: StringFieldUpdateOperationsInput | string
+    url?: StringFieldUpdateOperationsInput | string
+    fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    tipoMencion?: StringFieldUpdateOperationsInput | string
+    temas?: StringFieldUpdateOperationsInput | string
+    reach?: IntFieldUpdateOperationsInput | number
+    verificado?: BoolFieldUpdateOperationsInput | boolean
+    fechaCreacion?: DateTimeFieldUpdateOperationsInput | Date | string
+    enlaceActivo?: BoolFieldUpdateOperationsInput | boolean
+    fechaVerificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    textoCompleto?: StringFieldUpdateOperationsInput | string
+    comentariosCount?: IntFieldUpdateOperationsInput | number
+    comentariosResumen?: StringFieldUpdateOperationsInput | string
+    sentimiento?: StringFieldUpdateOperationsInput | string
+    tratamientoPeriodistico?: NullableStringFieldUpdateOperationsInput | string | null
+    confianzaClasificacion?: NullableStringFieldUpdateOperationsInput | string | null
+    preguntasFundamentales?: NullableJsonNullValueInput | InputJsonValue
+    esDuplicado?: BoolFieldUpdateOperationsInput | boolean
+    mencionOriginalId?: NullableStringFieldUpdateOperationsInput | string | null
+    mediosRelacionados?: NullableStringFieldUpdateOperationsInput | string | null
+    eventoId?: NullableStringFieldUpdateOperationsInput | string | null
+    coberturasAdicionales?: NullableStringFieldUpdateOperationsInput | string | null
+    deduplicacionLog?: NullableStringFieldUpdateOperationsInput | string | null
+    intencionMedio?: NullableStringFieldUpdateOperationsInput | string | null
+    ejeEstructuralId?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenciaHtmlRuta?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenciaPngRuta?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenciaHashSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenciaTimestamp?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    evidenciaUrlOriginal?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenciaTamanoBytes?: NullableIntFieldUpdateOperationsInput | number | null
+    Comentario?: ComentarioUncheckedUpdateManyWithoutMencionNestedInput
+    MencionLente?: MencionLenteUncheckedUpdateManyWithoutMencionNestedInput
+    MencionTema?: MencionTemaUncheckedUpdateManyWithoutMencionNestedInput
+    mencion_cliente_eje?: mencion_cliente_ejeUncheckedUpdateManyWithoutMencionNestedInput
+  }
+
+  export type EjeTematicoUpsertWithoutNotaEjeInput = {
+    update: XOR<EjeTematicoUpdateWithoutNotaEjeInput, EjeTematicoUncheckedUpdateWithoutNotaEjeInput>
+    create: XOR<EjeTematicoCreateWithoutNotaEjeInput, EjeTematicoUncheckedCreateWithoutNotaEjeInput>
+    where?: EjeTematicoWhereInput
+  }
+
+  export type EjeTematicoUpdateToOneWithWhereWithoutNotaEjeInput = {
+    where?: EjeTematicoWhereInput
+    data: XOR<EjeTematicoUpdateWithoutNotaEjeInput, EjeTematicoUncheckedUpdateWithoutNotaEjeInput>
+  }
+
+  export type EjeTematicoUpdateWithoutNotaEjeInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombre?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    icono?: StringFieldUpdateOperationsInput | string
+    color?: StringFieldUpdateOperationsInput | string
+    descripcion?: StringFieldUpdateOperationsInput | string
+    keywords?: StringFieldUpdateOperationsInput | string
+    dimension?: StringFieldUpdateOperationsInput | string
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    orden?: IntFieldUpdateOperationsInput | number
+    tipo?: StringFieldUpdateOperationsInput | string
+    EjeTematico?: EjeTematicoUpdateOneWithoutOther_EjeTematicoNestedInput
+    other_EjeTematico?: EjeTematicoUpdateManyWithoutEjeTematicoNestedInput
+    Keyword?: KeywordUpdateManyWithoutEjeTematicoNestedInput
+    Mencion?: MencionUpdateManyWithoutEjeTematicoNestedInput
+    MencionTema?: MencionTemaUpdateManyWithoutEjeTematicoNestedInput
+  }
+
+  export type EjeTematicoUncheckedUpdateWithoutNotaEjeInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    parentId?: NullableStringFieldUpdateOperationsInput | string | null
+    nombre?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    icono?: StringFieldUpdateOperationsInput | string
+    color?: StringFieldUpdateOperationsInput | string
+    descripcion?: StringFieldUpdateOperationsInput | string
+    keywords?: StringFieldUpdateOperationsInput | string
+    dimension?: StringFieldUpdateOperationsInput | string
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    orden?: IntFieldUpdateOperationsInput | number
+    tipo?: StringFieldUpdateOperationsInput | string
+    other_EjeTematico?: EjeTematicoUncheckedUpdateManyWithoutEjeTematicoNestedInput
+    Keyword?: KeywordUncheckedUpdateManyWithoutEjeTematicoNestedInput
+    Mencion?: MencionUncheckedUpdateManyWithoutEjeTematicoNestedInput
+    MencionTema?: MencionTemaUncheckedUpdateManyWithoutEjeTematicoNestedInput
+  }
+
   export type ContratoCreateManyClienteInput = {
     id: string
     tipoProducto: string
@@ -70325,6 +72352,7 @@ export namespace Prisma {
     url?: string
     fechaPublicacion?: Date | string | null
     fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
     tipoMencion?: string
     temas?: string
     reach?: number
@@ -70359,6 +72387,13 @@ export namespace Prisma {
     mencionId: string
   }
 
+  export type NotaEjeCreateManyEjeTematicoInput = {
+    id?: string
+    mencionId: string
+    peso?: number
+    createdAt?: Date | string
+  }
+
   export type EjeTematicoUpdateWithoutEjeTematicoInput = {
     id?: StringFieldUpdateOperationsInput | string
     nombre?: StringFieldUpdateOperationsInput | string
@@ -70375,6 +72410,7 @@ export namespace Prisma {
     Keyword?: KeywordUpdateManyWithoutEjeTematicoNestedInput
     Mencion?: MencionUpdateManyWithoutEjeTematicoNestedInput
     MencionTema?: MencionTemaUpdateManyWithoutEjeTematicoNestedInput
+    NotaEje?: NotaEjeUpdateManyWithoutEjeTematicoNestedInput
   }
 
   export type EjeTematicoUncheckedUpdateWithoutEjeTematicoInput = {
@@ -70393,6 +72429,7 @@ export namespace Prisma {
     Keyword?: KeywordUncheckedUpdateManyWithoutEjeTematicoNestedInput
     Mencion?: MencionUncheckedUpdateManyWithoutEjeTematicoNestedInput
     MencionTema?: MencionTemaUncheckedUpdateManyWithoutEjeTematicoNestedInput
+    NotaEje?: NotaEjeUncheckedUpdateManyWithoutEjeTematicoNestedInput
   }
 
   export type EjeTematicoUncheckedUpdateManyWithoutEjeTematicoInput = {
@@ -70443,6 +72480,7 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tipoMencion?: StringFieldUpdateOperationsInput | string
     temas?: StringFieldUpdateOperationsInput | string
     reach?: IntFieldUpdateOperationsInput | number
@@ -70475,6 +72513,7 @@ export namespace Prisma {
     Medio?: MedioUpdateOneRequiredWithoutMencionNestedInput
     MencionLente?: MencionLenteUpdateManyWithoutMencionNestedInput
     MencionTema?: MencionTemaUpdateManyWithoutMencionNestedInput
+    NotaEje?: NotaEjeUpdateManyWithoutMencionNestedInput
     mencion_cliente_eje?: mencion_cliente_ejeUpdateManyWithoutMencionNestedInput
   }
 
@@ -70487,6 +72526,7 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tipoMencion?: StringFieldUpdateOperationsInput | string
     temas?: StringFieldUpdateOperationsInput | string
     reach?: IntFieldUpdateOperationsInput | number
@@ -70517,6 +72557,7 @@ export namespace Prisma {
     Comentario?: ComentarioUncheckedUpdateManyWithoutMencionNestedInput
     MencionLente?: MencionLenteUncheckedUpdateManyWithoutMencionNestedInput
     MencionTema?: MencionTemaUncheckedUpdateManyWithoutMencionNestedInput
+    NotaEje?: NotaEjeUncheckedUpdateManyWithoutMencionNestedInput
     mencion_cliente_eje?: mencion_cliente_ejeUncheckedUpdateManyWithoutMencionNestedInput
   }
 
@@ -70529,6 +72570,7 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tipoMencion?: StringFieldUpdateOperationsInput | string
     temas?: StringFieldUpdateOperationsInput | string
     reach?: IntFieldUpdateOperationsInput | number
@@ -70571,6 +72613,27 @@ export namespace Prisma {
   export type MencionTemaUncheckedUpdateManyWithoutEjeTematicoInput = {
     id?: StringFieldUpdateOperationsInput | string
     mencionId?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type NotaEjeUpdateWithoutEjeTematicoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    peso?: FloatFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    Mencion?: MencionUpdateOneRequiredWithoutNotaEjeNestedInput
+  }
+
+  export type NotaEjeUncheckedUpdateWithoutEjeTematicoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mencionId?: StringFieldUpdateOperationsInput | string
+    peso?: FloatFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NotaEjeUncheckedUpdateManyWithoutEjeTematicoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mencionId?: StringFieldUpdateOperationsInput | string
+    peso?: FloatFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type FuenteErrorLogCreateManyFuenteEstadoInput = {
@@ -70807,6 +72870,7 @@ export namespace Prisma {
     url?: string
     fechaPublicacion?: Date | string | null
     fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
     tipoMencion?: string
     temas?: string
     reach?: number
@@ -70933,6 +72997,7 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tipoMencion?: StringFieldUpdateOperationsInput | string
     temas?: StringFieldUpdateOperationsInput | string
     reach?: IntFieldUpdateOperationsInput | number
@@ -70965,6 +73030,7 @@ export namespace Prisma {
     EjeTematico?: EjeTematicoUpdateOneWithoutMencionNestedInput
     MencionLente?: MencionLenteUpdateManyWithoutMencionNestedInput
     MencionTema?: MencionTemaUpdateManyWithoutMencionNestedInput
+    NotaEje?: NotaEjeUpdateManyWithoutMencionNestedInput
     mencion_cliente_eje?: mencion_cliente_ejeUpdateManyWithoutMencionNestedInput
   }
 
@@ -70976,6 +73042,7 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tipoMencion?: StringFieldUpdateOperationsInput | string
     temas?: StringFieldUpdateOperationsInput | string
     reach?: IntFieldUpdateOperationsInput | number
@@ -71007,6 +73074,7 @@ export namespace Prisma {
     Comentario?: ComentarioUncheckedUpdateManyWithoutMencionNestedInput
     MencionLente?: MencionLenteUncheckedUpdateManyWithoutMencionNestedInput
     MencionTema?: MencionTemaUncheckedUpdateManyWithoutMencionNestedInput
+    NotaEje?: NotaEjeUncheckedUpdateManyWithoutMencionNestedInput
     mencion_cliente_eje?: mencion_cliente_ejeUncheckedUpdateManyWithoutMencionNestedInput
   }
 
@@ -71018,6 +73086,7 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tipoMencion?: StringFieldUpdateOperationsInput | string
     temas?: StringFieldUpdateOperationsInput | string
     reach?: IntFieldUpdateOperationsInput | number
@@ -71245,6 +73314,13 @@ export namespace Prisma {
     ejeTematicoId: string
   }
 
+  export type NotaEjeCreateManyMencionInput = {
+    id?: string
+    ejeId: string
+    peso?: number
+    createdAt?: Date | string
+  }
+
   export type mencion_cliente_ejeCreateManyMencionInput = {
     id?: number
     ejeClienteId: number
@@ -71311,6 +73387,27 @@ export namespace Prisma {
     ejeTematicoId?: StringFieldUpdateOperationsInput | string
   }
 
+  export type NotaEjeUpdateWithoutMencionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    peso?: FloatFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    EjeTematico?: EjeTematicoUpdateOneRequiredWithoutNotaEjeNestedInput
+  }
+
+  export type NotaEjeUncheckedUpdateWithoutMencionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ejeId?: StringFieldUpdateOperationsInput | string
+    peso?: FloatFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NotaEjeUncheckedUpdateManyWithoutMencionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ejeId?: StringFieldUpdateOperationsInput | string
+    peso?: FloatFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type mencion_cliente_ejeUpdateWithoutMencionInput = {
     confianza?: NullableFloatFieldUpdateOperationsInput | number | null
     eje_tematico_cliente?: eje_tematico_clienteUpdateOneRequiredWithoutMencion_cliente_ejeNestedInput
@@ -71336,6 +73433,7 @@ export namespace Prisma {
     url?: string
     fechaPublicacion?: Date | string | null
     fechaCaptura?: Date | string
+    fechaClasificacion?: Date | string | null
     tipoMencion?: string
     temas?: string
     reach?: number
@@ -71393,6 +73491,7 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tipoMencion?: StringFieldUpdateOperationsInput | string
     temas?: StringFieldUpdateOperationsInput | string
     reach?: IntFieldUpdateOperationsInput | number
@@ -71425,6 +73524,7 @@ export namespace Prisma {
     EjeTematico?: EjeTematicoUpdateOneWithoutMencionNestedInput
     MencionLente?: MencionLenteUpdateManyWithoutMencionNestedInput
     MencionTema?: MencionTemaUpdateManyWithoutMencionNestedInput
+    NotaEje?: NotaEjeUpdateManyWithoutMencionNestedInput
     mencion_cliente_eje?: mencion_cliente_ejeUpdateManyWithoutMencionNestedInput
   }
 
@@ -71436,6 +73536,7 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tipoMencion?: StringFieldUpdateOperationsInput | string
     temas?: StringFieldUpdateOperationsInput | string
     reach?: IntFieldUpdateOperationsInput | number
@@ -71467,6 +73568,7 @@ export namespace Prisma {
     Comentario?: ComentarioUncheckedUpdateManyWithoutMencionNestedInput
     MencionLente?: MencionLenteUncheckedUpdateManyWithoutMencionNestedInput
     MencionTema?: MencionTemaUncheckedUpdateManyWithoutMencionNestedInput
+    NotaEje?: NotaEjeUncheckedUpdateManyWithoutMencionNestedInput
     mencion_cliente_eje?: mencion_cliente_ejeUncheckedUpdateManyWithoutMencionNestedInput
   }
 
@@ -71478,6 +73580,7 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     fechaPublicacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaCaptura?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaClasificacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tipoMencion?: StringFieldUpdateOperationsInput | string
     temas?: StringFieldUpdateOperationsInput | string
     reach?: IntFieldUpdateOperationsInput | number
