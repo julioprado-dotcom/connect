@@ -477,6 +477,7 @@ async function catchUpOverdueSources(
 ): Promise<void> {
   const ahora = Date.now()
   let catchUps = 0
+  console.log(`[Scheduler] Catch-up: evaluando ${fuentes.length} fuentes (ahora=${new Date(ahora).toISOString()})`)
 
   // Ordenar por más vencidas primero (null = nunca checkeada = máxima prioridad)
   const sorted = [...fuentes].sort((a, b) => {
@@ -525,8 +526,9 @@ async function catchUpOverdueSources(
         ? Math.round((ahora - fuente.ultimoCheck.getTime()) / 60000)
         : 'nunca'
       console.log(`[Scheduler] Catch-up: ${fuente.Medio.nombre} (${minsAgo}min sin check, freq=${fuente.frecuenciaActual})`)
-    } catch {
-      // Error individual no debe bloquear el catch-up del resto
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.warn(`[Scheduler] Catch-up error ${fuente.Medio.nombre}: ${msg}`)
     }
   }
 
