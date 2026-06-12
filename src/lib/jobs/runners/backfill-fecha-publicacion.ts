@@ -133,6 +133,7 @@ function extraerFechaPublicacion(html: string): Date | null {
 
 // ─── Fetch con fallback TLS (minimal, sin dependencias externas) ─
 async function fetchHtml(url: string): Promise<string | null> {
+  const MAX = 500_000
   try {
     const res = await fetch(url, {
       headers: {
@@ -142,12 +143,10 @@ async function fetchHtml(url: string): Promise<string | null> {
       signal: AbortSignal.timeout(15_000),
     })
     if (res.status !== 200) return null
-    // Limitar respuesta a 500KB para no saturar memoria
     const reader = res.body?.getReader()
     if (!reader) return null
     const chunks: Uint8Array[] = []
     let total = 0
-    const MAX = 500_000
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
