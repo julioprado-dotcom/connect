@@ -277,7 +277,7 @@ async function ejecutarTarea(tarea: TareaMantenimiento): Promise<MantenimientoRe
 
     case 'recalcular_scheduler': {
       // Reprogramar todas las fuentes sin reiniciar el worker
-      const { rescheduleAll } = await import('../scheduler')
+      const { rescheduleAll } = await import('../scheduler-pm2')
       await rescheduleAll()
       return {
         tarea,
