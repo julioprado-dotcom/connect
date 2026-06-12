@@ -12,6 +12,7 @@ import { registrarCambio } from '../histogram/tracker'
 import { evaluarFrecuencia } from '../frequency/adapter'
 import type { JobPayload, RunnerResult } from '../types'
 import { extraerTextoDeHtml } from '@/lib/ai/extractor-menciones'
+import { extraerFechaPublicacion, parseRSSPubDate } from '../extract-fecha-publicacion'
 import { safeFetch } from '../check-first/safe-fetch'
 import { CHECK_FIRST_CONFIG } from '../constants'
 import { extraerLinksDeNoticias, type NotaLink } from '../link-extractor'
@@ -82,6 +83,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
   const fuenteId = payload.fuenteId as string
   const medioId = payload.medioId as string
   const urls = payload.urls as string[] | undefined
+  const pubDates = payload.pubDates as (string | null)[] | undefined
   const homepageHtmlFromCheck = getHtml(fuenteId) ?? undefined
 
   if (!fuenteId || !medioId) {
@@ -103,7 +105,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
     // ─── CASO A: URLs específicas (RSS) ───
     if (urls && urls.length > 0) {
       console.log(`[scrape-light] Modo RSS: ${urls.length} URLs para ${fuente.Medio.nombre}`)
-      return await procesarUrlsDirectas(urls, medioId, fuenteId, fuente.Medio.nivel)
+      return await procesarUrlsDirectas(urls, pubDates, medioId, fuenteId, fuente.Medio.nivel)
     }
 
     // ─── CASO B: Pipeline homepage ───
@@ -229,6 +231,9 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       const notaHtml = await descargarNota(nota.url)
       if (!notaHtml) continue
 
+      // FIX: Extraer fecha de publicación real del HTML del artículo
+      const fechaPub = extraerFechaPublicacion(notaHtml)
+
       const texto = extraerTextoDeHtml(notaHtml)
       const textoCompleto = [
         nota.titulo ? `TÍTULO: ${nota.titulo}` : '',
@@ -260,6 +265,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
             puntajeTriaje: nota.puntaje,
             razonTriaje: nota.razon || '',
             fechaCaptura: new Date(), // FIX: explícito para evitar integer timestamp
+            ...(fechaPub ? { fechaPublicacion: fechaPub } : {}),
           },
         })
         guardadas++
@@ -323,6 +329,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
 
 async function procesarUrlsDirectas(
   urls: string[],
+  pubDates: (string | null)[] | undefined,
   medioId: string,
   fuenteId: string,
   nivel: string,
@@ -331,10 +338,15 @@ async function procesarUrlsDirectas(
   let guardadas = 0
   let duplicadas = 0
 
-  for (const url of urls) {
+  for (let i = 0; i < urls.length; i++) {
+    const url = urls[i]
+    const rssPubDate = pubDates?.[i] ?? null
     try {
       const html = await descargarNota(url)
       if (!html) continue
+
+      // FIX: Extraer fecha de publicación — prioridad: RSS pubDate > HTML meta tags
+      const fechaPub = rssPubDate ? parseRSSPubDate(rssPubDate) : extraerFechaPublicacion(html)
 
       const texto = extraerTextoDeHtml(html)
       if (texto.length < 100) continue
@@ -362,6 +374,7 @@ async function procesarUrlsDirectas(
           puntajeTriaje: 5, // RSS = ya pre-filtrado
           razonTriaje: 'rss_direct',
           fechaCaptura: new Date(), // FIX: explícito para evitar integer timestamp
+          ...(fechaPub ? { fechaPublicacion: fechaPub } : {}),
         },
       })
       guardadas++

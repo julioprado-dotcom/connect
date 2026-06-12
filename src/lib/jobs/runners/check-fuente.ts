@@ -29,8 +29,10 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       // FIX MEMORIA: Si check-first descargó HTML, guardarlo en cache compartido
       // en lugar de pasarlo por payload del job (evita serializar MB en la tabla Job)
       if (medioId) {
-        const urls = (result.datosNuevos as Array<{link?: string}> | undefined)
-          ?.map(d => d.link).filter(Boolean)
+        const datosNuevos = result.datosNuevos as Array<{link?: string; pubDate?: string}> | undefined
+        const urls = datosNuevos?.map(d => d.link).filter(Boolean) as string[] | undefined
+        // FIX: Extraer pubDates para pasar al scrape (fecha de publicación real del medio)
+        const pubDates = datosNuevos?.map(d => d.pubDate || null)
         const homepageHtml = (result.datosActualizacion as Record<string, unknown> | undefined)
           ?.homepageHtml as string | undefined
         if (homepageHtml) {
@@ -50,6 +52,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
                 fuenteId,
                 medioId,
                 ...(urls?.length ? { urls } : {}),
+                ...(pubDates?.length ? { pubDates } : {}),
               },
               prioridad: 1,
             })

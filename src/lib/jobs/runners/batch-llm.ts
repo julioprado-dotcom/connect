@@ -169,9 +169,12 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
             })
             // FIX: Asegurar que fechaCaptura sea Date object (puede ser integer desde DB con engines viejos)
             const safeFechaCaptura = nota.fechaCaptura instanceof Date ? nota.fechaCaptura : new Date(nota.fechaCaptura)
+            // FIX: Pasar fechaPublicacion de NotaRaw → Mencion (fecha real del medio)
+            const safeFechaPublicacion = nota.fechaPublicacion instanceof Date ? nota.fechaPublicacion
+              : (nota.fechaPublicacion ? new Date(nota.fechaPublicacion) : null)
             menciones = await crearMencionesExtraidas(
               resultado, medioId, nota.url, nota.titulo,
-              { fechaCaptura: safeFechaCaptura, fechaClasificacion: new Date() },
+              { fechaCaptura: safeFechaCaptura, fechaClasificacion: new Date(), fechaPublicacion: safeFechaPublicacion },
               nota.texto, // texto original completo de NotaRaw
               nota.id,   // FIX: pasar notaRawId para excluir del DEDUP CAPA 0
             )

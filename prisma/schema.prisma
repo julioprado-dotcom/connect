@@ -759,6 +759,7 @@ model NotaRaw {
   descartada        Boolean   @default(false)
   mencionesCreadas  Int       @default(0)
   fechaCaptura      DateTime  @default(now())
+  fechaPublicacion  DateTime?             // Fecha real de publicación del medio (RSS pubDate o HTML <time>/<meta>)
   fechaProcesada    DateTime?
   Medio             Medio     @relation(fields: [medioId], references: [id], onDelete: Cascade)
 
@@ -767,6 +768,7 @@ model NotaRaw {
   @@index([procesada, fechaCaptura])
   @@index([fuenteId])
   @@index([fechaCaptura])
+  @@index([fechaPublicacion])
   @@unique([medioId, url])
 }
 

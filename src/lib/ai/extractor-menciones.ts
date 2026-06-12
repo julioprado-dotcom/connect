@@ -901,7 +901,7 @@ export async function crearMencionesExtraidas(
   medioId: string,
   url: string,
   titulo: string,
-  fechas?: { fechaCaptura?: Date; fechaClasificacion?: Date },
+  fechas?: { fechaCaptura?: Date; fechaClasificacion?: Date; fechaPublicacion?: Date | null },
   textoOriginal?: string,
   notaRawId?: string,
 ): Promise<number> {
@@ -995,6 +995,8 @@ export async function crearMencionesExtraidas(
     // fechaCaptura: cuándo se scrapeó (viene de NotaRaw, no es now())
     // FIX: type guard — si fechas.fechaCaptura no es Date, convertirlo
     ...(fechas?.fechaCaptura ? { fechaCaptura: fechas.fechaCaptura instanceof Date ? fechas.fechaCaptura : new Date(fechas.fechaCaptura) } : {}),
+    // fechaPublicacion: fecha real de publicación del medio (de NotaRaw)
+    ...(fechas?.fechaPublicacion ? { fechaPublicacion: fechas.fechaPublicacion instanceof Date ? fechas.fechaPublicacion : new Date(fechas.fechaPublicacion) } : {}),
     // fechaClasificacion: cuándo el LLM procesó esta nota
     ...(fechas?.fechaClasificacion ? { fechaClasificacion: fechas.fechaClasificacion instanceof Date ? fechas.fechaClasificacion : new Date(fechas.fechaClasificacion) } : {}),
   };

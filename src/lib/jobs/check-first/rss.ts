@@ -170,7 +170,7 @@ export async function checkRSS(
         cambiado: true,
         tecnica: 'rss',
         detalle: `${newEntries.length} entries nuevos de ${entries.length} totales [${responseTime}ms]`,
-        datosNuevos: newEntries.map(e => ({ id: e.id, title: e.title, link: e.link })),
+        datosNuevos: newEntries.map(e => ({ id: e.id, title: e.title, link: e.link, pubDate: e.pubDate })),
         entries,
         ultimosIdsActualizados: idsActualizados,
         responseTime,
