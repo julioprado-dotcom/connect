@@ -128,3 +128,4 @@ data/electos_2025_text.txt
 # Heavy files to never track
 backups/archives/
 logs/
+tool-results/
