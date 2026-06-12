@@ -5,15 +5,14 @@
 # ═══════════════════════════════════════════════════════════════
 #
 # EJECUCION AUTOMATICA (4 veces al dia via cron):
-#   00 06 * * * /home/z/my-project/connect/scripts/backup-db-github.sh >> /home/z/my-project/connect/logs/backup.log 2>&1
-#   00 12 * * * /home/z/my-project/connect/scripts/backup-db-github.sh >> /home/z/my-project/connect/logs/backup.log 2>&1
-#   00 18 * * * /home/z/my-project/connect/scripts/backup-db-github.sh >> /home/z/my-project/connect/logs/backup.log 2>&1
-#   00 23 * * * /home/z/my-project/connect/scripts/backup-db-github.sh >> /home/z/my-project/connect/logs/backup.log 2>&1
+#   0 6 * * * /root/decodex-app/scripts/backup-db-github.sh >> /root/decodex-app/logs/backup-github.log 2>&1
+#   0 12 * * * /root/decodex-app/scripts/backup-db-github.sh >> /root/decodex-app/logs/backup-github.log 2>&1
+#   0 18 * * * /root/decodex-app/scripts/backup-db-github.sh >> /root/decodex-app/logs/backup-github.log 2>&1
+#   0 23 * * * /root/decodex-app/scripts/backup-db-github.sh >> /root/decodex-app/logs/backup-github.log 2>&1
 #
-# REGLA FIRME: NUNCA se borran los backups.
-#   - Cada snapshot se commita como archivo independiente en prisma/db/backups/
-#   - Git history conserva TODOS los snapshots para siempre
-#   - Solo se limpia la carpeta .next/ antes de push para reducir tamaño
+# NOTA: Este script guarda snapshots locales en prisma/db/backups/ (gitignored).
+# Para backup al branch db-backup en GitHub, usar backup-db.sh (raiz del repo).
+# REGLA: Los backups locales NUNCA se borran automaticamente.
 #
 # Uso manual:
 #   ./scripts/backup-db-github.sh              # Backup manual inmediato
@@ -26,7 +25,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR}/_db-path.sh"
 
-PROJECT_DIR="/home/z/my-project/connect"
+# Resolver dinamicamente: funciona en VPS y contenedor Z.ai
+SCRIPT_DIR_ABS="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR_ABS")"
 LOG_DIR="${PROJECT_DIR}/logs"
 BACKUP_DIR="${DECODEX_BACKUP_DIR}"
 DB_PATH="${DECODEX_DB_PATH}"
