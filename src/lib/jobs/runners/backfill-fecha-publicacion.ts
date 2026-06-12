@@ -210,22 +210,20 @@ async function fetchHtml(url: string): Promise<string | null> {
   let updated = 0
   let failed = 0
   let skipped = 0
-  const seen = new Set<string>() // evitar re-procesar los mismos registros
+  let cursor: string | undefined = undefined
 
   while (true) {
     const batch = await prisma.notaRaw.findMany({
-      where: { fechaPublicacion: null },
+      where: { fechaPublicacion: null, ...(cursor ? { id: { gt: cursor } } : {}) },
       select: { id: true, url: true },
       take: BATCH_SIZE,
       orderBy: { id: 'asc' },
     })
 
-    // Filtrar los ya procesados (sin fecha)
-    const pending = batch.filter(n => !seen.has(n.id))
-    if (pending.length === 0) break // todos los restantes ya fueron intentados
+    if (batch.length === 0) break // no hay mas registros
 
-    for (const nota of pending) {
-      seen.add(nota.id)
+    for (const nota of batch) {
+      cursor = nota.id
       processed++
       if (!nota.url) {
         skipped++
