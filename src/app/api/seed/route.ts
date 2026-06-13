@@ -463,6 +463,7 @@ export async function POST(request: NextRequest) {
       data: medios.map(medio => ({
         nombre: medio.nombre,
         url: medio.url || '',
+        rssUrl: medio.rssUrl || '',
         tipo: medio.tipo,
         nivel: String(medio.nivel || '1'),
         departamento: medio.departamento || null,
@@ -477,7 +478,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Actualizar clasificación de medios existentes (si tienen campos en JSON)
-    const mediosConClasificacion = medios.filter(m => m.naturaleza || m.ambito || m.categoria || m.enfoque);
+    const mediosConClasificacion = medios.filter(m => m.naturaleza || m.ambito || m.categoria || m.enfoque || m.rssUrl);
     if (mediosConClasificacion.length > 0) {
       await Promise.all(mediosConClasificacion.map(m =>
         db.medio.updateMany({
@@ -487,6 +488,7 @@ export async function POST(request: NextRequest) {
             ...(m.ambito ? { ambito: m.ambito } : {}),
             ...(m.categoria ? { categoria: m.categoria } : {}),
             ...(m.enfoque ? { enfoque: m.enfoque } : {}),
+            ...(m.rssUrl ? { rssUrl: m.rssUrl } : {}),
           },
         }).catch(() => {})
       ));

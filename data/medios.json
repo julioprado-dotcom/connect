@@ -8,7 +8,8 @@
     "naturaleza": "PRIVADO_CORPORATIVO",
     "ambito": "NACIONAL",
     "categoria": "PRENSA_GENERAL",
-    "enfoque": "GENERALISTA"
+    "enfoque": "GENERALISTA",
+    "rssUrl": "https://www.lostiempos.com/rss/portada"
   },
   {
     "nivel": "1",
@@ -19,7 +20,8 @@
     "naturaleza": "PRIVADO_CORPORATIVO",
     "ambito": "NACIONAL",
     "categoria": "PRENSA_GENERAL",
-    "enfoque": "GENERALISTA"
+    "enfoque": "GENERALISTA",
+    "rssUrl": "https://eldeber.com.bo/rss/feed"
   },
   {
     "nivel": "1",
@@ -52,7 +54,8 @@
     "naturaleza": "PRIVADO_CORPORATIVO",
     "ambito": "NACIONAL",
     "categoria": "PRENSA_GENERAL",
-    "enfoque": "GENERALISTA"
+    "enfoque": "GENERALISTA",
+    "rssUrl": "https://www.opinion.com.bo/rss/"
   },
   {
     "nivel": "1",
@@ -63,7 +66,8 @@
     "naturaleza": "PRIVADO_CORPORATIVO",
     "ambito": "NACIONAL",
     "categoria": "PRENSA_GENERAL",
-    "enfoque": "GENERALISTA"
+    "enfoque": "GENERALISTA",
+    "rssUrl": "https://eju.tv/feed/"
   },
   {
     "nivel": "1",
@@ -85,12 +89,13 @@
     "naturaleza": "ONG",
     "ambito": "NACIONAL",
     "categoria": "VERIFICACION_HECHOS",
-    "enfoque": "VERIFICACION"
+    "enfoque": "VERIFICACION",
+    "rssUrl": "https://boliviaverifica.bo/feed/"
   },
   {
     "nivel": "1",
     "nombre": "Brújula Digital",
-    "url": "https://brujuladigital.com.bo",
+    "url": "https://brujuladigital.net",
     "tipo": "Digital",
     "plataformas": "web,facebook",
     "naturaleza": "PRIVADO_CORPORATIVO",
@@ -118,7 +123,8 @@
     "naturaleza": "PRIVADO_CORPORATIVO",
     "ambito": "NACIONAL",
     "categoria": "PRENSA_GENERAL",
-    "enfoque": "GENERALISTA"
+    "enfoque": "GENERALISTA",
+    "rssUrl": "https://elmundo.com.bo/feed/"
   },
   {
     "nivel": "1",
@@ -162,7 +168,8 @@
     "naturaleza": "PRIVADO_CORPORATIVO",
     "ambito": "NACIONAL",
     "categoria": "TELEVISION",
-    "enfoque": "GENERALISTA"
+    "enfoque": "GENERALISTA",
+    "rssUrl": "https://www.atb.com.bo/feed/"
   },
   {
     "nivel": "1",
@@ -184,7 +191,8 @@
     "naturaleza": "ESTATAL",
     "ambito": "NACIONAL",
     "categoria": "AGENCIA_ESTATAL",
-    "enfoque": "GENERALISTA"
+    "enfoque": "GENERALISTA",
+    "rssUrl": "https://abi.bo/feed"
   },
   {
     "nivel": "1",
@@ -287,7 +295,8 @@
     "naturaleza": "PRIVADO_CORPORATIVO",
     "ambito": "REGIONAL",
     "categoria": "PRENSA_REGIONAL",
-    "enfoque": "GENERALISTA"
+    "enfoque": "GENERALISTA",
+    "rssUrl": "https://elperiodico.com.bo/feed/"
   },
   {
     "nivel": "2",
@@ -311,7 +320,8 @@
     "naturaleza": "PRIVADO_CORPORATIVO",
     "ambito": "REGIONAL",
     "categoria": "PRENSA_REGIONAL",
-    "enfoque": "GENERALISTA"
+    "enfoque": "GENERALISTA",
+    "rssUrl": "https://lavozdetarija.com/feed/"
   },
   {
     "nivel": "2",
@@ -335,7 +345,8 @@
     "naturaleza": "PRIVADO_CORPORATIVO",
     "ambito": "REGIONAL",
     "categoria": "PRENSA_REGIONAL",
-    "enfoque": "GENERALISTA"
+    "enfoque": "GENERALISTA",
+    "rssUrl": "https://leo.bo/feed/"
   },
   {
     "nivel": "2",
@@ -395,7 +406,8 @@
     "ambito": "NACIONAL",
     "categoria": "ALTERNATIVO",
     "enfoque": "POLITICO",
-    "notas": "Derechos humanos, política"
+    "notas": "Derechos humanos, política",
+    "rssUrl": "https://bolpress.com/feed/"
   },
   {
     "nivel": "3",
@@ -479,7 +491,8 @@
     "ambito": "INTERNACIONAL",
     "categoria": "CAFETERO",
     "enfoque": "CAFETERO",
-    "notas": "Noticias café con tag Bolivia"
+    "notas": "Noticias café con tag Bolivia",
+    "rssUrl": "https://perfectdailygrind.com/?feed=rss2"
   },
   {
     "nivel": "3",
@@ -491,7 +504,8 @@
     "ambito": "INTERNACIONAL",
     "categoria": "CAFETERO",
     "enfoque": "CAFETERO",
-    "notas": "Cultura café con tag Bolivia"
+    "notas": "Cultura café con tag Bolivia",
+    "rssUrl": "https://sprudge.com/feed/"
   },
   {
     "nivel": "3",
@@ -503,7 +517,8 @@
     "ambito": "INTERNACIONAL",
     "categoria": "CAFETERO",
     "enfoque": "CAFETERO",
-    "notas": "Reviews café con tag Bolivia"
+    "notas": "Reviews café con tag Bolivia",
+    "rssUrl": "https://www.coffeereview.com/feed/"
   },
   {
     "nivel": "3",
@@ -532,14 +547,14 @@
   {
     "nivel": "3",
     "nombre": "OIC Café",
-    "url": "https://oic.org.bo",
+    "url": "https://ico.org",
     "tipo": "Organización cafetera",
     "plataformas": "web",
     "naturaleza": "CAMARAL",
     "ambito": "INTERNACIONAL",
     "categoria": "CAFETERO",
     "enfoque": "CAFETERO",
-    "notas": "Organización Internacional del Café con tag Bolivia"
+    "notas": "URL corregida: oic.org.bo no existe, la OIC es ico.org"
   },
   {
     "nivel": "2",
@@ -596,6 +611,7 @@
     "naturaleza": "PRIVADO_INDEPENDIENTE",
     "ambito": "INTERNACIONAL",
     "categoria": "CAFETERO",
-    "enfoque": "CAFETERO"
+    "enfoque": "CAFETERO",
+    "notas": "DOMINIO CAÍDO - verificar disponibilidad"
   }
 ]

@@ -372,6 +372,7 @@ model Medio {
   id                   String        @id
   nombre               String
   url                  String        @default("")
+  rssUrl               String        @default("")
   tipo                 String
   categoria            String        @default("corporativo")
   nivel                String        @default("1")

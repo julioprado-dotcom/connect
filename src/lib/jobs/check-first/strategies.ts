@@ -203,8 +203,16 @@ export async function checkFuente(fuenteId: string): Promise<CheckResult & {
 
   let tipoCheckActual = (fuente.tipoCheck || detectarTipoCheck(fuente.url)) as TipoCheck
 
+  // Si el Medio tiene rssUrl configurado, priorizar estrategia RSS
+  const rssUrl = (fuente.Medio as any)?.rssUrl || ''
+  if (rssUrl && tipoCheckActual !== 'rss') {
+    console.log(
+      `[CheckFirst] ${fuente.Medio.nombre}: rssUrl configurada → forzando "rss" (era "${tipoCheckActual}")`,
+    )
+    tipoCheckActual = 'rss'
+  }
+
   // Sanitizar tipoCheck inválido (ej. legacy 'zai') → auto-detectar desde URL
-  // Sin esto, un tipoCheck inválido causa fallo instantáneo y rotación innecesaria
   if (!STRATEGY_ORDER.includes(tipoCheckActual)) {
     const detected = detectarTipoCheck(fuente.url)
     console.warn(
@@ -212,13 +220,21 @@ export async function checkFuente(fuenteId: string): Promise<CheckResult & {
     )
     tipoCheckActual = detected
   }
-  const url = fuente.url
+
+  // URL para cada estrategia: RSS usa rssUrl si existe, las demás usan la homepage
+  const homepageUrl = fuente.url
+  const rssCheckUrl = rssUrl || homepageUrl
   const estrategiasProbadas: Array<{ estrategia: TipoCheck; exito: boolean; detalle: string }> = []
 
-  // ─── 1. Intentar estrategia configurada ────────────────────────
-  console.log(`[CheckFirst] ${fuente.Medio.nombre}: intentando "${tipoCheckActual}" en ${url}`)
+  // Seleccionar URL según estrategia (RSS → rssCheckUrl, demás → homepageUrl)
+  const urlParaEstrategia = (estrategia: TipoCheck): string =>
+    estrategia === 'rss' ? rssCheckUrl : homepageUrl
 
-  let intento = await ejecutarEstrategia(tipoCheckActual, url, fuente)
+  // ─── 1. Intentar estrategia configurada ────────────────────────
+  const urlPrincipal = urlParaEstrategia(tipoCheckActual)
+  console.log(`[CheckFirst] ${fuente.Medio.nombre}: intentando "${tipoCheckActual}" en ${urlPrincipal}`)
+
+  let intento = await ejecutarEstrategia(tipoCheckActual, urlPrincipal, fuente)
   estrategiasProbadas.push({
     estrategia: tipoCheckActual,
     exito: !intento.result.error,
@@ -241,7 +257,8 @@ export async function checkFuente(fuenteId: string): Promise<CheckResult & {
     for (const fallback of fallbacks) {
       console.log(`[CheckFirst] ${fuente.Medio.nombre}: intentando fallback "${fallback}"...`)
 
-      intento = await ejecutarEstrategia(fallback, url, fuente)
+      const urlFallback = urlParaEstrategia(fallback)
+      intento = await ejecutarEstrategia(fallback, urlFallback, fuente)
       estrategiasProbadas.push({
         estrategia: fallback,
         exito: !intento.result.error,
