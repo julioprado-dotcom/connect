@@ -287,7 +287,7 @@
   },
   {
     "nivel": "2",
-    "nombre": "El Periódico",
+    "nombre": "El Periódico Tarija",
     "url": "https://elperiodico.com.bo",
     "tipo": "Digital+Impreso",
     "departamento": "Tarija",
@@ -337,7 +337,7 @@
   },
   {
     "nivel": "2",
-    "nombre": "La Estrella del Oriente (Leo.bo)",
+    "nombre": "La Estrella del Oriente",
     "url": "https://leo.bo",
     "tipo": "Digital",
     "departamento": "Santa Cruz",
@@ -496,7 +496,7 @@
   },
   {
     "nivel": "3",
-    "nombre": "Sprudge",
+    "nombre": "Sprudge Coffee",
     "url": "https://sprudge.com",
     "tipo": "Portal especializado café",
     "plataformas": "web",
