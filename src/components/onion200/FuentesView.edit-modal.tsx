@@ -1,4 +1,5 @@
 'use client';
+import { tratamientoToSentimiento } from '@/lib/utils/sentimiento';
 
 import React from 'react';
 import { Radio, Save, Brain, AlertTriangle, CheckCircle2, Loader2, X, Newspaper } from 'lucide-react';
@@ -115,7 +116,7 @@ export function MedioDetailPanel({
         ) : (
           <div className="space-y-1.5 max-h-[250px] overflow-y-auto custom-scrollbar">
             {medioMenciones.map((m) => {
-              const sentColor = sentimentColor(m.sentimiento || 'no_clasificado');
+              const sentColor = sentimentColor(tratamientoToSentimiento(m.tratamientoPeriodistico) || 'no_clasificado');
               return (
                 <div key={m.id} className="flex items-start gap-2 px-3 py-2 rounded-md" style={{
                   backgroundColor: 'rgba(0,0,0,0.3)',

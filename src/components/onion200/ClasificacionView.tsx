@@ -1,4 +1,5 @@
 'use client';
+import { tratamientoToSentimiento } from '@/lib/utils/sentimiento';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
@@ -865,11 +866,11 @@ export function ClasificacionView() {
                                       <span className="font-bold text-emerald-400">{m.persona}</span>
                                     )}
                                     <span className="px-1 rounded" style={{
-                                      color: sentimientoColor(m.sentimiento),
-                                      backgroundColor: `${sentimientoColor(m.sentimiento)}08`,
-                                      border: `1px solid ${sentimientoColor(m.sentimiento)}15`,
+                                      color: sentimientoColor(tratamientoToSentimiento(m.tratamientoPeriodistico)),
+                                      backgroundColor: `${sentimientoColor(tratamientoToSentimiento(m.tratamientoPeriodistico))}08`,
+                                      border: `1px solid ${sentimientoColor(tratamientoToSentimiento(m.tratamientoPeriodistico))}15`,
                                     }}>
-                                      {m.sentimiento}
+                                      {tratamientoToSentimiento(m.tratamientoPeriodistico)}
                                     </span>
                                     <span className="text-slate-500">|</span>
                                     <span className="text-slate-400">{m.tratamiento}</span>
@@ -946,11 +947,11 @@ export function ClasificacionView() {
                       <span className="text-[9px] font-mono text-slate-500 truncate max-w-[80px]">{m.medio}</span>
                       <div className="ml-auto flex items-center gap-1.5 flex-shrink-0">
                         <span className="text-[8px] font-mono px-1 py-0.5 rounded" style={{
-                          color: sentimientoColor(m.sentimiento),
-                          backgroundColor: `${sentimientoColor(m.sentimiento)}08`,
-                          border: `1px solid ${sentimientoColor(m.sentimiento)}15`,
+                          color: sentimientoColor(tratamientoToSentimiento(m.tratamientoPeriodistico)),
+                          backgroundColor: `${sentimientoColor(tratamientoToSentimiento(m.tratamientoPeriodistico))}08`,
+                          border: `1px solid ${sentimientoColor(tratamientoToSentimiento(m.tratamientoPeriodistico))}15`,
                         }}>
-                          {m.sentimiento}
+                          {tratamientoToSentimiento(m.tratamientoPeriodistico)}
                         </span>
                         <span className="text-[8px] font-mono px-1 py-0.5 rounded" style={{
                           color: confianzaColor(m.confianza),

@@ -1,4 +1,5 @@
 'use client';
+import { tratamientoToSentimiento } from '@/lib/utils/sentimiento';
 
 import React from 'react';
 import { PanelShell } from './PanelShell';
@@ -176,9 +177,9 @@ export function MiniCharts({ porNivel, porSentimiento, porTipoMencion, totalMenc
   }));
 
   const sentimientoData = (porSentimiento || []).map(item => ({
-    label: SENTIMIENTO_LABELS[item.sentimiento] || item.sentimiento,
+    label: SENTIMIENTO_LABELS[tratamientoToSentimiento(item.tratamientoPeriodistico)] || tratamientoToSentimiento(item.tratamientoPeriodistico),
     value: item.total,
-    color: sentimentColor(item.sentimiento),
+    color: sentimentColor(tratamientoToSentimiento(item.tratamientoPeriodistico)),
   }));
   const sentimientoTotal = sentimientoData.reduce((s, d) => s + d.value, 0);
 

@@ -1,4 +1,5 @@
 'use client';
+import { tratamientoToSentimiento } from '@/lib/utils/sentimiento';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
@@ -590,12 +591,12 @@ export function LiveFeed({ onNavigateTab }: LiveFeedProps) {
                     <span
                       className="ml-auto text-[9px] font-bold font-mono px-1.5 py-0.5 rounded"
                       style={{
-                        color: sentimentColor(m.sentimiento),
-                        backgroundColor: `${sentimentColor(m.sentimiento)}12`,
-                        border: `1px solid ${sentimentColor(m.sentimiento)}25`,
+                        color: sentimentColor(tratamientoToSentimiento(m.tratamientoPeriodistico)),
+                        backgroundColor: `${sentimentColor(tratamientoToSentimiento(m.tratamientoPeriodistico))}12`,
+                        border: `1px solid ${sentimentColor(tratamientoToSentimiento(m.tratamientoPeriodistico))}25`,
                       }}
                     >
-                      {sentimentLabel(m.sentimiento)}
+                      {sentimentLabel(tratamientoToSentimiento(m.tratamientoPeriodistico))}
                     </span>
                   </div>
 

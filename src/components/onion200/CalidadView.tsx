@@ -1,4 +1,5 @@
 'use client';
+import { tratamientoToSentimiento } from '@/lib/utils/sentimiento';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
@@ -662,10 +663,10 @@ export function CalidadView() {
                                       <span className="text-emerald-400/80">{item.persona}</span>
                                     </>
                                   )}
-                                  {item.sentimiento && item.sentimiento !== 'no_clasificado' && (
+                                  {tratamientoToSentimiento(item.tratamientoPeriodistico) && tratamientoToSentimiento(item.tratamientoPeriodistico) !== 'no_clasificado' && (
                                     <>
                                       <span className="text-slate-700">·</span>
-                                      <span style={{ color: sentimientoColor(item.sentimiento) }}>{item.sentimiento}</span>
+                                      <span style={{ color: sentimientoColor(tratamientoToSentimiento(item.tratamientoPeriodistico)) }}>{tratamientoToSentimiento(item.tratamientoPeriodistico)}</span>
                                     </>
                                   )}
                                   {item.eje && (

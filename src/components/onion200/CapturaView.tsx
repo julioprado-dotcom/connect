@@ -1,4 +1,5 @@
 'use client';
+import { tratamientoToSentimiento } from '@/lib/utils/sentimiento';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
@@ -600,9 +601,9 @@ export function CapturaView() {
           ) : (
             <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-1">
               {menciones.map(m => {
-                const sentColor = sentimentColor(m.sentimiento || 'no_clasificado');
-                const sentBg = sentimentBg(m.sentimiento || 'no_clasificado');
-                const sentLabel = sentimentLabel(m.sentimiento || 'no_clasificado');
+                const sentColor = sentimentColor(tratamientoToSentimiento(m.tratamientoPeriodistico) || 'no_clasificado');
+                const sentBg = sentimentBg(tratamientoToSentimiento(m.tratamientoPeriodistico) || 'no_clasificado');
+                const sentLabel = sentimentLabel(tratamientoToSentimiento(m.tratamientoPeriodistico));
 
                 return (
                   <button
