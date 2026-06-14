@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     const medioId = searchParams.get('medioId');
     const sentimiento = searchParams.get('sentimiento');
     const tipoMencion = searchParams.get('tipoMencion');
+    const sinTratamiento = searchParams.get('sinTratamiento');
     const fechaDesde = searchParams.get('fechaDesde');
     const fechaHasta = searchParams.get('fechaHasta');
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
@@ -19,6 +20,7 @@ export async function GET(request: NextRequest) {
     if (medioId) where.medioId = medioId;
     if (sentimiento) where.sentimiento = sentimiento;
     if (tipoMencion) where.tipoMencion = tipoMencion;
+    if (sinTratamiento === 'true') where.tratamientoPeriodistico = null;
     if (fechaDesde || fechaHasta) {
       where.fechaCaptura = {};
       if (fechaDesde) (where.fechaCaptura as Record<string, unknown>).gte = new Date(fechaDesde);

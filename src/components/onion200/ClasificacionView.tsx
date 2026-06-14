@@ -210,7 +210,7 @@ export function ClasificacionView() {
   const fetchPendientes = useCallback(async () => {
     try {
       const res = await fetchWithTimeout(
-        '/api/menciones?limit=50&sentimiento=no_clasificado&orderBy=fechaCaptura&orderDir=desc',
+        '/api/menciones?limit=50&sinTratamiento=true',
         { timeoutMs: 8000 }
       );
       if (res.ok) {

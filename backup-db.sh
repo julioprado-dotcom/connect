@@ -78,8 +78,8 @@ if [ "$FORCE_MODE" = false ] && [ "$LAST_SIZE_BYTES" -gt 0 ]; then
 fi
 
 # ─── Stats de la DB ─────────────────────────────────────────
-MENCIONES=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM Mencion;" 2>/dev/null || echo "?")
-CLASIFICADAS=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM Mencion WHERE clasificacion != 'no_clasificado';" 2>/dev/null || echo "?")
+MENCIONES=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM Mencion WHERE esDuplicado = 0;" 2>/dev/null || echo "?")
+CLASIFICADAS=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM Mencion WHERE esDuplicado = 0 AND tratamientoPeriodistico IS NOT NULL;" 2>/dev/null || echo "?")
 
 log "DB: ${DB_PATH} (${SIZE_MB}MB)"
 log "Menciones: ${MENCIONES} (${CLASIFICADAS} clasificadas)"

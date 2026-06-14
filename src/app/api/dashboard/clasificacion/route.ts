@@ -136,15 +136,13 @@ export async function GET() {
           tratamientoPeriodistico: null,
           esDuplicado: false,
         },
-        include: {
-          Medio: { select: { nombre: true } },
-        },
         orderBy: { fechaCaptura: 'desc' },
         take: 20,
         select: {
           id: true,
           titulo: true,
           fechaCaptura: true,
+          Medio: { select: { nombre: true } },
         },
       });
 
@@ -152,7 +150,7 @@ export async function GET() {
         id: m.id,
         titulo: m.titulo || 'Sin título',
         medioNombre: m.Medio?.nombre || 'Desconocido',
-        fechaCaptura: m.fechaCaptura.toISOString(),
+        fechaCaptura: m.fechaCaptura instanceof Date ? m.fechaCaptura.toISOString() : String(m.fechaCaptura),
       }));
     } catch {
       console.log('[API /dashboard/clasificacion] Pendientes query failed');
