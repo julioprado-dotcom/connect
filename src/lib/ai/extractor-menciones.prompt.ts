@@ -402,31 +402,6 @@ Si no se proporcionan menciones existentes, omítelos (o usa "es_nuevo" y null).
 }
 
 /**
- * Map tratamiento_periodistico to a backward-compatible sentimiento value.
- */
-export function tratamientoToSentimiento(tratamiento: string): string {
-  switch (tratamiento) {
-    case 'tratamiento_informativo':
-      return 'neutro';
-    case 'tratamiento_analitico':
-      return 'neutro';
-    case 'tratamiento_critico':
-      return 'negativo';
-    case 'tratamiento_editorial':
-      return 'neutro';
-    case 'tratamiento_agresivo':
-      return 'negativo';
-    case 'tratamiento_elogioso':
-      return 'positivo';
-    case 'tratamiento_ambiguo':
-      return 'mixto';
-    case 'sin_tratamiento':
-    default:
-      return 'no_clasificado';
-  }
-}
-
-/**
  * Derive tipoMencion from tratamiento periodístico + presence of direct quote.
  * - Direct quote + critical/aggressive treatment → mencion_critica
  * - Direct quote + elogioso treatment → mencion_activa

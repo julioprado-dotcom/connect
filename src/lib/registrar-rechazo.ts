@@ -56,7 +56,6 @@ export async function registrarRechazo(params: RegistrarRechazoParams): Promise<
         respuestaLLM: respuestaTruncada,
         es_relevante: params.resultado?.es_relevante === true ? 'true' : 'false',
         tratamiento: params.resultado?.tratamientoPeriodistico || null,
-        sentimiento: params.resultado?.sentimiento_general || null,
         confianza: params.resultado?.confianzaClasificacion || null,
         textoLen: (params.texto || '').length,
       },

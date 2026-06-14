@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       const temas = (ejes || [])
         .map((et) => et.ejeTematico.nombre)
         .join(', ')
-      return `- [${medio?.nivel || '?'}] "${m.titulo}" (${medio?.nombre || '—'}) — Sentimiento: ${m.sentimiento} — Temas: ${temas}`
+      return `- [${medio?.nivel || '?'}] "${m.titulo}" (${medio?.nombre || '—'}) — Sentimiento: ${m.tratamientoPeriodistico} — Temas: ${temas}`
     }).join('\n')
 
     // 4. Construir prompt de usuario

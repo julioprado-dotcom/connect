@@ -53,7 +53,7 @@ export async function GET() {
         id: m.id,
         titulo: m.titulo,
         tratamiento: m.tratamientoPeriodistico,
-        sentimiento: m.sentimiento,
+        sentimiento: m.tratamientoPeriodistico,
         fechaCaptura: m.fechaCaptura,
         persona: m.persona ? {
           nombre: m.persona.nombre,

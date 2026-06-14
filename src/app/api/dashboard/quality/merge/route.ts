@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const menciones = await db.mencion.findMany({
       where: { id: { in: grupoIds } },
       select: {
-        id: true, ejeEstructuralId: true, sentimiento: true,
+        id: true, ejeEstructuralId: true,
         tratamientoPeriodistico: true, confianzaClasificacion: true,
         textoCompleto: true, personaId: true, tipoMencion: true,
         preguntasFundamentales: true, fechaClasificacion: true,
@@ -49,13 +49,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Si la mejor no tiene sentimiento pero alguna descartada sí
-    if (!mejor.sentimiento || mejor.sentimiento === 'no_clasificado') {
-      const sentDeDescarte = descartar.find(m => m.sentimiento && m.sentimiento !== 'no_clasificado')
-      if (sentDeDescarte) {
-        actualizaciones.sentimiento = sentDeDescarte.sentimiento
-      }
-    }
 
     // Si la mejor no tiene texto original largo pero alguna descartada sí
     if ((!mejor.textoCompleto || mejor.textoCompleto.length < 500)) {
@@ -166,7 +159,7 @@ export async function POST(request: NextRequest) {
 function scoreMencion(m: Record<string, unknown>): number {
   let score = 0
   if (m.ejeEstructuralId) score += 5
-  if (m.sentimiento && m.sentimiento !== 'no_clasificado') score += 3
+  if (m.tratamientoPeriodistico && m.tratamientoPeriodistico !== 'no_clasificado') score += 3
   if (m.tratamientoPeriodistico) score += 3
   if (m.confianzaClasificacion) score += 2
   if (m.personaId) score += 4

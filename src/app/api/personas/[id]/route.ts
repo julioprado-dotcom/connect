@@ -41,13 +41,13 @@ export async function GET(
     // Sentimiento promedio (importado de constants/colors — fuente única)
     const allMenciones = await db.mencion.findMany({
       where: { personaId: id },
-      select: { sentimiento: true },
+      select: { },
     });
 
     let sentimientoSum = 0;
     const temasCount: Record<string, number> = {};
     for (const m of allMenciones) {
-      sentimientoSum += SENTIMENT_SCORES[m.sentimiento] ?? 3;
+      sentimientoSum += SENTIMENT_SCORES[m.tratamientoPeriodistico] ?? 3;
       // We could also collect temas here but they're on the full mencion record
     }
     const sentimientoPromedio = allMenciones.length > 0 ? sentimientoSum / allMenciones.length : 0;

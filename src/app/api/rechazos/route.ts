@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
         respuestaLLM: r.respuestaLLM,
         es_relevante: r.es_relevante,
         tratamiento: r.tratamiento,
-        sentimiento: r.sentimiento,
+        sentimiento: r.tratamiento,
         confianza: r.confianza,
         textoLen: r.textoLen,
         createdAt: r.createdAt,

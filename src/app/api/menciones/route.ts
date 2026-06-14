@@ -18,7 +18,6 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = {};
     if (personaId) where.personaId = personaId;
     if (medioId) where.medioId = medioId;
-    if (sentimiento) where.sentimiento = sentimiento;
     if (tipoMencion) where.tipoMencion = tipoMencion;
     if (sinTratamiento === 'true') where.tratamientoPeriodistico = null;
     if (fechaDesde || fechaHasta) {

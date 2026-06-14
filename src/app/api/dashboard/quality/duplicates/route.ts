@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         where: { url: { not: '' } },
         select: {
           id: true, url: true, titulo: true, medioId: true, personaId: true,
-          sentimiento: true, ejeEstructuralId: true, tipoMencion: true,
+          ejeEstructuralId: true, tipoMencion: true,
           fechaCaptura: true, fechaClasificacion: true,
           tratamientoPeriodistico: true, confianzaClasificacion: true,
           textoCompleto: true, esDuplicado: true, mencionOriginalId: true,
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
           medioId: m.medioId,
           persona: (m as any).Persona?.nombre || null,
           personaId: m.personaId,
-          sentimiento: m.sentimiento,
+          sentimiento: m.tratamientoPeriodistico,
           eje: (m as any).EjeTematico?.nombre || null,
           ejeId: m.ejeEstructuralId,
           tipo: m.tipoMencion,
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
         where: { titulo: { not: '' } },
         select: {
           id: true, url: true, titulo: true, medioId: true,
-          sentimiento: true, ejeEstructuralId: true,
+          ejeEstructuralId: true,
           tratamientoPeriodistico: true, confianzaClasificacion: true,
           textoCompleto: true, esDuplicado: true,
           Medio: { select: { nombre: true } },
@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
           url: m.url,
           medio: (m as any).Medio?.nombre || 'Desconocido',
           medioId: m.medioId,
-          sentimiento: m.sentimiento,
+          sentimiento: m.tratamientoPeriodistico,
           eje: (m as any).EjeTematico?.nombre || null,
           ejeId: m.ejeEstructuralId,
           tratamiento: m.tratamientoPeriodistico,
@@ -249,7 +249,7 @@ export async function DELETE(request: NextRequest) {
 function calcularScore(m: Record<string, unknown>): number {
   let score = 0
   if (m.ejeEstructuralId) score += 5
-  if (m.sentimiento && m.sentimiento !== 'no_clasificado') score += 3
+  if (m.tratamientoPeriodistico && m.tratamientoPeriodistico !== 'no_clasificado') score += 3
   if (m.tratamientoPeriodistico) score += 3
   if (m.confianzaClasificacion) score += 2
   if (m.personaId) score += 4

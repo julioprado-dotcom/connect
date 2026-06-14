@@ -109,7 +109,7 @@ async function getMencionesEspecializado(
     textoCompleto: m.textoCompleto,
     tratamientoPeriodistico: m.tratamientoPeriodistico,
     intencionMedio: m.intencionMedio,
-    sentimiento: m.sentimiento,
+    sentimiento: m.tratamientoPeriodistico,
     fechaPublicacion: m.fechaPublicacion,
     fechaCaptura: m.fechaCaptura,
     url: m.url,

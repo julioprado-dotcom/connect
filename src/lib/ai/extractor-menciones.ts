@@ -18,7 +18,8 @@ import { registrarRechazo, RECHAZO_MOTIVO } from '@/lib/registrar-rechazo';
 
 import { MarcoData, getMarcoConceptualCached, getPersonasCached, getEjesCached, getTemasRecientesCached, getIndicadoresCached } from './extractor-menciones.cache';
 import { DEFAULT_ESCALA, VALID_INTENCIONES } from './extractor-menciones.config';
-import { buildSystemPrompt, tratamientoToSentimiento, tratamientoToTipoMencion } from './extractor-menciones.prompt';
+import { buildSystemPrompt, tratamientoToTipoMencion } from './extractor-menciones.prompt';
+import { tratamientoToSentimiento } from '@/lib/utils/sentimiento';
 import { extraerTextoDeHtml, persistDebugLog } from './extractor-menciones.html';
 
 // ─── Re-export everything for backward compatibility ──────────
@@ -26,7 +27,7 @@ import { extraerTextoDeHtml, persistDebugLog } from './extractor-menciones.html'
 export { extraerTextoDeHtml } from './extractor-menciones.html';
 export { DEFAULT_ESCALA, DEFAULT_INTENCION, VALID_INTENCIONES, DEFAULT_PREGUNTAS, DEFAULT_PRINCIPIOS } from './extractor-menciones.config';
 export { MarcoData, safeJson, getMarcoConceptualCached, getPersonasCached, getEjesCached, getTemasRecientesCached, getIndicadoresCached } from './extractor-menciones.cache';
-export { buildSystemPrompt, tratamientoToSentimiento, tratamientoToTipoMencion } from './extractor-menciones.prompt';
+export { buildSystemPrompt, tratamientoToTipoMencion } from './extractor-menciones.prompt';
 export { persistDebugLog } from './extractor-menciones.html';
 
 // ─── Interfaces ──────────────────────────────────────────────────
@@ -938,7 +939,7 @@ export async function crearMencionesExtraidas(
   try {
     const existenteUrl = await db.mencion.findFirst({
       where: { url },
-      select: { id: true, medioId: true, ejeEstructuralId: true, sentimiento: true, textoCompleto: true },
+      select: { id: true, medioId: true, ejeEstructuralId: true, textoCompleto: true },
     });
     if (existenteUrl) {
       // Enriquecer existente si no tiene texto original y la nueva trae uno
@@ -989,7 +990,6 @@ export async function crearMencionesExtraidas(
     intencionMedio: resultado.intencionMedio,
     confianzaClasificacion: resultado.confianzaClasificacion,
     preguntasFundamentales: resultado.preguntas_fundamentales as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-    sentimiento: resultado.sentimiento_general, // backward-compatible sentiment from tratamiento
     temas: resultado.temas_detectados.join(', '),
     // FECHAS DEL PIPELINE:
     // fechaCaptura: cuándo se scrapeó (viene de NotaRaw, no es now())

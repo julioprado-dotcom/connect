@@ -136,9 +136,9 @@ export function MencionDetailModal({
     if (e.target === modalRef.current) onClose();
   };
 
-  const sColor = detail ? sentimentColor(detail.sentimiento) : '#64748b';
-  const sLabel = detail ? sentimentLabel(detail.sentimiento) : '---';
-  const sBg = detail ? sentimentBg(detail.sentimiento) : 'transparent';
+  const sColor = detail ? sentimentColor(detail.tratamientoPeriodistico) : '#64748b';
+  const sLabel = detail ? sentimentLabel(detail.tratamientoPeriodistico) : '---';
+  const sBg = detail ? sentimentBg(detail.tratamientoPeriodistico) : 'transparent';
 
   return (
     <div

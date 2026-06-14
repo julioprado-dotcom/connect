@@ -120,7 +120,6 @@ model Comentario {
   mencionId       String
   autor           String    @default("")
   texto           String
-  sentimiento     String    @default("no_clasificado")
   fechaComentario DateTime?
   fechaCaptura    DateTime  @default(now())
   Mencion         Mencion   @relation(fields: [mencionId], references: [id], onDelete: Cascade)
@@ -425,7 +424,6 @@ model Mencion {
   textoCompleto           String                @default("")
   comentariosCount        Int                   @default(0)
   comentariosResumen      String                @default("")
-  sentimiento             String                @default("no_clasificado")
   tratamientoPeriodistico String?
   confianzaClasificacion  String?
   preguntasFundamentales  Json?
@@ -457,7 +455,6 @@ model Mencion {
   @@index([fechaCaptura])
   @@index([fechaClasificacion])
   @@index([personaId])
-  @@index([sentimiento])
   @@index([fechaPublicacion])
   @@index([personaId, medioId, url])
   @@index([medioId, url])
@@ -696,7 +693,6 @@ model RechazoCaptura {
   respuestaLLM   String   @default("")
   es_relevante  String   @default("false")
   tratamiento   String?
-  sentimiento   String?
   confianza     String?
   textoLen      Int      @default(0)
   createdAt     DateTime @default(now())

@@ -279,8 +279,8 @@ export function GeneratorDedicatedPanel({
                       <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
                         {(generatorData.mencionesPreview as Array<{ id: string; titulo: string; sentimiento: string; persona: { nombre: string } | null; fechaCaptura: string; medio: { nombre: string } }>).map((m) => (
                           <div key={m.id} className="flex items-start gap-2 p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                            <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-medium shrink-0 mt-0.5 ${SENTIMIENTO_STYLES[m.sentimiento] || ''}`}>
-                              {(m.sentimiento || '').replace('_', ' ')}
+                            <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-medium shrink-0 mt-0.5 ${SENTIMIENTO_STYLES[m.tratamientoPeriodistico] || ''}`}>
+                              {(m.tratamientoPeriodistico || '').replace('_', ' ')}
                             </span>
                             <div className="flex-1 min-w-0">
                               <p className="text-[11px] text-foreground font-medium truncate">{m.titulo}</p>
@@ -541,8 +541,8 @@ export function GeneratorDedicatedPanel({
                       <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
                         {(generatorData.mencionesPreview as Array<{ id: string; titulo: string; sentimiento: string; persona: { nombre: string } | null; fechaCaptura: string; medio: { nombre: string }; ejes: Array<{ nombre: string; color: string }> }>).map((m) => (
                           <div key={m.id} className="flex items-start gap-2 p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                            <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-medium shrink-0 mt-0.5 ${SENTIMIENTO_STYLES[m.sentimiento] || ''}`}>
-                              {(m.sentimiento || '').replace('_', ' ')}
+                            <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-medium shrink-0 mt-0.5 ${SENTIMIENTO_STYLES[m.tratamientoPeriodistico] || ''}`}>
+                              {(m.tratamientoPeriodistico || '').replace('_', ' ')}
                             </span>
                             <div className="flex-1 min-w-0">
                               <p className="text-[11px] text-foreground font-medium truncate">{m.titulo}</p>
@@ -774,8 +774,8 @@ export function GeneratorDedicatedPanel({
                       <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
                         {(generatorData.menciones as Array<{ id: string; titulo: string; sentimiento: string; persona: { nombre: string } | null; fechaCaptura: string }>).slice(0, 15).map((m) => (
                           <div key={m.id} className="flex items-start gap-2 p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                            <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-medium shrink-0 mt-0.5 ${SENTIMIENTO_STYLES[m.sentimiento] || ''}`}>
-                              {(m.sentimiento || '').replace('_', ' ')}
+                            <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-medium shrink-0 mt-0.5 ${SENTIMIENTO_STYLES[m.tratamientoPeriodistico] || ''}`}>
+                              {(m.tratamientoPeriodistico || '').replace('_', ' ')}
                             </span>
                             <div className="flex-1 min-w-0">
                               <p className="text-[11px] text-foreground font-medium truncate">{m.titulo}</p>

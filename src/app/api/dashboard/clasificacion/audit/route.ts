@@ -62,7 +62,7 @@ export async function GET() {
               id: true,
               titulo: true,
               tipoMencion: true,
-              sentimiento: true,
+              
               tratamientoPeriodistico: true,
               confianzaClasificacion: true,
               intencionMedio: true,
@@ -85,7 +85,7 @@ export async function GET() {
           mencionesDetalle: menciones.map((m) => ({
             id: m.id,
             tipoMencion: m.tipoMencion,
-            sentimiento: m.sentimiento,
+            sentimiento: m.tratamientoPeriodistico,
             tratamiento: m.tratamientoPeriodistico || '-',
             confianza: m.confianzaClasificacion || '-',
             intencionMedio: m.intencionMedio || '-',
@@ -109,7 +109,7 @@ export async function GET() {
         id: true,
         titulo: true,
         tipoMencion: true,
-        sentimiento: true,
+        
         tratamientoPeriodistico: true,
         confianzaClasificacion: true,
         intencionMedio: true,
@@ -130,7 +130,7 @@ export async function GET() {
       id: m.id,
       titulo: m.titulo ? m.titulo.substring(0, 80) : 'Sin titulo',
       tipo: m.tipoMencion,
-      sentimiento: m.sentimiento,
+      sentimiento: m.tratamientoPeriodistico,
       tratamiento: m.tratamientoPeriodistico || '-',
       confianza: m.confianzaClasificacion || '-',
       intencionMedio: m.intencionMedio || '-',

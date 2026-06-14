@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       medio: m.Medio?.nombre ?? null,
       persona: persona.nombre,
       fechaPublicacion: formatFechaBolivia(m.fechaPublicacion ?? m.fechaCaptura),
-      sentimiento: m.sentimiento,
+      sentimiento: m.tratamientoPeriodistico,
       relevancia: 5,
       temas: m.MencionTema.map((mt) => mt.EjeTematico.slug),
       url: m.url,

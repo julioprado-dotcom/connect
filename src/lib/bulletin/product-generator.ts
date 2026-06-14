@@ -94,7 +94,7 @@ export async function getMencionesForBulletin(
     camara: m.Persona?.camara ?? null,
     medio: m.Medio?.nombre ?? 'Desconocido',
     medioTipo: m.Medio?.tipo ?? null,
-    sentimiento: m.tratamientoPeriodistico || m.sentimiento,
+    sentimiento: m.tratamientoPeriodistico,
     tratamientoPeriodistico: m.tratamientoPeriodistico,
     intencionMedio: m.intencionMedio,
     confianzaClasificacion: m.confianzaClasificacion,

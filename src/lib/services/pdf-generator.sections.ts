@@ -172,7 +172,7 @@ export const generarTablaMenciones = (menciones: readonly MencionInforme[]): str
 
   const filas = menciones
     .map((m) => {
-      const sentBadge = `badge-${m.sentimiento}`;
+      const sentBadge = `badge-${m.tratamientoPeriodistico}`;
       const urlCell = m.url
         ? `<a href="${escapeHTML(m.url)}" class="url-link" target="_blank">Ver fuente</a>`
         : '';
@@ -186,7 +186,7 @@ export const generarTablaMenciones = (menciones: readonly MencionInforme[]): str
           <td>${escapeHTML(m.medio)}</td>
           <td>${escapeHTML(m.fecha)}</td>
           <td>${escapeHTML(m.titular)}</td>
-          <td><span class="badge ${sentBadge}">${etiquetaSentimiento(m.sentimiento)}</span></td>
+          <td><span class="badge ${sentBadge}">${etiquetaSentimiento(m.tratamientoPeriodistico)}</span></td>
           <td>${escapeHTML(m.ejeTematico)}</td>
           <td>${urlCell}</td>
         </tr>

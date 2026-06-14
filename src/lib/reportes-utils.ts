@@ -232,9 +232,9 @@ export function calculateSentimiento(
   let total = 0
   const distribucion: Record<string, number> = {}
   for (const m of menciones) {
-    const score = SENTIMENT_SCORES[m.sentimiento] ?? 3
+    const score = SENTIMENT_SCORES[m.tratamientoPeriodistico] ?? 3
     total += score
-    distribucion[m.sentimiento] = (distribucion[m.sentimiento] || 0) + 1
+    distribucion[m.tratamientoPeriodistico] = (distribucion[m.tratamientoPeriodistico] || 0) + 1
   }
   const promedio = total / menciones.length
   const label = sentimentScoreLabel(promedio)
@@ -395,8 +395,8 @@ const DEDICATED_RESUMEN_MAP: Partial<Record<TipoBoletin, ResumenFn>> = {
     const menciones = (data.menciones as Array<Record<string, string>>) ?? [];
     const fecha = data.fecha as string;
     const total = menciones.length;
-    const positivos = menciones.filter(m => m.sentimiento === 'positivo').length;
-    const negativos = menciones.filter(m => m.sentimiento === 'negativo').length;
+    const positivos = menciones.filter(m => m.tratamientoPeriodistico === 'positivo').length;
+    const negativos = menciones.filter(m => m.tratamientoPeriodistico === 'negativo').length;
     return `Periodo: ${fecha} | Menciones: ${total} | Positivas: ${positivos} | Negativas: ${negativos}`;
   },
 
@@ -508,7 +508,7 @@ export function formatearMencionesPrompt(menciones: any[]): string {
       `   - Fecha: ${m.fechaPublicacion ?? 'N/D'}`,
     ];
     if (m.persona) parts.push(`   - Persona: ${m.persona}`);
-    if (m.sentimiento) parts.push(`   - Sentimiento: ${m.sentimiento}`);
+    if (m.tratamientoPeriodistico) parts.push(`   - Sentimiento: ${m.tratamientoPeriodistico}`);
     if (m.resumen) parts.push(`   - Resumen: ${m.resumen}`);
     if (m.temas && m.temas.length > 0) parts.push(`   - Ejes: ${m.temas.join(', ')}`);
     if (m.relevancia) parts.push(`   - Relevancia: ${m.relevancia}/10`);

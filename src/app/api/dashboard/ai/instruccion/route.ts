@@ -199,7 +199,7 @@ async function handleCorregirClasificacion(
   const menciones = await db.mencion.findMany({
     take: 5,
     orderBy: { fechaCaptura: 'desc' },
-    select: { id: true, titulo: true, temas: true, sentimiento: true },
+    select: { id: true, titulo: true, temas: true },
   });
 
   return {
@@ -332,7 +332,7 @@ async function handleResumirPeriodo(
     select: {
       id: true,
       titulo: true,
-      sentimiento: true,
+      
       temas: true,
       fechaCaptura: true,
       Persona: { select: { nombre: true } },
@@ -346,7 +346,7 @@ async function handleResumirPeriodo(
     try {
       const zai = await ZAI.create();
       const mencionesText = menciones.slice(0, 20).map((m, i) =>
-        `${i + 1}. [${m.Medio?.nombre || 'N/A'}] ${m.titulo} — ${m.persona?.nombre || 'N/A'} (${m.sentimiento})`
+        `${i + 1}. [${m.Medio?.nombre || 'N/A'}] ${m.titulo} — ${m.persona?.nombre || 'N/A'} (${m.tratamientoPeriodistico})`
       ).join('\n');
 
       const completion = await throttledLlmCall(() => zai.chat.completions.create({

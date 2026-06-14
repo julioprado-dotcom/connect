@@ -79,7 +79,7 @@ export async function GET() {
     const mencionesActores = personaIds.length > 0
       ? await db.mencion.findMany({
           where: { personaId: { in: personaIds }, fechaCaptura: { gte: inicioSemana } },
-          select: { personaId: true, sentimiento: true, temas: true },
+          select: { personaId: true, tratamientoPeriodistico: true, temas: true },
         })
       : [];
 
@@ -123,7 +123,7 @@ export async function GET() {
       const temasCount: Record<string, number> = {};
 
       for (const m of menciones) {
-        const s = m.sentimiento || 'no_clasificado';
+        const s = m.tratamientoPeriodistico || 'no_clasificado';
         sentimientoCount[s] = (sentimientoCount[s] || 0) + 1;
         if (m.temas) {
           for (const t of m.temas.split(',').map(x => x.trim()).filter(Boolean)) {

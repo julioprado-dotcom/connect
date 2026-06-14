@@ -28,7 +28,7 @@ export async function GET(
         id: true,
         autor: true,
         texto: true,
-        sentimiento: true,
+        
         fechaComentario: true,
       },
     });

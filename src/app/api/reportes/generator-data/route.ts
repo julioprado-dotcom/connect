@@ -110,7 +110,7 @@ async function handleTermometroSaldo(fecha: string, _ejeSlug: string, tipo: stri
       id: m.id,
       titulo: m.titulo,
       fechaCaptura: m.fechaCaptura,
-      sentimiento: m.sentimiento,
+      sentimiento: m.tratamientoPeriodistico,
       persona: m.Persona ? { nombre: m.Persona.nombre, partidoSigla: m.Persona.partidoSigla } : null,
       medio: { nombre: m.Medio?.nombre },
     })),
@@ -204,7 +204,7 @@ async function handleElFoco(fecha: string, ejeSlug: string, tipo: string) {
   const evolucionHoraria = calculateEvolucionHoraria(menciones, 6, 22);
 
   const mencionesPreview = menciones.slice(0, 20).map(m => ({
-    id: m.id, titulo: m.titulo, fechaCaptura: m.fechaCaptura, sentimiento: m.sentimiento,
+    id: m.id, titulo: m.titulo, fechaCaptura: m.fechaCaptura, sentimiento: m.tratamientoPeriodistico,
     persona: m.Persona ? { nombre: m.Persona.nombre, partidoSigla: m.Persona.partidoSigla } : null,
     medio: { nombre: m.Medio?.nombre },
   }));
@@ -349,7 +349,7 @@ async function handleElRadar(fecha: string, _ejeSlug: string, tipo: string) {
 
   // Preview menciones
   const mencionesPreview = menciones.slice(0, 15).map(m => ({
-    id: m.id, titulo: m.titulo, fechaCaptura: m.fechaCaptura, sentimiento: m.sentimiento,
+    id: m.id, titulo: m.titulo, fechaCaptura: m.fechaCaptura, sentimiento: m.tratamientoPeriodistico,
     persona: m.Persona ? { nombre: m.Persona.nombre, partidoSigla: m.Persona.partidoSigla } : null,
     medio: { nombre: m.Medio?.nombre },
     ejes: m.MencionTema?.filter(mt => mt.EjeTematico?.activo).map(mt => ({ nombre: mt.EjeTematico.nombre, color: mt.EjeTematico.color })) || [],

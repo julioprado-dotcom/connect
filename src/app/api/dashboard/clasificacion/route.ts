@@ -158,7 +158,7 @@ export async function GET() {
 
     // ── Menciones con sentimiento asignado ─────────────────
     const conSentimiento = await db.mencion.count({
-      where: { esDuplicado: false, sentimiento: { not: null } },
+      where: { esDuplicado: false, tratamientoPeriodistico: { not: null } },
     });
 
     const conIntencionMedio = await db.mencion.count({

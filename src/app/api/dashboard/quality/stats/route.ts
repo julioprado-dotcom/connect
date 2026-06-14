@@ -10,7 +10,7 @@ export async function GET() {
 
     // Clasificación
     const clasificadas = await db.mencion.count({
-      where: { sentimiento: { not: 'no_clasificado' } },
+      where: { tratamientoPeriodistico: { not: null } },
     })
     const conEje = await db.mencion.count({
       where: { ejeEstructuralId: { not: null } },
@@ -35,10 +35,6 @@ export async function GET() {
     const marcadosDuplicado = await db.mencion.count({ where: { esDuplicado: true } })
 
     // Distribución de sentimiento
-    const sentDist = await db.mencion.groupBy({
-      by: ['sentimiento'],
-      _count: true,
-    })
 
     // Distribución de confianza
     const confDist = await db.mencion.groupBy({
@@ -82,7 +78,6 @@ export async function GET() {
         pctDuplicados: total > 0 ? Math.round((marcadosDuplicado / total) * 100) : 0,
       },
       distribucion: {
-        sentimiento: sentDist.map(s => ({ valor: s.sentimiento, total: s._count })),
         confianza: confDist.map(c => ({ valor: c.confianzaClasificacion, total: c._count })),
         tratamiento: tratDist.map(t => ({ valor: t.tratamientoPeriodistico, total: t._count })),
       },

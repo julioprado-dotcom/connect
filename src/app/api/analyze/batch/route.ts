@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     // Obtener menciones sin clasificar
     const menciones = await db.mencion.findMany({
-      where: { sentimiento: 'no_clasificado' },
+      where: { tratamientoPeriodistico: null },
       take: limit,
       include: { Persona: { select: { nombre: true } }, Medio: { select: { nombre: true } } },
     });
@@ -62,7 +62,6 @@ export async function POST(request: NextRequest) {
                 texto: primerLegislador.cita || mencion.texto,
                 textoCompleto: primerLegislador.contexto || texto,
                 tipoMencion: 'mencion_pasiva',
-                sentimiento: extraccion.sentimiento_general,
                 tratamientoPeriodistico: extraccion.tratamientoPeriodistico,
                 intencionMedio: extraccion.intencionMedio,
                 confianzaClasificacion: extraccion.confianzaClasificacion,
@@ -105,7 +104,6 @@ export async function POST(request: NextRequest) {
                         textoCompleto: leg.contexto,
                         url: mencion.url,
                         tipoMencion: 'mencion_pasiva',
-                        sentimiento: extraccion.sentimiento_general,
                         tratamientoPeriodistico: extraccion.tratamientoPeriodistico,
                         intencionMedio: extraccion.intencionMedio,
                         confianzaClasificacion: extraccion.confianzaClasificacion,

@@ -31,7 +31,6 @@ export async function POST(request: NextRequest) {
         accion: 'reclasificacion_auto',
         mencion: {
           id: actualizada?.id,
-          sentimiento: actualizada?.sentimiento,
           ejeEstructuralId: actualizada?.ejeEstructuralId,
           tratamiento: actualizada?.tratamientoPeriodistico,
         },
@@ -40,7 +39,6 @@ export async function POST(request: NextRequest) {
 
     if (accion === 'actualizar_manual') {
       // Actualizar campos manualmente
-      if (sentimiento) cambios.sentimiento = sentimiento
       if (tratamiento) cambios.tratamientoPeriodistico = tratamiento
       if (ejeId) cambios.ejeEstructuralId = ejeId
 

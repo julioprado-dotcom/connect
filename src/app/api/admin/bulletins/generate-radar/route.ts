@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
         titulo: m.titulo,
         medio: m.Medio?.nombre ?? null,
         persona: m.Persona?.nombre ?? null,
-        sentimiento: m.sentimiento,
+        sentimiento: m.tratamientoPeriodistico,
       }));
       totalMencionesPorEje[slug] = menciones.length;
     }

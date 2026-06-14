@@ -143,16 +143,14 @@ export async function GET() {
         rows.map(r => ({ nivel: Number(r.nivel), total: Number(r.total) }))
       ),
       db.$queryRaw`
-        SELECT sentimiento, COUNT(id) as total
+        SELECT tratamientoPeriodistico, COUNT(id) as total
         FROM Mencion
-        WHERE sentimiento IS NOT NULL
-          AND sentimiento != ''
-          AND sentimiento != 'no_clasificado'
-          AND sentimiento != 'sin_tratamiento'
-        GROUP BY sentimiento
+        WHERE tratamientoPeriodistico IS NOT NULL
+          AND tratamientoPeriodistico != ''
+        GROUP BY tratamientoPeriodistico
         ORDER BY total DESC
-      `.then((rows: Array<{ sentimiento: string; total: bigint }>) =>
-        rows.map(r => ({ sentimiento: r.sentimiento, total: Number(r.total) }))
+      `.then((rows: Array<{ tratamientoPeriodistico: string; total: bigint }>) =>
+        rows.map(r => ({ tratamientoPeriodistico: r.tratamientoPeriodistico, total: Number(r.total) }))
       ),
       db.$queryRaw`
         SELECT tipoMencion, COUNT(id) as total
@@ -181,10 +179,7 @@ export async function GET() {
       db.$queryRaw<Array<{ c: number }>>`SELECT COUNT(DISTINCT mencionId) as c FROM MencionTema`
         .then(r => (Array.isArray(r) && r[0] ? Number(r[0].c) : 0)),
       db.mencion.count({
-        where: {
-          sentimiento: { not: null, not: '' },
-          NOT: { sentimiento: { in: ['no_clasificado', 'sin_tratamiento'] } },
-        },
+        where: { tratamientoPeriodistico: { not: null } },
       }),
       db.ejeTematico.count({ where: { activo: true } }),
 

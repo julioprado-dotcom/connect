@@ -120,7 +120,7 @@ function generateContenidoTexto(menciones: MencionSlim[], resumen: string, keywo
       `${i + 1}. ${m.titulo}`,
       `   📰 ${m.medioNombre} · ${fecha}`,
       persona ? `   ${persona}` : '',
-      `   ${sentimientoIcon} ${m.sentimiento}`,
+      `   ${sentimientoIcon} ${m.tratamientoPeriodistico}`,
       m.url ? `   🔗 ${m.url}` : '',
     ].filter(Boolean).join('\n');
   });
@@ -145,13 +145,13 @@ function generateContenidoHtml(menciones: MencionSlim[], resumen: string, keywor
     const fecha = m.fechaPublicacion
       ? formatDate(new Date(m.fechaPublicacion))
       : 'Sin fecha';
-    const sentColor = sentimentColor(m.sentimiento || 'no_clasificado');
+    const sentColor = sentimentColor(m.tratamientoPeriodistico || 'no_clasificado');
 
     return `<div style="padding:12px;margin-bottom:8px;background:#12121a;border:1px solid #1a1a2e;border-radius:8px;">
       <div style="font-weight:bold;color:#fff;margin-bottom:4px;">${i + 1}. ${m.titulo}</div>
       <div style="font-size:12px;color:#6b7280;">${m.medioNombre} · ${fecha}</div>
       ${m.personaNombre ? `<div style="font-size:12px;color:#00ff88;">👤 ${m.personaNombre}</div>` : ''}
-      <div style="font-size:11px;color:${sentColor};">${m.sentimiento}</div>
+      <div style="font-size:11px;color:${sentColor};">${m.tratamientoPeriodistico}</div>
       ${m.url ? `<a href="${m.url}" style="font-size:11px;color:#00ff88;">Ver original</a>` : ''}
     </div>`;
   }).join('\n');
@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
         fechaPublicacion: true,
         fechaCaptura: true,
         url: true,
-        sentimiento: true,
+        
         Medio: { select: { nombre: true } },
         Persona: { select: { nombre: true } },
       },
@@ -238,7 +238,7 @@ export async function POST(request: NextRequest) {
       personaNombre: m.persona?.nombre ?? null,
       fechaPublicacion: m.fechaPublicacion?.toISOString() ?? null,
       url: m.url,
-      sentimiento: m.sentimiento,
+      sentimiento: m.tratamientoPeriodistico,
     }));
 
     // ── Generate content ──

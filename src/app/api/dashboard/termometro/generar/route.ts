@@ -65,7 +65,7 @@ export async function POST() {
 
       for (const m of medioMenciones) {
         // Count sentiment
-        switch (m.sentimiento) {
+        switch (m.tratamientoPeriodistico) {
           case 'positivo':
             positiva++;
             break;
