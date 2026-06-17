@@ -6,7 +6,12 @@ import db from '@/lib/db'
 import { Prisma } from '@prisma/client'
 import type { TipoBoletin, ProductoConfig } from '@/types/bulletin'
 import { PRODUCTOS } from '@/constants/products'
-import { boliviaStartOfDay, boliviaStartOfWeek } from '@/lib/date-bolivia'
+import {
+  boliviaStartOfDay,
+  boliviaStartOfYesterday,
+  boliviaDaysAgo,
+  boliviaStartOfWeek,
+} from '@/lib/date-bolivia'
 
 // Obtener config de un producto por tipo
 export function getProductConfig(tipo: TipoBoletin): ProductoConfig | null {
@@ -113,6 +118,65 @@ export async function getMencionesForBulletin(
   }
 }
 
+// ─── CONTEXTO HISTORICO (para tendencias) ─────────────────────────
+// Query ligera: 7 dias de menciones con solo titulo, medio, temas y sentimiento.
+// NO incluye texto completo. Sirve para que la IA detecte tendencias,
+// temas emergentes y evolucion de hechos — pero el producto solo reporta
+// las menciones de la ventana principal.
+export async function getContextMenciones(
+  dias: number = 7,
+  excludeAfter?: Date,
+): Promise<Array<Record<string, unknown>>> {
+  const hoy = boliviaStartOfDay()
+  const inicio = boliviaDaysAgo(dias)
+  const fin = excludeAfter ?? hoy
+
+  const inicioMs = inicio.getTime()
+  const finMs = fin.getTime()
+
+  const sql = Prisma.sql`
+    SELECT m.id, m.titulo, m.fechaCaptura,
+           p.nombre as persona, p.partidoSigla,
+           md.nombre as medio,
+           m.sentimiento, m.tratamientoPeriodistico
+    FROM Mencion m
+    LEFT JOIN Persona p ON m.personaId = p.id
+    LEFT JOIN Medio md ON m.medioId = md.id
+    WHERE m.esDuplicado = 0
+      AND (
+        (m.fechaPublicacion IS NOT NULL AND m.fechaPublicacion >= ${inicioMs} AND m.fechaPublicacion < ${finMs})
+        OR
+        (m.fechaPublicacion IS NULL AND m.fechaCaptura >= ${inicioMs} AND m.fechaCaptura < ${finMs})
+      )
+    ORDER BY m.fechaCaptura DESC
+    LIMIT 200
+  `
+  const rows = await db.$queryRaw<Array<Record<string, unknown>>>(sql)
+
+  const mids = rows.map(r => r.id as string)
+  let temaMap: Record<string, string[]> = {}
+  if (mids.length > 0) {
+    const temas = await db.mencionTema.findMany({
+      where: { mencionId: { in: mids } },
+      include: { EjeTematico: { select: { nombre: true } } },
+    })
+    for (const t of temas) {
+      if (!temaMap[t.mencionId]) temaMap[t.mencionId] = []
+      temaMap[t.mencionId].push(t.EjeTematico.nombre)
+    }
+  }
+
+  return rows.map(r => ({
+    titulo: r.titulo,
+    medio: r.medio ?? 'Desconocido',
+    persona: r.persona ?? null,
+    partidoSigla: r.partidoSigla ?? null,
+    sentimiento: (r.tratamientoPeriodistico as string) || (r.sentimiento as string) || null,
+    temas: temaMap[r.id as string] ?? [],
+    fechaCaptura: r.fechaCaptura,
+  }))
+}
+
 // Formatear fecha en zona horaria de Bolivia (America/La_Paz, UTC-4)
 export function formatFechaBolivia(date: Date): string {
   const opciones: Intl.DateTimeFormatOptions = {
@@ -124,42 +188,62 @@ export function formatFechaBolivia(date: Date): string {
   return date.toLocaleDateString('es-BO', opciones)
 }
 
-// Obtener rango de fechas por tipo de producto
+// Obtener rango de fechas por tipo de producto.
+// Lee la ventana configurada en PRODUCTOS[tipo].generador.ventana.
+// Siempre devuelve [inicio, fin) — fin es exclusivo.
 export function getDateRange(tipo: string): { fechaInicio: Date; fechaFin: Date } {
-  const hoy = boliviaStartOfDay();
+  const config = PRODUCTOS[tipo as TipoBoletin]
+  const ventana = config?.generador?.ventana ?? 'estandar'
+  const hoy = boliviaStartOfDay()
+  const maniana = new Date(hoy.getTime() + 24 * 60 * 60 * 1000)
 
-  switch (tipo) {
-    case 'EL_RADAR':
-    case 'BOLETIN_DEL_GRANO': {
-      // Semana pasada (lunes a domingo) en Bolivia timezone
-      const lunesActual = boliviaStartOfWeek()
-      const lunesPasado = new Date(lunesActual.getTime() - 7 * 24 * 60 * 60 * 1000)
-      const domingoPasado = new Date(lunesPasado.getTime() + 6 * 24 * 60 * 60 * 1000)
-      return { fechaInicio: lunesPasado, fechaFin: domingoPasado }
+  switch (ventana) {
+    // ── EL_TERMOMETRO: ayer 19:00 Bolivia → hoy 07:00 Bolivia ──
+    case 'nocturna': {
+      const ayerInicio = boliviaStartOfYesterday()
+      const inicio = new Date(ayerInicio.getTime() + 19 * 60 * 60 * 1000) // ayer 19:00 BO
+      const fin = new Date(hoy.getTime() + 7 * 60 * 60 * 1000)             // hoy 07:00 BO
+      return { fechaInicio: inicio, fechaFin: fin }
     }
 
-    case 'EL_TERMOMETRO':
-    case 'EL_FOCO':
-    case 'EL_ESPECIALIZADO':
-    case 'SALDO_DEL_DIA':
-    case 'EL_HILO':
-    case 'ALERTA_TEMPRANA':
-    default: {
-      // Últimos 7 días (inclusive hoy hasta fin de día)
-      const inicio = new Date(hoy)
-      inicio.setDate(hoy.getDate() - 7)
-      const maniana = new Date(hoy)
-      maniana.setDate(hoy.getDate() + 1)
+    // ── SALDO_DEL_DIA: hoy 07:00 Bolivia → hoy 19:00 Bolivia ──
+    case 'diurna': {
+      const inicio = new Date(hoy.getTime() + 7 * 60 * 60 * 1000)   // hoy 07:00 BO
+      const fin = new Date(hoy.getTime() + 19 * 60 * 60 * 1000)     // hoy 19:00 BO
+      return { fechaInicio: inicio, fechaFin: fin }
+    }
+
+    // ── EL_FOCO: dia completo (00:00 → 23:59:59.999) ──
+    case 'dia_completo': {
+      const fin = new Date(hoy.getTime() + 24 * 60 * 60 * 1000 - 1) // hoy 23:59:59.999 BO
+      return { fechaInicio: hoy, fechaFin: fin }
+    }
+
+    // ── EL_ESPECIALIZADO: ultimos 2 dias completos ──
+    case '2dias': {
+      const inicio = boliviaDaysAgo(2)
       return { fechaInicio: inicio, fechaFin: maniana }
     }
 
-    case 'FICHA_LEGISLADOR': {
-      // Últimos 30 días (inclusive hoy hasta fin de día)
-      const inicio30 = new Date(hoy)
-      inicio30.setDate(hoy.getDate() - 30)
-      const maniana30 = new Date(hoy)
-      maniana30.setDate(hoy.getDate() + 1)
-      return { fechaInicio: inicio30, fechaFin: maniana30 }
+    // ── Semanales: semana pasada lunes 00:00 → domingo 23:59:59.999 ──
+    case 'semanal': {
+      const lunesActual = boliviaStartOfWeek()
+      const lunesPasado = new Date(lunesActual.getTime() - 7 * 24 * 60 * 60 * 1000)
+      const domingoFin = new Date(lunesActual.getTime() - 1) // domingo 23:59:59.999
+      return { fechaInicio: lunesPasado, fechaFin: domingoFin }
+    }
+
+    // ── FICHA_LEGISLADOR: ultimos 30 dias ──
+    case 'mensual': {
+      const inicio = boliviaDaysAgo(30)
+      return { fechaInicio: inicio, fechaFin: maniana }
+    }
+
+    // ── Por defecto (estandar): usa periodoDefault de la config ──
+    default: {
+      const dias = config?.periodoDefault ?? 1
+      const inicio = dias > 1 ? boliviaDaysAgo(dias) : hoy
+      return { fechaInicio: inicio, fechaFin: maniana }
     }
   }
 }

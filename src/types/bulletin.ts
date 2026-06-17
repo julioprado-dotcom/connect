@@ -37,6 +37,7 @@ export type VentanaTipo =
   | 'nocturna'       // El Termómetro: ayer 19:00 → hoy 07:00
   | 'diurna'         // Saldo del Día: 07:00 → 19:00
   | 'dia_completo'   // El Foco: 00:00 → 23:59
+  | '2dias'          // El Especializado: últimos 2 días completos
   | 'semanal'        // El Radar: lunes 00:00 → domingo 23:59
   | 'quincenal'      // Informe Quincenal: 15 días
   | 'mensual'        // Informe Mensual: 30 días

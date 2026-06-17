@@ -15,7 +15,7 @@
 //   menciones = 0 → NO crea Reporte → registra alerta máxima → notifica
 
 import db from '@/lib/db'
-import { getMencionesForBulletin, getProductConfig, formatFechaBolivia, getDateRange } from '@/lib/bulletin/product-generator'
+import { getMencionesForBulletin, getProductConfig, formatFechaBolivia, getDateRange, getContextMenciones } from '@/lib/bulletin/product-generator'
 import { PRODUCTOS } from '@/constants/products'
 import type { TipoBoletin } from '@/types/bulletin'
 import type { JobPayload, RunnerResult } from '../types'
@@ -171,8 +171,17 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
     }
 
     // 4. Formatear menciones y construir prompt
-    const { formatearMencionesPrompt, construirPrompt, generarTituloProducto, getDedicatedResumen } = await import('@/lib/reportes-utils')
+    const { formatearMencionesPrompt, construirPrompt, generarTituloProducto, getDedicatedResumen, formatearContextoHistorico } = await import('@/lib/reportes-utils')
     const mencionesPrompt = formatearMencionesPrompt(menciones as unknown as Array<Record<string, unknown>>)
+
+    // Contexto historico (7 dias, solo titulos) para tendencia
+    let contextoHistoricoPrompt = ''
+    try {
+      const contextoMenciones = await getContextMenciones(7, fechaInicio)
+      contextoHistoricoPrompt = formatearContextoHistorico(contextoMenciones)
+    } catch (err) {
+      console.warn(`[generar_boletin] Error contexto historico (no bloqueante):`, err)
+    }
 
     const range = getDateRange(tipoBoletin)
     const ventanaLabel = `${formatFechaBolivia(range.fechaInicio)} — ${formatFechaBolivia(range.fechaFin)}`
@@ -185,7 +194,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
     if (ejeSlug) datosExtra += `\nEje tematico: ${ejeSlug}`
     if (personaId) datosExtra += `\nPersona ID: ${personaId}`
 
-    const userPrompt = construirPrompt(tipoBoletin, mencionesPrompt, indicadoresPrompt, datosExtra)
+    const userPrompt = construirPrompt(tipoBoletin, mencionesPrompt, indicadoresPrompt, datosExtra, contextoHistoricoPrompt)
 
     // 5. Generar con IA (regenerateWithRetry con validacion + reintentos)
     const { regenerateWithRetry } = await import('@/lib/quality/regeneration')

@@ -464,11 +464,25 @@ export function construirPrompt(
   tipo: TipoBoletin,
   menciones: string,
   indicadores: string,
-  datosExtra?: string
+  datosExtra?: string,
+  contextoHistorico?: string,
 ): string {
   const partes: string[] = [
     `## Datos de Menciones\n${menciones}`,
   ];
+
+  if (contextoHistorico && contextoHistorico.trim()) {
+    partes.push(
+      `## Contexto Historico (ultimos 7 dias — SOLO para analisis de tendencias)`,
+      `INSTRUCCION: Estas menciones son de dias ANTERIORES al periodo del producto.`,
+      `NO las incluyas como contenido del producto. Usalas UNICAMENTE para:`,
+      `- Detectar si un tema esta escalando, estable o bajando`,
+      `- Identificar temas nuevos o emergentes`,
+      `- Entender la evolucion de hechos noticiosos`,
+      `- Comparar el sentimiento de hoy con la tendencia de la semana`,
+      contextoHistorico,
+    );
+  }
 
   if (indicadores && indicadores !== 'No hay indicadores disponibles para este periodo.') {
     partes.push(indicadores);
@@ -528,6 +542,42 @@ export function formatearMencionesPorEje(
         `  ${i + 1}. ${(m.titulo as string)} — ${(m.medio as string) ?? 'Sin medio'}`
       ).join('\n');
       return `### Eje: ${eje} (${menciones.length} menciones)\n${lista}`;
+    })
+    .join('\n\n');
+}
+
+/**
+ * Formatea menciones de contexto historico de forma compacta, agrupadas por dia.
+ * Solo: titulo, medio, persona, sentimiento, temas. Sin texto completo.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function formatearContextoHistorico(menciones: any[]): string {
+  if (!menciones || menciones.length === 0) return '';
+
+  const porDia: Record<string, typeof menciones> = {};
+  for (const m of menciones) {
+    const ts = m.fechaCaptura as number | null;
+    let dia: string;
+    if (ts) {
+      const d = new Date(ts);
+      dia = d.toLocaleDateString('es-BO', { day: 'numeric', month: 'short', timeZone: 'America/La_Paz' });
+    } else {
+      dia = 'Sin fecha';
+    }
+    if (!porDia[dia]) porDia[dia] = [];
+    porDia[dia].push(m);
+  }
+
+  return Object.entries(porDia)
+    .map(([dia, items]) => {
+      const lista = items.slice(0, 30).map((m, i) => {
+        const partes = [`  ${i + 1}. ${m.titulo ?? 'Sin titulo'} (${m.medio ?? '?'})`];
+        if (m.persona) partes[0] += ` — ${m.persona}`;
+        if (m.sentimiento) partes.push(`   Sentimiento: ${m.sentimiento}`);
+        if (m.temas && m.temas.length > 0) partes.push(`   Ejes: ${m.temas.join(', ')}`);
+        return partes.join('\n');
+      }).join('\n');
+      return `**${dia}** (${items.length} menciones)\n${lista}`;
     })
     .join('\n\n');
 }
