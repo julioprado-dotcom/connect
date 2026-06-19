@@ -181,6 +181,31 @@ export interface IndicadorFormateado {
   unidad?: string
 }
 
+// ─── Indicador con Estadísticas (para protocolo por producto) ──────
+
+export interface IndicadorConStats extends IndicadorFormateado {
+  slug: string
+  categoria: string
+  actual: number
+  promedio: number
+  maximo: number
+  minimo: number
+  variacionPercent: number
+  disAnalisis: number       // desviación estándar del periodo
+  fechaActual: string
+}
+
+// ─── Protocolo de Indicadores por Producto ─────────────────────────
+
+export interface IndicadorProtocol {
+  activo: boolean
+  dias: number              // días de ventana para calcular stats
+  take: number              // max indicadores a inyectar
+  categorias: string[]      // filtrar por categorías (vacío = todas)
+  formato: 'compacto' | 'detallado' | 'por_categoria' | 'ninguno'
+  ordenar: 'variacion' | 'absVariacion' | 'categoria'
+}
+
 // ─── Resultado de validación de calidad ───────────────────────────
 
 export interface ValidationResult {

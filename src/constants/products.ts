@@ -7,7 +7,7 @@
  * temperaturas de generación y palabras objetivo.
  */
 
-import { type ProductoConfig, type TipoBoletin } from '@/types/bulletin'
+import { type ProductoConfig, type TipoBoletin, type IndicadorProtocol } from '@/types/bulletin'
 
 // ─── Reglas Anti-Alucinacion (aplicadas a TODOS los productos) ─────
 // Estas reglas se inyectan al INICIO de cada system prompt.
@@ -31,6 +31,8 @@ REGLAS OBLIGATORIAS DE FUENTES Y VERIFICACION:
 7. VERIFICACION INTERNA. Antes de generar el texto final, verifica internamente que cada afirmacion esta respaldada por al menos una mencion. Si detectas que no tienes respaldo para algo, eliminalo del texto.
 
 8. VERIFICACION DE NOMBRES Y CARGOS. Cuando menciones a un funcionario publico, autoridad o persona con cargo, NOMBRA EXACTAMENTE como aparece en las menciones fuente. NUNCA cambies el nombre de una persona, NI INVENTES nombres que no esten en las menciones, NI ALTERES el genero de un cargo (ejemplo: si la mencion dice "la ministra Beatriz Garcia", NO escribas "el ministro René Garcia"). Si la mencion dice "ministra" es FEMENINO, si dice "ministro" es MASCULINO. Respecta EXACTAMENTE el nombre completo, cargo y genero que aparece en las menciones fuente.
+
+9. CIFRAS MONETARIAS Y DE INDICADORES. Toda cifra monetaria o de indicadores debe usar exactamente los valores proporcionados en los datos de indicadores ONION200 con el formato que se indique (generalmente 2 decimales). NUNCA redondees a numeros enteros una cifra que venga con decimales. NUNCA inventes un valor de indicador. Siempre incluye la unidad completa junto a la cifra (ejemplo: "9.92 Bs/USD", no "9 Bs" ni "9 Bs/USD" sin decimales). Si los datos de indicadores no incluyen un valor para un indicador, no lo menciones.
 
 FORMATO DEL PRODUCTO:
 - Resumen ejecutivo: parrafo basado UNICAMENTE en las menciones proporcionadas, con cifras reales citando fuentes.
@@ -687,3 +689,105 @@ export const PRODUCTOS_PREMIUM = Object.values(PRODUCTOS).filter(p => p.categori
 export const PRODUCTOS_GRATUITOS = Object.values(PRODUCTOS).filter(p => p.categoria === 'gratuito')
 export const PRODUCTOS_DEDICADOS = Object.values(PRODUCTOS).filter(p => p.generador.tipo === 'dedicado')
 export const PRODUCTOS_GENERICOS = Object.values(PRODUCTOS).filter(p => p.generador.tipo === 'generico')
+
+// ─── Protocolo de Indicadores por Producto ────────────────────────
+// Define qué y cómo se inyectan los indicadores ONION200 en cada producto.
+
+export const INDICADOR_PROTOCOL: Record<TipoBoletin, IndicadorProtocol> = {
+  EL_TERMOMETRO: {
+    activo: true,
+    dias: 7,
+    take: 10,
+    categorias: ['monetario', 'minero', 'macro_bcb'],
+    formato: 'compacto',
+    ordenar: 'absVariacion',
+  },
+  SALDO_DEL_DIA: {
+    activo: true,
+    dias: 7,
+    take: 10,
+    categorias: ['monetario', 'minero', 'macro_bcb', 'agricolas'],
+    formato: 'compacto',
+    ordenar: 'absVariacion',
+  },
+  EL_FOCO: {
+    activo: true,
+    dias: 30,
+    take: 20,
+    categorias: ['monetario', 'minero', 'macro_bcb', 'agricolas', 'energetico'],
+    formato: 'por_categoria',
+    ordenar: 'absVariacion',
+  },
+  EL_ESPECIALIZADO: {
+    activo: true,
+    dias: 30,
+    take: 15,
+    categorias: [],
+    formato: 'por_categoria',
+    ordenar: 'absVariacion',
+  },
+  EL_RADAR: {
+    activo: true,
+    dias: 7,
+    take: 10,
+    categorias: ['monetario', 'minero', 'agricolas'],
+    formato: 'compacto',
+    ordenar: 'absVariacion',
+  },
+  EL_INFORME_CERRADO: {
+    activo: true,
+    dias: 7,
+    take: 15,
+    categorias: [],
+    formato: 'por_categoria',
+    ordenar: 'absVariacion',
+  },
+  VOZ_Y_VOTO: {
+    activo: false,
+    dias: 0,
+    take: 0,
+    categorias: [],
+    formato: 'ninguno',
+    ordenar: 'variacion',
+  },
+  EL_HILO: {
+    activo: false,
+    dias: 0,
+    take: 0,
+    categorias: [],
+    formato: 'ninguno',
+    ordenar: 'variacion',
+  },
+  FICHA_LEGISLADOR: {
+    activo: false,
+    dias: 0,
+    take: 0,
+    categorias: [],
+    formato: 'ninguno',
+    ordenar: 'variacion',
+  },
+  FOCO_DE_LA_SEMANA: {
+    activo: true,
+    dias: 30,
+    take: 10,
+    categorias: [],
+    formato: 'por_categoria',
+    ordenar: 'absVariacion',
+  },
+  ALERTA_TEMPRANA: {
+    activo: false,
+    dias: 0,
+    take: 0,
+    categorias: [],
+    formato: 'ninguno',
+    ordenar: 'variacion',
+  },
+  BOLETIN_DEL_GRANO: {
+    activo: true,
+    dias: 7,
+    take: 5,
+    categorias: ['agricolas'],
+    formato: 'compacto',
+    ordenar: 'absVariacion',
+  },
+}

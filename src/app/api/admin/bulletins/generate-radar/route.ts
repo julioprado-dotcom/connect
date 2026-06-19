@@ -10,10 +10,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import ZAI from 'z-ai-web-dev-sdk';
-import { PRODUCTOS } from '@/constants/products';
+import { PRODUCTOS, INDICADOR_PROTOCOL } from '@/constants/products';
 import db from '@/lib/db';
 import { getProductConfig, getDateRange, formatFechaBolivia } from '@/lib/bulletin/product-generator';
-import { getIndicadoresParaEjes, formatearIndicadoresMultiplesPrompt } from '@/lib/indicadores/injector';
+import { getIndicadoresConStats, formatearIndicadoresConStatsPrompt } from '@/lib/indicadores/injector';
 import { formatearMencionesPorEje, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen, getSemanaAnho } from '@/lib/reportes-utils';
 import { guardedParse, RATE } from '@/lib/rate-guard';
 import { generateRadarSchema } from '@/lib/validations';
@@ -114,9 +114,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 4. Obtener indicadores de todos los ejes
-    const indicadoresPorEje = await getIndicadoresParaEjes(EJES_TEOMATICOS);
-    const indicadoresPrompt = formatearIndicadoresMultiplesPrompt(indicadoresPorEje);
+    // 4. Obtener indicadores con estadísticas según protocolo
+    const protocol = INDICADOR_PROTOCOL.EL_RADAR;
+    const indicadoresStats = await getIndicadoresConStats(protocol);
+    const indicadoresPrompt = formatearIndicadoresConStatsPrompt(indicadoresStats, `Indicadores ONION200 — Semana ${semana}`, { formato: protocol.formato });
 
     // 5. Formatear menciones por eje
     const mencionesPrompt = formatearMencionesPorEje(mencionesPorEje);

@@ -11,10 +11,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import ZAI from 'z-ai-web-dev-sdk';
-import { PRODUCTOS } from '@/constants/products';
+import { PRODUCTOS, INDICADOR_PROTOCOL } from '@/constants/products';
 import db from '@/lib/db';
 import { getProductConfig, getMencionesForBulletin, getDateRange } from '@/lib/bulletin/product-generator';
-import { getIndicadoresParaEje, formatearIndicadoresPrompt } from '@/lib/indicadores/injector';
+import { getIndicadoresConStats, formatearIndicadoresConStatsPrompt } from '@/lib/indicadores/injector';
 import { formatearMencionesPrompt, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen, formatFechaBolivia } from '@/lib/reportes-utils';
 import { guardedParse, RATE } from '@/lib/rate-guard';
 import { generateFocoSchema } from '@/lib/validations';
@@ -70,9 +70,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 6. Obtener indicadores del eje
-    const indicadores = await getIndicadoresParaEje(ejeSlug);
-    const indicadoresPrompt = formatearIndicadoresPrompt(indicadores, eje.nombre);
+    // 6. Obtener indicadores con estadísticas según protocolo del producto
+    const protocol = INDICADOR_PROTOCOL.EL_FOCO;
+    const indicadoresStats = await getIndicadoresConStats(protocol);
+    const indicadoresPrompt = formatearIndicadoresConStatsPrompt(indicadoresStats, `Indicadores ONION200 — ${eje.nombre}`, { formato: protocol.formato });
 
     // 7. Formatear menciones
     const mencionesPrompt = formatearMencionesPrompt(resultado.menciones);
@@ -148,7 +149,7 @@ export async function POST(request: NextRequest) {
         ejeSlug,
         ejeNombre: eje.nombre,
         totalMenciones: resultado.totalMenciones,
-        totalIndicadores: indicadores.length,
+        totalIndicadores: indicadoresStats.length,
       }),
     });
 
@@ -167,7 +168,7 @@ export async function POST(request: NextRequest) {
         tokensUsados,
         modelo,
         totalMenciones: resultado.totalMenciones,
-        totalIndicadores: indicadores.length,
+        totalIndicadores: indicadoresStats.length,
       },
     });
   } catch (error) {

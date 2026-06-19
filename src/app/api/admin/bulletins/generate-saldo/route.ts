@@ -9,9 +9,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import ZAI from 'z-ai-web-dev-sdk'
-import { PRODUCTOS } from '@/constants/products'
+import { PRODUCTOS, INDICADOR_PROTOCOL } from '@/constants/products'
 import { getMencionesForBulletin, formatFechaBolivia, getProductConfig } from '@/lib/bulletin/product-generator'
-import { getIndicadoresParaEjes, formatearIndicadoresPrompt } from '@/lib/indicadores/injector'
+import { getIndicadoresConStats, formatearIndicadoresConStatsPrompt } from '@/lib/indicadores/injector'
 import { guardedParse, RATE } from '@/lib/rate-guard'
 import { generateSaldoSchema } from '@/lib/validations'
 import { safeError } from '@/lib/safe-error'
@@ -53,14 +53,12 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // 2. Obtener indicadores relevantes
+    // 2. Obtener indicadores relevantes según protocolo
     let bloqueIndicadores = ''
-    if (indicadores && ejesTematicos.length > 0) {
-      const indicadoresPorEje = await getIndicadoresParaEjes(ejesTematicos)
-      const todasLasIndicadores = Object.values(indicadoresPorEje).flat()
-      if (todasLasIndicadores.length > 0) {
-        bloqueIndicadores = formatearIndicadoresPrompt(todasLasIndicadores)
-      }
+    if (indicadores) {
+      const protocol = INDICADOR_PROTOCOL.SALDO_DEL_DIA
+      const indicadoresStats = await getIndicadoresConStats(protocol)
+      bloqueIndicadores = formatearIndicadoresConStatsPrompt(indicadoresStats, 'Indicadores ONION200', { formato: protocol.formato })
     }
 
     // 3. Formatear menciones para el prompt

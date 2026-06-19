@@ -10,10 +10,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import ZAI from 'z-ai-web-dev-sdk';
-import { PRODUCTOS } from '@/constants/products';
+import { PRODUCTOS, INDICADOR_PROTOCOL } from '@/constants/products';
 import db from '@/lib/db';
 import { getProductConfig, getDateRange, formatFechaBolivia } from '@/lib/bulletin/product-generator';
-import { getIndicadoresParaEjes, formatearIndicadoresPrompt } from '@/lib/indicadores/injector';
+import { getIndicadoresConStats, formatearIndicadoresConStatsPrompt, getIndicadoresParaEjes, formatearIndicadoresPrompt } from '@/lib/indicadores/injector';
 import { formatearMencionesPrompt, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen } from '@/lib/reportes-utils';
 import { type MencionEnriquecida } from '@/types/bulletin';
 import { guardedParse, RATE } from '@/lib/rate-guard';
