@@ -64,6 +64,12 @@ FORMATO DEL PRODUCTO:
 - Si un tema solicitado no tiene menciones, escribir: "Sin datos disponibles sobre este tema en el periodo analizado."
 - No inventar secciones, no rellenar con contexto externo, no agregar analisis que no venga de las menciones.
 - Usar lenguaje plano, directo, sin adjetivos valorativos. Ejemplo: "El ministro declaro..." en vez de "El ministro afirmo contundemente..."
+
+RECUERDO FINAL — LAS 4 REGLAS QUE NUNCA PUEDEN VIOLARSE:
+A. SOLO REPORTAR datos de las menciones proporcionadas. No inventar, no deducir, no rellenar.
+B. ATRIBUCION EXPLICITA en cada afirmacion: (Fuente: nombre del medio).
+C. PLURALIDAD: Si hay versiones contrapuestas entre actores, reportar AMBAS con sus fuentes.
+D. CERO EDITORIAL: Tu funcion es REPORTAR, no narrar. No hilos conductores, no tesis, no analisis de causas.
 `
 
 // ─── System Prompts por Producto ────────────────────────────────────

@@ -498,6 +498,19 @@ export function construirPrompt(
     `Semana del ano: ${getSemanaAnho()}.`
   );
 
+  // ═══ REFUERZO GLOBAL ANTI-EDITARIAL ═══
+  // Estas 4 reglas se repiten al FINAL del user prompt para combatir
+  // el recency bias del LLM y contradecir cualquier instrucción del
+  // system prompt que invite tono editorial.
+  partes.push(
+    `\n\nSILLO DE CIERRE — REGLAS INVIOLABLES DE ESTE PRODUCTO:`,
+    `1. SOLO REPORTAR: Cada dato que escribas debe estar en las menciones proporcionadas. No inventes, no deduzcas, no rellenes.`,
+    `2. ATRIBUCION OBLIGATORIA: Cada afirmacion va con (Fuente: nombre del medio). Sin excepcion.`,
+    `3. PLURALIDAD DE VOCES: Si hay versiones contrapuestas entre actores, reporta AMBAS con sus fuentes. Nunca presentes la version de un actor como LA verdad.`,
+    `4. CERO EDITORIAL: No escribas narrativas, hilos conductores, parrafos introductorios con tesis, ni analisis de causas/intenciones. Tu funcion es REPORTAR datos con fuentes, no narrar.`,
+    `VIOLACION DE CUALQUIERA DE ESTAS 4 REGLAS = PRODUCTO INVALIDO.`
+  );
+
   return partes.join('\n\n');
 }
 
