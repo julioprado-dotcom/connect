@@ -187,7 +187,7 @@ function determineLevel(pct: number): GuardianLevel {
 // ── Core Loop ────────────────────────────────────────────────────────
 
 async function tick(): Promise<void> {
-  const cgroup = readCgroup()
+  const cgroup = await readCgroup()
   if (!cgroup) {
     console.warn('[Guardian] No se pudo leer cgroup — saltando tick')
     return
