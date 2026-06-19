@@ -204,6 +204,52 @@ D. CERO EDITORIAL: Tu funcion es REPORTAR, no narrar. No hilos conductores, no t
             print(f"  Found 'afirmo contundentemente' at {idx}")
         return False
 
+def patch5():
+    """Capa 5: Refinamiento quirurgico de prompts TERMOMETRO y FOCO.
+    Agrega lineas RECUERDA anti-editorial sin cambiar el concepto del producto."""
+    fp = f"{BASE}/src/constants/products.ts"
+    print(f"\n[Capa 5] {fp}")
+    # No backup extra, patch4 ya hizo backup
+    content = read(fp)
+    changed = False
+
+    # 5a: Refinar EL_TERMOMETRO - agregar RECUERDA
+    old_termo = """- Incluir sentimiento predominante del ecosistema mediatico
+- Mencionar fuentes por nombre en cada dato`"""
+    new_termo = """- Incluir sentimiento predominante del ecosistema mediatico (si hay datos: distribucion cuantitativa, no adjetivos)
+- Mencionar fuentes por nombre en cada dato
+- RECUERDA: El \"clima mediatico\" se reporta con cifras (ej: \"45 menciones, 12 neutras, 8 negativas\"), NUNCA con adjetivos como \"tension\", \"preocupante\" o \"calido\".
+- RECUERDA: \"Temas calientes\" significa temas con mayor numero de menciones, NO temas mas \"criticos\" o \"urgentes\". Cero adjetivos valorativos.`"""
+    if old_termo in content:
+        content = content.replace(old_termo, new_termo, 1)
+        print("  OK: EL_TERMOMETRO refinado con RECUERDA anti-editorial")
+        changed = True
+    elif "RECUERDA: El \"clima mediatico\"" in content:
+        print("  SKIP: EL_TERMOMETRO ya tiene RECUERDA")
+        changed = True
+    else:
+        print("  WARN: No se encontro bloque de reglas de TERMOMETRO")
+
+    # 5b: Refinar EL_FOCO - agregar RECUERDA
+    old_foco = """- Profundidad academica pero accesible, sin inventar contexto historico`"""
+    new_foco = """- Profundidad academica pero accesible, sin inventar contexto historico
+- RECUERDA: \"Analisis\" aqui significa agrupar y cruzar datos de menciones, NO interpretar causas ni intenciones. Cada hallazgo va con (Fuente: medio).
+- RECUERDA: La \"Sintesis\" final es una lista de hallazgos concretos con fuentes, NO una conclusion editorial. No escribas \"en conclusion\" ni \"en resumen\" seguido de interpretacion.
+- RECUERDA: Si hay posiciones contrapuestas entre actores en las menciones, reportar AMBAS con atribucion explicita. No adoptes ninguna como narrativa principal.`"""
+    if old_foco in content:
+        content = content.replace(old_foco, new_foco, 1)
+        print("  OK: EL_FOCO refinado con RECUERDA anti-editorial")
+        changed = True
+    elif "RECUERDA: \"Analisis\" aqui significa" in content:
+        print("  SKIP: EL_FOCO ya tiene RECUERDA")
+        changed = True
+    else:
+        print("  WARN: No se encontro bloque de reglas de FOCO")
+
+    if changed:
+        write(fp, content)
+    return changed
+
 if __name__ == "__main__":
     print("=" * 60)
     print("DECODEX - Patch Global de Inteligencia")
@@ -214,6 +260,7 @@ if __name__ == "__main__":
     r.append(("Capa 2: regeneration.ts", patch2()))
     r.append(("Capa 3: generate-saldo", patch3()))
     r.append(("Capa 4: products.ts", patch4()))
+    r.append(("Capa 5: Termometro+Foco", patch5()))
 
     print("\n" + "=" * 60)
     ok = all(x for _, x in r)

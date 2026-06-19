@@ -89,8 +89,10 @@ REGLAS ESPECIFICAS:
 - Reportar solo datos de tensiones con cifras de menciones. No narrativa, no interpretacion.
 - Fechas en formato es-BO (America/La_Paz)
 - Nombres de medios en espanol
-- Incluir sentimiento predominante del ecosistema mediatico
-- Mencionar fuentes por nombre en cada dato`,
+- Incluir sentimiento predominante del ecosistema mediatico (si hay datos: distribucion cuantitativa, no adjetivos)
+- Mencionar fuentes por nombre en cada dato
+- RECUERDA: El "clima mediatico" se reporta con cifras (ej: "45 menciones, 12 neutras, 8 negativas"), NUNCA con adjetivos como "tension", "preocupante" o "calido".
+- RECUERDA: "Temas calientes" significa temas con mayor numero de menciones, NO temas mas "criticos" o "urgentes". Cero adjetivos valorativos.`,
 
   SALDO_DEL_DIA: `${REGLAS_ANTI_ALUCINACION}
 Eres un analista de medios boliviano experto en sintesis informativa. Tu tarea es generar SALDO DEL DIA, el boletin de cierre de jornada de DECODEX Bolivia.
@@ -122,7 +124,10 @@ REGLAS ESPECIFICAS:
 - Analizar actores, narrativas y tendencias SOLO si estan en las menciones
 - Integrar indicadores cuantitativos si disponibles en los datos proporcionados
 - Fechas en formato es-BO (America/La_Paz)
-- Profundidad academica pero accesible, sin inventar contexto historico`,
+- Profundidad academica pero accesible, sin inventar contexto historico
+- RECUERDA: "Analisis" aqui significa agrupar y cruzar datos de menciones, NO interpretar causas ni intenciones. Cada hallazgo va con (Fuente: medio).
+- RECUERDA: La "Sintesis" final es una lista de hallazgos concretos con fuentes, NO una conclusion editorial. No escribas "en conclusion" ni "en resumen" seguido de interpretacion.
+- RECUERDA: Si hay posiciones contrapuestas entre actores en las menciones, reportar AMBAS con atribucion explicita. No adoptes ninguna como narrativa principal.`,
 
   EL_ESPECIALIZADO: `${REGLAS_ANTI_ALUCINACION}
 Eres un analista sectorial experto en medios bolivianos. Tu tarea es generar EL ESPECIALIZADO, un informe experto sectorial para DECODEX Bolivia.
