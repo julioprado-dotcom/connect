@@ -36,6 +36,7 @@ export async function persistDebugLog(entries: string[]): Promise<void> {
  */
 export function extraerTextoDeHtml(html: string): string {
   // Remover scripts, styles, nav, footer, header, ads, iframes
+  // FIX v3: También remover selectores negativos (related, sidebar, comments, ads, banners, cookie)
   let text = html
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/<style[\s\S]*?<\/style>/gi, '')
@@ -44,7 +45,10 @@ export function extraerTextoDeHtml(html: string): string {
     .replace(/<header[\s\S]*?<\/header>/gi, '')
     .replace(/<iframe[\s\S]*?<\/iframe>/gi, '')
     .replace(/<aside[\s\S]*?<\/aside>/gi, '')
-    .replace(/<noscript[\s\S]*?<\/noscript>/gi, '');
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, '')
+    // Selectores negativos — eliminar antes de buscar contenido
+    .replace(/<div[^>]*class="[^"]*(?:related|sidebar|comment|cookie|newsletter|ad-|banner|popup|share|social|facebook|twitter|whatsapp)[^"]*"[^>]*>[\s\S]*?<\/div>/gi, '')
+    .replace(/<section[^>]*class="[^"]*(?:related|sidebar|comment|cookie|newsletter|ad-|banner|popup)[^"]*"[^>]*>[\s\S]*?<\/section>/gi, '');
 
   // Intentar extraer de selectores prioritarios — GREEDY (* en vez de *?)
   // Para capturar el bloque más grande (artículo completo), no el primero.
@@ -77,8 +81,9 @@ export function extraerTextoDeHtml(html: string): string {
       const stripped = block.replace(/<[^>]*>/g, '').trim();
       const density = stripped.length / Math.max(block.length, 1);
 
-      // Preferir bloques con alta densidad de texto (>30%) y longitud sustancial
-      if (stripped.length > 300 && stripped.length > bestLength && density > 0.25) {
+      // Preferir bloques con alta densidad de texto (>40%) y longitud sustancial (min 500 chars)
+      // FIX v3: umbral 0.25→0.40, min length 300→500 para reducir garbage
+      if (stripped.length > 500 && stripped.length > bestLength && density > 0.40) {
         bestBlock = block;
         bestLength = stripped.length;
       }

@@ -15,41 +15,38 @@
 // Si alguno de estos aparece en el texto generado, verificar
 // DOBLEMENTE que esta en las menciones. Si no esta, eliminar.
 const PERSONAJES_SENSIBLES = [
+  // Nombres completos de políticos — más específicos, menos falsos positivos
   'Evo Morales',
   'Luis Arce',
   'David Choquehuanca',
-  'Santa Cruz',
-  'Camacho',
-  'Mesa',
-  'TSE',
-  'OEP',
-  'Fiscalia',
+  'Luis Camacho',
+  'Carlos Mesa',
+  'Chi Hyun Chung',
+  'Felipe Quispe',
+  'Samuel Doria Medina',
+  'Jorge Quiroga',
+  // Instituciones específicas (no genéricas)
   'Tribunal Supremo',
   'Tribunal Constitucional',
   'CIDOB',
   'CONAMAQ',
-  'COB',
-  'MAS',
   'Comunidad Ciudadana',
   'Creemos',
   'Frente Unido',
-  'Senado',
-  'Diputados',
-  'Presidente',
-  'Vicepresidente',
-  'Ministro',
-  'Gabinete',
-  'Fiscal',
-  'Defensor',
-  'Contralor',
+  // Mantener siglas únicas
+  'TSE',
+  'OEP',
+  'COB',
+  'MAS',
 ]
 
 // ─── Patrones de contenido en ingles ───────────────────────────────
 const ENGLISH_PATTERNS = [
-  /\b(the|is|are|was|were|has|have|had|will|would|could|should)\b.{0,5}\b(president|government|minister|congress|senate)\b/gi,
-  /\b(president|government|minister|congress|senate)\b.{0,5}\b(of|in|for|the)\b/gi,
-  /\b(according to|reported|stated|announced|declared)\b/gi,
-  /\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b,\s+(January|February|March|April|May|June|July|August|September|October|November|December)/gi,
+  // Requiere 3+ palabras inglesas consecutivas — evita falsos positivos en español bilingue
+  /\b(the|is|are|was|were|has|have|had|will|would|could|should)\b\s+(?:of|in|for|to|the|that)\s+\b(president|government|minister|congress|senate)\b/gi,
+  /\b(president|government|minister|congress|senate)\b\s+(?:of|in|for)\s+\b(the|a|this|that)\b\s+\w{4,}/gi,
+  // Solo secuencias de fecha completas en inglés (no sueltas)
+  /\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b,\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}/gi,
 ]
 
 // ─── Tipos ──────────────────────────────────────────────────────────
