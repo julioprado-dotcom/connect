@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     // 3. Menciones ya obtenidas — se formatean via construirPrompt()
 
     // 4. Construir prompt de usuario usando construirPrompt() — consistencia global
-    const mencionesPrompt = formatearMencionesPrompt(menciones as unknown as Array<Record<string, unknown>>)
+    const mencionesPrompt = formatearMencionesPrompt(menciones as unknown as Array<Record<string, unknown>>, 'SALDO_DEL_DIA')
 
     const ventanaLabel = `${formatFechaBolivia(fechaInicio)} — ${formatFechaBolivia(fechaFin)}`
     const datosExtra = [

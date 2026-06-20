@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     const indicadoresPrompt = formatearIndicadoresConStatsPrompt(indicadoresStats, `Indicadores ONION200 — ${eje.nombre}`, { formato: protocol.formato });
 
     // 7. Formatear menciones
-    const mencionesPrompt = formatearMencionesPrompt(resultado.menciones);
+    const mencionesPrompt = formatearMencionesPrompt(resultado.menciones, 'EL_FOCO');
 
     // 8. Construir prompt completo
     const ventanaLabel = `${formatFechaBolivia(range.fechaInicio)} — ${formatFechaBolivia(range.fechaFin)}`;

@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       : 'Sin indicadores disponibles';
 
     // 9. Formatear menciones
-    const mencionesPrompt = formatearMencionesPrompt(menciones);
+    const mencionesPrompt = formatearMencionesPrompt(menciones, 'EL_INFORME_CERRADO');
 
     // 10. Construir prompt completo
     const ventanaLabel = `${formatFechaBolivia(range.fechaInicio)} — ${formatFechaBolivia(range.fechaFin)}`;
