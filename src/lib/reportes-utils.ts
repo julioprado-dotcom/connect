@@ -523,12 +523,22 @@ export function construirPrompt(
  * Acepta menciones de Prisma (con relaciones incluidas) u objetos planos.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+const MAX_MENCIONES_PROMPT = 200;
+
 export function formatearMencionesPrompt(menciones: any[]): string {
   if (menciones.length === 0) {
     return 'No se encontraron menciones en el periodo consultado.';
   }
 
-  return menciones.map((m, i) => {
+  const seleccionadas = menciones.length > MAX_MENCIONES_PROMPT
+    ? [...menciones].sort((a: any, b: any) => (b.relevancia || 0) - (a.relevancia || 0)).slice(0, MAX_MENCIONES_PROMPT)
+    : menciones;
+
+  if (seleccionadas.length < menciones.length) {
+    console.log(`[formatearMencionesPrompt] Truncando ${menciones.length} → ${seleccionadas.length} menciones (top por relevancia)`);
+  }
+
+  return seleccionadas.map((m, i) => {
     const parts = [
       `${i + 1}. **${m.titulo}**`,
       `   - Medio: ${m.medio ?? 'No especificado'}`,

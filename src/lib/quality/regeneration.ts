@@ -95,7 +95,7 @@ export async function regenerateWithRetry(params: {
           { role: 'system', content: params.systemPrompt },
           { role: 'user', content: enhancedPrompt },
         ],
-        temperature: Math.min(temperatura, 0.8),
+        temperature: Math.round(Math.min(temperatura, 0.8) * 100) / 100,
         signal: AbortSignal.timeout(60000),
       }));
 
