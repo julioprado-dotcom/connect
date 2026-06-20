@@ -98,7 +98,6 @@ export async function POST(request: NextRequest) {
         { role: 'user', content: userPrompt },
       ],
       temperature: temperatura,
-      signal: AbortSignal.timeout(60000),
     }));
 
     const contenido = completion.choices[0]?.message?.content ?? '';

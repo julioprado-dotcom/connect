@@ -96,7 +96,6 @@ export async function regenerateWithRetry(params: {
           { role: 'user', content: enhancedPrompt },
         ],
         temperature: Math.round(Math.min(temperatura, 0.8) * 100) / 100,
-        signal: AbortSignal.timeout(60000),
       }));
 
       const contenido = completion.choices[0]?.message?.content ?? '';

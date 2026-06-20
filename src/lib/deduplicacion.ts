@@ -256,7 +256,6 @@ CONTEXTO BOLIVIANO: En Bolivia, multiples medios reproducen cables de agencia (A
         },
       ],
       temperature: 0.0,
-      signal: AbortSignal.timeout(20000), // 20s timeout
     })
     );
 

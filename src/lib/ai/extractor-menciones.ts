@@ -371,7 +371,6 @@ export async function extraerMencionesDeTexto(
             { role: 'user', content: userContent },
           ],
           temperature: 0.1,
-          signal: AbortSignal.timeout(60000), // 60s timeout
         })
       );
     } catch (llmErr) {

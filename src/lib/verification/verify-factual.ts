@@ -128,7 +128,6 @@ Verifica que los nombres, cargos y generos en el texto coincidan EXACTAMENTE con
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.1, // baja temperatura para verificacion precisa
-      signal: AbortSignal.timeout(30000), // 30s timeout
     }));
 
     const responseText = completion.choices[0]?.message?.content?.trim();

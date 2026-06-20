@@ -91,7 +91,6 @@ export async function POST(request: NextRequest) {
         { role: 'user', content: userPrompt },
       ],
       temperature: PRODUCTOS.SALDO_DEL_DIA.temperatura,
-      signal: AbortSignal.timeout(60000),
     }))
 
     const contenido = completion.choices[0]?.message?.content ?? 'Error: no se generó contenido'
