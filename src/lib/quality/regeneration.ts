@@ -71,7 +71,8 @@ export async function regenerateWithRetry(params: {
   initialTemperatura?: number;
   onRetry?: (intento: number, error: string) => void;
 }): Promise<GenerationResult> {
-  const baseTemp = params.initialTemperatura ?? 0.3;
+  // GLM rejects temperature: 0 — minimum allowed is > 0
+  const baseTemp = Math.max(params.initialTemperatura ?? 0.3, 0.05);
 
   let lastResult: GenerationResult | null = null;
   let lastValidation: ValidationResult | null = null;

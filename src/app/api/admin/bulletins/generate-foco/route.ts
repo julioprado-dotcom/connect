@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
         { role: 'system', content: PRODUCTOS.EL_FOCO.systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      temperature: temperatura,
+      temperature: Math.max(temperatura, 0.05),
     }));
 
     const contenido = completion.choices[0]?.message?.content ?? '';

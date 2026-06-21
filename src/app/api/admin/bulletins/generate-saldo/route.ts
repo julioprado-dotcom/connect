@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
         { role: 'system', content: PRODUCTOS.SALDO_DEL_DIA.systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      temperature: PRODUCTOS.SALDO_DEL_DIA.temperatura,
+      temperature: Math.max(PRODUCTOS.SALDO_DEL_DIA.temperatura, 0.05),
     }))
 
     const contenido = completion.choices[0]?.message?.content ?? 'Error: no se generó contenido'
