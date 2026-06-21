@@ -15,8 +15,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import ZAI from 'z-ai-web-dev-sdk';
-import { PRODUCTOS } from '@/constants/products';
-import { getIndicadoresParaEjes, formatearIndicadoresMultiplesPrompt } from '@/lib/indicadores/injector';
+import { PRODUCTOS, INDICADOR_PROTOCOL } from '@/constants/products';
+import { getIndicadoresConStats, formatearIndicadoresConStatsPrompt } from '@/lib/indicadores/injector';
 import { formatearMencionesPrompt, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen, formatFechaBolivia } from '@/lib/reportes-utils';
 import { regenerateWithRetry } from '@/lib/quality/regeneration';
 import { validateContent } from '@/lib/quality/validator';
@@ -226,9 +226,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 4. Obtener indicadores para el sector
-    const indicadoresPorEje = await getIndicadoresParaEjes([sectorInfo.slug]);
-    const indicadoresPrompt = formatearIndicadoresMultiplesPrompt(indicadoresPorEje);
+    // 4. Obtener indicadores con estadísticas según protocolo del especializado
+    const protocol = INDICADOR_PROTOCOL.EL_ESPECIALIZADO;
+    const indicadoresStats = await getIndicadoresConStats(protocol);
+    const indicadoresPrompt = formatearIndicadoresConStatsPrompt(indicadoresStats, `Indicadores ONION200 — ${sectorInfo.nombre}`, { formato: protocol.formato });
 
     // 5. Construir prompt sectorial
     const mencionesPrompt = formatearMencionesPrompt(resultado.menciones as any[]);

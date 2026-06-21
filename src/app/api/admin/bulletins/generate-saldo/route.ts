@@ -9,14 +9,15 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import ZAI from 'z-ai-web-dev-sdk'
-import { PRODUCTOS } from '@/constants/products'
+import { PRODUCTOS, INDICADOR_PROTOCOL } from '@/constants/products'
 import { getMencionesForBulletin, formatFechaBolivia, getProductConfig } from '@/lib/bulletin/product-generator'
-import { getIndicadoresParaEjes, formatearIndicadoresPrompt } from '@/lib/indicadores/injector'
+import { getIndicadoresConStats, formatearIndicadoresConStatsPrompt } from '@/lib/indicadores/injector'
 import { guardedParse, RATE } from '@/lib/rate-guard'
 import { generateSaldoSchema } from '@/lib/validations'
 import { safeError } from '@/lib/safe-error'
 import { verifyProduct } from '@/lib/verification/verify-product'
 import { throttledLlmCall } from '@/lib/ai/llm-throttle'
+import { formatearMencionesPrompt, construirPrompt } from '@/lib/reportes-utils'
 
 // ─── Endpoint POST ────────────────────────────────────────────────
 
@@ -53,43 +54,33 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // 2. Obtener indicadores relevantes
+    // 2. Obtener indicadores relevantes según protocolo
     let bloqueIndicadores = ''
-    if (indicadores && ejesTematicos.length > 0) {
-      const indicadoresPorEje = await getIndicadoresParaEjes(ejesTematicos)
-      const todasLasIndicadores = Object.values(indicadoresPorEje).flat()
-      if (todasLasIndicadores.length > 0) {
-        bloqueIndicadores = formatearIndicadoresPrompt(todasLasIndicadores)
-      }
+    if (indicadores) {
+      const protocol = INDICADOR_PROTOCOL.SALDO_DEL_DIA
+      const indicadoresStats = await getIndicadoresConStats(protocol)
+      bloqueIndicadores = formatearIndicadoresConStatsPrompt(indicadoresStats, 'Indicadores ONION200', { formato: protocol.formato })
     }
 
-    // 3. Formatear menciones para el prompt
-    const mencionesFormateadas = menciones.slice(0, 30).map((m) => {
-      const ejes = m.ejesTematicos as Array<{ ejeTematico: { nombre: string } }> | undefined
-      const medio = m.medio as { nivel?: string; nombre?: string } | undefined
-      const temas = (ejes || [])
-        .map((et) => et.ejeTematico.nombre)
-        .join(', ')
-      return `- [${medio?.nivel || '?'}] "${m.titulo}" (${medio?.nombre || '—'}) — Sentimiento: ${m.tratamientoPeriodistico} — Temas: ${temas}`
-    }).join('\n')
+    // 3. Menciones ya obtenidas — se formatean via construirPrompt()
 
-    // 4. Construir prompt de usuario
-    const userPrompt = `Genera El Saldo del Día para el cliente "${nombreCliente}".
-Fecha: ${formatFechaBolivia(new Date())}
+    // 4. Construir prompt de usuario usando construirPrompt() — consistencia global
+    const mencionesPrompt = formatearMencionesPrompt(menciones as unknown as Array<Record<string, unknown>>, 'SALDO_DEL_DIA')
 
-EJES TEMÁTICOS MONITOREADOS: ${ejesTematicos.length > 0 ? ejesTematicos.join(', ') : 'Todos'}
+    const ventanaLabel = `${formatFechaBolivia(fechaInicio)} — ${formatFechaBolivia(fechaFin)}`
+    const datosExtra = [
+      `Tipo de producto: Saldo del Dia`,
+      `Periodo: ${ventanaLabel}`,
+      `Total menciones: ${totalMenciones}`,
+      `Ejes monitoreados: ${ejesTematicos.length > 0 ? ejesTematicos.join(', ') : 'Todos'}`,
+    ].join('\n')
 
-${bloqueIndicadores ? bloqueIndicadores + '\n' : ''}MENCIONES DE LA JORNADA (${totalMenciones} total, mostrando las 30 más relevantes):
-${mencionesFormateadas}
-
-DISTRIBUCIÓN POR NIVEL DE MEDIO:
-${[1,2,3,4,5].map(nivel => {
-  const count = menciones.filter(m => (m.medio as Record<string, unknown> | undefined)?.nivel === String(nivel)).length
-  const labels: Record<number, string> = { 1: 'Corporativos', 2: 'Regionales', 3: 'Alternativos', 4: 'Redes', 5: 'Repositorio' }
-  return `- Nivel ${nivel} (${labels[nivel]}): ${count} menciones`
-}).join('\n')}
-
-REGLA: Compara la evolución del día. Si hay datos del Termómetro (apertura), contrasta. Si hay indicadores ONION200, úsalos para enriquecer. Máximo 400 palabras.`
+    const userPrompt = construirPrompt(
+      'SALDO_DEL_DIA',
+      mencionesPrompt,
+      bloqueIndicadores || 'No hay indicadores disponibles para este periodo.',
+      datosExtra
+    )
 
     // 5. Generar con GLM
     const zai = await ZAI.create()
@@ -100,7 +91,6 @@ REGLA: Compara la evolución del día. Si hay datos del Termómetro (apertura), 
         { role: 'user', content: userPrompt },
       ],
       temperature: PRODUCTOS.SALDO_DEL_DIA.temperatura,
-      signal: AbortSignal.timeout(60000),
     }))
 
     const contenido = completion.choices[0]?.message?.content ?? 'Error: no se generó contenido'

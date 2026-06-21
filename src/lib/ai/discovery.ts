@@ -198,7 +198,6 @@ async function extractEntidades(textos: Array<{ texto: string; titulo: string; m
           { role: 'user', content: `Analiza estas notas periodísticas bolivianas y detecta actores/temas emergentes:\n\n${contenido}` },
         ],
         temperature: 0.1,
-        signal: AbortSignal.timeout(45000), // 45s timeout
       })
     );
 

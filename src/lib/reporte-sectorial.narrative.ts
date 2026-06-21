@@ -137,7 +137,6 @@ REGLAS ESTRICTAS:
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.3,
-      signal: AbortSignal.timeout(60_000),
     }));
 
     const raw = (completion?.choices?.[0]?.message?.content || '').trim();

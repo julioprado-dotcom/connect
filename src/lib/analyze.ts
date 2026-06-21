@@ -280,7 +280,6 @@ export async function analyzeMencion(titulo: string, texto: string): Promise<Ana
             },
           ],
           temperature: 0.2,
-          signal: AbortSignal.timeout(60000), // 60s timeout
         }));
         // Si llegamos aquí, la llamada fue exitosa
         break;

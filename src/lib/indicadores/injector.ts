@@ -8,7 +8,7 @@
  */
 
 import db from '@/lib/db';
-import { type IndicadorFormateado } from '@/types/bulletin';
+import { type IndicadorFormateado, type IndicadorConStats, type IndicadorProtocol } from '@/types/bulletin';
 
 // ============================================
 // Obtencion de Indicadores
@@ -149,4 +149,142 @@ function getTrendSymbol(tendencia: string): string {
     case 'descendente': return '↓';
     default: return '→';
   }
+}
+
+// ============================================
+// Protocolo de Indicadores con Estadísticas
+// ============================================
+
+/**
+ * Obtiene indicadores con estadísticas (actual, promedio, max, min, % variación)
+ * para inyección en prompts según el protocolo del producto.
+ */
+export async function getIndicadoresConStats(
+  options: IndicadorProtocol
+): Promise<IndicadorConStats[]> {
+  if (!options.activo || options.formato === 'ninguno') return [];
+
+  try {
+    const fechaLimite = new Date();
+    fechaLimite.setDate(fechaLimite.getDate() - options.dias);
+
+    const whereClause: any = {
+      activo: true,
+      ...(options.categorias.length > 0
+        ? { categoria: { in: options.categorias } }
+        : {}),
+    };
+
+    const indicadores = await db.indicador.findMany({
+      where: whereClause,
+      include: {
+        IndicadorValor: {
+          where: { fecha: { gte: fechaLimite } },
+          orderBy: { fecha: 'desc' },
+        },
+      },
+    });
+
+    const stats = indicadores
+      .map((ind): IndicadorConStats | null => {
+        const valores = ind.IndicadorValor.map((v) => v.valor as number).filter((v) => v != null && !isNaN(v));
+        if (valores.length === 0) return null;
+
+        const actual = valores[0];
+        const promedio = valores.reduce((a, b) => a + b, 0) / valores.length;
+        const maximo = Math.max(...valores);
+        const minimo = Math.min(...valores);
+        const variacionPercent = valores.length >= 2
+          ? ((actual - valores[valores.length - 1]) / (valores[valores.length - 1] || 1)) * 100
+          : 0;
+        const disAnalisis = valores.length >= 2
+          ? Math.sqrt(valores.reduce((sum, v) => sum + (v - promedio) ** 2, 0) / (valores.length - 1))
+          : 0;
+        const tendencia = calcularTendencia(actual, valores.length >= 2 ? valores[1] : undefined);
+        const fechaActual = ind.IndicadorValor[0]?.fecha?.toISOString().split('T')[0] ?? '';
+        const formato = ind.formatoNumero ?? 2;
+
+        return {
+          nombre: ind.nombre,
+          valor: `${actual.toFixed(formato)} ${ind.unidad ?? ''}`.trim(),
+          tendencia,
+          unidad: ind.unidad,
+          slug: ind.slug,
+          categoria: ind.categoria,
+          actual,
+          promedio,
+          maximo,
+          minimo,
+          variacionPercent,
+          disAnalisis,
+          fechaActual,
+        };
+      })
+      .filter((s): s is IndicadorConStats => s !== null) as IndicadorConStats[];
+
+    // Ordenar según estrategia
+    if (options.ordenar === 'variacion') {
+      stats.sort((a, b) => b.variacionPercent - a.variacionPercent);
+    } else if (options.ordenar === 'absVariacion') {
+      stats.sort((a, b) => Math.abs(b.variacionPercent) - Math.abs(a.variacionPercent));
+    } else if (options.ordenar === 'categoria') {
+      stats.sort((a, b) => a.categoria.localeCompare(b.categoria));
+    }
+
+    return stats.slice(0, options.take);
+  } catch (error) {
+    console.error('[indicadores-injector] Error en getIndicadoresConStats:', error);
+    return [];
+  }
+}
+
+/**
+ * Formatea indicadores con estadísticas para inyección en prompts.
+ * Formato compacto: 1 línea por indicador con valor actual + % variación.
+ * Formato detallado: tarjeta-style con ACTUAL|PROMEDIO|MAX|MIN|Variación agrupados por categoría.
+ */
+export function formatearIndicadoresConStatsPrompt(
+  indicadores: IndicadorConStats[],
+  titulo: string = 'Indicadores ONION200',
+  opciones?: { formato?: IndicadorProtocol['formato'] }
+): string {
+  if (!indicadores || indicadores.length === 0) {
+    return '';
+  }
+
+  const formato = opciones?.formato ?? 'compacto';
+
+  if (formato === 'compacto') {
+    const lines = indicadores.map((ind) => {
+      const trendSymbol = getTrendSymbol(ind.tendencia);
+      const variacionSign = ind.variacionPercent >= 0 ? '+' : '';
+      return `- ${ind.nombre}: ${ind.valor} (${variacionSign}${ind.variacionPercent.toFixed(2)}%) ${trendSymbol}`;
+    });
+    return `## ${titulo}\n${lines.join('\n')}`;
+  }
+
+  if (formato === 'por_categoria' || formato === 'detallado') {
+    // Agrupar por categoría
+    const grouped = new Map<string, IndicadorConStats[]>();
+    for (const ind of indicadores) {
+      const cat = ind.categoria;
+      if (!grouped.has(cat)) grouped.set(cat, []);
+      grouped.get(cat)!.push(ind);
+    }
+
+    const secciones = [...grouped.entries()].map(([categoria, inds]) => {
+      const header = `\n### ${categoria.toUpperCase()} (${inds.length})\n`;
+      const lines = inds.map((ind) => {
+        const fmt = (n: number) => n.toFixed(2);
+        const variacionSign = ind.variacionPercent >= 0 ? '+' : '';
+        const trendSymbol = getTrendSymbol(ind.tendencia);
+        return `**${ind.nombre}**: ACTUAL ${fmt(ind.actual)} ${ind.unidad ?? ''} | PROMEDIO ${fmt(ind.promedio)} | MAX ${fmt(ind.maximo)} | MIN ${fmt(ind.minimo)} | Variación ${variacionSign}${ind.variacionPercent.toFixed(2)}% ${trendSymbol} (fecha: ${ind.fechaActual})`;
+      });
+      return header + lines.join('\n');
+    });
+
+    return `## ${titulo}\n${secciones.join('\n')}`;
+  }
+
+  return '';
 }

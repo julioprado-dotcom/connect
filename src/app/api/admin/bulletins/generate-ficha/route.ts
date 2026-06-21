@@ -10,10 +10,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import ZAI from 'z-ai-web-dev-sdk';
-import { PRODUCTOS } from '@/constants/products';
+import { PRODUCTOS, INDICADOR_PROTOCOL } from '@/constants/products';
 import db from '@/lib/db';
 import { getProductConfig, getDateRange, formatFechaBolivia } from '@/lib/bulletin/product-generator';
-import { getIndicadoresParaEjes, formatearIndicadoresPrompt } from '@/lib/indicadores/injector';
+import { getIndicadoresConStats, formatearIndicadoresConStatsPrompt, getIndicadoresParaEjes, formatearIndicadoresPrompt } from '@/lib/indicadores/injector';
 import { formatearMencionesPrompt, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen } from '@/lib/reportes-utils';
 import { type MencionEnriquecida } from '@/types/bulletin';
 import { guardedParse, RATE } from '@/lib/rate-guard';
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       : 'Sin indicadores disponibles';
 
     // 9. Formatear menciones
-    const mencionesPrompt = formatearMencionesPrompt(menciones);
+    const mencionesPrompt = formatearMencionesPrompt(menciones, 'EL_INFORME_CERRADO');
 
     // 10. Construir prompt completo
     const ventanaLabel = `${formatFechaBolivia(range.fechaInicio)} — ${formatFechaBolivia(range.fechaFin)}`;
@@ -125,7 +125,6 @@ export async function POST(request: NextRequest) {
         { role: 'user', content: userPrompt },
       ],
       temperature: temperatura,
-      signal: AbortSignal.timeout(60000),
     }));
 
     const contenido = completion.choices[0]?.message?.content ?? '';

@@ -10,9 +10,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { PRODUCTOS } from '@/constants/products';
+import { PRODUCTOS, INDICADOR_PROTOCOL } from '@/constants/products';
 import { getProductConfig, getMencionesForBulletin, getDateRange } from '@/lib/bulletin/product-generator';
-import { getIndicadoresParaEjes, formatearIndicadoresMultiplesPrompt } from '@/lib/indicadores/injector';
+import { getIndicadoresConStats, formatearIndicadoresConStatsPrompt } from '@/lib/indicadores/injector';
 import { formatearMencionesPrompt, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen, formatFechaBolivia } from '@/lib/reportes-utils';
 import { regenerateWithRetry } from '@/lib/quality/regeneration';
 import { validateContent } from '@/lib/quality/validator';
@@ -126,15 +126,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 5. Obtener indicadores segun tipo
-    const ejesParaIndicadores = ejeSlug
-      ? [ejeSlug]
-      : (DEFAULT_EJES_BY_TYPE[tipo] ?? []);
-    const indicadoresPorEje = await getIndicadoresParaEjes(ejesParaIndicadores);
-    const indicadoresPrompt = formatearIndicadoresMultiplesPrompt(indicadoresPorEje);
+    // 5. Obtener indicadores según protocolo del producto
+    const protocol = INDICADOR_PROTOCOL[tipo];
+    const indicadoresStats = await getIndicadoresConStats(protocol);
+    const indicadoresPrompt = formatearIndicadoresConStatsPrompt(indicadoresStats, `Indicadores ONION200 — ${config.nombre}`, { formato: protocol.formato });
 
     // 6. Construir prompt
-    const mencionesPrompt = formatearMencionesPrompt(resultado.menciones);
+    const mencionesPrompt = formatearMencionesPrompt(resultado.menciones, tipo);
     const ventanaLabel = `${formatFechaBolivia(range.fechaInicio)} — ${formatFechaBolivia(range.fechaFin)}`;
 
     let datosExtra = [

@@ -11,9 +11,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import ZAI from 'z-ai-web-dev-sdk';
 import { getProductConfig, getMencionesForBulletin, getDateRange, formatFechaBolivia } from '@/lib/bulletin/product-generator';
-import { getIndicadoresParaEjes, formatearIndicadoresMultiplesPrompt } from '@/lib/indicadores/injector';
+import { getIndicadoresConStats, formatearIndicadoresConStatsPrompt } from '@/lib/indicadores/injector';
 import { formatearMencionesPrompt, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen } from '@/lib/reportes-utils';
-import { PRODUCTOS } from '@/constants/products';
+import { PRODUCTOS, INDICADOR_PROTOCOL } from '@/constants/products';
 import { guardedParse, RATE } from '@/lib/rate-guard';
 import { generateTermometroSchema } from '@/lib/validations';
 import { safeError } from '@/lib/safe-error';
@@ -67,12 +67,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 4. Obtener indicadores para el clima general
-    const indicadoresPorEje = await getIndicadoresParaEjes(EJES_CLIMA);
-    const indicadoresPrompt = formatearIndicadoresMultiplesPrompt(indicadoresPorEje);
+    // 4. Obtener indicadores con estadísticas según protocolo del producto
+    const protocol = INDICADOR_PROTOCOL.EL_TERMOMETRO;
+    const indicadoresStats = await getIndicadoresConStats(protocol);
+    const indicadoresPrompt = formatearIndicadoresConStatsPrompt(indicadoresStats, 'Indicadores ONION200', { formato: protocol.formato });
 
     // 5. Formatear menciones para el prompt
-    const mencionesPrompt = formatearMencionesPrompt(resultado.menciones);
+    const mencionesPrompt = formatearMencionesPrompt(resultado.menciones, 'EL_TERMOMETRO_AM');
 
     // 6. Construir prompt completo
     const ventanaLabel = `${formatFechaBolivia(range.fechaInicio)} — ${formatFechaBolivia(range.fechaFin)}`;
@@ -94,7 +95,6 @@ export async function POST(request: NextRequest) {
         { role: 'user', content: userPrompt },
       ],
       temperature: temperatura,
-      signal: AbortSignal.timeout(60000),
     }));
 
     const contenido = completion.choices[0]?.message?.content ?? '';

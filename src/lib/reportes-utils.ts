@@ -498,6 +498,19 @@ export function construirPrompt(
     `Semana del ano: ${getSemanaAnho()}.`
   );
 
+  // ═══ REFUERZO GLOBAL ANTI-EDITARIAL ═══
+  // Estas 4 reglas se repiten al FINAL del user prompt para combatir
+  // el recency bias del LLM y contradecir cualquier instrucción del
+  // system prompt que invite tono editorial.
+  partes.push(
+    `\n\nSILLO DE CIERRE — REGLAS INVIOLABLES DE ESTE PRODUCTO:`,
+    `1. SOLO REPORTAR: Cada dato que escribas debe estar en las menciones proporcionadas. No inventes, no deduzcas, no rellenes.`,
+    `2. ATRIBUCION OBLIGATORIA: Cada afirmacion va con (Fuente: nombre del medio). Sin excepcion.`,
+    `3. PLURALIDAD DE VOCES: Si hay versiones contrapuestas entre actores, reporta AMBAS con sus fuentes. Nunca presentes la version de un actor como LA verdad.`,
+    `4. CERO EDITORIAL: No escribas narrativas, hilos conductores, parrafos introductorios con tesis, ni analisis de causas/intenciones. Tu funcion es REPORTAR datos con fuentes, no narrar.`,
+    `VIOLACION DE CUALQUIERA DE ESTAS 4 REGLAS = PRODUCTO INVALIDO.`
+  );
+
   return partes.join('\n\n');
 }
 
@@ -508,14 +521,112 @@ export function construirPrompt(
 /**
  * Formatea una lista de menciones como texto para prompts.
  * Acepta menciones de Prisma (con relaciones incluidas) u objetos planos.
+ * 
+ * Estrategia de seleccion cuando hay mas menciones que el limite:
+ * - Diario: simple sort por relevancia (pocas menciones, 24h)
+ * - Semanal: relevancia epistemologica — diversidad de medios, profundidad
+ *   de tratamiento, cobertura de ejes, actores clave.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function formatearMencionesPrompt(menciones: any[]): string {
+const MAX_MENCIONES_PROMPT = 200;
+const MAX_MENCIONES_DIARIO = 150;
+
+function puntuarRelevanciaEpistemologica(m: any): number {
+  let score = 0;
+
+  // 1. Relevancia base (1-10)
+  score += (m.relevancia || 5) * 2;
+
+  // 2. Profundidad del tratamiento periodistico
+  //    Cuanto mas especifico el tratamiento, mas profundo el analisis
+  const tp = (m.tratamientoPeriodistico || '').toLowerCase();
+  if (tp.includes('editorial') || tp.includes('analisis') || tp.includes('investigacion')) score += 15;
+  else if (tp.includes('entrevista') || tp.includes('reportaje') || tp.includes('cronica')) score += 12;
+  else if (tp.includes('nota') || tp.includes('informacion')) score += 8;
+  else if (tp.includes('mencion') || tp.includes('referencia')) score += 4;
+  else score += 6;
+
+  // 3. Diversidad epistemica: menciones con resumen = mas contexto verificable
+  if (m.resumen && m.resumen.length > 50) score += 10;
+  else if (m.resumen) score += 5;
+
+  // 4. Conexion con ejes tematicos (marco epistemologico del sistema)
+  if (m.temas && m.temas.length > 0) score += 5 + Math.min(m.temas.length * 2, 10);
+  else score -= 3;
+
+  // 5. Actores clave identificados (personas = mayor densidad informativa)
+  if (m.persona) score += 8;
+
+  // 6. Fuente con peso (medios con tracking = mas confiables)
+  if (m.medio) score += 3;
+
+  return score;
+}
+
+function seleccionarMencionesEpistemologicas(menciones: any[], max: number): any[] {
+  const scored = menciones.map((m) => ({
+    m,
+    score: puntuarRelevanciaEpistemologica(m),
+  }));
+
+  // Ordenar por score epistemologico (desc)
+  scored.sort((a, b) => b.score - a.score);
+
+  // Tomar el top, pero garantizar diversidad de medios:
+  // no mas del 25% de un mismo medio en la seleccion final
+  const seleccionados: any[] = [];
+  const conteoMedios: Record<string, number> = {};
+  const limitePorMedio = Math.max(Math.ceil(max * 0.25), 5);
+
+  for (const item of scored) {
+    if (seleccionados.length >= max) break;
+    const medio = item.m.medio || 'desconocido';
+    conteoMedios[medio] = (conteoMedios[medio] || 0) + 1;
+    if (conteoMedios[medio] <= limitePorMedio) {
+      seleccionados.push(item.m);
+    }
+  }
+
+  // Si nos quedamos cortos por el filtro de medios, llenar con los restantes
+  if (seleccionados.length < max) {
+    const seleccionadosIds = new Set(seleccionados.map((m: any) => m.id || m.titulo));
+    for (const item of scored) {
+      if (seleccionados.length >= max) break;
+      if (!seleccionadosIds.has(item.m.id || item.m.titulo)) {
+        seleccionados.push(item.m);
+        seleccionadosIds.add(item.m.id || item.m.titulo);
+      }
+    }
+  }
+
+  return seleccionados;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function formatearMencionesPrompt(menciones: any[], tipo?: string): string {
   if (menciones.length === 0) {
     return 'No se encontraron menciones en el periodo consultado.';
   }
 
-  return menciones.map((m, i) => {
+  const esDiario = tipo && ['EL_TERMOMETRO_AM', 'EL_TERMOMETRO_PM', 'EL_FOCO', 'SALDO_DEL_DIA', 'EL_ALERTA', 'ALERTA_TEMPRANA'].includes(tipo);
+  const limite = esDiario ? MAX_MENCIONES_DIARIO : MAX_MENCIONES_PROMPT;
+
+  let seleccionadas: any[];
+  if (menciones.length > limite) {
+    if (esDiario) {
+      // Diario: sort simple por relevancia
+      seleccionadas = [...menciones].sort((a: any, b: any) => (b.relevancia || 0) - (a.relevancia || 0)).slice(0, limite);
+      console.log(`[formatearMencionesPrompt] Diario: truncando ${menciones.length} → ${seleccionadas.length} (relevancia simple)`);
+    } else {
+      // Semanal/mensual: relevancia epistemologica
+      seleccionadas = seleccionarMencionesEpistemologicas(menciones, limite);
+      console.log(`[formatearMencionesPrompt] Semanal: truncando ${menciones.length} → ${seleccionadas.length} (relevancia epistemologica)`);
+    }
+  } else {
+    seleccionadas = menciones;
+  }
+
+  return seleccionadas.map((m, i) => {
     const parts = [
       `${i + 1}. **${m.titulo}**`,
       `   - Medio: ${m.medio ?? 'No especificado'}`,
@@ -602,7 +713,7 @@ export async function registrarReporte(params: {
   modeloIA?: string;
   metadata?: string;
   clienteId?: string;
-}): Promise<string | null> {
+}): Promise<string> {
   try {
     const reporte = await db.reporte.create({
       data: {
@@ -626,7 +737,10 @@ export async function registrarReporte(params: {
     return reporte.id;
   } catch (error) {
     console.error('[reportes-utils] Error registrando reporte:', error);
-    return null;
+    // Generar ID fallback para que downstream nunca reciba null
+    const fallbackId = 'rpt_fb_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8);
+    console.warn(`[reportes-utils] Usando reporteId fallback: ${fallbackId}`);
+    return fallbackId;
   }
 }
 

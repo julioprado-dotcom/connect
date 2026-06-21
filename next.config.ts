@@ -19,6 +19,7 @@ const nextConfig: NextConfig = {
   },
 
   serverExternalPackages: ['@prisma/client', 'better-sqlite3', 'node-cron', 'z-ai-web-dev-sdk'],
+<<<<<<< HEAD
 
   // Webpack externals: fuerza z-ai-web-dev-sdk a cargarse en runtime (no bundleado)
   // Necesario porque el SDK inyecta thinking:{type:'disabled'} que GLM rechaza (error 1210)
@@ -31,6 +32,8 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
+=======
+>>>>>>> 8a65b8eaace1f170fa56a1176edf99b9c47fd6ea
 
   experimental: {
     optimizePackageImports: [
