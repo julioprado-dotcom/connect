@@ -17,7 +17,7 @@ import { generateSaldoSchema } from '@/lib/validations'
 import { safeError } from '@/lib/safe-error'
 import { verifyProduct } from '@/lib/verification/verify-product'
 import { throttledLlmCall } from '@/lib/ai/llm-throttle'
-import { formatearMencionesPrompt, construirPrompt } from '@/lib/reportes-utils'
+import { formatearMencionesPrompt, construirPrompt, calcularTemperaturaDinamica } from '@/lib/reportes-utils'
 
 // ─── Endpoint POST ────────────────────────────────────────────────
 
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
         { role: 'system', content: PRODUCTOS.SALDO_DEL_DIA.systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      temperature: Math.max(PRODUCTOS.SALDO_DEL_DIA.temperatura, 0.05),
+      temperature: calcularTemperaturaDinamica(Math.max(PRODUCTOS.SALDO_DEL_DIA.temperatura, 0.05), menciones),
     }))
 
     const contenido = completion.choices[0]?.message?.content ?? 'Error: no se generó contenido'

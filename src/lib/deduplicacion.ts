@@ -255,7 +255,7 @@ Resumen: ${nueva.resumen}
 CONTEXTO BOLIVIANO: En Bolivia, multiples medios reproducen cables de agencia (ABI, ERBOL, EFE) con ligeras variaciones. Esto es comun y NO significa que sean eventos distintos.`,
         },
       ],
-      temperature: 0.0,
+      temperature: 0.05,
     })
     );
 
@@ -443,17 +443,12 @@ export async function deduplicarMencion(
   // Los otros 2 candidatos se manejan por heurística DB (score).
   if (input.skipLlm && dudosos.length > 0) {
     const topCandidato = dudosos[0];
-    console.log(`[DEDUP] Batch mode (skipLLM): usando heurística DB para ${dudosos.length} candidatos, mejor match: #${topCandidato.id} (score ${topCandidato.score})`);
-    if (topCandidato.score >= 0.6) {
-      return {
-        decision: 'es_duplicado',
-        mencionOriginalId: topCandidato.id,
-        razon: `Batch dedup heurística: score ${topCandidato.score.toFixed(2)} vs #${topCandidato.id}`,
-      };
-    }
+    console.log(`[DEDUP] Batch mode (skipLLM): usando heurística DB para ${dudosos.length} candidatos, mejor match: #${topCandidato.id}`);
+    // Batch dedup: top candidate (sorted by huella proximity) se considera duplicado
     return {
-      decision: 'crear_original',
-      razon: `Batch dedup heurística: score bajo (${topCandidato.score.toFixed(2)}), creando original`,
+      decision: 'es_duplicado',
+      mencionOriginalId: topCandidato.id,
+      razon: `Batch dedup heurística: top candidate #${topCandidato.id}`,
     };
   }
 

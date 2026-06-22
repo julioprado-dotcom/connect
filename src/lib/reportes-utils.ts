@@ -531,34 +531,76 @@ export function construirPrompt(
 const MAX_MENCIONES_PROMPT = 200;
 const MAX_MENCIONES_DIARIO = 150;
 
+/**
+ * Score composite de relevancia epistemologica.
+ * Integra marco epistemologico (ejes, lentes, confianza, intencion, tratamiento)
+ * con senales cuantitativas (peso del medio) y de calidad periodistica (profundidad).
+ *
+ * El score se usa INTERNAMENTE para seleccionar menciones al armar prompts.
+ * El cliente no ve el score — ve la hamburguesa, no los condimentos.
+ */
 function puntuarRelevanciaEpistemologica(m: any): number {
   let score = 0;
 
-  // 1. Relevancia base (1-10)
-  score += (m.relevancia || 5) * 2;
+  // ═══ 1. MARCO EPISTEMOLOGICO (40%) ═══
 
-  // 2. Profundidad del tratamiento periodistico
-  //    Cuanto mas especifico el tratamiento, mas profundo el analisis
+  // 1A. Alineacion con ejes estructurales — mapeo del marco conceptual
+  // Cuantos mas ejes del marco activa, mas relevante es la mencion
+  const ejes = m.temas?.length ?? 0;
+  if (ejes >= 3) score += 15;      // Fenomeno multi-eje: complejo, articula varias dimensiones
+  else if (ejes === 2) score += 10; // Cruce de ejes
+  else if (ejes === 1) score += 6;  // Un solo eje
+  // 0 ejes = fuera del marco, no suma
+
+  // 1B. Peso del eje mas fuerte (NotaEje.peso o clasificador v2)
+  // Un eje con peso alto = la mencion encaja profundamente en el marco
+  const pesoEjeMax = m.pesoEjeMax ?? 0;
+  score += Math.round(pesoEjeMax * 10); // 0-10 puntos
+
+  // 1C. Confianza de clasificacion (alta/media/baja) — juicio del LLM
+  const confianza = (m.confianzaClasificacion || '').toLowerCase();
+  if (confianza === 'alta') score += 5;
+  else if (confianza === 'media') score += 3;
+  else if (confianza === 'baja') score += 1;
+  else score += 2; // sin dato
+
+  // 1D. Intencion del medio — taxonomy del marco (denunciar > analizar > opinar > informar)
+  const intencion = (m.intencionMedio || '').toLowerCase();
+  if (intencion.includes('denunciar')) score += 5;
+  else if (intencion.includes('analizar')) score += 4;
+  else if (intencion.includes('opinar')) score += 3;
+  else if (intencion.includes('informar')) score += 2;
+  // entretener = 0
+
+  // 1E. Tratamiento periodistico — profundidad segun escala del marco
   const tp = (m.tratamientoPeriodistico || '').toLowerCase();
-  if (tp.includes('editorial') || tp.includes('analisis') || tp.includes('investigacion')) score += 15;
-  else if (tp.includes('entrevista') || tp.includes('reportaje') || tp.includes('cronica')) score += 12;
-  else if (tp.includes('nota') || tp.includes('informacion')) score += 8;
-  else if (tp.includes('mencion') || tp.includes('referencia')) score += 4;
-  else score += 6;
+  if (tp.includes('investigacion')) score += 10;
+  else if (tp.includes('editorial') || tp.includes('analisis')) score += 9;
+  else if (tp.includes('reportaje') || tp.includes('entrevista') || tp.includes('cronica')) score += 7;
+  else if (tp.includes('nota') || tp.includes('informacion')) score += 4;
+  else if (tp.includes('mencion') || tp.includes('referencia')) score += 2;
+  else score += 5; // sin dato
 
-  // 3. Diversidad epistemica: menciones con resumen = mas contexto verificable
+  // ═══ 2. CUANTITATIVO (20%) ═══
+
+  // 2A. Peso informativo del medio (calculo del peso-calculator: 0-100)
+  // Normalizado a 0-15 puntos (15% del total)
+  const pesoMedio = m.pesoInformativo ?? 0;
+  score += Math.round(pesoMedio * 0.15);
+
+  // ═══ 3. CALIDAD PERIODISTICA (25%) ═══
+
+  // 3A. Resumen con contexto verificable
   if (m.resumen && m.resumen.length > 50) score += 10;
   else if (m.resumen) score += 5;
 
-  // 4. Conexion con ejes tematicos (marco epistemologico del sistema)
-  if (m.temas && m.temas.length > 0) score += 5 + Math.min(m.temas.length * 2, 10);
-  else score -= 3;
+  // ═══ 4. ACTORES (15%) ═══
 
-  // 5. Actores clave identificados (personas = mayor densidad informativa)
-  if (m.persona) score += 8;
+  // 4A. Persona identificada — mismo peso que eje tematico fuerte
+  if (m.persona) score += 10;
 
-  // 6. Fuente con peso (medios con tracking = mas confiables)
-  if (m.medio) score += 3;
+  // 4B. Reach moderado
+  if (m.reach > 0) score += Math.min(Math.round(m.reach * 0.05), 5);
 
   return score;
 }
@@ -602,6 +644,58 @@ function seleccionarMencionesEpistemologicas(menciones: any[], max: number): any
   return seleccionados;
 }
 
+/**
+ * Temperatura dinamica basada en el perfil del dia.
+ * Ajusta la temperatura base del producto segun la densidad y complejidad
+ * de las menciones seleccionadas. El cliente no ve este ajuste — es interna.
+ *
+ * Reglas:
+ * - Dia denso (>40 menciones con score > 30) → +0.05 (necesita sintesis)
+ * - Dia complejo (>6 ejes distintos) → +0.05 (necesita hilado narrativo)
+ * - Dia polarizado (>30% denuncias/opiniones) → +0.03 (tono viene del contenido)
+ * - Dia sparse (<10 menciones) → -0.02 (fidelidad literal)
+ * - Clamp: [0.05, 0.4]
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function calcularTemperaturaDinamica(
+  baseTemp: number,
+  menciones: any[],
+): number {
+  if (!menciones || menciones.length < 5) return Math.max(baseTemp, 0.05);
+
+  // Score cada mencion rapido (reusa el mismo scoring)
+  const scored = menciones.map(m => ({ m, score: puntuarRelevanciaEpistemologica(m) }));
+
+  // Densidad: menciones con score alto (relevancia real, no solo presencia)
+  const relevantes = scored.filter(item => item.score > 30).length;
+  let ajuste = 0;
+
+  if (relevantes > 40) ajuste += 0.05;      // Dia denso
+  else if (relevantes > 20) ajuste += 0.02;  // Dia medio
+
+  // Complejidad: cantidad de ejes distintos
+  const ejesSet = new Set<string>();
+  for (const item of scored) {
+    const temas = item.m.temas;
+    if (Array.isArray(temas)) temas.forEach(t => ejesSet.add(String(t)));
+  }
+  if (ejesSet.size > 6) ajuste += 0.05;     // Multi-eje complejo
+  else if (ejesSet.size > 3) ajuste += 0.02; // Multi-eje moderado
+
+  // Polarizacion: proporcion de intencion "denunciar" u "opinar"
+  const polarizadas = scored.filter(item => {
+    const intencion = (item.m.intencionMedio || '').toLowerCase();
+    return intencion.includes('denunciar') || intencion.includes('opinar');
+  }).length;
+  if (polarizadas / scored.length > 0.3) ajuste += 0.03;
+
+  // Sparse: pocas menciones
+  if (menciones.length < 10) ajuste -= 0.02;
+
+  // Clamp
+  return Math.max(0.05, Math.min(baseTemp + ajuste, 0.4));
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function formatearMencionesPrompt(menciones: any[], tipo?: string): string {
   if (menciones.length === 0) {
@@ -613,15 +707,9 @@ export function formatearMencionesPrompt(menciones: any[], tipo?: string): strin
 
   let seleccionadas: any[];
   if (menciones.length > limite) {
-    if (esDiario) {
-      // Diario: sort simple por relevancia
-      seleccionadas = [...menciones].sort((a: any, b: any) => (b.relevancia || 0) - (a.relevancia || 0)).slice(0, limite);
-      console.log(`[formatearMencionesPrompt] Diario: truncando ${menciones.length} → ${seleccionadas.length} (relevancia simple)`);
-    } else {
-      // Semanal/mensual: relevancia epistemologica
-      seleccionadas = seleccionarMencionesEpistemologicas(menciones, limite);
-      console.log(`[formatearMencionesPrompt] Semanal: truncando ${menciones.length} → ${seleccionadas.length} (relevancia epistemologica)`);
-    }
+    // Diario y semanal: relevancia epistemologica composite (unificado)
+    seleccionadas = seleccionarMencionesEpistemologicas(menciones, limite);
+    console.log(`[formatearMencionesPrompt] ${esDiario ? 'Diario' : 'Semanal'}: truncando ${menciones.length} → ${seleccionadas.length} (relevancia epistemologica composite)`);
   } else {
     seleccionadas = menciones;
   }

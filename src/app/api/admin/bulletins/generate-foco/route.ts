@@ -15,7 +15,7 @@ import { PRODUCTOS, INDICADOR_PROTOCOL } from '@/constants/products';
 import db from '@/lib/db';
 import { getProductConfig, getMencionesForBulletin, getDateRange } from '@/lib/bulletin/product-generator';
 import { getIndicadoresConStats, formatearIndicadoresConStatsPrompt } from '@/lib/indicadores/injector';
-import { formatearMencionesPrompt, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen, formatFechaBolivia } from '@/lib/reportes-utils';
+import { formatearMencionesPrompt, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen, formatFechaBolivia, calcularTemperaturaDinamica } from '@/lib/reportes-utils';
 import { guardedParse, RATE } from '@/lib/rate-guard';
 import { generateFocoSchema } from '@/lib/validations';
 import { safeError } from '@/lib/safe-error';
@@ -87,9 +87,12 @@ export async function POST(request: NextRequest) {
       `Eje tematico: ${eje.nombre} (${eje.slug})\nDescripcion del eje: ${eje.descripcion ?? 'Sin descripcion'}\nTotal menciones: ${resultado.totalMenciones}\nPeriodo: ${ventanaLabel}`
     );
 
-    // 9. Generar contenido con IA (GLM) — temperatura 0.5 para profundidad
+    // 9. Generar contenido con IA (GLM) — temperatura dinamica para profundidad
     const zai = await ZAI.create();
-    const temperatura = temperaturaOverride ?? PRODUCTOS.EL_FOCO.temperatura;
+    const temperatura = temperaturaOverride ?? calcularTemperaturaDinamica(
+      Math.max(PRODUCTOS.EL_FOCO.temperatura, 0.05),
+      resultado.menciones,
+    );
 
     const completion = await throttledLlmCall(() => zai.chat.completions.create({
       model: 'glm-4.5-flash',

@@ -72,12 +72,18 @@ export async function getMencionesForBulletin(
         select: { id: true, nombre: true, partidoSigla: true, camara: true, departamento: true },
       },
       Medio: {
-        select: { id: true, nombre: true, tipo: true },
+        select: { id: true, nombre: true, tipo: true, pesoInformativo: true },
       },
       MencionTema: {
         select: {
           EjeTematico: { select: { id: true, nombre: true, slug: true, color: true } },
         },
+      },
+      // NotaEje: peso maximo del eje mas fuerte (para scoring composite)
+      NotaEje: {
+        select: { peso: true },
+        orderBy: { peso: 'desc' },
+        take: 1,
       },
     },
     orderBy: { fechaCaptura: 'desc' },
@@ -99,6 +105,8 @@ export async function getMencionesForBulletin(
     camara: m.Persona?.camara ?? null,
     medio: m.Medio?.nombre ?? 'Desconocido',
     medioTipo: m.Medio?.tipo ?? null,
+    pesoInformativo: m.Medio?.pesoInformativo ?? 0,
+    pesoEjeMax: m.NotaEje?.[0]?.peso ?? 0,
     sentimiento: m.tratamientoPeriodistico,
     tratamientoPeriodistico: m.tratamientoPeriodistico,
     intencionMedio: m.intencionMedio,

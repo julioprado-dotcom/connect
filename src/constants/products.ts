@@ -301,7 +301,7 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     canales: ['whatsapp', 'email'],
     periodoDefault: 1,
     palabrasObjetivo: 350,
-    temperatura: 0.0,
+    temperatura: 0.1,
     activo: true,
     generador: {
       tipo: 'dedicado',
@@ -327,7 +327,7 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     canales: ['whatsapp', 'email'],
     periodoDefault: 1,
     palabrasObjetivo: 450,
-    temperatura: 0.0,
+    temperatura: 0.1,
     activo: true,
     generador: {
       tipo: 'dedicado',
@@ -439,7 +439,7 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     canales: ['email', 'web'],
     periodoDefault: 7,
     palabrasObjetivo: 500,
-    temperatura: 0.0,
+    temperatura: 0.1,
     activo: true,
     generador: {
       tipo: 'dedicado',

@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import ZAI from 'z-ai-web-dev-sdk';
 import { getProductConfig, getMencionesForBulletin, getDateRange, formatFechaBolivia } from '@/lib/bulletin/product-generator';
 import { getIndicadoresConStats, formatearIndicadoresConStatsPrompt } from '@/lib/indicadores/injector';
-import { formatearMencionesPrompt, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen } from '@/lib/reportes-utils';
+import { formatearMencionesPrompt, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen, calcularTemperaturaDinamica } from '@/lib/reportes-utils';
 import { PRODUCTOS, INDICADOR_PROTOCOL } from '@/constants/products';
 import { guardedParse, RATE } from '@/lib/rate-guard';
 import { generateTermometroSchema } from '@/lib/validations';
@@ -86,7 +86,10 @@ export async function POST(request: NextRequest) {
 
     // 7. Generar contenido con IA (GLM) usando system prompt del catálogo
     const zai = await ZAI.create();
-    const temperatura = temperaturaOverride ?? PRODUCTOS.EL_TERMOMETRO.temperatura;
+    const temperatura = temperaturaOverride ?? calcularTemperaturaDinamica(
+      Math.max(PRODUCTOS.EL_TERMOMETRO.temperatura, 0.05),
+      resultado.menciones,
+    );
 
     const completion = await throttledLlmCall(() => zai.chat.completions.create({
       model: 'glm-4.5-flash',

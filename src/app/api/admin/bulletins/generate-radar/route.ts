@@ -14,7 +14,7 @@ import { PRODUCTOS, INDICADOR_PROTOCOL } from '@/constants/products';
 import db from '@/lib/db';
 import { getProductConfig, getDateRange, formatFechaBolivia } from '@/lib/bulletin/product-generator';
 import { getIndicadoresConStats, formatearIndicadoresConStatsPrompt } from '@/lib/indicadores/injector';
-import { formatearMencionesPorEje, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen, getSemanaAnho } from '@/lib/reportes-utils';
+import { formatearMencionesPorEje, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen, getSemanaAnho, calcularTemperaturaDinamica } from '@/lib/reportes-utils';
 import { guardedParse, RATE } from '@/lib/rate-guard';
 import { generateRadarSchema } from '@/lib/validations';
 import { safeError } from '@/lib/safe-error';
@@ -137,7 +137,11 @@ export async function POST(request: NextRequest) {
 
     // 7. Generar con IA
     const zai = await ZAI.create();
-    const temperatura = temperaturaOverride ?? PRODUCTOS.EL_RADAR.temperatura;
+    const mencionesAllEjes = Object.values(mencionesPorEje).flat();
+    const temperatura = temperaturaOverride ?? calcularTemperaturaDinamica(
+      Math.max(PRODUCTOS.EL_RADAR.temperatura, 0.05),
+      mencionesAllEjes,
+    );
 
     const completion = await throttledLlmCall(() => zai.chat.completions.create({
       model: 'glm-4.5-flash',
@@ -160,7 +164,6 @@ export async function POST(request: NextRequest) {
     }
 
     // 8. Verificacion post-generacion anti-alucinacion
-    const mencionesAllEjes = Object.values(mencionesPorEje).flat();
     const textoVerificado = await verifyProduct(
       contenido,
       mencionesAllEjes.map(m => ({
