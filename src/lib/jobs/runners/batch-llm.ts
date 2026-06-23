@@ -291,6 +291,16 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
           totalProcesadas++
         }
 
+        // Actualizar ultimoMencion de la fuente si se crearon menciones
+        if (menciones > 0) {
+          await db.fuenteEstado.update({
+            where: { medioId },
+            data: { ultimoMencion: new Date() },
+          }).catch(err => {
+            console.warn(`[batch-llm] No se pudo actualizar ultimoMencion para ${medioId.substring(0, 8)}: ${String(err).substring(0, 80)}`)
+          })
+        }
+
         // Si el circuit breaker se abrió, detener procesamiento de esta fuente y las siguientes
         if (circuitBreakerOpen) break
       }

@@ -87,6 +87,8 @@ export function buildSystemPrompt(marco: MarcoData | null): string {
   criteriosSection += '\n\nes_relevante = false SI el artículo es PRIMARIAMENTE sobre:\n' +
     exclusionesContenido.map(c => `- ${c}`).join('\n');
   criteriosSection += '\nNOTA: Un artículo sobre fútbol PUEDE ser relevante SOLO si tiene implicaciones políticas/institucionales claras (ej: uso de recursos públicos para estadios, escándalo de corrupción deportiva, declaración de un legislador sobre deportes). Si es solo deportivo → false.'
+  // Filtro geográfico: solo noticias sobre Bolivia
+  criteriosSection += '\n\nes_relevante = false SI la noticia trata PRIMARIAMENTE sobre un país DISTINTO a Bolivia (ej: elecciones en Venezuela, política en Argentina, conflicto en Ucrania) SIN conexión directa con Bolivia. Si el evento extranjero se menciona en un contexto relevante para Bolivia (ej: declaración de un líder boliviano sobre el evento, impacto en relaciones bilaterales, Bolivia como parte de un bloque regional) → puede ser relevante.'
 
   // ── Terminología ──
   const terminosPermitidos: string[] = marco

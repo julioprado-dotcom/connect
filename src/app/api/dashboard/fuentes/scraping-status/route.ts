@@ -146,6 +146,7 @@ export async function GET() {
     // ── 6. Count NotaRaw per medioId ──
     const allIds = medios.map(m => s(m.id));
     let notaRawMap = new Map<string, { total: number; pendientes: number }>();
+    let mencionCountMap = new Map<string, number>();
 
     if (allIds.length > 0) {
       try {
@@ -168,6 +169,21 @@ export async function GET() {
         }
       } catch (err) {
         console.warn('[scraping-status] NotaRaw table missing or error:', err);
+      }
+
+      // Fallback: contar menciones directamente de tabla Mencion
+      try {
+        const placeholders = allIds.map(() => '?').join(',');
+        const mencionCounts: Array<Record<string, unknown>> = await db.$queryRawUnsafe(
+          `SELECT medioId, CAST(COUNT(*) AS INTEGER) as cnt
+           FROM Mencion
+           WHERE medioId IN (${placeholders})
+           GROUP BY medioId`,
+          ...allIds
+        );
+        mencionCountMap = new Map(mencionCounts.map(r => [s(r.medioId), n(r.cnt)]));
+      } catch (err) {
+        console.warn('[scraping-status] Mencion count fallback error:', err);
       }
     }
 
@@ -268,7 +284,7 @@ export async function GET() {
         totalCambios: n(estado.totalCambios),
         totalHeadlines: n(estado.totalHeadlines),
         totalTexto: n(estado.totalTexto),
-        totalMenciones: n(estado.totalMenciones),
+        totalMenciones: n(estado.totalMenciones) || mencionCountMap.get(s(medio.id)) || 0,
 
         fallosConsecutivos: n(estado.fallosConsecutivos),
         checksSinCambio: n(estado.checksSinCambio),
@@ -300,7 +316,7 @@ export async function GET() {
       conNotasRaw: fuentes.filter(f => f.notaRawTotal > 0).length,
       notasRawTotal: fuentes.reduce((s, f) => s + f.notaRawTotal, 0),
       notasRawPendientes: fuentes.reduce((s, f) => s + f.notaRawPendientes, 0),
-      mencionesTotal: fuentes.reduce((s, f) => s + f.totalMenciones, 0),
+      mencionesTotal: fuentes.reduce((s, f) => s + f.totalMenciones, 0) + Array.from(mencionCountMap.values()).reduce((s, c) => s + c, 0),
     };
 
     return NextResponse.json({ fuentes, resumen });

@@ -859,7 +859,7 @@ export async function extraerMencionesDeTexto(
     await persistDebugLog(debugLog);
 
     return {
-      es_relevante: parsed.es_relevante === true || legisladores.length > 0 || ejesMencionados.length > 0 || personasDetectadasConId.length > 0 || ejesSugeridos.length > 0,
+      es_relevante: parsed.es_relevante === true || legisladores.length > 0 || ejesMencionados.length > 0 || personasDetectadasConId.length > 0,
       tratamientoPeriodistico: tratamiento,
       intencionMedio,
       confianzaClasificacion: confianza,
