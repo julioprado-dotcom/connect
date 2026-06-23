@@ -809,14 +809,22 @@ export async function registrarReporte(params: {
   metadata?: string;
   clienteId?: string;
 }): Promise<string> {
+  // Generar ID unico para el reporte (campo @id sin auto-generacion en schema)
+  const { randomBytes } = await import('crypto');
+  const reporteId = 'rpt_' + randomBytes(12).toString('hex');
+
   try {
     const reporte = await db.reporte.create({
       data: {
+        id: reporteId,
         tipo: params.tipoProducto,
         resumen: params.resumen ?? params.titulo ?? '',
         contenido: params.contenido,
         fechaInicio: params.fechaInicio,
         fechaFin: params.fechaFin,
+        totalMenciones: 0,
+        sentimientoPromedio: 0,
+        temasPrincipales: '',
       },
     });
 

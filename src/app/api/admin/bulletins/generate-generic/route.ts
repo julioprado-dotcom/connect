@@ -13,7 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PRODUCTOS, INDICADOR_PROTOCOL } from '@/constants/products';
 import { getProductConfig, getMencionesForBulletin, getDateRange } from '@/lib/bulletin/product-generator';
 import { getIndicadoresConStats, formatearIndicadoresConStatsPrompt } from '@/lib/indicadores/injector';
-import { formatearMencionesPrompt, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen, formatFechaBolivia } from '@/lib/reportes-utils';
+import { formatearMencionesPrompt, formatearMencionesPorEje, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen, formatFechaBolivia, getSemanaAnho } from '@/lib/reportes-utils';
 import { regenerateWithRetry } from '@/lib/quality/regeneration';
 import { validateContent } from '@/lib/quality/validator';
 import { type TipoBoletin } from '@/types/bulletin';
@@ -22,6 +22,7 @@ import { generateGenericSchema } from '@/lib/validations';
 import { safeError } from '@/lib/safe-error';
 import { verifyProduct } from '@/lib/verification/verify-product';
 import { loadMarcoConceptual, formatMarcoForPrompt } from '@/lib/reporte-sectorial.alerts';
+import db from '@/lib/db';
 
 // ============================================
 // Mapa de ejes tematicos sugeridos por tipo de producto.
@@ -77,11 +78,56 @@ export async function POST(request: NextRequest) {
     const fin = fechaFinStr ? new Date(fechaFinStr) : range.fechaFin;
 
     // 4. Obtener menciones
-    const options: { ejesTematicos?: string[]; personaId?: string; customDays?: number } = {};
-    if (ejeSlug) options.ejesTematicos = [ejeSlug];
-    if (personaId) options.personaId = personaId;
+    // Para EL_RADAR: usar formato ligero por eje (10 menciones/eje, sin texto)
+    // para evitar prompts de 80K+ chars que GLM rechaza con error 1210.
+    const USE_LIGHTWEIGHT_MENCIONES = tipo === 'EL_RADAR';
 
-    const resultado = await getMencionesForBulletin(tipo, options);
+    let resultado: { menciones: Record<string, unknown>[]; totalMenciones: number };
+    let mencionesAllFlat: Record<string, unknown>[] = [];
+    let totalMencionesPorEje: Record<string, number> = {};
+
+    if (USE_LIGHTWEIGHT_MENCIONES && !ejeSlug && !personaId) {
+      const ejes = DEFAULT_EJES_BY_TYPE.EL_RADAR!;
+      const mencionesPorEjeData: Record<string, Array<Record<string, unknown>>> = {};
+
+      const ejeResults = await Promise.all(
+        ejes.map(async (slug) => {
+          const menciones = await db.mencion.findMany({
+            where: {
+              fechaCaptura: { gte: range.fechaInicio, lte: range.fechaFin },
+              MencionTema: { some: { EjeTematico: { slug } } },
+            },
+            include: {
+              Medio: { select: { nombre: true } },
+              Persona: { select: { nombre: true } },
+            },
+            orderBy: { fechaPublicacion: 'desc' },
+            take: 10,
+          });
+          return { slug, menciones };
+        })
+      );
+
+      for (const { slug, menciones } of ejeResults) {
+        mencionesPorEjeData[slug] = menciones.map((m) => ({
+          titulo: m.titulo,
+          medio: m.Medio?.nombre ?? null,
+          persona: m.Persona?.nombre ?? null,
+          sentimiento: m.tratamientoPeriodistico,
+        }));
+        totalMencionesPorEje[slug] = menciones.length;
+        mencionesAllFlat.push(...mencionesPorEjeData[slug]);
+      }
+
+      const totalMenciones = Object.values(totalMencionesPorEje).reduce((a, b) => a + b, 0);
+      resultado = { menciones: mencionesAllFlat, totalMenciones };
+    } else {
+      const options: { ejesTematicos?: string[]; personaId?: string; customDays?: number } = {};
+      if (ejeSlug) options.ejesTematicos = [ejeSlug];
+      if (personaId) options.personaId = personaId;
+      resultado = await getMencionesForBulletin(tipo, options);
+      mencionesAllFlat = resultado.menciones;
+    }
 
     // IMPORTANTE: El producto SIEMPRE se crea, incluso con 0 menciones.
     // El administrador necesita visibilidad de cada generación para auditoría.
@@ -133,23 +179,46 @@ export async function POST(request: NextRequest) {
     const indicadoresPrompt = formatearIndicadoresConStatsPrompt(indicadoresStats, `Indicadores ONION200 — ${config.nombre}`, { formato: protocol.formato });
 
     // 6. Construir prompt
-    const mencionesPrompt = formatearMencionesPrompt(resultado.menciones, tipo);
+    let mencionesPrompt: string;
+    let datosExtra: string;
     const ventanaLabel = `${formatFechaBolivia(range.fechaInicio)} — ${formatFechaBolivia(range.fechaFin)}`;
 
-    let datosExtra = [
-      `Tipo de producto: ${config.nombre}`,
-      `Periodo: ${ventanaLabel}`,
-      `Total menciones: ${resultado.totalMenciones}`,
-    ].join('\n');
+    if (USE_LIGHTWEIGHT_MENCIONES && !ejeSlug && !personaId) {
+      // Formato ligero por eje para EL_RADAR (sin texto de articulo)
+      // Reconstruir mencionesPorEje desde los datos obtenidos arriba
+      const ejeSlugs = DEFAULT_EJES_BY_TYPE.EL_RADAR!;
+      const mencionesPorEjeMap: Record<string, Array<Record<string, unknown>>> = {};
+      let idx = 0;
+      for (const slug of ejeSlugs) {
+        const count = totalMencionesPorEje[slug] ?? 0;
+        mencionesPorEjeMap[slug] = mencionesAllFlat.slice(idx, idx + count);
+        idx += count;
+      }
+      mencionesPrompt = formatearMencionesPorEje(mencionesPorEjeMap);
 
-    if (ejeSlug) datosExtra += `\nEje tematico: ${ejeSlug}`;
-    if (personaId) datosExtra += `\nPersona ID: ${personaId}`;
+      // Agregar distribucion por eje
+      const resumenEjes = ejeSlugs
+        .map((slug) => `- ${slug}: ${totalMencionesPorEje[slug] ?? 0} menciones`)
+        .join('\n');
+      const semana = getSemanaAnho();
+      datosExtra = `Semana ${semana} | Periodo: ${ventanaLabel}\nTotal menciones: ${resultado.totalMenciones}\n\nDistribucion por eje:\n${resumenEjes}`;
+    } else {
+      mencionesPrompt = formatearMencionesPrompt(resultado.menciones, tipo);
+      datosExtra = [
+        `Tipo de producto: ${config.nombre}`,
+        `Periodo: ${ventanaLabel}`,
+        `Total menciones: ${resultado.totalMenciones}`,
+      ].join('\n');
+      if (ejeSlug) datosExtra += `\nEje tematico: ${ejeSlug}`;
+      if (personaId) datosExtra += `\nPersona ID: ${personaId}`;
+    }
 
     const userPrompt = construirPrompt(tipo, mencionesPrompt, indicadoresPrompt, datosExtra);
     console.log(`[generate-generic] ${tipo}: ${resultado.totalMenciones} menciones, mencionesPrompt=${mencionesPrompt.length}chars, indicadoresPrompt=${indicadoresPrompt.length}chars, userPrompt=${userPrompt.length}chars`);
 
     // 7. Cargar Marco Conceptual e inyectar en system prompt
-    const marco = await loadMarcoConceptual();
+    // Skip para EL_RADAR: el prompt debe ser compacto
+    const marco = USE_LIGHTWEIGHT_MENCIONES ? null : await loadMarcoConceptual();
     const marcoSection = marco
       ? `\n\n## MARCO CONCEPTUAL DECODEX (principios epistemológicos — obligatorio respetar):\n${formatMarcoForPrompt(marco)}\n`
       : '';
@@ -157,7 +226,7 @@ export async function POST(request: NextRequest) {
     console.log(`[generate-generic] ${tipo}: systemPrompt=${systemPrompt.length}chars (base=${config.systemPrompt.length}, marco=${marcoSection.length})`);
     if (marco) {
       console.log(`[generate-generic] Marco Conceptual inyectado para ${tipo}.`);
-    } else {
+    } else if (!USE_LIGHTWEIGHT_MENCIONES) {
       console.warn(`[generate-generic] Marco Conceptual no encontrado en DB para ${tipo}.`);
     }
 
