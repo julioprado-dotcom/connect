@@ -91,6 +91,11 @@ export async function regenerateWithRetry(params: {
       }
 
       const zai = await ZAI.create();
+      // Diagnostico: log prompt sizes para detectar problemas con la API
+      const sysLen = params.systemPrompt?.length ?? 0;
+      const usrLen = enhancedPrompt?.length ?? 0;
+      console.log(`[regeneration] Intento ${intento + 1} para ${params.tipo}: system=${sysLen}chars, user=${usrLen}chars, temp=${temperatura}`);
+
       const completion = await throttledLlmCall(() => zai.chat.completions.create({
         model: 'glm-4.5-flash',
         messages: [

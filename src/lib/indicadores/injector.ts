@@ -108,6 +108,9 @@ export function formatearIndicadoresPrompt(
 export function formatearIndicadoresMultiplesPrompt(
   indicadoresPorEje: Record<string, IndicadorFormateado[]>
 ): string {
+  if (!indicadoresPorEje || typeof indicadoresPorEje !== 'object') {
+    return 'No hay indicadores disponibles para los ejes consultados.';
+  }
   const secciones = Object.entries(indicadoresPorEje)
     .filter(([, inds]) => inds.length > 0)
     .map(([slug, inds]) => formatearIndicadoresPrompt(inds, slug));
