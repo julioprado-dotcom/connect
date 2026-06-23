@@ -10,10 +10,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { PRODUCTOS, INDICADOR_PROTOCOL } from '@/constants/products';
+import { INDICADOR_PROTOCOL } from '@/constants/products';
 import { getProductConfig, getMencionesForBulletin, getDateRange } from '@/lib/bulletin/product-generator';
 import { getIndicadoresConStats, formatearIndicadoresConStatsPrompt } from '@/lib/indicadores/injector';
-import { formatearMencionesPrompt, formatearMencionesPorEje, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen, formatFechaBolivia, getSemanaAnho } from '@/lib/reportes-utils';
+import { formatearMencionesPrompt, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen, formatFechaBolivia, getSemanaAnho } from '@/lib/reportes-utils';
 import { regenerateWithRetry } from '@/lib/quality/regeneration';
 import { validateContent } from '@/lib/quality/validator';
 import { type TipoBoletin } from '@/types/bulletin';
@@ -22,27 +22,6 @@ import { generateGenericSchema } from '@/lib/validations';
 import { safeError } from '@/lib/safe-error';
 import { verifyProduct } from '@/lib/verification/verify-product';
 import { loadMarcoConceptual, formatMarcoForPrompt } from '@/lib/reporte-sectorial.alerts';
-import db from '@/lib/db';
-
-// ============================================
-// Mapa de ejes tematicos sugeridos por tipo de producto.
-// ============================================
-
-const DEFAULT_EJES_BY_TYPE: Partial<Record<TipoBoletin, string[]>> = {
-  EL_TERMOMETRO: ['politica-nacional', 'economia', 'seguridad', 'social', 'medio-ambiente'],
-  SALDO_DEL_DIA: ['politica-nacional', 'economia', 'seguridad', 'social'],
-  EL_RADAR: [
-    'politica-nacional', 'economia', 'seguridad', 'medio-ambiente',
-    'social', 'internacional', 'legislativo', 'justicia',
-    'salud', 'educacion', 'tecnologia',
-  ],
-  VOZ_Y_VOTO: ['legislativo', 'politica-nacional', 'justicia'],
-  EL_HILO: ['politica-nacional', 'economia', 'seguridad', 'social'],
-  EL_INFORME_CERRADO: [
-    'politica-nacional', 'economia', 'seguridad', 'medio-ambiente',
-    'social', 'internacional', 'legislativo',
-  ],
-};
 
 // ============================================
 // POST Handler
@@ -78,56 +57,20 @@ export async function POST(request: NextRequest) {
     const fin = fechaFinStr ? new Date(fechaFinStr) : range.fechaFin;
 
     // 4. Obtener menciones
-    // Para EL_RADAR: usar formato ligero por eje (10 menciones/eje, sin texto)
-    // para evitar prompts de 80K+ chars que GLM rechaza con error 1210.
-    const USE_LIGHTWEIGHT_MENCIONES = tipo === 'EL_RADAR';
+    // Para EL_RADAR: obtener todas con scoring epistemologico y seleccionar
+    // las 50 mas relevantes con snippet de texto (150 chars) para dar contexto
+    // sin reventar el limite de GLM.
+    const EL_RADAR_CONFIG = { maxMenciones: 50, maxTextoLength: 150 };
+    const isElRadar = tipo === 'EL_RADAR' && !ejeSlug && !personaId;
 
     let resultado: { menciones: Record<string, unknown>[]; totalMenciones: number };
     let mencionesAllFlat: Record<string, unknown>[] = [];
-    let totalMencionesPorEje: Record<string, number> = {};
 
-    if (USE_LIGHTWEIGHT_MENCIONES && !ejeSlug && !personaId) {
-      const ejes = DEFAULT_EJES_BY_TYPE.EL_RADAR!;
-      const mencionesPorEjeData: Record<string, Array<Record<string, unknown>>> = {};
-
-      const ejeResults = await Promise.all(
-        ejes.map(async (slug) => {
-          const menciones = await db.mencion.findMany({
-            where: {
-              fechaCaptura: { gte: range.fechaInicio, lte: range.fechaFin },
-              MencionTema: { some: { EjeTematico: { slug } } },
-            },
-            include: {
-              Medio: { select: { nombre: true } },
-              Persona: { select: { nombre: true } },
-            },
-            orderBy: { fechaPublicacion: 'desc' },
-            take: 10,
-          });
-          return { slug, menciones };
-        })
-      );
-
-      for (const { slug, menciones } of ejeResults) {
-        mencionesPorEjeData[slug] = menciones.map((m) => ({
-          titulo: m.titulo,
-          medio: m.Medio?.nombre ?? null,
-          persona: m.Persona?.nombre ?? null,
-          sentimiento: m.tratamientoPeriodistico,
-        }));
-        totalMencionesPorEje[slug] = menciones.length;
-        mencionesAllFlat.push(...mencionesPorEjeData[slug]);
-      }
-
-      const totalMenciones = Object.values(totalMencionesPorEje).reduce((a, b) => a + b, 0);
-      resultado = { menciones: mencionesAllFlat, totalMenciones };
-    } else {
-      const options: { ejesTematicos?: string[]; personaId?: string; customDays?: number } = {};
-      if (ejeSlug) options.ejesTematicos = [ejeSlug];
-      if (personaId) options.personaId = personaId;
-      resultado = await getMencionesForBulletin(tipo, options);
-      mencionesAllFlat = resultado.menciones;
-    }
+    const options: { ejesTematicos?: string[]; personaId?: string; customDays?: number } = {};
+    if (ejeSlug) options.ejesTematicos = [ejeSlug];
+    if (personaId) options.personaId = personaId;
+    resultado = await getMencionesForBulletin(tipo, options);
+    mencionesAllFlat = resultado.menciones;
 
     // IMPORTANTE: El producto SIEMPRE se crea, incluso con 0 menciones.
     // El administrador necesita visibilidad de cada generación para auditoría.
@@ -183,25 +126,21 @@ export async function POST(request: NextRequest) {
     let datosExtra: string;
     const ventanaLabel = `${formatFechaBolivia(range.fechaInicio)} — ${formatFechaBolivia(range.fechaFin)}`;
 
-    if (USE_LIGHTWEIGHT_MENCIONES && !ejeSlug && !personaId) {
-      // Formato ligero por eje para EL_RADAR (sin texto de articulo)
-      // Reconstruir mencionesPorEje desde los datos obtenidos arriba
-      const ejeSlugs = DEFAULT_EJES_BY_TYPE.EL_RADAR!;
-      const mencionesPorEjeMap: Record<string, Array<Record<string, unknown>>> = {};
-      let idx = 0;
-      for (const slug of ejeSlugs) {
-        const count = totalMencionesPorEje[slug] ?? 0;
-        mencionesPorEjeMap[slug] = mencionesAllFlat.slice(idx, idx + count);
-        idx += count;
-      }
-      mencionesPrompt = formatearMencionesPorEje(mencionesPorEjeMap);
-
-      // Agregar distribucion por eje
-      const resumenEjes = ejeSlugs
-        .map((slug) => `- ${slug}: ${totalMencionesPorEje[slug] ?? 0} menciones`)
-        .join('\n');
+    if (isElRadar) {
+      // EL_RADAR: top 50 por scoring epistemologico, 150 chars de texto
+      // Esto da contexto suficiente sin explotar el limite de GLM.
+      mencionesPrompt = formatearMencionesPrompt(resultado.menciones, tipo, {
+        maxMenciones: EL_RADAR_CONFIG.maxMenciones,
+        maxTextoLength: EL_RADAR_CONFIG.maxTextoLength,
+      });
       const semana = getSemanaAnho();
-      datosExtra = `Semana ${semana} | Periodo: ${ventanaLabel}\nTotal menciones: ${resultado.totalMenciones}\n\nDistribucion por eje:\n${resumenEjes}`;
+      datosExtra = [
+        `Tipo de producto: ${config.nombre}`,
+        `Periodo: ${ventanaLabel}`,
+        `Semana ${semana}`,
+        `Total menciones encontradas: ${resultado.totalMenciones}`,
+        `Menciones seleccionadas (top scoring epistemologico): ${EL_RADAR_CONFIG.maxMenciones}`,
+      ].join('\n');
     } else {
       mencionesPrompt = formatearMencionesPrompt(resultado.menciones, tipo);
       datosExtra = [
@@ -217,16 +156,30 @@ export async function POST(request: NextRequest) {
     console.log(`[generate-generic] ${tipo}: ${resultado.totalMenciones} menciones, mencionesPrompt=${mencionesPrompt.length}chars, indicadoresPrompt=${indicadoresPrompt.length}chars, userPrompt=${userPrompt.length}chars`);
 
     // 7. Cargar Marco Conceptual e inyectar en system prompt
-    // Skip para EL_RADAR: el prompt debe ser compacto
-    const marco = USE_LIGHTWEIGHT_MENCIONES ? null : await loadMarcoConceptual();
+    // Para EL_RADAR: incluir Marco Conceptual si el prompt total cabe en presupuesto seguro.
+    // Budget: systemPrompt (~1500) + userPrompt + marco (~4000) < 35000 chars (marginen seguro)
+    let marco = null;
+    if (!isElRadar) {
+      marco = await loadMarcoConceptual();
+    } else {
+      // EL_RADAR: calcular si hay espacio para Marco Conceptual
+      const estimatedTotal = config.systemPrompt.length + userPrompt.length;
+      const MARCO_BUDGET = 35000;
+      if (estimatedTotal < MARCO_BUDGET - 5000) {
+        marco = await loadMarcoConceptual();
+        console.log(`[generate-generic] EL_RADAR: espacio disponible (${MARCO_BUDGET - estimatedTotal}chars), incluyendo Marco Conceptual`);
+      } else {
+        console.log(`[generate-generic] EL_RADAR: sin espacio para Marco Conceptual (prompt=${estimatedTotal}chars, budget=${MARCO_BUDGET})`);
+      }
+    }
     const marcoSection = marco
-      ? `\n\n## MARCO CONCEPTUAL DECODEX (principios epistemológicos — obligatorio respetar):\n${formatMarcoForPrompt(marco)}\n`
+      ? `\n\n## MARCO CONCEPTUAL DECODEX (principios epistemologicos — obligatorio respetar):\n${formatMarcoForPrompt(marco)}\n`
       : '';
     const systemPrompt = (config.systemPrompt + marcoSection).trim();
     console.log(`[generate-generic] ${tipo}: systemPrompt=${systemPrompt.length}chars (base=${config.systemPrompt.length}, marco=${marcoSection.length})`);
     if (marco) {
       console.log(`[generate-generic] Marco Conceptual inyectado para ${tipo}.`);
-    } else if (!USE_LIGHTWEIGHT_MENCIONES) {
+    } else if (!isElRadar) {
       console.warn(`[generate-generic] Marco Conceptual no encontrado en DB para ${tipo}.`);
     }
 

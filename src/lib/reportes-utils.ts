@@ -696,19 +696,25 @@ export function calcularTemperaturaDinamica(
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function formatearMencionesPrompt(menciones: any[], tipo?: string): string {
+export function formatearMencionesPrompt(
+  menciones: any[],
+  tipo?: string,
+  options?: { maxMenciones?: number; maxTextoLength?: number },
+): string {
   if (menciones.length === 0) {
     return 'No se encontraron menciones en el periodo consultado.';
   }
 
   const esDiario = tipo && ['EL_TERMOMETRO_AM', 'EL_TERMOMETRO_PM', 'EL_FOCO', 'SALDO_DEL_DIA', 'EL_ALERTA', 'ALERTA_TEMPRANA'].includes(tipo);
-  const limite = esDiario ? MAX_MENCIONES_DIARIO : MAX_MENCIONES_PROMPT;
+  const limiteDefault = esDiario ? MAX_MENCIONES_DIARIO : MAX_MENCIONES_PROMPT;
+  const limite = options?.maxMenciones ?? limiteDefault;
+  const textoMaxLen = options?.maxTextoLength ?? 300;
 
   let seleccionadas: any[];
   if (menciones.length > limite) {
     // Diario y semanal: relevancia epistemologica composite (unificado)
     seleccionadas = seleccionarMencionesEpistemologicas(menciones, limite);
-    console.log(`[formatearMencionesPrompt] ${esDiario ? 'Diario' : 'Semanal'}: truncando ${menciones.length} → ${seleccionadas.length} (relevancia epistemologica composite)`);
+    console.log(`[formatearMencionesPrompt] ${esDiario ? 'Diario' : 'Semanal'}: truncando ${menciones.length} → ${seleccionadas.length} (relevancia epistemologica composite, maxTexto=${textoMaxLen})`);
   } else {
     seleccionadas = menciones;
   }
@@ -721,11 +727,11 @@ export function formatearMencionesPrompt(menciones: any[], tipo?: string): strin
     ];
     if (m.persona) parts.push(`   - Persona: ${m.persona}`);
     if (m.tratamientoPeriodistico) parts.push(`   - Sentimiento: ${m.tratamientoPeriodistico}`);
-    // Incluir primeros 300 caracteres del texto del artículo para dar contexto real al LLM
+    // Incluir snippet del texto del artículo para dar contexto real al LLM
     const textoArticulo = m.texto ?? m.textoCompleto ?? '';
-    if (textoArticulo) {
-      const textoCorto = textoArticulo.length > 300
-        ? textoArticulo.substring(0, 300) + '...'
+    if (textoArticulo && textoMaxLen > 0) {
+      const textoCorto = textoArticulo.length > textoMaxLen
+        ? textoArticulo.substring(0, textoMaxLen) + '...'
         : textoArticulo;
       parts.push(`   - Texto: ${textoCorto}`);
     }
