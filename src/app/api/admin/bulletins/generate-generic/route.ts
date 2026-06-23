@@ -146,6 +146,7 @@ export async function POST(request: NextRequest) {
     if (personaId) datosExtra += `\nPersona ID: ${personaId}`;
 
     const userPrompt = construirPrompt(tipo, mencionesPrompt, indicadoresPrompt, datosExtra);
+    console.log(`[generate-generic] ${tipo}: ${resultado.totalMenciones} menciones, mencionesPrompt=${mencionesPrompt.length}chars, indicadoresPrompt=${indicadoresPrompt.length}chars, userPrompt=${userPrompt.length}chars`);
 
     // 7. Cargar Marco Conceptual e inyectar en system prompt
     const marco = await loadMarcoConceptual();
@@ -153,6 +154,7 @@ export async function POST(request: NextRequest) {
       ? `\n\n## MARCO CONCEPTUAL DECODEX (principios epistemológicos — obligatorio respetar):\n${formatMarcoForPrompt(marco)}\n`
       : '';
     const systemPrompt = (config.systemPrompt + marcoSection).trim();
+    console.log(`[generate-generic] ${tipo}: systemPrompt=${systemPrompt.length}chars (base=${config.systemPrompt.length}, marco=${marcoSection.length})`);
     if (marco) {
       console.log(`[generate-generic] Marco Conceptual inyectado para ${tipo}.`);
     } else {

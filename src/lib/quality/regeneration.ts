@@ -25,6 +25,11 @@ import { validateContent } from './validator';
 const MAX_REINTENTOS = 2;
 const TEMPERATURA_BOOST = 0.05;
 
+// Maximo seguro de caracteres para el user prompt antes de truncar.
+// GLM-4.5-Flash soporta 128K tokens, pero el SDK puede tener limites menores.
+// 30,000 chars ≈ 8,000 tokens (espanol ~3.8 chars/token). Dejamos margen.
+const MAX_USER_PROMPT_CHARS = 30000;
+
 // ============================================
 // Mensajes de retroalimentacion para reintentos
 // ============================================
@@ -91,16 +96,40 @@ export async function regenerateWithRetry(params: {
       }
 
       const zai = await ZAI.create();
-      // Diagnostico: log prompt sizes para detectar problemas con la API
-      const sysLen = params.systemPrompt?.length ?? 0;
-      const usrLen = enhancedPrompt?.length ?? 0;
+
+      // Sanitizar prompts: eliminar caracteres de control (null bytes, C0/C1)
+      // que pueden causar error 1210 en la API de GLM.
+      let cleanSystem = sanitizePrompt(params.systemPrompt);
+      let cleanUser = sanitizePrompt(enhancedPrompt);
+
+      // Truncar user prompt si excede el maximo seguro.
+      // Cortar la seccion de menciones (primera seccion) manteniendo reglas finales.
+      if (cleanUser.length > MAX_USER_PROMPT_CHARS) {
+        const partes = cleanUser.split('\n\nREGLAS FINALES DE ESTE PRODUCTO:');
+        if (partes.length === 2) {
+          const mencionesPart = partes[0];
+          const reglasPart = partes[1];
+          const disponible = MAX_USER_PROMPT_CHARS - reglasPart.length - 200;
+          if (disponible > 1000) {
+            cleanUser = mencionesPart.substring(0, disponible) + '\n\n[...menciones truncadas por limite de tokens...]\n\nREGLAS FINALES DE ESTE PRODUCTO:' + reglasPart;
+            console.warn(`[regeneration] User prompt truncado: ${cleanUser.length}chars (de ${enhancedPrompt.length})`);
+          } else {
+            cleanUser = cleanUser.substring(0, MAX_USER_PROMPT_CHARS);
+          }
+        } else {
+          cleanUser = cleanUser.substring(0, MAX_USER_PROMPT_CHARS);
+        }
+      }
+
+      const sysLen = cleanSystem.length;
+      const usrLen = cleanUser.length;
       console.log(`[regeneration] Intento ${intento + 1} para ${params.tipo}: system=${sysLen}chars, user=${usrLen}chars, temp=${temperatura}`);
 
       const completion = await throttledLlmCall(() => zai.chat.completions.create({
         model: 'glm-4.5-flash',
         messages: [
-          { role: 'system', content: params.systemPrompt },
-          { role: 'user', content: enhancedPrompt },
+          { role: 'system', content: cleanSystem },
+          { role: 'user', content: cleanUser },
         ],
         temperature: Math.round(Math.min(temperatura, 0.8) * 100) / 100,
       }));
@@ -166,8 +195,25 @@ export async function regenerateWithRetry(params: {
         `errores: ${validation.errores.length}`
       );
     } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error);
       if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
         console.error(`[TIMEOUT] LLM call exceeded 60s in regenerateWithRetry (intento ${intento + 1})`);
+      }
+      // Diagnostico detallado para error 1210 (parametros invalidos de GLM)
+      if (errMsg.includes('1210') || errMsg.includes('400')) {
+        console.error(`[regeneration] API 1210/400 para ${params.tipo} — system=${params.systemPrompt?.length ?? 0}chars, user=${enhancedPrompt?.length ?? 0}chars`);
+        console.error(`[regeneration] system[0:500]: ${params.systemPrompt?.substring(0, 500)}`);
+        console.error(`[regeneration] user[0:500]: ${enhancedPrompt?.substring(0, 500)}`);
+        console.error(`[regeneration] user[-500:]: ${enhancedPrompt?.substring(Math.max(0, (enhancedPrompt?.length ?? 0) - 500))}`);
+        // En el primer intento con 1210, no tiene sentido reintentar con prompt mas grande
+        if (intento === 0 && errMsg.includes('1210')) {
+          console.error(`[regeneration] Abortando reintentos: error 1210 indica parametros invalidos, reintentar con prompt identico no ayudara`);
+          lastResult = {
+            exito: false,
+            error: `API rechazo los parametros (error 1210). Prompt system: ${params.systemPrompt?.length}chars, user: ${enhancedPrompt?.length}chars. Posible causa: prompt excede limite del modelo o contiene caracteres invalidos.`,
+          };
+          break;
+        }
       }
       console.error(`[regeneration] Error en intento ${intento + 1}:`, error);
       lastResult = {
@@ -230,4 +276,16 @@ function generateFeedback(validation: ValidationResult): string {
 
 function pickRandom<T>(array: T[]): T {
   return array[Math.floor(Math.random() * array.length)];
+}
+
+/**
+ * Sanitiza un prompt eliminando caracteres de control que pueden causar
+ * error 1210 (parametros invalidos) en la API de GLM.
+ * Mantiene newline, tab y carriage return.
+ */
+function sanitizePrompt(s: string): string {
+  if (!s) return s;
+  // Eliminar null bytes y caracteres de control C0/C1
+  // (excepto \t=0x09, \n=0x0a, \r=0x0d)
+  return s.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f\x80-\x9f]/g, '');
 }
