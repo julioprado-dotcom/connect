@@ -21,6 +21,7 @@ import { guardedParse, RATE } from '@/lib/rate-guard';
 import { generateGenericSchema } from '@/lib/validations';
 import { safeError } from '@/lib/safe-error';
 import { verifyProduct } from '@/lib/verification/verify-product';
+import { loadMarcoConceptual, formatMarcoForPrompt } from '@/lib/reporte-sectorial.alerts';
 
 // ============================================
 // Mapa de ejes tematicos sugeridos por tipo de producto.
@@ -146,9 +147,20 @@ export async function POST(request: NextRequest) {
 
     const userPrompt = construirPrompt(tipo, mencionesPrompt, indicadoresPrompt, datosExtra);
 
-    // 7. Generar con IA usando regenerateWithRetry (validacion + reintentos)
+    // 7. Cargar Marco Conceptual e inyectar en system prompt
+    const marco = await loadMarcoConceptual();
+    const marcoSection = marco
+      ? `\n\n## MARCO CONCEPTUAL DECODEX (principios epistemológicos — obligatorio respetar):\n${formatMarcoForPrompt(marco)}\n`
+      : '';
+    const systemPrompt = (config.systemPrompt + marcoSection).trim();
+    if (marco) {
+      console.log(`[generate-generic] Marco Conceptual inyectado para ${tipo}.`);
+    } else {
+      console.warn(`[generate-generic] Marco Conceptual no encontrado en DB para ${tipo}.`);
+    }
+
+    // 8. Generar con IA usando regenerateWithRetry (validacion + reintentos)
     const temperatura = temperaturaOverride ?? config.temperatura;
-    const systemPrompt = config.systemPrompt;
 
     const genResult = await regenerateWithRetry({
       systemPrompt,

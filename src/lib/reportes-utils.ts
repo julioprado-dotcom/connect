@@ -498,17 +498,16 @@ export function construirPrompt(
     `Semana del ano: ${getSemanaAnho()}.`
   );
 
-  // ═══ REFUERZO GLOBAL ANTI-EDITARIAL ═══
-  // Estas 4 reglas se repiten al FINAL del user prompt para combatir
-  // el recency bias del LLM y contradecir cualquier instrucción del
-  // system prompt que invite tono editorial.
+  // ═══ REFUERZO FINAL — REGLAS DE GENERACIÓN ═══
+  // Se repiten al FINAL del user prompt para combatir el recency bias del LLM.
   partes.push(
-    `\n\nSILLO DE CIERRE — REGLAS INVIOLABLES DE ESTE PRODUCTO:`,
-    `1. SOLO REPORTAR: Cada dato que escribas debe estar en las menciones proporcionadas. No inventes, no deduzcas, no rellenes.`,
-    `2. ATRIBUCION OBLIGATORIA: Cada afirmacion va con (Fuente: nombre del medio). Sin excepcion.`,
-    `3. PLURALIDAD DE VOCES: Si hay versiones contrapuestas entre actores, reporta AMBAS con sus fuentes. Nunca presentes la version de un actor como LA verdad.`,
-    `4. CERO EDITORIAL: No escribas narrativas, hilos conductores, parrafos introductorios con tesis, ni analisis de causas/intenciones. Tu funcion es REPORTAR datos con fuentes, no narrar.`,
-    `VIOLACION DE CUALQUIERA DE ESTAS 4 REGLAS = PRODUCTO INVALIDO.`
+    `\n\nREGLAS FINALES DE ESTE PRODUCTO:`,
+    `1. SOLO DATOS DE MENCIONES: Cada dato que escribas debe estar en las menciones proporcionadas. No inventes, no deduzcas, no rellenes.`,
+    `2. ATRIBUCION: Cada afirmacion va con (Fuente: nombre del medio). Si un medio reporta que alguien dijo algo sin cita directa, usa "según [medio]". Si dos o más medios reportan lo mismo de forma independiente, puedes usar "según varios medios". Si hay cita textual con comillas, presenta como declaracion directa del actor.`,
+    `3. FECHAS CONCRETAS: Si una mencion dice "mañana", "hoy", "la proxima semana" u otra referencia temporal vaga, conviértela a la fecha concreta correspondiente usando la fecha de referencia proporcionada. Nunca uses "dia siguiente" ni expresiones temporales vagas.`,
+    `4. PLURALIDAD DE VOCES: Si hay versiones contrapuestas entre actores, reporta AMBAS con sus fuentes. Ningun actor (gobierno, oposicion, sector social, organismo internacional) es fuente de verdad por defecto.`,
+    `5. SINTESIS PERMITIDA: Puedes agrupar menciones por tema, cruzar fuentes, e identificar patrones — siempre citando fuentes. No se permite inventar causas, intenciones ni contextos que no esten en las menciones.`,
+    `VIOLACION DE LAS REGLAS 1-4 = PRODUCTO INVALIDO.`
   );
 
   return partes.join('\n\n');
@@ -722,6 +721,14 @@ export function formatearMencionesPrompt(menciones: any[], tipo?: string): strin
     ];
     if (m.persona) parts.push(`   - Persona: ${m.persona}`);
     if (m.tratamientoPeriodistico) parts.push(`   - Sentimiento: ${m.tratamientoPeriodistico}`);
+    // Incluir primeros 300 caracteres del texto del artículo para dar contexto real al LLM
+    const textoArticulo = m.texto ?? m.textoCompleto ?? '';
+    if (textoArticulo) {
+      const textoCorto = textoArticulo.length > 300
+        ? textoArticulo.substring(0, 300) + '...'
+        : textoArticulo;
+      parts.push(`   - Texto: ${textoCorto}`);
+    }
     if (m.resumen) parts.push(`   - Resumen: ${m.resumen}`);
     if (m.temas && m.temas.length > 0) parts.push(`   - Ejes: ${m.temas.join(', ')}`);
     if (m.relevancia) parts.push(`   - Relevancia: ${m.relevancia}/10`);

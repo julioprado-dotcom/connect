@@ -48,14 +48,15 @@ const FEEDBACK_MESSAGES: Record<string, string[]> = {
   ],
 };
 
-// Refuerzo anti-editorial inyectado en CADA reintento.
+// Refuerzo de reglas de generación inyectado en CADA reintento.
 // Aparece al final del prompt (recency bias) para maximizar cumplimiento.
-const REFORZAJE_ANTI_EDITORIAL = `\n\nREGLAS CRITICAS DE REINTENTO — CUMPLIMIENTO OBLIGATORIO:
-- SOLO reportar datos que esten en las menciones proporcionadas.
-- CADA afirmacion con atribucion explicita: (Fuente: nombre del medio).
-- Si hay versiones contrapuestas, reportar AMBAS con sus fuentes.
-- CERO narrativa editorial: no hilos conductores, no parrafos introductorios con tesis, no analisis de causas.
-- Tu funcion es REPORTAR, no narrar ni interpretar.`;
+const REFORZAJE_REINTENTO = `\n\nREGLAS CRITICAS DE REINTENTO — CUMPLIMIENTO OBLIGATORIO:
+- SOLO reportar datos que esten en las menciones proporcionadas. No inventar, no deducir.
+- CADA afirmacion con atribucion: (Fuente: nombre del medio).
+- Si hay versiones contrapuestas entre actores, reportar AMBAS con sus fuentes. Ningun actor es fuente de verdad por defecto.
+- Fechas concretas, no referencias temporales vagas ("dia siguiente", "mañana").
+- Sintesis permitida: agrupar por tema, cruzar fuentes — siempre con citas.
+- No inventar causas, intenciones ni contextos ausentes en las menciones.`;
 
 // ============================================
 // Funcion Principal
@@ -84,9 +85,9 @@ export async function regenerateWithRetry(params: {
       let enhancedPrompt = params.userPrompt;
       if (intento > 0 && lastValidation) {
         const feedback = generateFeedback(lastValidation);
-        // Refuerzo anti-editorial SIEMPRE presente en reintentos,
+        // Refuerzo de reglas SIEMPRE presente en reintentos,
         // independientemente de la razon del fallo de validacion.
-        enhancedPrompt = `${feedback}\n\n---\n\n${REFORZAJE_ANTI_EDITORIAL}\n\n---\n\n${params.userPrompt}`;
+        enhancedPrompt = `${feedback}\n\n---\n\n${REFORZAJE_REINTENTO}\n\n---\n\n${params.userPrompt}`;
       }
 
       const zai = await ZAI.create();

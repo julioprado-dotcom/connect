@@ -19,6 +19,7 @@ import { generateTermometroSchema } from '@/lib/validations';
 import { safeError } from '@/lib/safe-error';
 import { verifyProduct } from '@/lib/verification/verify-product';
 import { throttledLlmCall } from '@/lib/ai/llm-throttle';
+import { loadMarcoConceptual, formatMarcoForPrompt } from '@/lib/reporte-sectorial.alerts';
 
 // ============================================
 // Ejes para indicadores generales del clima
@@ -84,7 +85,19 @@ export async function POST(request: NextRequest) {
       `Ventana de datos: ${ventanaLabel}\nTotal menciones: ${resultado.totalMenciones}`
     );
 
-    // 7. Generar contenido con IA (GLM) usando system prompt del catálogo
+    // 7. Cargar Marco Conceptual (principios epistemológicos) e inyectar en system prompt
+    const marco = await loadMarcoConceptual();
+    const marcoSection = marco
+      ? `\n\n## MARCO CONCEPTUAL DECODEX (principios epistemológicos — obligatorio respetar):\n${formatMarcoForPrompt(marco)}\n`
+      : '';
+    const fullSystemPrompt = PRODUCTOS.EL_TERMOMETRO.systemPrompt + marcoSection;
+    if (marco) {
+      console.log('[generate-termometro] Marco Conceptual inyectado en system prompt.');
+    } else {
+      console.warn('[generate-termometro] Marco Conceptual no encontrado en DB — se genera sin principios epistemológicos.');
+    }
+
+    // 8. Generar contenido con IA (GLM) usando system prompt del catálogo + marco conceptual
     const zai = await ZAI.create();
     const temperatura = temperaturaOverride ?? calcularTemperaturaDinamica(
       Math.max(PRODUCTOS.EL_TERMOMETRO.temperatura, 0.05),
@@ -94,7 +107,7 @@ export async function POST(request: NextRequest) {
     const completion = await throttledLlmCall(() => zai.chat.completions.create({
       model: 'glm-4.5-flash',
       messages: [
-        { role: 'system', content: PRODUCTOS.EL_TERMOMETRO.systemPrompt },
+        { role: 'system', content: fullSystemPrompt },
         { role: 'user', content: userPrompt },
       ],
       temperature: temperatura,
