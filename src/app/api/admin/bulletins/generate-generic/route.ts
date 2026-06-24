@@ -268,6 +268,7 @@ export async function POST(request: NextRequest) {
       temperatura,
       tokensUsados,
       modeloIA: modelo,
+      totalMenciones: resultado.totalMenciones,
       metadata: JSON.stringify({
         generico: true,
         ejeSlug,

@@ -819,6 +819,7 @@ export async function registrarReporte(params: {
   modeloIA?: string;
   metadata?: string;
   clienteId?: string;
+  totalMenciones?: number;
 }): Promise<string> {
   // Generar ID unico para el reporte (campo @id sin auto-generacion en schema)
   const { randomBytes } = await import('crypto');
@@ -833,7 +834,7 @@ export async function registrarReporte(params: {
         contenido: params.contenido,
         fechaInicio: params.fechaInicio,
         fechaFin: params.fechaFin,
-        totalMenciones: 0,
+        totalMenciones: params.totalMenciones ?? 0,
         sentimientoPromedio: 0,
         temasPrincipales: '',
       },

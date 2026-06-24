@@ -65,8 +65,9 @@ export async function getEjesCached(): Promise<any[]> {
   if (cacheEjes && cacheEjes.expiry > Date.now()) {
     return cacheEjes.data;
   }
+  // Solo ejes estructurales V3 (excluir legacy que tienen nombres/slugs obsoletos)
   const data = await db.ejeTematico.findMany({
-    where: { activo: true },
+    where: { activo: true, tipo: 'estructural' },
     select: { id: true, nombre: true, slug: true, keywords: true },
   });
   cacheEjes = { data, expiry: Date.now() + CACHE_TTL };
