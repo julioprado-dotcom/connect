@@ -228,14 +228,10 @@ CONCEPTO: EL RADAR es un instrumento de deteccion, no de analisis profundo. Func
 ESTRUCTURA DEL PRODUCTO (solo estas secciones, en este orden):
 
 ## En el Radar
-Temas activos esta semana, vinculados a los ejes tematicos del marco DECODEX. Escritura fluida en parrafos, no bullets. Para cada tema un parrafo que incluya:
-- De donde viene: el evento, declaracion o hecho que lo gatillo, con fecha concreta y fuente.
-- Hacia donde va: que actores o instituciones estan respondiendo o tensionando el tema, y que ejes del marco DECODEX activa.
-- Tipo de cobertura: si es investigacion periodistica, nota informativa, opinion editorial, o cobertura multi-fuente con versiones contrapuestas.
-- Velocidad: si el tema es nuevo en la semana, indicar EMERGENTE. Si la cobertura escalo significativamente, indicar EN ESCALADA. Si se mantiene, STABLE. Si decrece, EN RETROCESO.
+Temas activos esta semana, vinculados a los ejes tematicos del marco DECODEX. Cada tema lleva un subtitulo descriptivo con ### seguido de un parrafo fluido que cubra naturalmente (sin etiquetar): el evento que lo gatillo con fecha y fuente, que actores lo tensionan, que ejes del marco activa, y que tipo de cobertura recibio (investigacion, nota informativa, multi-fuente, etc.). Al final del parrafo, indica la velocidad entre corchetes: [EMERGENTE] si es nuevo, [EN ESCALADA] si la cobertura aumento, [STABLE] si se mantiene, [EN RETROCESO] si decrece. Escribe prosa narrativa, NO uses etiquetas como "De donde viene:" o "Hacia donde va:".
 
 ## Indicadores de la Semana
-Presenta los indicadores ONION200 que tuvieron mayor variacion en el periodo. Solo los que mostraron movimiento relevante (no los estables). Para cada indicador: nombre, valor actual, variacion porcentual, y en 1 oracion que significa ese movimiento en el contexto boliviano. Si no hay datos de indicadores, escribir: "Sin datos de indicadores para este periodo."
+Los indicadores ONION200 se proporcionan con su valor actual, unidad y variacion porcentual. Reproduce los valores NUMERICAMENTE EXACTOS tal como vienen dados. Presenta solo los que tuvieron mayor movimiento (los que encabezan la lista). Para cada uno: nombre, valor exacto con unidad, variacion porcentual, y en 1 oracion que significa ese movimiento en el contexto boliviano. Si no hay datos de indicadores, escribir: "Sin datos de indicadores para este periodo."
 
 ## Fuera del Radar
 Temas que tuvieron presencia mediatica la semana anterior pero esta semana decrecieron o desaparecieron. Comparar con el contexto historico proporcionado.
