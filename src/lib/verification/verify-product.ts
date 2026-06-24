@@ -49,6 +49,31 @@ const ENGLISH_PATTERNS = [
   /\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b,\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}/gi,
 ]
 
+// ─── Labels politicos fabricados ──────────────────────────────────
+// La IA genera labels como "el evista", "el masista", "la derecha" etc.
+// Estos NO vienen de las menciones — son fabricaciones del LLM.
+// Estrategia: reemplazar por "sector" o eliminar si no hay sustituto.
+const LABELS_POLITICOS_FABRICADOS: Array<{
+  patron: RegExp
+  reemplazo: string
+  razon: string
+}> = [
+  // "el evista" / "la evista" / "los evistas" — label que inventa la IA
+  { patron: /\b(el|la|los|las)\s+evistas?\b/gi, reemplazo: '', razon: 'Label politico fabricado "evista"' },
+  // "el masista" / "los masistas"
+  { patron: /\b(el|la|los|las)\s+masistas?\b/gi, reemplazo: '', razon: 'Label politico fabricado "masista"' },
+  // "el derechista" / "la derecha" como adjetivo de actor
+  { patron: /\b(el|la|los|las)\s+derechistas?\b/gi, reemplazo: '', razon: 'Label politico fabricado "derechista"' },
+  // "el progresista" / "los progresistas"
+  { patron: /\b(el|la|los|las)\s+progresistas?\b/gi, reemplazo: '', razon: 'Label politico fabricado "progresista"' },
+  // "el opositor" / "los opositores" como label generico
+  { patron: /\b(el|la|los|las)\s+opositores?\b/gi, reemplazo: '', razon: 'Label politico fabricado "opositor"' },
+  // "el oficialista" / "los oficialistas"
+  { patron: /\b(el|la|los|las)\s+oficialistas?\b/gi, reemplazo: '', razon: 'Label politico fabricado "oficialista"' },
+  // "el conservador" / "los conservadores"
+  { patron: /\b(el|la|los|las)\s+conservadores?\b/gi, reemplazo: '', razon: 'Label politico fabricado "conservador"' },
+]
+
 // ─── Tipos ──────────────────────────────────────────────────────────
 
 export interface VerifyResult {
@@ -68,7 +93,7 @@ export interface VerifyResult {
 interface EliminadoItem {
   texto: string
   razon: string
-  tipo: 'personaje_sensible' | 'dato_no_verificado' | 'contenido_ingles'
+  tipo: 'personaje_sensible' | 'dato_no_verificado' | 'contenido_ingles' | 'label_fabricado'
 }
 
 interface MencionResumen {
@@ -112,12 +137,31 @@ export async function verifyProduct(
     return resultado
   }
 
+  // Paso 0: Eliminar labels politicos fabricados por la IA
+  // La IA inventa labels como "el evista", "el masista" que NO estan en las menciones
+  let textoPreprocesado = textoGenerado
+  for (const label of LABELS_POLITICOS_FABRICADOS) {
+    const antes = textoPreprocesado
+    textoPreprocesado = textoPreprocesado.replace(label.patron, label.reemplazo)
+    if (textoPreprocesado !== antes) {
+      resultado.alertas.push(label.razon)
+      // Limpiar dobles espacios y articulos sueltos
+      textoPreprocesado = textoPreprocesado
+        .replace(/\s+/g, ' ')
+        .replace(/\b(el|la|los|las)\s+[,.]/gi, '$1.')
+        .replace(/\s+([,.])/g, '$1')
+    }
+  }
+  if (textoPreprocesado !== textoGenerado) {
+    console.warn(`[verify-product] Labels fabricados eliminados en ${tipoProducto}`)
+  }
+
   // Paso 1: Construir corpus de texto verificado de las menciones
   const corpusMenciones = construirCorpusMenciones(mencionesUsadas)
   const nombresEnMenciones = extraerNombresDeMenciones(mencionesUsadas)
 
   // Paso 2: Dividir texto en oraciones
-  const oraciones = dividirEnOraciones(textoGenerado)
+  const oraciones = dividirEnOraciones(textoPreprocesado)
   resultado.estadisticas.oracionesOriginales = oraciones.length
 
   // Paso 3: Verificar cada oracion
@@ -143,7 +187,7 @@ export async function verifyProduct(
   }
 
   // Paso 4: Detectar personajes sensibles
-  const personajesEnTexto = detectarPersonajesSensibles(textoGenerado)
+  const personajesEnTexto = detectarPersonajesSensibles(textoPreprocesado)
   resultado.estadisticas.personajesSensiblesEncontrados = personajesEnTexto.length
 
   for (const personaje of personajesEnTexto) {
@@ -159,13 +203,13 @@ export async function verifyProduct(
   }
 
   // Paso 5: Detectar contenido en ingles
-  const contenidoIngles = detectarContenidoIngles(textoGenerado)
+  const contenidoIngles = detectarContenidoIngles(textoPreprocesado)
   if (contenidoIngles) {
     resultado.alertas.push(`Posible contenido en ingles detectado: "${contenidoIngles}"`)
   }
 
   // Paso 6: Reconstruir texto limpio
-  resultado.textoLimpio = reconstruirTexto(oracionesVerificadas, textoGenerado)
+  resultado.textoLimpio = reconstruirTexto(oracionesVerificadas, textoPreprocesado)
 
   // Paso 7: Determinar si es verificado
   resultado.verified = resultado.eliminados.length === 0
