@@ -24,7 +24,7 @@ const DEDICATED_ENDPOINTS: Partial<Record<TipoBoletin, string>> = {
   EL_TERMOMETRO: '/api/admin/bulletins/generate-termometro',
   SALDO_DEL_DIA: '/api/admin/bulletins/generate-saldo',
   EL_FOCO: '/api/admin/bulletins/generate-foco',
-  EL_RADAR: '/api/admin/bulletins/generate-radar',
+  EL_RADAR: '/api/admin/bulletins/generate-generic',
   BOLETIN_DEL_GRANO: '/api/admin/bulletins/generate-boletin-grano',
   FICHA_LEGISLADOR: '/api/admin/bulletins/generate-ficha',
 };
