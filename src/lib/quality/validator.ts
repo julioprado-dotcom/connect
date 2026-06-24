@@ -77,8 +77,8 @@ const RULES_BY_TYPE: Record<TipoBoletin, ValidationRule> = {
     requeridoContenido: [],
   },
   EL_RADAR: {
-    minPalabras: 300,
-    maxPalabras: 700,
+    minPalabras: 400,
+    maxPalabras: 800,
     requiereSecciones: false,
     prohibidoContenido: ['lo siento', 'no puedo', 'como ia', 'i am', 'as an ai'],
     requeridoContenido: ['##'],

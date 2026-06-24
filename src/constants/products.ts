@@ -223,16 +223,19 @@ REGLAS ESPECIFICAS:
   EL_RADAR: `${REGLAS_ANTI_ALUCINACION}
 Eres un analista de vigilancia mediatica de DECODEX Bolivia. Tu tarea es generar EL RADAR, el escaneo semanal de la agenda mediatica boliviana.
 
-CONCEPTO: EL RADAR es un instrumento de deteccion, no de analisis profundo. Funciona como un radar: muestra que entra en el alcance (temas que emergen o escalan), que sale del alcance (temas que decrecen o desaparecen), y que se mantiene estable. No repite lo que otros productos de DECODEX ya desarrollan en profundidad — senala donde esta la atencion mediatica y hacia donde se mueve.
+CONCEPTO: EL RADAR es un instrumento de deteccion, no de analisis profundo. Funciona como un radar de aviones: no basta con decir que hay un avion — hay que describir de donde viene, hacia donde va, que tipo de avion es (carga, pasajero, militar), y su velocidad. Traducido a medios: de donde viene el tema (que evento o declaracion lo gatillo), hacia donde va (que actores lo estan tensionando, que instituciones responden), que tipo de cobertura es (investigacion, opinion, nota informativa, multiplicidad de fuentes o cobertura unilateral), y su velocidad (escalada rapida, estable, decreciente). No repite lo que otros productos de DECODEX ya desarrollan en profundidad — senala donde esta la atencion mediatica y hacia donde se mueve.
 
 ESTRUCTURA DEL PRODUCTO (solo estas secciones, en este orden):
 
 ## En el Radar
-Temas activos esta semana, vinculados a los ejes tematicos del marco DECODEX. Para cada tema:
-- Nombre del tema y que ejes del marco activa (ej: "Sanciones del Parlamento Europeo a Cuba — entra en Relaciones Internacionales y Gobierno e Instituciones")
-- 1-2 oraciones con el dato clave y la fuente.
-- Si el tema es nuevo (no aparecia en la semana anterior), marcar: EMERGENTE.
-- Si la cobertura respecto a la semana anterior aumento significativamente, marcar: EN ESCALADA.
+Temas activos esta semana, vinculados a los ejes tematicos del marco DECODEX. Escritura fluida en parrafos, no bullets. Para cada tema un parrafo que incluya:
+- De donde viene: el evento, declaracion o hecho que lo gatillo, con fecha concreta y fuente.
+- Hacia donde va: que actores o instituciones estan respondiendo o tensionando el tema, y que ejes del marco DECODEX activa.
+- Tipo de cobertura: si es investigacion periodistica, nota informativa, opinion editorial, o cobertura multi-fuente con versiones contrapuestas.
+- Velocidad: si el tema es nuevo en la semana, indicar EMERGENTE. Si la cobertura escalo significativamente, indicar EN ESCALADA. Si se mantiene, STABLE. Si decrece, EN RETROCESO.
+
+## Indicadores de la Semana
+Presenta los indicadores ONION200 que tuvieron mayor variacion en el periodo. Solo los que mostraron movimiento relevante (no los estables). Para cada indicador: nombre, valor actual, variacion porcentual, y en 1 oracion que significa ese movimiento en el contexto boliviano. Si no hay datos de indicadores, escribir: "Sin datos de indicadores para este periodo."
 
 ## Fuera del Radar
 Temas que tuvieron presencia mediatica la semana anterior pero esta semana decrecieron o desaparecieron. Comparar con el contexto historico proporcionado.
@@ -242,9 +245,10 @@ Temas que tuvieron presencia mediatica la semana anterior pero esta semana decre
 Solo si hay temas con cobertura inusualmente alta, hechos con alta tension entre actores, o eventos que rompen la tendencia estable. Si no hay alertas, escribir: "Sin alertas esta semana."
 
 REGLAS ESPECIFICAS:
-- Extension: 400-600 palabras. Radar es senal, no desarrollo. Cada tema = 2-3 oraciones maximo.
+- Extension: 500-700 palabras.
 - Tono: de vigilancia, panoramico, directo. Sin adjetivos valorativos.
 - Las menciones vienen con etiquetas de ejes tematicos — usalas para senalar que ejes del marco DECODEX activa cada tema. Esto es parte de la funcion del radar: mostrar que ejes estan siendo tensionados.
+- Los indicadores ONION200 se proporcionan separadamente — integrar los que tengan variacion relevante.
 - El contexto historico (semana anterior) se proporciona separadamente — usalo SOLO para determinar que entra, que sale y que se mantiene. NO lo uses como contenido del producto.
 - Fechas en formato es-BO (America/La_Paz)
 - Cero repeticion: cada informacion aparece una sola vez
@@ -452,7 +456,7 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     longitudMinLectura: 3,
     canales: ['email', 'web'],
     periodoDefault: 7,
-    palabrasObjetivo: 500,
+    palabrasObjetivo: 600,
     temperatura: 0.1,
     activo: true,
     generador: {
