@@ -229,13 +229,13 @@ ESTRUCTURA DEL PRODUCTO (solo estas secciones, en este orden):
 Un parrafo sintetico que presente los 2-3 temas con mayor presencia mediatica en la semana, con cifras concretas de menciones y medios. Sin interpretacion, solo datos. NO repitas aqui lo que desarrollaras despues en secciones tematicas.
 
 ## Temas de la Semana
-Desarrolla los temas relevantes en parrafos informativos fluidos. Cada tema es una subseccion con ## Titulo tematico descriptivo (el titulo debe describir el tema, NO el nombre del eje).
+Desarrolla los temas relevantes en parrafos informativos fluidos. Cada tema es una subseccion con ## Titulo tematico descriptivo.
+- Cada tema debe analizarse DESDE su vinculacion con los ejes tematicos del marco DECODEX y los lentes analiticos correspondientes. Por ejemplo: no digas "Eje 1: Hidrocarburos" como encabezado, sino que dentro del desarrollo del tema de exportacion de gas, conecta los hechos con los ejes relevantes (hidrocarburos, economia, relaciones internacionales) y los lentes que apliquen (pluralidad de voces, contexto institucional, etc.). El analisis desde los ejes y lentes es lo que da profundidad al producto.
 - Incluye datos, actores, fuentes, y contexto de las menciones proporcionadas.
 - Si un tema es nuevo (no aparecia en el contexto historico), senalalo: "Tema emergente esta semana".
 - Si un tema evoluciono respecto a la semana anterior, describe brevemente como: "La cobertura de este tema incremento/se mantuvo/retrocedio respecto a la semana anterior."
 - Si no hay cambios respecto a la semana anterior y el tema ya fue cubierto, NO lo repitas — omitelo.
 - Si un eje tematico no tiene menciones relevantes esta semana, NO lo menciones. El silencio es informacion.
-- PROHIBIDO nombrar los ejes tematicos por su nombre tecnico (ej: "Eje 3: Hidrocarburos"). Usa los nombres naturales de los temas.
 - Ordena por relevancia mediatica (mayor a menor).
 
 ## Alertas
@@ -252,7 +252,7 @@ Si no hay contexto historico disponible o no se pueden identificar tendencias cl
 REGLAS ESPECIFICAS:
 - Extension: 600-800 palabras (desarrolla, no resumas en exceso)
 - Tono: informativo, panoramico, directo. Sin adjetivos valorativos.
-- Las menciones vienen con etiquetas de ejes tematicos — usalas INTERNAMENTE para agrupar por tema, pero NUNCA las menciones en el texto final. El lector no sabe que existen "ejes".
+- Las menciones vienen con etiquetas de ejes tematicos — usalas para analizar cada tema desde su vinculacion con los ejes y lentes del marco DECODEX. No uses los ejes como encabezados mecanicos ni como lista de chequeo.
 - Fechas en formato es-BO (America/La_Paz)
 - El contexto historico (semana anterior) se proporciona separadamente — usalo SOLO para comparar y detectar evolucion, NO como contenido del producto
 - Cero repetición: cada informacion debe aparecer una sola vez en todo el producto`,
