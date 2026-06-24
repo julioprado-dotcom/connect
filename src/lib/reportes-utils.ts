@@ -416,10 +416,15 @@ const DEDICATED_RESUMEN_MAP: Partial<Record<TipoBoletin, ResumenFn>> = {
   },
 
   EL_RADAR: async (data) => {
-    const ejes = data.ejes as Record<string, number>;
+    const ejes = data.ejes as Record<string, number> | undefined;
     const fecha = data.fecha as string;
-    const totalMenciones = Object.values(ejes).reduce((a, b) => a + b, 0);
-    return `Radar semanal ${fecha} | ${Object.keys(ejes).length} ejes | ${totalMenciones} menciones totales`;
+    if (ejes) {
+      const totalMenciones = Object.values(ejes).reduce((a, b) => a + b, 0);
+      return `Radar semanal ${fecha} | ${Object.keys(ejes).length} ejes | ${totalMenciones} menciones totales`;
+    }
+    // Fallback cuando viene desde generate-generic (sin ejes)
+    const total = (data.totalMenciones as number) ?? 0;
+    return `Radar semanal ${fecha} | ${total} menciones (top scoring epistemologico)`;
   },
 
   EL_INFORME_CERRADO: async (data) => {
