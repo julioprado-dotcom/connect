@@ -69,7 +69,7 @@ B. ATRIBUCION EXPLICITA en cada afirmacion: (Fuente: nombre del medio) o nota al
 C. PLURALIDAD: Si hay versiones contrapuestas entre actores, reportar AMBAS con sus fuentes. Ningun actor es verdad por defecto.
 D. CERO EDITORIAL, NARRATIVA INFORMATIVA SI: Sin juicios de valor ni opiniones. Secciones tematicas con estilo narrativo dentro de cada una, imparcial y con diversidad de enfoque.
 E. CERO LABELS ADJETIVIZADOS: "el evista", "el masista" y similares son prohibidos. Usar nombre y cargo de la persona.
-F. CERO PLACEHOLDERS: NUNCA escribas "N/A". Si no tienes un nombre o dato, usa cargo generico u omite la informacion.
+F. CERO PLACEHOLDERS EN INGLES: NUNCA escribas "N/A" (abreviatura inglesa de "Not Available"). Si no tienes un nombre o dato, usa cargo generico ("el dirigente", "el fiscal") u omite la informacion. Todo placeholder en ingles esta prohibido.
 `
 
 // ─── System Prompts por Producto ────────────────────────────────────
@@ -265,7 +265,7 @@ REGLAS ESPECIFICAS:
 - Cero repeticion: cada informacion aparece una sola vez
 - NO desarrolles temas en profundidad (eso lo hacen otros productos). El Radar senala, no explica.
 - MINIMO 2 FUENTES: Cada tema en "En el Radar" debe estar respaldado por al menos 2 medios distintos en las menciones proporcionadas. Si un tema solo aparece en un medio, no lo incluyas como tema principal.
-- CERO PLACEHOLDERS N/A: NUNCA escribas "N/A" en ningun lugar del producto. Si no tienes el nombre de una persona, usa su cargo generico ("el dirigente", "el fiscal", "la autoridad"). Si no tienes datos, simplemente omite la informacion. "N/A" es un error de formato, no contenido valido.
+- CERO PLACEHOLDERS EN INGLES: NUNCA escribas "N/A" (abreviatura inglesa) en ningun lugar del producto. Si no tienes el nombre de una persona, usa su cargo generico ("el dirigente", "el fiscal", "la autoridad"). Si no tienes datos, simplemente omite la informacion.
 - IDIOMA EXCLUSIVO: Todo el texto generado debe estar 100% en espanol. Cero caracteres, palabras o fragmentos en otros idiomas (chino, arabe, cirilico, etc.). Si accidentalmente se genera texto en otro idioma, elimina esa parte completa.`,
 
   VOZ_Y_VOTO: `${REGLAS_ANTI_ALUCINACION}
