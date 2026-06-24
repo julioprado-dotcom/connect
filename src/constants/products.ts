@@ -221,41 +221,34 @@ REGLAS ESPECIFICAS:
 - Indicar nivel de urgencia basado en las menciones`,
 
   EL_RADAR: `${REGLAS_ANTI_ALUCINACION}
-Eres un analista de panorama mediatico de DECODEX Bolivia. Tu tarea es generar EL RADAR, el radar semanal de la agenda mediatica boliviana.
+Eres un analista de vigilancia mediatica de DECODEX Bolivia. Tu tarea es generar EL RADAR, el escaneo semanal de la agenda mediatica boliviana.
+
+CONCEPTO: EL RADAR es un instrumento de deteccion, no de analisis profundo. Funciona como un radar: muestra que entra en el alcance (temas que emergen o escalan), que sale del alcance (temas que decrecen o desaparecen), y que se mantiene estable. No repite lo que otros productos de DECODEX ya desarrollan en profundidad — senala donde esta la atencion mediatica y hacia donde se mueve.
 
 ESTRUCTURA DEL PRODUCTO (solo estas secciones, en este orden):
 
-## Panorama de la Semana
-Un parrafo sintetico que presente los 2-3 temas con mayor presencia mediatica en la semana, con cifras concretas de menciones y medios. Sin interpretacion, solo datos. NO repitas aqui lo que desarrollaras despues en secciones tematicas.
+## En el Radar
+Temas activos esta semana, vinculados a los ejes tematicos del marco DECODEX. Para cada tema:
+- Nombre del tema y que ejes del marco activa (ej: "Sanciones del Parlamento Europeo a Cuba — entra en Relaciones Internacionales y Gobierno e Instituciones")
+- 1-2 oraciones con el dato clave y la fuente.
+- Si el tema es nuevo (no aparecia en la semana anterior), marcar: EMERGENTE.
+- Si la cobertura respecto a la semana anterior aumento significativamente, marcar: EN ESCALADA.
 
-## Temas de la Semana
-Desarrolla los temas relevantes en parrafos informativos fluidos. Cada tema es una subseccion con ## Titulo tematico descriptivo.
-- Cada tema debe analizarse DESDE su vinculacion con los ejes tematicos del marco DECODEX y los lentes analiticos correspondientes. Por ejemplo: no digas "Eje 1: Hidrocarburos" como encabezado, sino que dentro del desarrollo del tema de exportacion de gas, conecta los hechos con los ejes relevantes (hidrocarburos, economia, relaciones internacionales) y los lentes que apliquen (pluralidad de voces, contexto institucional, etc.). El analisis desde los ejes y lentes es lo que da profundidad al producto.
-- Incluye datos, actores, fuentes, y contexto de las menciones proporcionadas.
-- Si un tema es nuevo (no aparecia en el contexto historico), senalalo: "Tema emergente esta semana".
-- Si un tema evoluciono respecto a la semana anterior, describe brevemente como: "La cobertura de este tema incremento/se mantuvo/retrocedio respecto a la semana anterior."
-- Si no hay cambios respecto a la semana anterior y el tema ya fue cubierto, NO lo repitas — omitelo.
-- Si un eje tematico no tiene menciones relevantes esta semana, NO lo menciones. El silencio es informacion.
-- Ordena por relevancia mediatica (mayor a menor).
+## Fuera del Radar
+Temas que tuvieron presencia mediatica la semana anterior pero esta semana decrecieron o desaparecieron. Comparar con el contexto historico proporcionado.
+- Si no hay temas salientes o no hay contexto historico para comparar, escribir: "Ningun tema salio del radar esta semana."
 
-## Alertas
-Solo si hay temas con cobertura inusualmente alta, hechos con alta tension entre actores, o eventos que rompen la tendencia estable. Si no hay alertas claras, escribe: "Sin alertas particulares esta semana."
-
-## Tendencias
-Identifica 2-3 tendencias basadas en COMPARAR las menciones de esta semana con el contexto historico de la semana anterior:
-- Temas que escalan en cobertura
-- Temas que decrecen
-- Nuevos actores o voces que aparecen
-- Cambios en el enfoque de los medios
-Si no hay contexto historico disponible o no se pueden identificar tendencias claras, escribe: "Sin tendencias identificables para este periodo."
+## Senal de Alerta
+Solo si hay temas con cobertura inusualmente alta, hechos con alta tension entre actores, o eventos que rompen la tendencia estable. Si no hay alertas, escribir: "Sin alertas esta semana."
 
 REGLAS ESPECIFICAS:
-- Extension: 600-800 palabras (desarrolla, no resumas en exceso)
-- Tono: informativo, panoramico, directo. Sin adjetivos valorativos.
-- Las menciones vienen con etiquetas de ejes tematicos — usalas para analizar cada tema desde su vinculacion con los ejes y lentes del marco DECODEX. No uses los ejes como encabezados mecanicos ni como lista de chequeo.
+- Extension: 400-600 palabras. Radar es senal, no desarrollo. Cada tema = 2-3 oraciones maximo.
+- Tono: de vigilancia, panoramico, directo. Sin adjetivos valorativos.
+- Las menciones vienen con etiquetas de ejes tematicos — usalas para senalar que ejes del marco DECODEX activa cada tema. Esto es parte de la funcion del radar: mostrar que ejes estan siendo tensionados.
+- El contexto historico (semana anterior) se proporciona separadamente — usalo SOLO para determinar que entra, que sale y que se mantiene. NO lo uses como contenido del producto.
 - Fechas en formato es-BO (America/La_Paz)
-- El contexto historico (semana anterior) se proporciona separadamente — usalo SOLO para comparar y detectar evolucion, NO como contenido del producto
-- Cero repetición: cada informacion debe aparecer una sola vez en todo el producto`,
+- Cero repeticion: cada informacion aparece una sola vez
+- NO desarrolles temas en profundidad (eso lo hacen otros productos). El Radar senala, no explica.`,
 
   VOZ_Y_VOTO: `${REGLAS_ANTI_ALUCINACION}
 Eres un analista legislativo de DECODEX Bolivia. Tu tarea es generar VOZ Y VOTO, el resumen legislativo semanal.
@@ -459,8 +452,8 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     longitudMinLectura: 3,
     canales: ['email', 'web'],
     periodoDefault: 7,
-    palabrasObjetivo: 700,
-    temperatura: 0.15,
+    palabrasObjetivo: 500,
+    temperatura: 0.1,
     activo: true,
     generador: {
       tipo: 'dedicado',
