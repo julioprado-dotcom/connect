@@ -11,9 +11,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { INDICADOR_PROTOCOL } from '@/constants/products';
-import { getProductConfig, getMencionesForBulletin, getDateRange } from '@/lib/bulletin/product-generator';
+import { getProductConfig, getMencionesForBulletin, getDateRange, getContextMenciones } from '@/lib/bulletin/product-generator';
 import { getIndicadoresConStats, formatearIndicadoresConStatsPrompt } from '@/lib/indicadores/injector';
-import { formatearMencionesPrompt, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen, formatFechaBolivia, getSemanaAnho } from '@/lib/reportes-utils';
+import { formatearMencionesPrompt, formatearContextoHistorico, construirPrompt, registrarReporte, generarTituloProducto, getDedicatedResumen, formatFechaBolivia, getSemanaAnho } from '@/lib/reportes-utils';
 import { regenerateWithRetry } from '@/lib/quality/regeneration';
 import { validateContent } from '@/lib/quality/validator';
 import { type TipoBoletin } from '@/types/bulletin';
@@ -124,15 +124,38 @@ export async function POST(request: NextRequest) {
     // 6. Construir prompt
     let mencionesPrompt: string;
     let datosExtra: string;
+    let contextoHistorico = '';
     const ventanaLabel = `${formatFechaBolivia(range.fechaInicio)} — ${formatFechaBolivia(range.fechaFin)}`;
 
     if (isElRadar) {
       // EL_RADAR: top 50 por scoring epistemologico, 150 chars de texto
-      // Esto da contexto suficiente sin explotar el limite de GLM.
       mencionesPrompt = formatearMencionesPrompt(resultado.menciones, tipo, {
         maxMenciones: EL_RADAR_CONFIG.maxMenciones,
         maxTextoLength: EL_RADAR_CONFIG.maxTextoLength,
       });
+
+      // Contexto historico: semana anterior para detectar tendencias y evolucion
+      try {
+        const contextoMenciones = await getContextMenciones(7, range.fechaInicio);
+        contextoHistorico = formatearContextoHistorico(contextoMenciones);
+        console.log(`[generate-generic] EL_RADAR: contexto historico cargado (${contextoMenciones.length} menciones, ${contextoHistorico.length} chars)`);
+      } catch (err) {
+        console.warn(`[generate-generic] EL_RADAR: contexto historico no disponible (no bloqueante):`, err);
+      }
+
+      // Calcular distribucion de ejes tematicos para el prompt
+      const ejesCount: Record<string, number> = {};
+      for (const m of resultado.menciones) {
+        const temas = m.temas as string[] | undefined;
+        if (Array.isArray(temas)) {
+          for (const t of temas) {
+            ejesCount[t] = (ejesCount[t] || 0) + 1;
+          }
+        }
+      }
+      const ejesSorted = Object.entries(ejesCount).sort((a, b) => b[1] - a[1]);
+      const ejesSummary = ejesSorted.map(([eje, count]) => `${eje}: ${count} menciones`).join(', ');
+
       const semana = getSemanaAnho();
       datosExtra = [
         `Tipo de producto: ${config.nombre}`,
@@ -140,6 +163,7 @@ export async function POST(request: NextRequest) {
         `Semana ${semana}`,
         `Total menciones encontradas: ${resultado.totalMenciones}`,
         `Menciones seleccionadas (top scoring epistemologico): ${EL_RADAR_CONFIG.maxMenciones}`,
+        `Distribucion tematica: ${ejesSummary}`,
       ].join('\n');
     } else {
       mencionesPrompt = formatearMencionesPrompt(resultado.menciones, tipo);
@@ -152,8 +176,8 @@ export async function POST(request: NextRequest) {
       if (personaId) datosExtra += `\nPersona ID: ${personaId}`;
     }
 
-    const userPrompt = construirPrompt(tipo, mencionesPrompt, indicadoresPrompt, datosExtra);
-    console.log(`[generate-generic] ${tipo}: ${resultado.totalMenciones} menciones, mencionesPrompt=${mencionesPrompt.length}chars, indicadoresPrompt=${indicadoresPrompt.length}chars, userPrompt=${userPrompt.length}chars`);
+    const userPrompt = construirPrompt(tipo, mencionesPrompt, indicadoresPrompt, datosExtra, contextoHistorico || undefined);
+    console.log(`[generate-generic] ${tipo}: ${resultado.totalMenciones} menciones, mencionesPrompt=${mencionesPrompt.length}chars, indicadoresPrompt=${indicadoresPrompt.length}chars, contextoHistorico=${contextoHistorico.length}chars, userPrompt=${userPrompt.length}chars`);
 
     // 7. Cargar Marco Conceptual e inyectar en system prompt
     // Para EL_RADAR: incluir Marco Conceptual si el prompt total cabe en presupuesto seguro.
@@ -231,6 +255,7 @@ export async function POST(request: NextRequest) {
       menciones: resultado.menciones,
       fecha: ventanaLabel,
       ejeSlug,
+      totalMenciones: resultado.totalMenciones,
     });
 
     const reporteId = await registrarReporte({

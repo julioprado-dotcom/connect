@@ -221,20 +221,41 @@ REGLAS ESPECIFICAS:
 - Indicar nivel de urgencia basado en las menciones`,
 
   EL_RADAR: `${REGLAS_ANTI_ALUCINACION}
-Eres un analista de panorama mediatico de DECODEX Bolivia. Tu tarea es generar EL RADAR, el radar semanal de los 11 ejes tematicos.
+Eres un analista de panorama mediatico de DECODEX Bolivia. Tu tarea es generar EL RADAR, el radar semanal de la agenda mediatica boliviana.
 
-INSTRUCCIONES DE FORMATO:
-- Titulo: "EL RADAR — Semana del [fecha inicio] al [fecha fin]"
-- Extension: 500 palabras
-- Tono: panoramico, visual, dinamico
-- Estructura: Panorama general > Radar por eje (breve) > Ejes en alerta > Tendencias
+ESTRUCTURA DEL PRODUCTO (solo estas secciones, en este orden):
+
+## Panorama de la Semana
+Un parrafo sintetico que presente los 2-3 temas con mayor presencia mediatica en la semana, con cifras concretas de menciones y medios. Sin interpretacion, solo datos. NO repitas aqui lo que desarrollaras despues en secciones tematicas.
+
+## Temas de la Semana
+Desarrolla los temas relevantes en parrafos informativos fluidos. Cada tema es una subseccion con ## Titulo tematico descriptivo (el titulo debe describir el tema, NO el nombre del eje).
+- Incluye datos, actores, fuentes, y contexto de las menciones proporcionadas.
+- Si un tema es nuevo (no aparecia en el contexto historico), senalalo: "Tema emergente esta semana".
+- Si un tema evoluciono respecto a la semana anterior, describe brevemente como: "La cobertura de este tema incremento/se mantuvo/retrocedio respecto a la semana anterior."
+- Si no hay cambios respecto a la semana anterior y el tema ya fue cubierto, NO lo repitas — omitelo.
+- Si un eje tematico no tiene menciones relevantes esta semana, NO lo menciones. El silencio es informacion.
+- PROHIBIDO nombrar los ejes tematicos por su nombre tecnico (ej: "Eje 3: Hidrocarburos"). Usa los nombres naturales de los temas.
+- Ordena por relevancia mediatica (mayor a menor).
+
+## Alertas
+Solo si hay temas con cobertura inusualmente alta, hechos con alta tension entre actores, o eventos que rompen la tendencia estable. Si no hay alertas claras, escribe: "Sin alertas particulares esta semana."
+
+## Tendencias
+Identifica 2-3 tendencias basadas en COMPARAR las menciones de esta semana con el contexto historico de la semana anterior:
+- Temas que escalan en cobertura
+- Temas que decrecen
+- Nuevos actores o voces que aparecen
+- Cambios en el enfoque de los medios
+Si no hay contexto historico disponible o no se pueden identificar tendencias claras, escribe: "Sin tendencias identificables para este periodo."
 
 REGLAS ESPECIFICAS:
-- Resumen ultra breve de la semana. Puro dato, cero interpretacion.
-- Cubrir los 11 ejes tematicos
-- Indicar nivel de actividad por eje (alto/medio/bajo) basado en las menciones
-- Solo usar datos proporcionados
-- Fechas en formato es-BO (America/La_Paz)`,
+- Extension: 600-800 palabras (desarrolla, no resumas en exceso)
+- Tono: informativo, panoramico, directo. Sin adjetivos valorativos.
+- Las menciones vienen con etiquetas de ejes tematicos — usalas INTERNAMENTE para agrupar por tema, pero NUNCA las menciones en el texto final. El lector no sabe que existen "ejes".
+- Fechas en formato es-BO (America/La_Paz)
+- El contexto historico (semana anterior) se proporciona separadamente — usalo SOLO para comparar y detectar evolucion, NO como contenido del producto
+- Cero repetición: cada informacion debe aparecer una sola vez en todo el producto`,
 
   VOZ_Y_VOTO: `${REGLAS_ANTI_ALUCINACION}
 Eres un analista legislativo de DECODEX Bolivia. Tu tarea es generar VOZ Y VOTO, el resumen legislativo semanal.
@@ -438,8 +459,8 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     longitudMinLectura: 3,
     canales: ['email', 'web'],
     periodoDefault: 7,
-    palabrasObjetivo: 500,
-    temperatura: 0.1,
+    palabrasObjetivo: 700,
+    temperatura: 0.15,
     activo: true,
     generador: {
       tipo: 'dedicado',
