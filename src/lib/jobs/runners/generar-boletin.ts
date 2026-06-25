@@ -4,11 +4,10 @@
 // REGLA FIRME: NUNCA crear productos vacíos (0 menciones = no se genera).
 // Si no hay material → alerta de máxima prioridad para que el operador intervenga.
 //
-// Arquitectura de generacion (2 caminos):
-//   Path A: Internal fetch a endpoint LLM dedicado (generate-generic, generate-termometro, etc.)
-//   Path B: LLM inline — si Path A falla, genera directamente con IA usando
-//           los mismos system prompts, prompts y validacion que los endpoints dedicados.
-//   NUNCA genera productos de texto plano (listado de menciones).
+// Arquitectura de generacion (100% interno):
+//   Generacion directa con LLM inline usando los mismos system prompts,
+//   prompts y validacion que los endpoints dedicados.
+//   Ya NO se usa fetch HTTP a endpoints — todo el proceso es interno.
 //
 // Flujo:
 //   menciones > 0 → genera Reporte con IA → push GitHub → distribuir
@@ -25,65 +24,22 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
   const tipoBoletin = (payload.tipoBoletin || payload.tipoProducto) as TipoBoletin
   const personaId = payload.personaId as string | undefined
   const contratoId = payload.contratoId as string | undefined
-  const endpoint = payload.endpoint as string | undefined
   const ejeSlug = payload.ejeSlug as string | undefined
 
   if (!tipoBoletin) {
     return { success: false, error: 'generar_boletin requiere tipoBoletin o tipoProducto en el payload' }
   }
 
-
   const startTime = Date.now()
 
   // ═══════════════════════════════════════════════════════════════
-  // PATH A: Internal fetch a endpoint LLM dedicado
-  // ═══════════════════════════════════════════════════════════════
-  if (endpoint) {
-    try {
-      console.log(`[generar_boletin] Path A: Intentando endpoint dedicado: ${endpoint}`)
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.BASE_URL || 'http://localhost:3000'
-      const body: Record<string, unknown> = { tipo: tipoBoletin }
-      if (personaId) body.personaId = personaId
-      if (ejeSlug) body.ejeSlug = ejeSlug
-      if (contratoId) body.contratoId = contratoId
-
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      // Internal auth bypass for server-to-server calls
-      if (process.env.AUTH_SECRET) {
-        headers['x-internal-secret'] = process.env.AUTH_SECRET
-      }
-
-      const res = await fetch(`${baseUrl}${endpoint}`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(180000), // 3min timeout (LLM puede tardar)
-      })
-
-      if (res.ok) {
-        const result = await res.json()
-        if (result.ok || result.success || result.exito) {
-          console.log(`[generar_boletin] Path A OK: ${endpoint} [${Date.now() - startTime}ms]`)
-          return { success: true, data: result }
-        }
-        console.warn(`[generar_boletin] Path A endpoint retorno sin exito: ${JSON.stringify(result)?.substring(0, 200)}`)
-      } else {
-        const errText = await res.text().catch(() => '').then(t => t.substring(0, 200))
-        console.warn(`[generar_boletin] Path A HTTP ${res.status}: ${errText}`)
-      }
-    } catch (err) {
-      const errMsg = err instanceof Error ? err.message : String(err)
-      console.warn(`[generar_boletin] Path A fallo (${errMsg?.substring(0, 150)}), pasando a Path B (LLM inline)`)
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════════
-  // PATH B: LLM inline — genera directamente con IA
+  // Generacion 100% interna con LLM inline
   // Usa los mismos system prompts, formateo de menciones, validacion
-  // y reintentos que generate-generic.
+  // y reintentos que los endpoints dedicados.
+  // Ya NO se hace fetch HTTP a endpoints — todo es directo.
   // ═══════════════════════════════════════════════════════════════
   try {
-    console.log(`[generar_boletin] Path B: Generando con LLM inline para ${tipoBoletin}`)
+    console.log(`[generar_boletin] Generando con LLM inline para ${tipoBoletin}`)
 
     // 1. Verificar que el producto existe
     const config = getProductConfig(tipoBoletin)
@@ -200,7 +156,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
     const { regenerateWithRetry } = await import('@/lib/quality/regeneration')
     const systemPrompt = config.systemPrompt
 
-    console.log(`[generar_boletin] Path B: Llamando LLM para ${tipoBoletin} (${totalMenciones} menciones, temp=${config.temperatura})`)
+    console.log(`[generar_boletin] Llamando LLM para ${tipoBoletin} (${totalMenciones} menciones, temp=${config.temperatura})`)
 
     const genResult = await regenerateWithRetry({
       systemPrompt,
@@ -208,13 +164,13 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       tipo: tipoBoletin,
       initialTemperatura: config.temperatura,
       onRetry: (intento, error) => {
-        console.warn(`[generar_boletin] Path B Reintento ${intento} para ${tipoBoletin}: ${error}`)
+        console.warn(`[generar_boletin] Reintento ${intento} para ${tipoBoletin}: ${error}`)
       },
     })
 
     if (!genResult.exito || !genResult.contenido) {
       const errorMsg = genResult.error ?? 'La IA no genero contenido valido'
-      console.error(`[generar_boletin] Path B LLM fallo para ${tipoBoletin}: ${errorMsg}`)
+      console.error(`[generar_boletin] LLM fallo para ${tipoBoletin}: ${errorMsg}`)
       return { success: false, error: `LLM generacion fallo para ${tipoBoletin}: ${errorMsg}` }
     }
 
@@ -237,7 +193,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
         tipoBoletin,
       )
       if (!textoVerificado.verified) {
-        console.log(`[generar-boletin] Path B: Se elimino contenido no verificado: ${textoVerificado.eliminados.length} items`)
+        console.log(`[generar_boletin] Se elimino contenido no verificado: ${textoVerificado.eliminados.length} items`)
       }
       textoFinal = textoVerificado.textoLimpio
 
@@ -266,7 +222,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       )
       if (factualResult.corrected) {
         textoFinal = factualResult.textoCorregido
-        console.log(`[generar-boletin] Path B: Verificacion factual corrigio ${factualResult.correcciones.length} items`)
+        console.log(`[generar_boletin] Verificacion factual corrigio ${factualResult.correcciones.length} items`)
       }
     } catch {
       // No bloquear pipeline si falla la verificacion factual
@@ -279,7 +235,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       const validation = validateContent(textoFinal, { tipo: tipoBoletin })
       puntuacionCalidad = validation.puntuacion
       if (!validation.valido) {
-        console.warn(`[generar_boletin] Path B: Calidad baja para ${tipoBoletin}: puntuacion=${validation.puntuacion}, advertencias=${validation.advertencias.length}`)
+        console.warn(`[generar_boletin] Calidad baja para ${tipoBoletin}: puntuacion=${validation.puntuacion}, advertencias=${validation.advertencias.length}`)
       }
     } catch {
       // No bloquear
@@ -295,7 +251,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
     })
     // Safety net: si el resumen dice "0 menciones" pero hay datos, corregir
     if (totalMenciones > 0 && resumen.includes('0 menciones')) {
-      console.warn(`[generar-boletin] Safety net: corrigiendo resumen "0 menciones" -> "${totalMenciones} menciones"`)
+      console.warn(`[generar_boletin] Safety net: corrigiendo resumen "0 menciones" -> "${totalMenciones} menciones"`)
       resumen = resumen.replace(/0 menciones/g, `${totalMenciones} menciones`)
     }
 
@@ -319,7 +275,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
           fecha: ventanaLabel,
           _metadata: {
             origen: 'llm_inline',
-            path: 'B',
+            path: 'inline',
             totalMenciones,
             tokensUsados,
             modelo,
@@ -416,7 +372,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
       data: {
         modulo: 'generar_boletin',
         accion: 'producto_generado',
-        detalle: `${tipoBoletin}: ${totalMenciones} menciones, ${entregasEnqueued} entregas, LLM inline (Path B)`,
+        detalle: `${tipoBoletin}: ${totalMenciones} menciones, ${entregasEnqueued} entregas, LLM inline`,
         automatica: true,
         datos: JSON.stringify({
           tipoBoletin,
@@ -427,12 +383,12 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
           tokensUsados,
           modelo,
           puntuacionCalidad,
-          path: 'B',
+          path: 'inline',
         }),
       },
     }).catch(() => {})
 
-    console.log(`[generar_boletin] Path B OK: ${tipoBoletin} → ${totalMenciones} menciones, ${textoFinal.length} chars, ${entregasEnqueued} entregas [${Date.now() - startTime}ms]`)
+    console.log(`[generar_boletin] OK: ${tipoBoletin} → ${totalMenciones} menciones, ${textoFinal.length} chars, ${entregasEnqueued} entregas [${Date.now() - startTime}ms]`)
 
     return {
       success: true,
@@ -445,7 +401,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
         responseTime,
         incluyeEnvio: entregasEnqueued > 0,
         entregasEnqueued,
-        path: 'B',
+        path: 'inline',
         modelo,
         tokensUsados,
       },

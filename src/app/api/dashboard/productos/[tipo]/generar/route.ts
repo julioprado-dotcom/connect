@@ -1,8 +1,9 @@
 // POST /api/dashboard/productos/[tipo]/generar — Trigger generación de producto
 //
 // Recibe: {} (el tipo viene en la URL)
-// Encola un job de tipo generar_boletin que el scheduler/worker procesará.
+// Encola un job de tipo generar_boletin que el worker procesará 100% interno.
 // Este es un TRIGGER endpoint — no genera el producto directamente.
+// La generacion es LLM inline dentro del runner, SIN fetch HTTP a endpoints.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { enqueue } from '@/lib/jobs/queue';
@@ -18,16 +19,6 @@ const PRODUCT_NAMES: Record<string, string> = {};
 for (const [key, config] of Object.entries(PRODUCTOS)) {
   PRODUCT_NAMES[key] = config.nombre;
 }
-
-// Dedicated endpoint mapping (matching GeneratorScheduler logic)
-const DEDICATED_ENDPOINTS: Partial<Record<TipoBoletin, string>> = {
-  EL_TERMOMETRO: '/api/admin/bulletins/generate-termometro',
-  SALDO_DEL_DIA: '/api/admin/bulletins/generate-saldo',
-  EL_FOCO: '/api/admin/bulletins/generate-foco',
-  EL_RADAR: '/api/admin/bulletins/generate-generic',
-  BOLETIN_DEL_GRANO: '/api/admin/bulletins/generate-boletin-grano',
-  FICHA_LEGISLADOR: '/api/admin/bulletins/generate-ficha',
-};
 
 export async function POST(
   request: NextRequest,
@@ -91,10 +82,9 @@ export async function POST(
       tipo: 'generar_boletin',
       prioridad: 3, // P3 — Media priority for manual generation
       payload: {
-        tipoBoletin: tipoUpper,     // FIX 4: Normalizar — ambos campos para dedup
+        tipoBoletin: tipoUpper,     // Normalizar — ambos campos para dedup
         tipoProducto: tipoUpper,
         productoNombre,
-        endpoint: DEDICATED_ENDPOINTS[tipoUpper] || '/api/admin/bulletins/generate-generic',
         triggeredBy: 'dashboard-manual',
         ...extraPayload,
       },

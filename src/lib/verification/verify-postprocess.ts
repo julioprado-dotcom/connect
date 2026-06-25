@@ -13,18 +13,18 @@
 export function limpiarPlaceholders(texto: string): string {
   let limpio = texto
 
-  // 1. Eliminar "N/A" en todos sus contextos tipicos
-  // "nombre N/A," -> "nombre,"
-  // ", N/A dijo" -> " dijo"
-  // "(N/A)" -> ""
-  // "N/A y" -> "" (ojo con "y")
+  // 1. Eliminar "N/A" en TODOS sus contextos posibles
+  // Cubre: "N/A,", "N/A y", "N/A también", "N/A quien", "N/A en",
+  // "(N/A)", "\"N/A\"", "N/A al", "N/A para", "N/A del", etc.
+  // Estrategia: eliminar N/A + su coma/espacio siguiente, luego limpiar artefactos
   limpio = limpio.replace(/\(\s*N\/A\s*\)/gi, '')
   limpio = limpio.replace(/"\s*N\/A\s*"/gi, '')
-  limpio = limpio.replace(/,\s*N\/A(?=[,.]|\s|$)/gi, '')
-  limpio = limpio.replace(/\bN\/A\s*,/gi, '')
-  limpio = limpio.replace(/\bN\/A\s*\./gi, '.')
-  limpio = limpio.replace(/(\w)\s+N\/A\s+/gi, '$1 ')
+  // "N/A" seguido de cualquier puntuacion o espacio
+  limpio = limpio.replace(/\bN\/A\s*[,.:;]?\s*/gi, ' ')
+  // "N/A" al final de linea
   limpio = limpio.replace(/\s+N\/A\s*$/gim, '')
+  // "N/A" precedido por coma, espacio, o palabra
+  limpio = limpio.replace(/[,\s]+\bN\/A\b\s*/gi, ' ')
 
   // 2. Eliminar caracteres fuera del rango latino + puntuacion comun
   // Rangos preservados:

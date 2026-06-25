@@ -204,44 +204,32 @@ export class GeneratorScheduler {
   }
 
   /**
-   * Genera un producto llamando al endpoint correspondiente.
+   * Genera un producto encolando un job generar_boletin directamente.
+   * 100% interno — ya NO hace fetch HTTP a endpoints.
    */
   private async generateProduct(tipo: TipoBoletin): Promise<void> {
-    // Seleccionar endpoint: dedicado o generico
-    let endpoint: string;
-    const body: Record<string, unknown> = {};
+    const { enqueue } = await import('@/lib/jobs/queue');
 
-    // Productos con endpoint dedicado
-    const dedicatedEndpoints: Partial<Record<TipoBoletin, string>> = {
-      EL_TERMOMETRO: '/api/admin/bulletins/generate-termometro',
-      SALDO_DEL_DIA: '/api/admin/bulletins/generate-saldo',
-      EL_FOCO: '/api/admin/bulletins/generate-foco',
-      EL_RADAR: '/api/admin/bulletins/generate-radar',
+    const payload: Record<string, unknown> = {
+      tipoBoletin: tipo,
+      tipoProducto: tipo,
+      triggeredBy: 'scheduler-automatico',
     };
-
-    if (dedicatedEndpoints[tipo]) {
-      endpoint = dedicatedEndpoints[tipo]!;
-    } else {
-      endpoint = '/api/admin/bulletins/generate-generic';
-      body.tipo = tipo;
-    }
 
     // Para EL_FOCO se necesita ejeSlug
     if (tipo === 'EL_FOCO' || tipo === 'FOCO_DE_LA_SEMANA') {
-      body.ejeSlug = await this.getEjeRotativo(tipo);
+      payload.ejeSlug = await this.getEjeRotativo(tipo);
     }
 
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(120_000), // 2 min timeout (evita bloqueo infinito)
+    await enqueue({
+      tipo: 'generar_boletin',
+      prioridad: 5,
+      payload,
+      programa: 'scheduler-automatico',
+      proximaEjecucion: new Date(),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-      throw new Error(`HTTP ${response.status}: ${errorData.error}`);
-    }
+    console.log(`[scheduler] Job encolado para ${tipo} (generacion interna)`);
   }
 
   /**
