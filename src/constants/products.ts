@@ -269,18 +269,35 @@ REGLAS ESPECIFICAS:
 - IDIOMA EXCLUSIVO: Todo el texto generado debe estar 100% en espanol. Cero caracteres, palabras o fragmentos en otros idiomas (chino, arabe, cirilico, etc.). Si accidentalmente se genera texto en otro idioma, elimina esa parte completa.`,
 
   VOZ_Y_VOTO: `${REGLAS_ANTI_ALUCINACION}
-Eres un analista legislativo de DECODEX Bolivia. Tu tarea es generar VOZ Y VOTO, el resumen legislativo semanal.
+Eres un analista legislativo e institucional de DECODEX Bolivia. Tu tarea es generar VOZ Y VOTO, el resumen semanal de actividad legislativa, parlamento municipal y autonomias.
+
+CONCEPTO: VOZ Y VOTO no cubre solo la Asamblea Legislativa Plurinacional. Tambien monitorea:
+1. Actividad parlamentaria nacional (ALP: Camara de Diputados y Senado)
+2. Repercusion mediatica de proyectos de ley y leyes aprobadas (como reaccionan actores, sectores afectados, medios)
+3. Parlamento municipal: Concejos Municipales, ordenanzas municipales, sesiones de concejo
+4. Autonomias: Gobiernos departamentales, Asambleas Departamentales, autonomias indigenas
+5. Procesos electorales subnacionales (municipales, departamentales) cuando tengan actividad legislativa
 
 INSTRUCCIONES DE FORMATO:
-- Titulo: "VOZ Y VOTO — Resumen Legislativo Semanal — [fecha]"
-- Extension: 600 palabras
-- Tono: legislativo, formal, informativo
-- Estructura: Actividad legislativa > Proyectos clave > Votos y posiciones > Agenda proxima
+- Titulo: "VOZ Y VOTO — Actividad Legislativa e Institucional Semanal — [fecha]"
+- Extension: 800 palabras
+- Tono: institucional, formal, informativo
+- Estructura (usa las secciones que tengan contenido, omite las vacias):
+  1. Resumen ejecutivo (2-3 oraciones con lo mas relevante de la semana)
+  2. Asamblea Legislativa Plurinacional (proyectos de ley en tramite, leyes aprobadas, votaciones, debates en comisiones o pleno)
+  3. Repercusiones de normativa (como los medios reportan el impacto de leyes/proyectos: sectores afectados, apoyos, rechazos, demandas sociales vinculadas)
+  4. Gobiernos departamentales y autonomias (sesiones de Asambleas Departamentales, resoluciones, conflictos jurisdiccionales)
+  5. Concejos Municipales y ordenanzas (sesiones de concejo, ordenanzas aprobadas, conflictos entre ejecutivo y legislativo municipal)
+  6. Agenda legislativa proxima (proyectos esperados para la proxima semana segun las menciones)
 
 REGLAS ESPECIFICAS:
 - Solo usar datos proporcionados de las menciones
-- Enfocarse en actividad parlamentaria mencionada en los medios
-- Fechas en formato es-BO (America/La_Paz)`,
+- Incluir atribucion a fuentes en cada dato: (Fuente: nombre del medio)
+- Distinguir claramente entre nivel nacional (ALP), departamental y municipal
+- Cuando una ley o proyecto genere repercusion social (bloqueos, declaraciones, demandas), reportar la repercusion con sus fuentes
+- Si una semana solo tiene actividad de un nivel (ej: solo municipal), no inventar actividad de otros niveles
+- Fechas en formato es-BO (America/La_Paz)
+- Cero editorial: reportar lo que los medios dicen, no interpretar intenciones`,
 
   EL_HILO: `${REGLAS_ANTI_ALUCINACION}
 Eres un analista de medios de DECODEX Bolivia. Tu tarea es generar EL HILO, el recuento semanal de la agenda mediatica basado EXCLUSIVAMENTE en las menciones proporcionadas.
@@ -488,16 +505,16 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     tipo: 'VOZ_Y_VOTO',
     nombre: 'Voz y Voto',
     nombreCorto: 'Voz y Voto',
-    descripcion: 'Resumen legislativo semanal gratuito. Actividad parlamentaria, votaciones clave, presencia mediática de legisladores.',
+    descripcion: 'Resumen semanal gratuito de actividad legislativa e institucional: ALP, gobiernos departamentales, concejos municipales, autonomías y repercusiones de normativa.',
     categoria: 'gratuito',
     frecuencia: 'semanal',
     horarioEnvio: 'Lunes 08:00 AM',
-    longitudPaginas: 1,
-    longitudMinLectura: 2,
+    longitudPaginas: 2,
+    longitudMinLectura: 3,
     canales: ['email', 'web'],
     periodoDefault: 7,
-    palabrasObjetivo: 600,
-    temperatura: 0.3,
+    palabrasObjetivo: 800,
+    temperatura: 0.1,
     activo: true,
     generador: {
       tipo: 'generico',
@@ -727,8 +744,8 @@ export const ETIQUETAS_ENTREGA: Record<TipoBoletin, { whatsapp: string; email: s
     email: 'El Informe Cerrado — Semana {semana} | DECODEX',
   },
   VOZ_Y_VOTO: {
-    whatsapp: '🗳️ VOZ Y VOTO — Semana {semana}',
-    email: 'Voz y Voto — Semana {semana} | DECODEX',
+    whatsapp: '🗳️ VOZ Y VOTO — Actividad Legislativa Semanal — Semana {semana}',
+    email: 'Voz y Voto — Actividad Legislativa e Institucional — Semana {semana} | DECODEX',
   },
   EL_HILO: {
     whatsapp: '🧵 EL HILO — Semana {semana}',

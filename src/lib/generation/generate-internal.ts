@@ -70,11 +70,22 @@ export async function generateProductoInterno(params: GenerateInternalParams): P
   }
 
   // 2. Obtener menciones (con opciones específicas por producto)
+  // VOZ_Y_VOTO: filtrar por ejes legislativos/institucionales automáticamente
+  const EJES_VOZ_Y_VOTO = [
+    'gestion-publica-institucional',  // ALP, diputados, senadores, leyes, proyectos de ley, concejos, alcaldes, gobernadores
+    'organizacion-politica-electoral', // TSE, procesos electorales subnacionales, autonomías
+    'participacion-accion-colectiva',  // Repercusiones sociales de leyes/proyectos (bloqueos, marchas)
+    'educacion-cultura-identidad',     // Autonomía universitaria, leyes educativas
+    'justicia-derechos-humanos-impunidad', // Leyes de justicia, reformas al sistema judicial
+  ]
+
   const { menciones, fechaInicio, fechaFin, totalMenciones } = await getMencionesForBulletin(
     tipoBoletin,
     {
       personaId,
-      ejesTematicos: ejeSlug ? [ejeSlug] : ejesTematicos,
+      ejesTematicos: tipoBoletin === 'VOZ_Y_VOTO'
+        ? EJES_VOZ_Y_VOTO
+        : (ejeSlug ? [ejeSlug] : ejesTematicos),
     },
   )
 
@@ -431,6 +442,22 @@ async function buildPromptForProduct(params: BuildPromptParams): Promise<{
         `Ejes activados: ${ejesGranoSummary}`,
         `Fuentes monitoreadas: ${new Set(menciones.map(m => m.medio as string)).size}`,
         lenteContext,
+      ].join('\n')
+      break
+    }
+
+    // ═══ VOZ_Y_VOTO: legislativo + municipal + autonomias, filtro por ejes ═══
+    case 'VOZ_Y_VOTO': {
+      // Las menciones ya vienen filtradas por ejes (se inyectan desde getMencionesForBulletin
+      // cuando el case VOZ_Y_VOTO pasa ejesTematicos). Aquí solo construimos datosExtra.
+      const mediosUnicos = new Set(menciones.map((m: any) => m.medio as string)).size
+      datosExtra = [
+        `Tipo de producto: Voz y Voto`,
+        `Periodo: ${ventanaLabel}`,
+        `Total menciones (filtradas por ejes legislativos/institucionales): ${totalMenciones}`,
+        `Medios que reportaron: ${mediosUnicos}`,
+        `Niveles cubiertos: Asamblea Legislativa Plurinacional, gobiernos departamentales, concejos municipales, autonomias indigenas`,
+        `Regla: si una mención no pertenece a ningun nivel legislativo/institucional, no la uses`,
       ].join('\n')
       break
     }
