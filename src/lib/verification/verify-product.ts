@@ -211,7 +211,10 @@ export async function verifyProduct(
   // Paso 6: Reconstruir texto limpio
   resultado.textoLimpio = reconstruirTexto(oracionesVerificadas, textoPreprocesado)
 
-  // Paso 7: Determinar si es verificado
+  // Paso 7: Limpiar placeholders N/A y caracteres extranjeros
+  resultado.textoLimpio = limpiarPlaceholders(resultado.textoLimpio)
+
+  // Paso 8: Determinar si es verificado
   resultado.verified = resultado.eliminados.length === 0
 
   if (!resultado.verified) {

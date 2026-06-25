@@ -22,6 +22,7 @@ import { generateGenericSchema } from '@/lib/validations';
 import { safeError } from '@/lib/safe-error';
 import { verifyProduct } from '@/lib/verification/verify-product';
 import { loadMarcoConceptual, formatMarcoForPrompt } from '@/lib/reporte-sectorial.alerts';
+import { limpiarPlaceholders, filtrarSeccionesFuenteUnica } from '@/lib/verification/verify-postprocess';
 
 // ============================================
 // POST Handler
@@ -246,10 +247,17 @@ export async function POST(request: NextRequest) {
       console.log('[generate-generic] ALERTA: Se elimino contenido no verificado:', textoVerificado.eliminados.length, 'items');
     }
 
-    // 9. Validacion final de calidad
-    const validation = validateContent(textoVerificado.textoLimpio, { tipo });
+    // 8.5 Post-procesamiento: limpiar N/A, caracteres extranjeros, secciones con 1 fuente
+    let textoFinal = textoVerificado.textoLimpio;
+    textoFinal = limpiarPlaceholders(textoFinal);
+    if (tipo === 'EL_RADAR') {
+      textoFinal = filtrarSeccionesFuenteUnica(textoFinal, 2);
+    }
 
-    // 9. Registrar en BD
+    // 9. Validacion final de calidad
+    const validation = validateContent(textoFinal, { tipo });
+
+    // 10. Registrar en BD
     const titulo = generarTituloProducto(tipo, undefined, ejeSlug);
     const resumen = await getDedicatedResumen(tipo, {
       menciones: resultado.menciones,
@@ -261,7 +269,7 @@ export async function POST(request: NextRequest) {
     const reporteId = await registrarReporte({
       tipoProducto: tipo,
       titulo,
-      contenido: textoVerificado.textoLimpio,
+      contenido: textoFinal,
       resumen,
       fechaInicio: inicio,
       fechaFin: fin,
@@ -283,7 +291,7 @@ export async function POST(request: NextRequest) {
       exito: true,
       reporteId,
       titulo,
-      contenido: textoVerificado.textoLimpio,
+      contenido: textoFinal,
       resumen,
       metadata: {
         tipo,
