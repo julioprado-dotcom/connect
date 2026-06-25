@@ -7,10 +7,11 @@
 // REGLA FIRME: NUNCA crear productos vacíos (0 menciones = no se genera).
 //
 // Productos LLM que pasan por aquí:
-//   EL_RADAR, EL_TERMOMETRO, SALDO_DEL_DIA, EL_FOCO, FICHA_LEGISLADOR
+//   EL_RADAR, EL_TERMOMETRO, SALDO_DEL_DIA, EL_FOCO, FICHA_LEGISLADOR,
+//   BOLETIN_DEL_GRANO
 //
-// Productos NO-LLM (NO pasan por aquí):
-//   BOLETIN_DEL_GRANO → tiene su propio runner (generar_boletin_grano)
+// Productos con flujo propio (NO pasan por aquí):
+//   REPORTE_SECTORIAL_MINERO → tiene su propio runner con pipeline especializado
 //
 // Flujo:
 //   menciones > 0 → generateProductoInterno() → push GitHub → distribuir
@@ -33,10 +34,10 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
 
   const startTime = Date.now()
 
-  // Rechazar productos que no usan LLM
-  if (tipoBoletin === 'BOLETIN_DEL_GRANO') {
-    console.error(`[generar_boletin] ERROR: BOLETIN_DEL_GRANO no usa LLM. Debe usar job type "generar_boletin_grano"`)
-    return { success: false, error: 'BOLETIN_DEL_GRANO debe usar job type "generar_boletin_grano", no "generar_boletin"' }
+  // Rechazar productos con flujo propio (no pasan por aquí)
+  if (tipoBoletin === 'REPORTE_SECTORIAL_MINERO') {
+    console.error(`[generar_boletin] ERROR: REPORTE_SECTORIAL_MINERO tiene su propio runner (generar_reporte_sectorial)`)
+    return { success: false, error: 'REPORTE_SECTORIAL_MINERO debe usar job type "generar_reporte_sectorial", no "generar_boletin"' }
   }
 
   // 1. Verificar config

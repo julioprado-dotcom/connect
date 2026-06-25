@@ -262,6 +262,8 @@ export class GeneratorScheduler {
   /**
    * Verifica si corresponde generar el Reporte Sectorial Minero.
    * Schedule: Lunes 10:00 AM (America/La_Paz), tolerancia +/- 5 min.
+   * Ahora encola como job del sistema (generar_reporte_sectorial) en vez
+   * de llamar generarReporteMinero() directamente.
    */
   private async checkReporteSectorial(now: Date, currentSlot: string): Promise<void> {
     // Solo lunes (getDay() === 1)
@@ -277,14 +279,22 @@ export class GeneratorScheduler {
 
     if (diffMinutos > 5) return;
 
-    console.log('[scheduler] Generando: Reporte Sectorial Minero (lunes 10:00)');
+    console.log('[scheduler] Generando: Reporte Sectorial Minero (lunes 10:00) — encolando job');
     try {
-      const { generarReporteMinero } = await import('@/lib/reporte-sectorial');
-      const reporte = await generarReporteMinero();
-      console.log(`[scheduler] Reporte Sectorial Minero completado: ${reporte.id}`);
+      const { enqueue } = await import('@/lib/jobs/queue');
+      await enqueue({
+        tipo: 'generar_reporte_sectorial',
+        prioridad: 5,
+        payload: {
+          triggeredBy: 'scheduler-automatico',
+        },
+        programa: 'scheduler-automatico',
+        proximaEjecucion: new Date(),
+      });
+      console.log('[scheduler] Job generar_reporte_sectorial encolado');
       this.lastSectorialSlot = currentSlot;
     } catch (error) {
-      console.error('[scheduler] Fallido: Reporte Sectorial Minero', error);
+      console.error('[scheduler] Fallido: Reporte Sectorial Minero (enqueue)', error);
     }
   }
 }

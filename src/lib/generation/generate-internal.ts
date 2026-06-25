@@ -5,10 +5,11 @@
  * para la generación con IA. El runner generar_boletin llama esta función.
  * 
  * Productos LLM soportados:
- *   EL_RADAR, EL_TERMOMETRO, SALDO_DEL_DIA, EL_FOCO, FICHA_LEGISLADOR
+ *   EL_RADAR, EL_TERMOMETRO, SALDO_DEL_DIA, EL_FOCO, FICHA_LEGISLADOR,
+ *   BOLETIN_DEL_GRANO
  * 
- * Productos NO-LLM (no pasan por aquí):
- *   BOLETIN_DEL_GRANO → tiene su propio runner (HTML/PDF puro)
+ * Productos con flujo propio (no pasan por aquí):
+ *   REPORTE_SECTORIAL_MINERO → tiene su propio runner con pipeline especializado
  */
 
 import { getProductConfig, getMencionesForBulletin, getDateRange, getContextMenciones, formatFechaBolivia } from '@/lib/bulletin/product-generator'
@@ -46,9 +47,8 @@ export interface GenerateInternalResult {
   responseTimeMs: number
 }
 
-// ─── Productos que NO usan LLM ──────────────────────────────────
-
-const PRODUCTOS_NO_LLM: TipoBoletin[] = ['BOLETIN_DEL_GRANO']
+// ─── Productos con flujo propio (no pasan por aquí) ────────
+// Ninguno actualmente — BOLETIN_DEL_GRANO fue migrado a LLM
 
 // ─── Función Principal ──────────────────────────────────────────
 
@@ -56,15 +56,7 @@ export async function generateProductoInterno(params: GenerateInternalParams): P
   const startTime = Date.now()
   const { tipoBoletin, personaId, ejeSlug, ejesTematicos } = params
 
-  // Rechazar productos que no usan LLM
-  if (PRODUCTOS_NO_LLM.includes(tipoBoletin)) {
-    return {
-      exito: false,
-      error: `${tipoBoletin} no usa LLM — debe usar su propio runner (generar_boletin_grano)`,
-      totalMenciones: 0,
-      responseTimeMs: Date.now() - startTime,
-    }
-  }
+  // No hay productos excluidos — todos pasan por LLM
 
   // 1. Verificar que el producto existe y está activo
   const config = getProductConfig(tipoBoletin)
@@ -374,6 +366,71 @@ async function buildPromptForProduct(params: BuildPromptParams): Promise<{
         `Periodo: ${ventanaLabel}`,
         `Total menciones: ${totalMenciones}`,
         `Ejes monitoreados: ${ejesTematicos?.length ? ejesTematicos.join(', ') : 'Todos'}`,
+      ].join('\n')
+      break
+    }
+
+    // ═══ BOLETIN_DEL_GRANO: café de especialidad, 7 ejes internos ═══
+    case 'BOLETIN_DEL_GRANO': {
+      // Obtener datos del Lente 9 (cafe-economicas-regionales) para contexto
+      let lenteContext = ''
+      try {
+        const lente9 = await db.lente.findFirst({ where: { slug: 'cafe-economicas-regionales' } })
+        if (lente9) {
+          const lenteMencionesCount = await db.mencionLente.count({ where: { lenteId: lente9.id } })
+          lenteContext = `\nMenciones del Lente Cafetero (Lente 9): ${lenteMencionesCount} en base de datos.\n`
+        }
+      } catch {
+        // No bloquear
+      }
+
+      mencionesPrompt = formatearMencionesPrompt(menciones, tipoBoletin, {
+        maxMenciones: 30,
+        maxTextoLength: 200,
+      })
+
+      // Clasificar menciones por ejes internos del café
+      const KEYWORDS_EJES_GRANO: Record<string, string[]> = {
+        'Mercado y Precios': ['precio', 'cotizacion', 'C-market', 'ICE', 'arabica', 'robusta', 'FOB', 'bolsa', 'indince', 'coffee price', 'coffee market'],
+        'Clima y Produccion': ['clima', 'helada', 'sequia', 'lluvia', 'roya', 'broca', 'cosecha', 'floracion', 'produccion', 'cafetal', 'Yungas', 'Caranavi', 'incendio'],
+        'Politica y Regulacion': ['SENASAG', 'IBCE', 'EUDR', 'FDA', 'normativa', 'arancel', 'regulacion', 'ley', 'decreto', 'certificacion', 'exportacion', 'gobierno'],
+        'Logistica y Exportacion': ['flete', 'puerto', 'Arica', 'Ilo', 'contenedor', 'ruta', 'transporte', 'logistica', 'bloqueo frontera'],
+        'Innovacion y Tecnica': ['procesamiento', 'lavado', 'honey', 'natural', 'anaerobico', 'torrefaccion', 'tueste', 'cata', 'SCA', 'fermentacion', 'Geisha', 'Pacamara', 'variedad'],
+        'Ferias y Oportunidades': ['feria', 'Expo', 'SCA', 'Cup of Excellence', 'concurso', 'Best of Bolivia', 'capacitacion', 'cooperacion', 'USAID'],
+        'Cadena y Contexto': ['cooperativa', 'CENAPROC', 'COAINE', 'COABOL', 'productor', 'cafeteria', 'consumo', 'relevo generacional', 'comunidad'],
+      }
+
+      const ejesActivados: Record<string, number> = {}
+      for (const m of menciones) {
+        const texto = `${(m.titulo as string) ?? ''} ${(m.texto as string) ?? ''}`.toLowerCase()
+        for (const [eje, keywords] of Object.entries(KEYWORDS_EJES_GRANO)) {
+          if (keywords.some(kw => texto.includes(kw.toLowerCase()))) {
+            ejesActivados[eje] = (ejesActivados[eje] || 0) + 1
+          }
+        }
+      }
+      const ejesGranoSummary = Object.entries(ejesActivados)
+        .sort((a, b) => b[1] - a[1])
+        .map(([eje, count]) => `${eje}: ${count}`)
+        .join(', ') || 'Sin ejes activados'
+
+      // Calcular tensión general
+      const altaKw = ['caida', 'crisis', 'alerta', 'emergencia', 'huelga', 'bloqueo', 'helada', 'plaga', 'roya', 'dano', 'perdida', 'cerrar', 'prohibir']
+      let tensionCount = 0
+      for (const m of menciones) {
+        const texto = `${(m.titulo as string) ?? ''} ${(m.texto as string) ?? ''}`.toLowerCase()
+        if (altaKw.some(kw => texto.includes(kw))) tensionCount++
+      }
+      const tensionNivel = tensionCount >= 2 ? 'ALTA' : tensionCount >= 1 ? 'MEDIA' : 'BAJA'
+
+      datosExtra = [
+        `Tipo de producto: ${config.nombre}`,
+        `Periodo: ${ventanaLabel}`,
+        `Total menciones: ${totalMenciones}`,
+        `Nivel de tension general: ${tensionNivel} (${tensionCount} noticias con keyword de alta tension)`,
+        `Ejes activados: ${ejesGranoSummary}`,
+        `Fuentes monitoreadas: ${new Set(menciones.map(m => m.medio as string)).size}`,
+        lenteContext,
       ].join('\n')
       break
     }

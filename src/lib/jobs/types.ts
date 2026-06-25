@@ -12,7 +12,8 @@ export type JobTipo =
   | 'batch_llm'             // Procesa NotaRaw pendientes → menciones con LLM
   | 'capture_indicador'
   | 'generar_boletin'
-  | 'generar_boletin_grano'
+  | 'generar_boletin_grano'  // DEPRECATED — BOLETIN_DEL_GRANO ahora usa generar_boletin con LLM
+  | 'generar_reporte_sectorial'  // Reporte Sectorial Minero (pipeline especializado)
   | 'enviar_entrega'
   | 'verificar_enlaces'
   | 'mantenimiento'

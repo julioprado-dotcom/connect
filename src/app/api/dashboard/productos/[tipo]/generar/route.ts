@@ -3,7 +3,7 @@
 // Recibe: {} (el tipo viene en la URL)
 // Encola el job correcto según el tipo de producto:
 //   - Productos LLM → job "generar_boletin" → runner con generateProductoInterno()
-//   - BOLETIN_DEL_GRANO → job "generar_boletin_grano" → runner HTML/PDF (sin LLM)
+//   - REPORTE_SECTORIAL_MINERO → job "generar_reporte_sectorial" → pipeline especializado
 //
 // Este es un TRIGGER endpoint — no genera el producto directamente.
 // Toda la generación es 100% interna via job queue, SIN fetch HTTP a endpoints.
@@ -23,9 +23,9 @@ for (const [key, config] of Object.entries(PRODUCTOS)) {
   PRODUCT_NAMES[key] = config.nombre;
 }
 
-// Productos que NO usan LLM → su propio job type
-const PRODUCTOS_NO_LLM: Record<string, JobTipo> = {
-  BOLETIN_DEL_GRANO: 'generar_boletin_grano',
+// Productos con pipeline especializado → su propio job type
+const PRODUCTOS_PIPELINE_PROPIO: Record<string, JobTipo> = {
+  REPORTE_SECTORIAL_MINERO: 'generar_reporte_sectorial',
 };
 
 export async function POST(
@@ -67,7 +67,7 @@ export async function POST(
     }
 
     // Determinar el job type correcto según el producto
-    const jobType = PRODUCTOS_NO_LLM[tipoUpper] || 'generar_boletin';
+    const jobType = PRODUCTOS_PIPELINE_PROPIO[tipoUpper] || 'generar_boletin';
 
     // Dedup: verificar si ya existe un job para este producto
     const existingJob = await db.job.findFirst({
