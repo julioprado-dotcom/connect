@@ -259,12 +259,18 @@ export async function POST(request: NextRequest) {
 
     // 10. Registrar en BD
     const titulo = generarTituloProducto(tipo, undefined, ejeSlug);
-    const resumen = await getDedicatedResumen(tipo, {
+    let resumen = await getDedicatedResumen(tipo, {
       menciones: resultado.menciones,
       fecha: ventanaLabel,
       ejeSlug,
       totalMenciones: resultado.totalMenciones,
     });
+
+    // Safety net: si el resumen dice "0 menciones" pero hay datos, corregir
+    if (resultado.totalMenciones > 0 && resumen.includes('0 menciones')) {
+      console.warn(`[generate-generic] Safety net: corrigiendo resumen "0 menciones" -> "${resultado.totalMenciones} menciones"`);
+      resumen = resumen.replace(/0 menciones/g, `${resultado.totalMenciones} menciones`);
+    }
 
     const reporteId = await registrarReporte({
       tipoProducto: tipo,

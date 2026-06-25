@@ -222,7 +222,7 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
     const tokensUsados = genResult.tokensUsados
     const modelo = genResult.modelo
 
-    // 6. Verificacion post-generacion anti-alucinacion
+    // 6. Verificacion post-generacion anti-alucinacion + post-procesamiento
     let textoFinal = contenidoTexto
     try {
       const { verifyProduct } = await import('@/lib/verification/verify-product')
@@ -237,9 +237,16 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
         tipoBoletin,
       )
       if (!textoVerificado.verified) {
-        console.log(`[generar_boletin] Path B: Se elimino contenido no verificado: ${textoVerificado.eliminados.length} items`)
+        console.log(`[generar-boletin] Path B: Se elimino contenido no verificado: ${textoVerificado.eliminados.length} items`)
       }
       textoFinal = textoVerificado.textoLimpio
+
+      // Post-procesamiento: limpiar N/A, caracteres extranjeros, secciones con 1 fuente
+      const { limpiarPlaceholders, filtrarSeccionesFuenteUnica } = await import('@/lib/verification/verify-postprocess')
+      textoFinal = limpiarPlaceholders(textoFinal)
+      if (tipoBoletin === 'EL_RADAR') {
+        textoFinal = filtrarSeccionesFuenteUnica(textoFinal, 2)
+      }
     } catch {
       // Si verificacion falla, usar texto original
     }
@@ -280,11 +287,17 @@ export async function run(payload: JobPayload): Promise<RunnerResult> {
 
     // 8. Generar titulo y resumen
     const titulo = generarTituloProducto(tipoBoletin, undefined, ejeSlug)
-    const resumen = await getDedicatedResumen(tipoBoletin, {
+    let resumen = await getDedicatedResumen(tipoBoletin, {
       menciones: menciones as unknown as Array<Record<string, unknown>>,
       fecha: ventanaLabel,
       ejeSlug,
+      totalMenciones,
     })
+    // Safety net: si el resumen dice "0 menciones" pero hay datos, corregir
+    if (totalMenciones > 0 && resumen.includes('0 menciones')) {
+      console.warn(`[generar-boletin] Safety net: corrigiendo resumen "0 menciones" -> "${totalMenciones} menciones"`)
+      resumen = resumen.replace(/0 menciones/g, `${totalMenciones} menciones`)
+    }
 
     // 9. Guardar como Reporte
     const responseTime = Date.now() - startTime

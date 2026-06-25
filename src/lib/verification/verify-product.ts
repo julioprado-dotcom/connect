@@ -11,6 +11,8 @@
  * - Personajes politicos sensibles fuera de contexto
  */
 
+import { limpiarPlaceholders } from './verify-postprocess'
+
 // ─── Personajes politicos bolivianos sensibles ──────────────────────
 // Si alguno de estos aparece en el texto generado, verificar
 // DOBLEMENTE que esta en las menciones. Si no esta, eliminar.
