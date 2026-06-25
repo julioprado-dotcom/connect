@@ -76,10 +76,8 @@ export class GeneratorScheduler {
   private running = false;
   private lastExecutions: Map<TipoBoletin, LastExecution> = new Map();
   private lastSectorialSlot: string | null = null;
-  private baseUrl: string;
 
-  constructor(baseUrl?: string) {
-    this.baseUrl = baseUrl ?? 'http://localhost:3000';
+  constructor() {
   }
 
   /**
@@ -281,20 +279,10 @@ export class GeneratorScheduler {
 
     console.log('[scheduler] Generando: Reporte Sectorial Minero (lunes 10:00)');
     try {
-      const response = await fetch(`${this.baseUrl}/api/reportes/sectorial/minero/generar`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-        signal: AbortSignal.timeout(300_000), // 5 min timeout para generación completa
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-        throw new Error(`HTTP ${response.status}: ${errorData.error}`);
-      }
-
+      const { generarReporteMinero } = await import('@/lib/reporte-sectorial');
+      const reporte = await generarReporteMinero();
+      console.log(`[scheduler] Reporte Sectorial Minero completado: ${reporte.id}`);
       this.lastSectorialSlot = currentSlot;
-      console.log('[scheduler] Completado: Reporte Sectorial Minero');
     } catch (error) {
       console.error('[scheduler] Fallido: Reporte Sectorial Minero', error);
     }

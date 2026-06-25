@@ -280,6 +280,7 @@ export async function registerDefaultRunners(): Promise<void> {
     { run: runBatchLLM },
     { run: runCaptureIndicador },
     { run: runGenerarBoletin },
+    { run: runGenerarBoletinGrano },
     { run: runEnviarEntrega },
     { run: runVerificarEnlaces },
     { run: runMantenimiento },
@@ -292,6 +293,7 @@ export async function registerDefaultRunners(): Promise<void> {
     import('./runners/batch-llm'),
     import('./runners/capture-indicador'),
     import('./runners/generar-boletin'),
+    import('./runners/generar-boletin-grano'),
     import('./runners/enviar-entrega'),
     import('./runners/verificar-enlaces'),
     import('./runners/mantenimiento'),
@@ -310,6 +312,7 @@ export async function registerDefaultRunners(): Promise<void> {
 
   // Productos ONION200
   registerRunner('generar_boletin', runGenerarBoletin)
+  registerRunner('generar_boletin_grano', runGenerarBoletinGrano)
   registerRunner('enviar_entrega', runEnviarEntrega)
 
   // Verificacion y mantenimiento
@@ -319,7 +322,7 @@ export async function registerDefaultRunners(): Promise<void> {
   // Startup
   registerRunner('connectivity_test', runConnectivityTest)
 
-  console.log('[Worker] Runners registrados (11 tipos)')
+  console.log('[Worker] Runners registrados (12 tipos)')
 }
 
 function sleep(ms: number): Promise<void> {

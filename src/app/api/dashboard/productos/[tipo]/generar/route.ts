@@ -1,15 +1,18 @@
 // POST /api/dashboard/productos/[tipo]/generar — Trigger generación de producto
 //
 // Recibe: {} (el tipo viene en la URL)
-// Encola un job de tipo generar_boletin que el worker procesará 100% interno.
+// Encola el job correcto según el tipo de producto:
+//   - Productos LLM → job "generar_boletin" → runner con generateProductoInterno()
+//   - BOLETIN_DEL_GRANO → job "generar_boletin_grano" → runner HTML/PDF (sin LLM)
+//
 // Este es un TRIGGER endpoint — no genera el producto directamente.
-// La generacion es LLM inline dentro del runner, SIN fetch HTTP a endpoints.
+// Toda la generación es 100% interna via job queue, SIN fetch HTTP a endpoints.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { enqueue } from '@/lib/jobs/queue';
 import { PRODUCTOS } from '@/constants/products';
 import db from '@/lib/db';
-import type { TipoBoletin } from '@/types/bulletin';
+import type { TipoBoletin, JobTipo } from '@/types/bulletin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,6 +22,11 @@ const PRODUCT_NAMES: Record<string, string> = {};
 for (const [key, config] of Object.entries(PRODUCTOS)) {
   PRODUCT_NAMES[key] = config.nombre;
 }
+
+// Productos que NO usan LLM → su propio job type
+const PRODUCTOS_NO_LLM: Record<string, JobTipo> = {
+  BOLETIN_DEL_GRANO: 'generar_boletin_grano',
+};
 
 export async function POST(
   request: NextRequest,
@@ -58,13 +66,16 @@ export async function POST(
       // Empty body is fine
     }
 
-    // ═══ FIX 2: Dedup — verificar si ya existe un job para este producto ═══
+    // Determinar el job type correcto según el producto
+    const jobType = PRODUCTOS_NO_LLM[tipoUpper] || 'generar_boletin';
+
+    // Dedup: verificar si ya existe un job para este producto
     const existingJob = await db.job.findFirst({
       where: {
-        tipo: 'generar_boletin',
+        tipo: jobType,
         estado: { in: ['pendiente', 'en_progreso'] },
         payload: { contains: tipoUpper },
-        fechaCreacion: { gte: new Date(Date.now() - 3600 * 1000) }, // Solo jobs recientes (1h)
+        fechaCreacion: { gte: new Date(Date.now() - 3600 * 1000) },
       },
     });
 
@@ -77,19 +88,21 @@ export async function POST(
       }, { status: 409 });
     }
 
-    // Enqueue a generar_boletin job
+    // Enqueue job con el tipo correcto
+    const payload: Record<string, unknown> = {
+      tipoBoletin: tipoUpper,
+      tipoProducto: tipoUpper,
+      productoNombre,
+      triggeredBy: 'dashboard-manual',
+      ...extraPayload,
+    };
+
     const jobId = await enqueue({
-      tipo: 'generar_boletin',
-      prioridad: 3, // P3 — Media priority for manual generation
-      payload: {
-        tipoBoletin: tipoUpper,     // Normalizar — ambos campos para dedup
-        tipoProducto: tipoUpper,
-        productoNombre,
-        triggeredBy: 'dashboard-manual',
-        ...extraPayload,
-      },
+      tipo: jobType,
+      prioridad: 3,
+      payload,
       programa: 'dashboard-product-generation',
-      proximaEjecucion: new Date(), // Execute ASAP
+      proximaEjecucion: new Date(),
     });
 
     return NextResponse.json({
@@ -97,6 +110,7 @@ export async function POST(
       jobId,
       mensaje: `Generación de ${productoNombre} iniciada`,
       tipo: tipoUpper,
+      jobType,
     });
   } catch (error) {
     console.error('[API /dashboard/productos/[tipo]/generar]', error);

@@ -12,6 +12,7 @@ export type JobTipo =
   | 'batch_llm'             // Procesa NotaRaw pendientes → menciones con LLM
   | 'capture_indicador'
   | 'generar_boletin'
+  | 'generar_boletin_grano'
   | 'enviar_entrega'
   | 'verificar_enlaces'
   | 'mantenimiento'
