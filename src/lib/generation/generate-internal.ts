@@ -71,21 +71,35 @@ export async function generateProductoInterno(params: GenerateInternalParams): P
 
   // 2. Obtener menciones (con opciones específicas por producto)
   // VOZ_Y_VOTO: filtrar por ejes legislativos/institucionales automáticamente
-  const EJES_VOZ_Y_VOTO = [
-    'gestion-publica-institucional',  // ALP, diputados, senadores, leyes, proyectos de ley, concejos, alcaldes, gobernadores
-    'organizacion-politica-electoral', // TSE, procesos electorales subnacionales, autonomías
-    'participacion-accion-colectiva',  // Repercusiones sociales de leyes/proyectos (bloqueos, marchas)
-    'educacion-cultura-identidad',     // Autonomía universitaria, leyes educativas
-    'justicia-derechos-humanos-impunidad', // Leyes de justicia, reformas al sistema judicial
-  ]
+  // Nota: getMencionesForBulletin filtra por ejeTematicoId (UUID), no por slug.
+  // Resolvemos slugs → IDs primero.
+  let ejesParaFiltrar: string[] | undefined = ejeSlug ? [ejeSlug] : ejesTematicos
+
+  if (tipoBoletin === 'VOZ_Y_VOTO') {
+    const EJES_VOZ_Y_VOTO_SLUGS = [
+      'gestion-publica-institucional',  // ALP, diputados, senadores, leyes, proyectos de ley, concejos, alcaldes, gobernadores
+      'organizacion-politica-electoral', // TSE, procesos electorales subnacionales, autonomías
+      'participacion-accion-colectiva',  // Repercusiones sociales de leyes/proyectos (bloqueos, marchas)
+      'educacion-cultura-identidad',     // Autonomía universitaria, leyes educativas
+      'justicia-derechos-humanos-impunidad', // Leyes de justicia, reformas al sistema judicial
+    ]
+    try {
+      const ejesDB = await db.ejeTematico.findMany({
+        where: { slug: { in: EJES_VOZ_Y_VOTO_SLUGS }, activo: true },
+        select: { id: true, slug: true },
+      })
+      ejesParaFiltrar = ejesDB.map(e => e.id)
+      console.log(`[generate-internal] VOZ_Y_VOTO: ${ejesDB.length} ejes resueltos de ${EJES_VOZ_Y_VOTO_SLUGS.length} slugs`)
+    } catch (err) {
+      console.warn(`[generate-internal] VOZ_Y_VOTO: no se pudieron resolver ejes, sin filtro:`, err)
+    }
+  }
 
   const { menciones, fechaInicio, fechaFin, totalMenciones } = await getMencionesForBulletin(
     tipoBoletin,
     {
       personaId,
-      ejesTematicos: tipoBoletin === 'VOZ_Y_VOTO'
-        ? EJES_VOZ_Y_VOTO
-        : (ejeSlug ? [ejeSlug] : ejesTematicos),
+      ejesTematicos: ejesParaFiltrar,
     },
   )
 
