@@ -467,7 +467,7 @@ async function buildPromptForProduct(params: BuildPromptParams): Promise<{
       break
     }
 
-    // ═══ VOZ_Y_VOTO: preprocesamiento epistemológico + clasificación por sub-nivel ═══
+    // ═══ VOZ_Y_VOTO: preprocesamiento epistemológico + clasificación por sub-nivel + actores ═══
     case 'VOZ_Y_VOTO': {
       // 1. Preprocesar con perfil epistemológico de VOZ_Y_VOTO
       const preproceso = preprocesarMencionesParaProducto('VOZ_Y_VOTO', menciones)
@@ -480,7 +480,7 @@ async function buildPromptForProduct(params: BuildPromptParams): Promise<{
         maxTextoLength: 200,
       })
 
-      // 3. Construir datosExtra con clasificación por sub-nivel institucional
+      // 3. Clasificación por sub-nivel institucional
       const mediosUnicos = new Set(mencionesFinales.map((m: any) => m.medio as string)).size
       const clasif = preproceso.clasificacion
       const nivelesSummary = clasif
@@ -490,12 +490,38 @@ async function buildPromptForProduct(params: BuildPromptParams): Promise<{
             .join('; ')
         : 'Sin clasificación'
 
+      // 4. Mapear actores legislativos/institucionales mencionados
+      // Agrupa por persona con su partido, cargo y cantidad de menciones
+      const actoresMap = new Map<string, { nombre: string; partido: string; camara: string; count: number }>()
+      for (const m of mencionesFinales) {
+        const nombre = (m.persona as string) ?? ''
+        if (!nombre) continue
+        const key = nombre.toLowerCase()
+        if (!actoresMap.has(key)) {
+          actoresMap.set(key, {
+            nombre,
+            partido: (m.partidoSigla as string) ?? 'sin partido',
+            camara: (m.camara as string) ?? '',
+            count: 0,
+          })
+        }
+        actoresMap.get(key)!.count++
+      }
+      const actoresTop = [...actoresMap.values()]
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 15)
+        .map(a => a.partido && a.partido !== 'sin partido'
+          ? `${a.nombre} (${a.partido}${a.camara ? `, ${a.camara}` : ''}): ${a.count} menciones`
+          : `${a.nombre}${a.camara ? ` (${a.camara})` : ''}: ${a.count} menciones`)
+        .join('\n    ')
+
       datosExtra = [
         `Tipo de producto: Voz y Voto`,
         `Periodo: ${ventanaLabel}`,
         `Menciones preprocesadas: ${preproceso.stats.despues} de ${preproceso.stats.antes} (filtrado epistemológico)`,
         `Medios que reportaron: ${mediosUnicos}`,
         `Clasificación por nivel institucional: ${nivelesSummary}`,
+        `Actores legislativos/institucionales más mencionados:\n    ${actoresTop || 'Sin actores identificados'}`,
         `Regla: si una mención no pertenece a ningun nivel legislativo/institucional, no la uses`,
       ].join('\n')
       break
