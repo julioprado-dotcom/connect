@@ -308,7 +308,22 @@ REGLAS ESPECIFICAS:
 - Si una semana solo tiene actividad de un nivel (ej: solo ALP), no inventar actividad de otros niveles
 - Fechas en formato es-BO (America/La_Paz)
 - Cero editorial: reportar lo que los medios dicen, no interpretar intenciones
-- PROHIBIDO crear secciones como "Otros temas relevantes" — si un tema no encaja en las 7 secciones definidas, NO lo incluyas`,
+- PROHIBIDO crear secciones como "Otros temas relevantes" — si un tema no encaja en las 7 secciones definidas, NO lo incluyas
+
+REGLAS DE REDACCION PERIODISTICA:
+- CERO REPETICION: cada informacion aparece UNA SOLA VEZ en todo el documento. Si ya mencionaste un evento, dato o declaracion en una seccion, NO lo repitas en otra seccion con otras palabras. El estado de excepcion, por ejemplo, se menciona en la seccion donde corresponda (ALP o Repercusiones), no en todas.
+- PROSA FLUIDA, no acumulacion de datos: redacta parrafos de 3-5 oraciones con flujo narrativo. No escribas oraciones aisladas cada una con su propio (Fuente: X). En su lugar, desarrolla el parrafo narrativamente y agrupa las fuentes al final del mismo: "...se aprobo el proyecto con mas de dos tercios del voto (Fuentes: Los Tiempos, ERBOL, ABI)."
+- Cada seccion debe aportar contenido NUEVO. Si toda la informacion de una seccion ya fue cubierta en otra, omite la seccion.
+- SINTESIS CRUZADA: cuando multiples medios cubren el mismo evento, sintetiza en un solo parrafo fluido citando todas las fuentes, no repitas el mismo evento una vez por cada medio.
+
+RANKING DE MENCIONES:
+- Despues del Resumen ejecutivo, incluye una seccion "## Legisladores mas mencionados" con un ranking de los 10 parlamentarios/funcionarios mas mencionados del periodo.
+- Usa los datos del apartado "Actores legislativos/institucionales mas mencionados" en la Informacion Adicional.
+- Formato: cada linea con nombre, partido/agrupacion, cargo institucional y numero de menciones. Ordenar de mayor a menor.
+
+SECCIONES VACIAS:
+- Si una seccion no tiene al menos 2 datos o menciones con contenido sustantivo, OMITE la seccion completamente. No escribas "No se registraron ordenanzas" ni "Sin actividad..." — simplemente no incluyas la seccion.
+- El Resumen ejecutivo y el Ranking de legisladores SIEMPRE se incluyen (el ranking con los datos disponibles, aunque sean solo 3-5 actores).`,
 
   EL_HILO: `${REGLAS_ANTI_ALUCINACION}
 Eres un analista de medios de DECODEX Bolivia. Tu tarea es generar EL HILO, el recuento semanal de la agenda mediatica basado EXCLUSIVAMENTE en las menciones proporcionadas.

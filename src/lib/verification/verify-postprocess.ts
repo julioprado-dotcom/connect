@@ -9,24 +9,55 @@
 
 /**
  * Elimina placeholders N/A y caracteres no latinos del texto generado.
+ * Se ejecuta como PASO FINAL despues de toda verificacion LLM,
+ * porque los pases LLM (verifyFactualWithLLM) pueden re-introducir "N/A"
+ * al corregir nombres que no encuentra en las menciones.
  */
 export function limpiarPlaceholders(texto: string): string {
   let limpio = texto
 
-  // 1. Eliminar "N/A" en TODOS sus contextos posibles
-  // Cubre: "N/A,", "N/A y", "N/A también", "N/A quien", "N/A en",
-  // "(N/A)", "\"N/A\"", "N/A al", "N/A para", "N/A del", etc.
-  // Estrategia: eliminar N/A + su coma/espacio siguiente, luego limpiar artefactos
+  // ── 1. Eliminar "N/A" en TODOS sus contextos posibles ──
+  // Patrones cubiertos (en orden de especificidad):
+  //   "N/A, líder de la..." / "N/A, ejecutivo de la..."
+  //   "el concejal N/A, presidente del..."
+  //   "(N/A)", "N/A y", "N/A al", "N/A del", "N/A también"
+
+  // 1a. N/A entre paréntesis o comillas
   limpio = limpio.replace(/\(\s*N\/A\s*\)/gi, '')
   limpio = limpio.replace(/"\s*N\/A\s*"/gi, '')
-  // "N/A" seguido de cualquier puntuacion o espacio
-  limpio = limpio.replace(/\bN\/A\s*[,.:;]?\s*/gi, ' ')
-  // "N/A" al final de linea
-  limpio = limpio.replace(/\s+N\/A\s*$/gim, '')
-  // "N/A" precedido por coma, espacio, o palabra
-  limpio = limpio.replace(/[,\s]+\bN\/A\b\s*/gi, ' ')
+  limpio = limpio.replace(/'\s*N\/A\s*'/gi, '')
 
-  // 2. Eliminar caracteres fuera del rango latino + puntuacion comun
+  // 1b. "N/A, descripción" al inicio de frase (tras salto de línea)
+  // "N/A, líder de la Confederación..." → "líder de la Confederación..."
+  limpio = limpio.replace(/^N\/A,?\s*/gim, '')
+
+  // 1c. "N/A" después de coma en lista (el caso más común en actores)
+  // "el concejal N/A, presidente del..." → "el concejal presidente del..."
+  limpio = limpio.replace(/,\s*N\/A\b/gi, '')
+  // "N/A, nombre" → eliminar N/A y su coma
+  limpio = limpio.replace(/\bN\/A,?\s+/gi, ' ')
+
+  // 1d. "N/A" seguido de preposición o conjunción
+  limpio = limpio.replace(/\bN\/A\s+(?:y|o|al|del|de|la|el|en|para|con|por|que|tambien|quien|quienes)\b/gi, '')
+
+  // 1e. N/A con cualquier puntuación
+  limpio = limpio.replace(/\bN\/A\s*[,.:;]?\s*/gi, ' ')
+
+  // 1f. N/A al final de línea
+  limpio = limpio.replace(/\s+N\/A\s*$/gim, '')
+
+  // 1g. N/A precedido por espacio, coma o artículo (catch-all)
+  limpio = limpio.replace(/[\s,]+\bN\/A\b\s*/gi, ' ')
+
+  // ── 2. Limpiar artefactos gramaticales dejados al eliminar N/A ──
+  // "el  líder" (doble espacio tras artículo) → "el líder"
+  limpio = limpio.replace(/\b(el|la|los|las|un|una)\s{2,}/gi, '$1 ')
+  // Comas duplicadas
+  limpio = limpio.replace(/\s*,\s*,\s*/g, ', ')
+  // Espacios dobles
+  limpio = limpio.replace(/  +/g, ' ')
+
+  // ── 3. Eliminar caracteres fuera del rango latino + puntuacion comun ──
   // Rangos preservados:
   //   \x00-\x7F = ASCII (letras, numeros, puntuacion)
   //   \u00C0-\u024F = Latin Extended (tildes, enes, umlauts)
@@ -38,7 +69,7 @@ export function limpiarPlaceholders(texto: string): string {
     return ''
   })
 
-  // 3. Limpiar artefactos que quedan tras las eliminaciones
+  // ── 4. Limpieza final de espacios y puntuacion ──
   limpio = limpio.replace(/  +/g, ' ')
   limpio = limpio.replace(/\s+,/g, ',')
   limpio = limpio.replace(/\s+\./g, '.')

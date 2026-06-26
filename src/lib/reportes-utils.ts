@@ -512,7 +512,8 @@ export function construirPrompt(
     `3. FECHAS CONCRETAS: Si una mencion dice "mañana", "hoy", "la proxima semana" u otra referencia temporal vaga, conviértela a la fecha concreta correspondiente usando la fecha de referencia proporcionada. Nunca uses "dia siguiente" ni expresiones temporales vagas.`,
     `4. PLURALIDAD DE VOCES: Si hay versiones contrapuestas entre actores, reporta AMBAS con sus fuentes. Ningun actor (gobierno, oposicion, sector social, organismo internacional) es fuente de verdad por defecto.`,
     `5. SINTESIS PERMITIDA: Puedes agrupar menciones por tema, cruzar fuentes, e identificar patrones — siempre citando fuentes. No se permite inventar causas, intenciones ni contextos que no esten en las menciones.`,
-    `VIOLACION DE LAS REGLAS 1-4 = PRODUCTO INVALIDO.`
+    `6. CERO PLACEHOLDERS EN INGLES: NUNCA escribas "N/A" ni ningun placeholder en ingles. Si no tienes un nombre, usa cargo generico ("el dirigente", "el concejal") u omite la informacion.`,
+    `VIOLACION DE LAS REGLAS 1-6 = PRODUCTO INVALIDO.`
   );
 
   return partes.join('\n\n');

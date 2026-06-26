@@ -16,7 +16,7 @@ import { getProductConfig, getMencionesForBulletin, getDateRange, getContextMenc
 import { PRODUCTOS, INDICADOR_PROTOCOL } from '@/constants/products'
 import type { TipoBoletin } from '@/types/bulletin'
 import { getIndicadoresConStats, formatearIndicadoresConStatsPrompt, getIndicadoresParaEjes, formatearIndicadoresPrompt } from '@/lib/indicadores/injector'
-import { formatearMencionesPrompt, formatearContextoHistorico, construirPrompt, generarTituloProducto, getDedicatedResumen, registrarReporte, getSemanaAnho, calcularTemperaturaDinamica, preprocesarMencionesParaProducto } from '@/lib/reportes-utils'
+import { formatearMencionesPrompt, formatearContextoHistorico, construirPrompt, generarTituloProducto, getDedicatedResumen, registrarReporte, getSemanaAnho, calcularTemperaturaDinamica, preprocesarMencionesParaProducto, clasificarNivelInstitucional } from '@/lib/reportes-utils'
 import { regenerateWithRetry } from '@/lib/quality/regeneration'
 import { validateContent } from '@/lib/quality/validator'
 import { verifyProduct } from '@/lib/verification/verify-product'
@@ -175,13 +175,7 @@ export async function generateProductoInterno(params: GenerateInternalParams): P
     // Si verificación falla, usar texto original
   }
 
-  // 7. Post-procesamiento: N/A, caracteres extranjeros, secciones con 1 fuente
-  textoFinal = limpiarPlaceholders(textoFinal)
-  if (tipoBoletin === 'EL_RADAR') {
-    textoFinal = filtrarSeccionesFuenteUnica(textoFinal, 2)
-  }
-
-  // 8. Verificación factual con segundo pase LLM
+  // 7. Verificación factual con segundo pase LLM
   try {
     const { verifyFactualWithLLM } = await import('@/lib/verification/verify-factual')
     const factualResult = await verifyFactualWithLLM(
@@ -200,6 +194,14 @@ export async function generateProductoInterno(params: GenerateInternalParams): P
     }
   } catch {
     // No bloquear
+  }
+
+  // 8. Post-procesamiento FINAL: N/A, caracteres extranjeros, secciones con 1 fuente
+  // NOTA: Se ejecuta DESPUÉS de verifyFactualWithLLM porque ese paso
+  // puede re-introducir "N/A" al corregir nombres no encontrados.
+  textoFinal = limpiarPlaceholders(textoFinal)
+  if (tipoBoletin === 'EL_RADAR') {
+    textoFinal = filtrarSeccionesFuenteUnica(textoFinal, 2)
   }
 
   // 9. Validación de calidad
@@ -491,28 +493,46 @@ async function buildPromptForProduct(params: BuildPromptParams): Promise<{
         : 'Sin clasificación'
 
       // 4. Mapear actores legislativos/institucionales mencionados
-      // Agrupa por persona con su partido, cargo y cantidad de menciones
-      const actoresMap = new Map<string, { nombre: string; partido: string; camara: string; count: number }>()
+      // Agrupa por persona con su partido, cargo, nivel institucional y menciones
+      const actoresMap = new Map<string, { nombre: string; partido: string; camara: string; cargoDirectiva: string; nivel: string; count: number }>()
       for (const m of mencionesFinales) {
         const nombre = (m.persona as string) ?? ''
         if (!nombre) continue
         const key = nombre.toLowerCase()
         if (!actoresMap.has(key)) {
+          const nivelInfo = clasificarNivelInstitucional(m)
           actoresMap.set(key, {
             nombre,
             partido: (m.partidoSigla as string) ?? 'sin partido',
             camara: (m.camara as string) ?? '',
+            cargoDirectiva: (m.cargoDirectiva as string) ?? '',
+            nivel: nivelInfo.nivel,
             count: 0,
           })
         }
         actoresMap.get(key)!.count++
       }
+
+      // Agrupar por nivel institucional y ordenar por menciones
+      const actoresByNivel = new Map<string, typeof actoresMap extends Map<string, infer V> ? V[] : never>()
+      for (const actor of actoresMap.values()) {
+        const nivel = actor.nivel + (actor.cargoDirectiva ? '' : '')
+        if (!actoresByNivel.has(nivel)) actoresByNivel.set(nivel, [])
+        actoresByNivel.get(nivel)!.push(actor)
+      }
+
+      // Formatear ranking: nombre, partido, cargo, menciones
       const actoresTop = [...actoresMap.values()]
         .sort((a, b) => b.count - a.count)
         .slice(0, 15)
-        .map(a => a.partido && a.partido !== 'sin partido'
-          ? `${a.nombre} (${a.partido}${a.camara ? `, ${a.camara}` : ''}): ${a.count} menciones`
-          : `${a.nombre}${a.camara ? ` (${a.camara})` : ''}: ${a.count} menciones`)
+        .map(a => {
+          // Prioridad de cargo: cargoDirectiva > camara > inferir de nivel
+          let cargo = a.cargoDirectiva || a.camara || a.nivel
+          const partes = [a.nombre]
+          if (a.partido && a.partido !== 'sin partido') partes.push(`[${a.partido}]`)
+          partes.push(`— ${cargo} (${a.count} menciones)`)
+          return partes.join(' ')
+        })
         .join('\n    ')
 
       datosExtra = [
