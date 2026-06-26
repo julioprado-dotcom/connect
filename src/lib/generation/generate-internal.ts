@@ -77,11 +77,12 @@ export async function generateProductoInterno(params: GenerateInternalParams): P
 
   if (tipoBoletin === 'VOZ_Y_VOTO') {
     const EJES_VOZ_Y_VOTO_SLUGS = [
-      'gestion-publica-institucional',  // ALP, diputados, senadores, leyes, proyectos de ley, concejos, alcaldes, gobernadores
-      'organizacion-politica-electoral', // TSE, procesos electorales subnacionales, autonomías
-      'participacion-accion-colectiva',  // Repercusiones sociales de leyes/proyectos (bloqueos, marchas)
-      'educacion-cultura-identidad',     // Autonomía universitaria, leyes educativas
-      'justicia-derechos-humanos-impunidad', // Leyes de justicia, reformas al sistema judicial
+      'gobierno-legislativo',           // Actividad Legislativa (ALP: diputados, senadores, comisiones, proyectos de ley)
+      'gobierno-poder-instituciones',   // Gobierno, Poder e Instituciones (gobernadores, alcaldes, concejos)
+      'gobierno-control-fiscalizacion', // Control y Fiscalización (Contraloría, auditoría)
+      'procesos-normativa-electoral',   // Normativa Electoral (leyes electorales, autonomías)
+      'justicia-sistema-judicial',      // Sistema Judicial (reformas judiciales, leyes de justicia)
+      'organizaciones-sociales-gremiales', // Repercusiones sociales de leyes/proyectos
     ]
     try {
       const ejesDB = await db.ejeTematico.findMany({
