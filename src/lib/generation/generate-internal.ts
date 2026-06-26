@@ -463,8 +463,8 @@ async function buildPromptForProduct(params: BuildPromptParams): Promise<{
 
     // ═══ VOZ_Y_VOTO: legislativo + municipal + autonomias, filtro por ejes ═══
     case 'VOZ_Y_VOTO': {
-      // Las menciones ya vienen filtradas por ejes (se inyectan desde getMencionesForBulletin
-      // cuando el case VOZ_Y_VOTO pasa ejesTematicos). Aquí solo construimos datosExtra.
+      // Las menciones ya vienen filtradas por ejes. Formatear con máximo amplio.
+      mencionesPrompt = formatearMencionesPrompt(menciones, tipoBoletin)
       const mediosUnicos = new Set(menciones.map((m: any) => m.medio as string)).size
       datosExtra = [
         `Tipo de producto: Voz y Voto`,
