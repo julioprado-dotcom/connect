@@ -908,3 +908,229 @@ export function generarTituloProducto(
 
   return titulos[tipo];
 }
+
+// ============================================
+// Preprocesamiento Epistemológico por Producto
+// ============================================
+
+/**
+ * Perfil epistemológico que define qué tipo de menciones son relevantes
+ * para cada producto. Se usa para filtrar ANTES de formatear el prompt.
+ *
+ * Cada filtro se aplica sobre campos que ya existen en la mención
+ * (clasificador-v2, extractor-menciones, peso-calculator).
+ */
+interface FiltroEpistemologico {
+  /** Tratamiento periodístico mínimo para incluir. Si la mención tiene un tratamiento menor, se excluye. */
+  tratamientoMinimo?: number;  // score de tratamiento (mencion=2, nota=4, reportaje=7, investigacion=10)
+  /** Peso mínimo del eje estructural más fuerte (NotaEje.peso). Por defecto 0. */
+  pesoEjeMinimo?: number;      // 0.0-1.0
+  /** Lentes que activan la mención como relevante (slugs). Vacío = cualquier lente. */
+  lentesRequeridos?: string[];
+  /** Lentes que excluyen la mención (slugs). */
+  lentesExcluidos?: string[];
+  /** Confianza mínima de clasificación. 'baja' | 'media' | 'alta'. Por defecto 'baja'. */
+  confianzaMinima?: 'baja' | 'media' | 'alta';
+  /** Tratamientos periodísticos específicos a excluir (substrings). */
+  tratamientosExcluidos?: string[];
+}
+
+/**
+ * Perfiles por producto. Solo se definen los que necesitan filtrado
+ * epistemológico más fino que el scoring genérico.
+ * Los productos sin perfil usan el flujo estándar (scoring epistemológico genérico).
+ */
+const PERFILES_EPISTEMOLOGICOS: Partial<Record<TipoBoletin, FiltroEpistemologico>> = {
+  VOZ_Y_VOTO: {
+    // Excluir menciones pasivas (solo "mención" o "referencia" de alguien que dijo algo)
+    // Priorizar notas informativas, reportajes, entrevistas, investigaciones
+    tratamientoMinimo: 4,  // nota informativa o superior
+    // Peso mínimo del eje estructural — excluir ruido de menciones tangenciales
+    pesoEjeMinimo: 0.5,
+    // Excluir lentes de entretenimiento, deportes, cultura que puedan colarse
+    lentesExcluidos: ['entretenimiento', 'deportes', 'cultura', 'espectaculos'],
+    confianzaMinima: 'media',
+    // Excluir menciones que son solo referencias de paso
+    tratamientosExcluidos: ['mencion', 'referencia'],
+  },
+  EL_RADAR: {
+    // El Radar es el producto más amplio, pero excluye el ruido más fino
+    pesoEjeMinimo: 0.3,
+    tratamientosExcluidos: ['referencia'],
+  },
+  EL_TERMOMETRO: {
+    // Producto diario: alta confianza, excluir referencias pasivas
+    confianzaMinima: 'media',
+    tratamientosExcluidos: ['referencia'],
+  },
+};
+
+/** Mapping de confianza a score numérico para comparación */
+const CONFIANZA_SCORE: Record<string, number> = { alta: 3, media: 2, baja: 1 };
+
+/**
+ * Clasifica una mención de VOZ_Y_VOTO en un sub-nivel institucional
+ * basándose en los slugs de los ejes temáticos asignados.
+ * Retorna el nivel y un flag de si es repercusión social.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function clasificarNivelInstitucional(m: any): { nivel: string; esRepercusion: boolean } {
+  const slugs: string[] = m.temasSlugs ?? [];
+  const texto = `${(m.titulo as string) ?? ''} ${(m.texto as string) ?? ''}`.toLowerCase();
+
+  // Mapeo slug → nivel institucional
+  const MAPA_NIVEL: Record<string, string> = {
+    'gobierno-legislativo': 'ALP',
+    'procesos-normativa-electoral': 'ALP',
+    // Gobiernos departamentales
+    'gobierno-poder-instituciones': 'Gobierno Departamental',
+    'gobierno-control-fiscalizacion': 'Gobierno Departamental',
+    // Municipal
+    // (no hay slug específico municipal, se detecta por keywords)
+    // Autonomías indígenas
+    // (no hay slug específico, se detecta por keywords)
+  };
+
+  // Detectar nivel por keywords si no hay slug directo
+  const KW_MUNICIPAL = ['concejo municipal', 'concejales', 'ordenanza municipal', 'alcalde', 'alcaldesa', 'gobierno municipal', 'concejo'];
+  const KW_INDIGENA = ['autonomia indigena', 'pueblo indigena', 'nacion originaria', 'tierras comunitarias', 'tco', 'consejo de naciones'];
+  const KW_DEPARTAMENTAL = ['asamblea departamental', 'gobierno departamental', 'gobernador', 'gobernadora', 'prefectura'];
+
+  let nivel = 'Otro nivel institucional';
+  let esRepercusion = false;
+
+  // Primero verificar por slug
+  for (const slug of slugs) {
+    if (MAPA_NIVEL[slug]) {
+      nivel = MAPA_NIVEL[slug];
+      break;
+    }
+  }
+
+  // Refinar por keywords si es "Otro nivel"
+  if (nivel === 'Otro nivel') {
+    if (KW_MUNICIPAL.some(kw => texto.includes(kw))) nivel = 'Concejo Municipal';
+    else if (KW_INDIGENA.some(kw => texto.includes(kw))) nivel = 'Autonomía Indígena';
+    else if (KW_DEPARTAMENTAL.some(kw => texto.includes(kw))) nivel = 'Gobierno Departamental';
+  }
+
+  // Detectar si es repercusión (menciona impacto social de una ley/proyecto)
+  const KW_REPERCUSION = ['rechazo', 'apoyo', 'bloqueo', 'protesta', 'demand', 'observacion', 'promulgacion', 'vet', 'objecion', 'consecuencia', 'afecta', 'beneficia', 'perjudica', 'sectores afectados', 'implica', ' repercut'];
+  if (KW_REPERCUSION.some(kw => texto.includes(kw)) || slugs.includes('organizaciones-sociales-gremiales')) {
+    // Solo es repercusion si NO es actividad legislativa directa
+    const esActividadDirecta = ['proyecto de ley', 'ley aprobada', 'sesion de', 'comision de', 'pleno de la asamblea', 'diputado', 'senador', 'votacion'].some(kw => texto.includes(kw));
+    if (!esActividadDirecta) {
+      esRepercusion = true;
+    }
+  }
+
+  return { nivel, esRepercusion };
+}
+
+/**
+ * Preprocesa menciones según el perfil epistemológico del producto.
+ * Filtra, reordena y opcionalmente clasifica por sub-categorías.
+ *
+ * Retorna las menciones procesadas + metadatos de la clasificación.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function preprocesarMencionesParaProducto(
+  tipo: TipoBoletin,
+  menciones: any[],
+): { menciones: any[]; clasificacion?: Record<string, any[]>; stats: { antes: number; despues: number; motivosExclusion: Record<string, number> } } {
+  const perfil = PERFILES_EPISTEMOLOGICOS[tipo];
+
+  // Sin perfil = devolver tal cual
+  if (!perfil) {
+    return { menciones, stats: { antes: menciones.length, despues: menciones.length, motivosExclusion: {} } };
+  }
+
+  const motivosExclusion: Record<string, number> = {};
+
+  const confianzaMinScore = CONFIANZA_SCORE[perfil.confianzaMinima ?? 'baja'] ?? 1;
+  const lentesReq = new Set(perfil.lentesRequeridos ?? []);
+  const lentesExc = new Set(perfil.lentesExcluidos ?? []);
+  const tratExc = new Set(perfil.tratamientosExcluidos ?? []);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const filtradas = menciones.filter((m: any) => {
+    // 1. Peso del eje estructural
+    const pesoEje = m.pesoEjeMax ?? 0;
+    if (perfil.pesoEjeMinimo && pesoEje > 0 && pesoEje < perfil.pesoEjeMinimo) {
+      motivosExclusion['peso_eje_bajo'] = (motivosExclusion['peso_eje_bajo'] ?? 0) + 1;
+      return false;
+    }
+
+    // 2. Confianza de clasificación
+    const confScore = CONFIANZA_SCORE[(m.confianzaClasificacion ?? '').toLowerCase()] ?? 1;
+    if (confScore < confianzaMinScore) {
+      motivosExclusion['confianza_baja'] = (motivosExclusion['confianza_baja'] ?? 0) + 1;
+      return false;
+    }
+
+    // 3. Lentes excluidos
+    if (lentesExc.size > 0 && m.lenteSlugs) {
+      const mlentes = Array.isArray(m.lenteSlugs) ? m.lenteSlugs : [];
+      if (mlentes.some((l: string) => lentesExc.has(l))) {
+        motivosExclusion['lente_excluido'] = (motivosExclusion['lente_excluido'] ?? 0) + 1;
+        return false;
+      }
+    }
+
+    // 4. Tratamiento periodístico excluido
+    const tp = (m.tratamientoPeriodistico ?? '').toLowerCase();
+    if (tratExc.size > 0 && tratExc.has(tp)) {
+      motivosExclusion['tratamiento_excluido'] = (motivosExclusion['tratamiento_excluido'] ?? 0) + 1;
+      return false;
+    }
+
+    // 5. Score mínimo de tratamiento (usa el mismo scoring que puntuarRelevanciaEpistemologica)
+    if (perfil.tratamientoMinimo) {
+      let tpScore = 5; // default
+      if (tp.includes('investigacion')) tpScore = 10;
+      else if (tp.includes('editorial') || tp.includes('analisis')) tpScore = 9;
+      else if (tp.includes('reportaje') || tp.includes('entrevista') || tp.includes('cronica')) tpScore = 7;
+      else if (tp.includes('nota') || tp.includes('informacion')) tpScore = 4;
+      else if (tp.includes('mencion') || tp.includes('referencia')) tpScore = 2;
+
+      if (tpScore < perfil.tratamientoMinimo) {
+        motivosExclusion['tratamiento_minimo'] = (motivosExclusion['tratamiento_minimo'] ?? 0) + 1;
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  // Reordenar por scoring epistemológico (reutiliza la misma función)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const scored = filtradas.map((m: any) => ({
+    m,
+    score: puntuarRelevanciaEpistemologica(m),
+  }));
+  scored.sort((a, b) => b.score - a.score);
+
+  const procesadas = scored.map(s => s.m);
+
+  // Para VOZ_Y_VOTO: clasificar por sub-nivel institucional
+  let clasificacion: Record<string, any[]> | undefined;
+  if (tipo === 'VOZ_Y_VOTO') {
+    clasificacion = {};
+    for (const m of procesadas) {
+      const { nivel, esRepercusion } = clasificarNivelInstitucional(m);
+      const key = esRepercusion ? `${nivel} (Repercusión)` : nivel;
+      if (!clasificacion[key]) clasificacion[key] = [];
+      clasificacion[key].push(m);
+    }
+  }
+
+  return {
+    menciones: procesadas,
+    clasificacion,
+    stats: {
+      antes: menciones.length,
+      despues: procesadas.length,
+      motivosExclusion,
+    },
+  };
+}

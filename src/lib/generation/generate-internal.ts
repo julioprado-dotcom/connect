@@ -16,7 +16,7 @@ import { getProductConfig, getMencionesForBulletin, getDateRange, getContextMenc
 import { PRODUCTOS, INDICADOR_PROTOCOL } from '@/constants/products'
 import type { TipoBoletin } from '@/types/bulletin'
 import { getIndicadoresConStats, formatearIndicadoresConStatsPrompt, getIndicadoresParaEjes, formatearIndicadoresPrompt } from '@/lib/indicadores/injector'
-import { formatearMencionesPrompt, formatearContextoHistorico, construirPrompt, generarTituloProducto, getDedicatedResumen, registrarReporte, getSemanaAnho, calcularTemperaturaDinamica } from '@/lib/reportes-utils'
+import { formatearMencionesPrompt, formatearContextoHistorico, construirPrompt, generarTituloProducto, getDedicatedResumen, registrarReporte, getSemanaAnho, calcularTemperaturaDinamica, preprocesarMencionesParaProducto } from '@/lib/reportes-utils'
 import { regenerateWithRetry } from '@/lib/quality/regeneration'
 import { validateContent } from '@/lib/quality/validator'
 import { verifyProduct } from '@/lib/verification/verify-product'
@@ -327,7 +327,13 @@ async function buildPromptForProduct(params: BuildPromptParams): Promise<{
   switch (tipoBoletin) {
     // ═══ EL_RADAR: top 50, contexto histórico, distribución de ejes, semana ═══
     case 'EL_RADAR': {
-      mencionesPrompt = formatearMencionesPrompt(menciones, tipoBoletin, {
+      // Preprocesar con perfil epistemológico del Radar
+      const preprocesoRadar = preprocesarMencionesParaProducto('EL_RADAR', menciones)
+      if (preprocesoRadar.stats.antes !== preprocesoRadar.stats.despues) {
+        console.log(`[generate-internal] EL_RADAR preproceso: ${preprocesoRadar.stats.antes} → ${preprocesoRadar.stats.despues}`)
+      }
+
+      mencionesPrompt = formatearMencionesPrompt(preprocesoRadar.menciones, tipoBoletin, {
         maxMenciones: 50,
         maxTextoLength: 150,
       })
@@ -461,17 +467,35 @@ async function buildPromptForProduct(params: BuildPromptParams): Promise<{
       break
     }
 
-    // ═══ VOZ_Y_VOTO: legislativo + municipal + autonomias, filtro por ejes ═══
+    // ═══ VOZ_Y_VOTO: preprocesamiento epistemológico + clasificación por sub-nivel ═══
     case 'VOZ_Y_VOTO': {
-      // Las menciones ya vienen filtradas por ejes. Formatear con máximo amplio.
-      mencionesPrompt = formatearMencionesPrompt(menciones, tipoBoletin)
-      const mediosUnicos = new Set(menciones.map((m: any) => m.medio as string)).size
+      // 1. Preprocesar con perfil epistemológico de VOZ_Y_VOTO
+      const preproceso = preprocesarMencionesParaProducto('VOZ_Y_VOTO', menciones)
+      console.log(`[generate-internal] VOZ_Y_VOTO preproceso: ${preproceso.stats.antes} → ${preproceso.stats.despues} menciones, exclusiones:`, JSON.stringify(preproceso.stats.motivosExclusion))
+
+      // 2. Formatear menciones preprocesadas, con texto más corto para caber más
+      const mencionesFinales = preproceso.menciones
+      mencionesPrompt = formatearMencionesPrompt(mencionesFinales, tipoBoletin, {
+        maxMenciones: 80,
+        maxTextoLength: 200,
+      })
+
+      // 3. Construir datosExtra con clasificación por sub-nivel institucional
+      const mediosUnicos = new Set(mencionesFinales.map((m: any) => m.medio as string)).size
+      const clasif = preproceso.clasificacion
+      const nivelesSummary = clasif
+        ? Object.entries(clasif)
+            .sort((a, b) => b[1].length - a[1].length)
+            .map(([nivel, items]) => `${nivel}: ${items.length} menciones`)
+            .join('; ')
+        : 'Sin clasificación'
+
       datosExtra = [
         `Tipo de producto: Voz y Voto`,
         `Periodo: ${ventanaLabel}`,
-        `Total menciones (filtradas por ejes legislativos/institucionales): ${totalMenciones}`,
+        `Menciones preprocesadas: ${preproceso.stats.despues} de ${preproceso.stats.antes} (filtrado epistemológico)`,
         `Medios que reportaron: ${mediosUnicos}`,
-        `Niveles cubiertos: Asamblea Legislativa Plurinacional, gobiernos departamentales, concejos municipales, autonomias indigenas`,
+        `Clasificación por nivel institucional: ${nivelesSummary}`,
         `Regla: si una mención no pertenece a ningun nivel legislativo/institucional, no la uses`,
       ].join('\n')
       break

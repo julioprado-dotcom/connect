@@ -85,6 +85,12 @@ export async function getMencionesForBulletin(
         orderBy: { peso: 'desc' },
         take: 1,
       },
+      // MencionLente: lentes transversales activos (para preprocesamiento epistemológico)
+      MencionLente: {
+        select: {
+          Lente: { select: { id: true, nombre: true, slug: true } },
+        },
+      },
     },
     orderBy: { fechaCaptura: 'desc' },
   })
@@ -114,6 +120,7 @@ export async function getMencionesForBulletin(
     temas: m.MencionTema.map((et) => et.EjeTematico.nombre),
     temasSlugs: m.MencionTema.map((et) => et.EjeTematico.slug),
     temasColores: m.MencionTema.map((et) => et.EjeTematico.color),
+    lenteSlugs: m.MencionLente?.map((ml: any) => ml.Lente?.slug).filter(Boolean) ?? [],
     reach: m.reach,
     verificado: m.verificado,
   }))
