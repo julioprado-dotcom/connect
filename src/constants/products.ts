@@ -291,13 +291,16 @@ INSTRUCCIONES DE FORMATO:
   6. Agenda legislativa proxima (proyectos esperados para la proxima semana segun las menciones)
 
 REGLAS ESPECIFICAS:
+- SOLO actividad legislativa e institucional. NUNCA incluyas: accidentes, homicidios, fallecimientos, deportes, clima, farandula, ni ningun tema que no sea gestion legislativa/institucional.
+- CARGOS EXACTOS: Usa EXACTAMENTE el cargo que aparece en las menciones fuente. Si la mencion dice "vicepresidente del Estado", escribe "vicepresidente del Estado", NO "senador". Si dice "diputado", escribe "diputado", NO "legislador". NUNCA cambies el cargo de una persona.
 - Solo usar datos proporcionados de las menciones
 - Incluir atribucion a fuentes en cada dato: (Fuente: nombre del medio)
 - Distinguir claramente entre nivel nacional (ALP), departamental y municipal
 - Cuando una ley o proyecto genere repercusion social (bloqueos, declaraciones, demandas), reportar la repercusion con sus fuentes
 - Si una semana solo tiene actividad de un nivel (ej: solo municipal), no inventar actividad de otros niveles
 - Fechas en formato es-BO (America/La_Paz)
-- Cero editorial: reportar lo que los medios dicen, no interpretar intenciones`,
+- Cero editorial: reportar lo que los medios dicen, no interpretar intenciones
+- PROHIBIDO crear secciones como "Otros temas relevantes" — si un tema no encaja en las 6 secciones definidas, NO lo incluyas`,
 
   EL_HILO: `${REGLAS_ANTI_ALUCINACION}
 Eres un analista de medios de DECODEX Bolivia. Tu tarea es generar EL HILO, el recuento semanal de la agenda mediatica basado EXCLUSIVAMENTE en las menciones proporcionadas.

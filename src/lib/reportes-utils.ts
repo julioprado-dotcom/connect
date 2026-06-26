@@ -933,6 +933,17 @@ interface FiltroEpistemologico {
   confianzaMinima?: 'baja' | 'media' | 'alta';
   /** Tratamientos periodísticos específicos a excluir (substrings). */
   tratamientosExcluidos?: string[];
+  /**
+   * Keywords de contenido: la mención DEBE contener al menos uno para ser incluida.
+   * Se evalúa sobre titulo + texto normalizado.
+   * Si está vacío, no se filtra por contenido (comportamiento por defecto).
+   */
+  keywordsRequeridos?: string[];
+  /**
+   * Keywords de exclusión de contenido: si la mención contiene alguno, se excluye.
+   * Se evalúa sobre titulo + texto normalizado.
+   */
+  keywordsExcluidos?: string[];
 }
 
 /**
@@ -943,7 +954,6 @@ interface FiltroEpistemologico {
 const PERFILES_EPISTEMOLOGICOS: Partial<Record<TipoBoletin, FiltroEpistemologico>> = {
   VOZ_Y_VOTO: {
     // Excluir menciones pasivas (solo "mención" o "referencia" de alguien que dijo algo)
-    // Priorizar notas informativas, reportajes, entrevistas, investigaciones
     tratamientoMinimo: 4,  // nota informativa o superior
     // Peso mínimo del eje estructural — excluir ruido de menciones tangenciales
     pesoEjeMinimo: 0.5,
@@ -952,6 +962,48 @@ const PERFILES_EPISTEMOLOGICOS: Partial<Record<TipoBoletin, FiltroEpistemologico
     confianzaMinima: 'media',
     // Excluir menciones que son solo referencias de paso
     tratamientosExcluidos: ['mencion', 'referencia'],
+    // Keywords de contenido LEGISLATIVO/INSTITUCIONAL — la mención DEBE contener al menos uno
+    keywordsRequeridos: [
+      // Nivel nacional (ALP)
+      'asamblea legislativa', 'camara de diputados', 'camara de senadores', 'senado',
+      'proyecto de ley', 'ley ', 'leyes ', 'ley aprobada', 'ley promulgada',
+      'diputado', 'diputada', 'senador', 'senadora', 'legislador', 'legisladora',
+      'comision de', 'comisiones de', 'sesion de', 'sesion plenaria', 'pleno de',
+      'votacion', 'aprobacion', 'sancion', 'promulgacion', 'veto', 'objecion',
+      'estado de excepcion', 'decreto', 'resolucion legislativa',
+      'vicepresidente', 'presidente de la asamblea',
+      // Nivel departamental
+      'asamblea departamental', 'gobernador', 'gobernadora', 'consejo departamental',
+      'resolucion departamental', 'ley departamental',
+      // Nivel municipal
+      'concejo municipal', 'concejales', 'concejal', 'concejala',
+      'ordenanza', 'ordenanza municipal', 'sesion de concejo',
+      'gobierno municipal', 'gobierno autonomo municipal',
+      // Autonomías indígenas
+      'autonomia indigena', 'nacion originaria', 'consejo de naciones',
+      'tierras comunitarias de origen',
+      // Procesos electorales vinculados a legislación
+      'tribunal supremo electoral', ' tribunal electoral departamental',
+      'normativa electoral', 'reforma electoral', 'eleccion',
+      // Repercusiones de normativa
+      'repercusion', 'observaciones a la ley', 'objecion a la ley',
+      'sectores afectados por la ley', 'aplicacion de la ley',
+      'promulgacion de la ley', 'entrada en vigencia',
+      'estado situacional', 'estado de sitio',
+      // Control y fiscalización
+      'contraloria', 'fiscalizacion', 'auditoria', 'control social',
+      'juicio de responsabilidades', 'comision de investigacion',
+    ],
+    // Keywords que NUNCA pertenecen a VOZ_Y_VOTO aunque estén en el eje
+    keywordsExcluidos: [
+      'avioneta', 'accidente aereo', 'accidente de transito',
+      'homicidio', 'asesinato', 'fallecimiento de', 'muerte de', 'fallecio',
+      'partido de futbol', 'futbol', 'mundial', 'seleccion',
+      'concierto', 'festival', 'feria de',
+      'clima', 'pronostico del tiempo', 'temperatura',
+      'resultado de la loteria', 'loteria',
+      'curandero', 'hechicero',
+    ],
   },
   EL_RADAR: {
     // El Radar es el producto más amplio, pero excluye el ruido más fino
@@ -1095,6 +1147,29 @@ export function preprocesarMencionesParaProducto(
 
       if (tpScore < perfil.tratamientoMinimo) {
         motivosExclusion['tratamiento_minimo'] = (motivosExclusion['tratamiento_minimo'] ?? 0) + 1;
+        return false;
+      }
+    }
+
+    // 6. Keywords de contenido — normalizar titulo + texto para comparación
+    const textoNorm = `${(m.titulo as string) ?? ''} ${(m.texto as string) ?? ''}`.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    // 6A. Keywords excluidos (se evalúan primero — prioridad)
+    if (perfil.keywordsExcluidos && perfil.keywordsExcluidos.length > 0) {
+      if (perfil.keywordsExcluidos.some(kw => textoNorm.includes(kw.normalize('NFD').replace(/[\u0300-\u036f]/g, '')))) {
+        motivosExclusion['keyword_excluido'] = (motivosExclusion['keyword_excluido'] ?? 0) + 1;
+        return false;
+      }
+    }
+
+    // 6B. Keywords requeridos (la mención DEBE contener al menos uno)
+    if (perfil.keywordsRequeridos && perfil.keywordsRequeridos.length > 0) {
+      const tieneKw = perfil.keywordsRequeridos.some(kw =>
+        textoNorm.includes(kw.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))
+      );
+      if (!tieneKw) {
+        motivosExclusion['sin_keyword_requerido'] = (motivosExclusion['sin_keyword_requerido'] ?? 0) + 1;
         return false;
       }
     }
