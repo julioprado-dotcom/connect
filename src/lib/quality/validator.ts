@@ -28,7 +28,7 @@ interface ValidationRule {
 
 export const RULES_BY_TYPE: Record<TipoBoletin, ValidationRule> = {
   EL_TERMOMETRO: {
-    minPalabras: 500,
+    minPalabras: 300,
     maxPalabras: 850,
     requiereSecciones: false,
     prohibidoContenido: ['lo siento', 'no puedo', 'como ia', 'i am', 'as an ai', 'N/A', 'en conclusion', 'se recomienda'],
