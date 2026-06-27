@@ -1,5 +1,4 @@
 const Database = require('better-sqlite3');
-const { validateContent } = require('./src/lib/quality/validator.ts') || {};
 const db = new Database('./prisma/db/custom.db', { readonly: true });
 
 // Replicate validator inline since we can't import TS directly
