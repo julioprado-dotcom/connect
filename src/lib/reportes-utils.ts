@@ -1067,3 +1067,226 @@ export function generarTituloProducto(
 
   return titulos[tipo];
 }
+
+// ============================================
+// Preprocesamiento Epistemologico por Producto
+// ============================================
+
+interface FiltroEpistemologico {
+  tratamientoMinimo?: number;
+  pesoEjeMinimo?: number;
+  lentesRequeridos?: string[];
+  lentesExcluidos?: string[];
+  confianzaMinima?: 'baja' | 'media' | 'alta';
+  tratamientosExcluidos?: string[];
+  keywordsRequeridos?: string[];
+  keywordsExcluidos?: string[];
+}
+
+const PERFILES_EPISTEMOLOGICOS: Partial<Record<TipoBoletin, FiltroEpistemologico>> = {
+  VOZ_Y_VOTO: {
+    tratamientoMinimo: 4,
+    pesoEjeMinimo: 0.5,
+    lentesExcluidos: ['entretenimiento', 'deportes', 'cultura', 'espectaculos'],
+    confianzaMinima: 'media',
+    tratamientosExcluidos: ['mencion', 'referencia'],
+    keywordsRequeridos: [
+      'asamblea legislativa', 'camara de diputados', 'camara de senadores', 'senado',
+      'proyecto de ley', 'ley ', 'leyes ', 'ley aprobada', 'ley promulgada',
+      'diputado', 'diputada', 'senador', 'senadora', 'legislador', 'legisladora',
+      'comision de', 'comisiones de', 'sesion de', 'sesion plenaria', 'pleno de',
+      'votacion', 'aprobacion', 'sancion', 'promulgacion', 'veto', 'objecion',
+      'estado de excepcion', 'decreto', 'resolucion legislativa',
+      'vicepresidente', 'presidente de la asamblea',
+      'asamblea departamental', 'gobernador', 'gobernadora', 'consejo departamental',
+      'resolucion departamental', 'ley departamental',
+      'concejo municipal', 'concejales', 'concejal', 'concejala',
+      'ordenanza', 'ordenanza municipal', 'sesion de concejo',
+      'gobierno municipal', 'gobierno autonomo municipal',
+      'autonomia indigena', 'nacion originaria', 'consejo de naciones',
+      'tierras comunitarias de origen',
+      'tribunal supremo electoral', ' tribunal electoral departamental',
+      'normativa electoral', 'reforma electoral', 'eleccion',
+      'repercusion', 'observaciones a la ley', 'objecion a la ley',
+      'sectores afectados por la ley', 'aplicacion de la ley',
+      'promulgacion de la ley', 'entrada en vigencia',
+      'estado situacional', 'estado de sitio',
+      'contraloria', 'fiscalizacion', 'auditoria', 'control social',
+      'juicio de responsabilidades', 'comision de investigacion',
+    ],
+    keywordsExcluidos: [
+      'avioneta', 'accidente aereo', 'accidente de transito',
+      'homicidio', 'asesinato', 'fallecimiento de', 'muerte de', 'fallecio',
+      'partido de futbol', 'futbol', 'mundial', 'seleccion',
+      'concierto', 'festival', 'feria de',
+      'clima', 'pronostico del tiempo', 'temperatura',
+      'resultado de la loteria', 'loteria',
+      'curandero', 'hechicero',
+    ],
+  },
+  EL_RADAR: {
+    pesoEjeMinimo: 0.3,
+    tratamientosExcluidos: ['referencia'],
+  },
+  EL_TERMOMETRO: {
+    confianzaMinima: 'media',
+    tratamientosExcluidos: ['referencia'],
+  },
+};
+
+const CONFIANZA_SCORE: Record<string, number> = { alta: 3, media: 2, baja: 1 };
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function clasificarNivelInstitucional(m: any): { nivel: string; esRepercusion: boolean } {
+  const slugs: string[] = m.temasSlugs ?? [];
+  const texto = `${(m.titulo as string) ?? ''} ${(m.texto as string) ?? ''}`.toLowerCase();
+
+  const MAPA_NIVEL: Record<string, string> = {
+    'gobierno-legislativo': 'ALP',
+    'procesos-normativa-electoral': 'ALP',
+    'gobierno-poder-instituciones': 'Gobierno Departamental',
+    'gobierno-control-fiscalizacion': 'Gobierno Departamental',
+  };
+
+  const KW_MUNICIPAL = ['concejo municipal', 'concejales', 'ordenanza municipal', 'alcalde', 'alcaldesa', 'gobierno municipal', 'concejo'];
+  const KW_INDIGENA = ['autonomia indigena', 'pueblo indigena', 'nacion originaria', 'tierras comunitarias', 'tco', 'consejo de naciones'];
+  const KW_DEPARTAMENTAL = ['asamblea departamental', 'gobierno departamental', 'gobernador', 'gobernadora', 'prefectura'];
+
+  let nivel = 'Otro nivel institucional';
+  let esRepercusion = false;
+
+  for (const slug of slugs) {
+    if (MAPA_NIVEL[slug]) {
+      nivel = MAPA_NIVEL[slug];
+      break;
+    }
+  }
+
+  if (nivel === 'Otro nivel') {
+    if (KW_MUNICIPAL.some(kw => texto.includes(kw))) nivel = 'Concejo Municipal';
+    else if (KW_INDIGENA.some(kw => texto.includes(kw))) nivel = 'Autonomia Indigena';
+    else if (KW_DEPARTAMENTAL.some(kw => texto.includes(kw))) nivel = 'Gobierno Departamental';
+  }
+
+  const KW_REPERCUSION = ['rechazo', 'apoyo', 'bloqueo', 'protesta', 'demand', 'observacion', 'promulgacion', 'vet', 'objecion', 'consecuencia', 'afecta', 'beneficia', 'perjudica', 'sectores afectados', 'implica', ' repercut'];
+  if (KW_REPERCUSION.some(kw => texto.includes(kw)) || slugs.includes('organizaciones-sociales-gremiales')) {
+    const esActividadDirecta = ['proyecto de ley', 'ley aprobada', 'sesion de', 'comision de', 'pleno de la asamblea', 'diputado', 'senador', 'votacion'].some(kw => texto.includes(kw));
+    if (!esActividadDirecta) {
+      esRepercusion = true;
+    }
+  }
+
+  return { nivel, esRepercusion };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function preprocesarMencionesParaProducto(
+  tipo: TipoBoletin,
+  menciones: any[],
+): { menciones: any[]; clasificacion?: Record<string, any[]>; stats: { antes: number; despues: number; motivosExclusion: Record<string, number> } } {
+  const perfil = PERFILES_EPISTEMOLOGICOS[tipo];
+
+  if (!perfil) {
+    return { menciones, stats: { antes: menciones.length, despues: menciones.length, motivosExclusion: {} } };
+  }
+
+  const motivosExclusion: Record<string, number> = {};
+  const confianzaMinScore = CONFIANZA_SCORE[perfil.confianzaMinima ?? 'baja'] ?? 1;
+  const lentesExc = new Set(perfil.lentesExcluidos ?? []);
+  const tratExc = new Set(perfil.tratamientosExcluidos ?? []);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const filtradas = menciones.filter((m: any) => {
+    const pesoEje = m.pesoEjeMax ?? 0;
+    if (perfil.pesoEjeMinimo && pesoEje > 0 && pesoEje < perfil.pesoEjeMinimo) {
+      motivosExclusion['peso_eje_bajo'] = (motivosExclusion['peso_eje_bajo'] ?? 0) + 1;
+      return false;
+    }
+
+    const confScore = CONFIANZA_SCORE[(m.confianzaClasificacion ?? '').toLowerCase()] ?? 1;
+    if (confScore < confianzaMinScore) {
+      motivosExclusion['confianza_baja'] = (motivosExclusion['confianza_baja'] ?? 0) + 1;
+      return false;
+    }
+
+    if (lentesExc.size > 0 && m.lenteSlugs) {
+      const mlentes = Array.isArray(m.lenteSlugs) ? m.lenteSlugs : [];
+      if (mlentes.some((l: string) => lentesExc.has(l))) {
+        motivosExclusion['lente_excluido'] = (motivosExclusion['lente_excluido'] ?? 0) + 1;
+        return false;
+      }
+    }
+
+    const tp = (m.tratamientoPeriodistico ?? '').toLowerCase();
+    if (tratExc.size > 0 && tratExc.has(tp)) {
+      motivosExclusion['tratamiento_excluido'] = (motivosExclusion['tratamiento_excluido'] ?? 0) + 1;
+      return false;
+    }
+
+    if (perfil.tratamientoMinimo) {
+      let tpScore = 5;
+      if (tp.includes('investigacion')) tpScore = 10;
+      else if (tp.includes('editorial') || tp.includes('analisis')) tpScore = 9;
+      else if (tp.includes('reportaje') || tp.includes('entrevista') || tp.includes('cronica')) tpScore = 7;
+      else if (tp.includes('nota') || tp.includes('informacion')) tpScore = 4;
+      else if (tp.includes('mencion') || tp.includes('referencia')) tpScore = 2;
+
+      if (tpScore < perfil.tratamientoMinimo) {
+        motivosExclusion['tratamiento_minimo'] = (motivosExclusion['tratamiento_minimo'] ?? 0) + 1;
+        return false;
+      }
+    }
+
+    const textoNorm = `${(m.titulo as string) ?? ''} ${(m.texto as string) ?? ''}`.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    if (perfil.keywordsExcluidos && perfil.keywordsExcluidos.length > 0) {
+      if (perfil.keywordsExcluidos.some(kw => textoNorm.includes(kw.normalize('NFD').replace(/[\u0300-\u036f]/g, '')))) {
+        motivosExclusion['keyword_excluido'] = (motivosExclusion['keyword_excluido'] ?? 0) + 1;
+        return false;
+      }
+    }
+
+    if (perfil.keywordsRequeridos && perfil.keywordsRequeridos.length > 0) {
+      const tieneKw = perfil.keywordsRequeridos.some(kw =>
+        textoNorm.includes(kw.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))
+      );
+      if (!tieneKw) {
+        motivosExclusion['sin_keyword_requerido'] = (motivosExclusion['sin_keyword_requerido'] ?? 0) + 1;
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const scored = filtradas.map((m: any) => ({
+    m,
+    score: puntuarRelevanciaEpistemologica(m),
+  }));
+  scored.sort((a, b) => b.score - a.score);
+
+  const procesadas = scored.map(s => s.m);
+
+  let clasificacion: Record<string, any[]> | undefined;
+  if (tipo === 'VOZ_Y_VOTO') {
+    clasificacion = {};
+    for (const m of procesadas) {
+      const { nivel, esRepercusion } = clasificarNivelInstitucional(m);
+      const key = esRepercusion ? `${nivel} (Repercusion)` : nivel;
+      if (!clasificacion[key]) clasificacion[key] = [];
+      clasificacion[key].push(m);
+    }
+  }
+
+  return {
+    menciones: procesadas,
+    clasificacion,
+    stats: {
+      antes: menciones.length,
+      despues: procesadas.length,
+      motivosExclusion,
+    },
+  };
+}
