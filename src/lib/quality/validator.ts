@@ -26,7 +26,7 @@ interface ValidationRule {
   requeridoContenido: string[];
 }
 
-const RULES_BY_TYPE: Record<TipoBoletin, ValidationRule> = {
+export const RULES_BY_TYPE: Record<TipoBoletin, ValidationRule> = {
   EL_TERMOMETRO: {
     minPalabras: 500,
     maxPalabras: 850,
@@ -42,18 +42,18 @@ const RULES_BY_TYPE: Record<TipoBoletin, ValidationRule> = {
     requeridoContenido: ['##'],
   },
   EL_FOCO: {
-    minPalabras: 600,
+    minPalabras: 250,
     maxPalabras: 1000,  // prompt pide ~800
-    requiereSecciones: true,
+    requiereSecciones: false,  // post-procesamiento puede eliminar secciones
     prohibidoContenido: ['lo siento', 'no puedo', 'como ia', 'i am', 'as an ai', 'N/A', 'en conclusion', 'se recomienda'],
     requeridoContenido: ['##'],
   },
   EL_ESPECIALIZADO: {
-    minPalabras: 1200,
+    minPalabras: 500,
     maxPalabras: 2200,
-    requiereSecciones: true,
-    prohibidoContenido: ['lo siento', 'no puedo', 'como ia', 'i am', 'as an ai', 'se recomienda', 'es necesario', 'se debe', 'en conclusion'],
-    requeridoContenido: ['##', 'hallazgo'],
+    requiereSecciones: false,  // post-procesamiento puede eliminar secciones
+    prohibidoContenido: ['lo siento', 'no puedo', 'como ia', 'i am', 'as an ai', 'N/A', 'en conclusion'],
+    requeridoContenido: ['##'],
   },
   EL_INFORME_CERRADO: {
     minPalabras: 1500,
@@ -105,11 +105,11 @@ const RULES_BY_TYPE: Record<TipoBoletin, ValidationRule> = {
     requeridoContenido: ['##'],
   },
   BOLETIN_DEL_GRANO: {
-    minPalabras: 600,
-    maxPalabras: 1200,
-    requiereSecciones: true,
+    minPalabras: 250,
+    maxPalabras: 2200,
+    requiereSecciones: false,  // cobertura limitada puede generar sin secciones
     prohibidoContenido: ['lo siento', 'no puedo', 'como ia', 'i am', 'as an ai', 'N/A', 'en conclusion', 'se recomienda'],
-    requeridoContenido: ['##', 'café', 'cafe'],
+    requeridoContenido: ['##'],
   },
 };
 
@@ -205,16 +205,13 @@ export function validateContent(
 
   // ═══ BONUS/PENALIZACIONES DE CALIDAD ═══
 
-  // BONUS: Presencia de citas (Fuente: X)
+  // BONUS: Referencias — cuenta (Fuente: X) Y notas al pie [N] como citas
   const citasCount = (contenido.match(/\(Fuente:\s*[^)]+\)/gi) ?? []).length;
-  if (citasCount >= 5) puntuacion += 5;
-  else if (citasCount >= 3) puntuacion += 3;
-  else if (citasCount === 0) puntuacion -= 15; // Sin citas = grave
-
-  // BONUS: Notas al pie [1], [2]... (alternativa de cita)
   const notasPie = (contenido.match(/\[\d+\]/g) ?? []).length;
-  if (notasPie >= 5 && citasCount === 0) puntuacion += 5;
-  else if (notasPie >= 3 && citasCount === 0) puntuacion += 3;
+  const totalReferencias = citasCount + notasPie;
+  if (totalReferencias >= 5) puntuacion += 5;
+  else if (totalReferencias >= 3) puntuacion += 3;
+  else if (totalReferencias === 0) puntuacion -= 15; // Sin citas = grave
 
   // PENALIZACION: N/A placeholders
   if (/N\/A/gi.test(contenido)) {

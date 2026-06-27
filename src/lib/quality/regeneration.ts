@@ -16,7 +16,7 @@ import { PRODUCTOS } from '@/constants/products';
 import { registrarLlamadaLLM, USO_FUENTE } from '@/lib/registrar-uso-ia';
 import { throttledLlmCall } from '@/lib/ai/llm-throttle';
 import { type TipoBoletin, type GenerationResult, type ValidationResult } from '@/types/bulletin';
-import { validateContent } from './validator';
+import { validateContent, RULES_BY_TYPE } from './validator';
 
 // ============================================
 // Configuracion de Reintentos
@@ -89,7 +89,7 @@ export async function regenerateWithRetry(params: {
 
       let enhancedPrompt = params.userPrompt;
       if (intento > 0 && lastValidation) {
-        const feedback = generateFeedback(lastValidation);
+        const feedback = generateFeedback(lastValidation, params.tipo);
         // Refuerzo de reglas SIEMPRE presente en reintentos,
         // independientemente de la razon del fallo de validacion.
         enhancedPrompt = `${feedback}\n\n---\n\n${REFORZAJE_REINTENTO}\n\n---\n\n${params.userPrompt}`;
@@ -248,7 +248,7 @@ export async function regenerateWithRetry(params: {
 // Funciones Auxiliares
 // ============================================
 
-function generateFeedback(validation: ValidationResult): string {
+function generateFeedback(validation: ValidationResult, tipo: TipoBoletin): string {
   const feedbacks: string[] = [];
 
   feedbacks.push(
@@ -256,8 +256,11 @@ function generateFeedback(validation: ValidationResult): string {
     'Por favor, ten en cuenta las siguientes correcciones:'
   );
 
-  if (validation.estadisticas.palabras < 300) {
-    feedbacks.push(pickRandom(FEEDBACK_MESSAGES.too_short));
+  // Usar el minPalabras real del producto, no un umbral fijo
+  const reglas = RULES_BY_TYPE[tipo];
+  const minPal = reglas?.minPalabras ?? 300;
+  if (validation.estadisticas.palabras < minPal) {
+    feedbacks.push(`El contenido tiene ${validation.estadisticas.palabras} palabras pero necesita al menos ${minPal}. Extiende CADA seccion con mas detalle, datos y fuentes de las menciones.`);
   } else if (validation.estadisticas.palabras > 2500) {
     feedbacks.push(pickRandom(FEEDBACK_MESSAGES.too_long));
   }

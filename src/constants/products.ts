@@ -125,7 +125,7 @@ INSTRUCCIONES DE FORMATO:
 - Titulo: "EL TERMOMETRO — [fecha en español, es-BO, ej: 24 de junio de 2026]"
 - Extension: 600-800 palabras (sin identidad ni transparencia)
 - Tono: inteligencia de medios, objetivo, profesional
-- Citas: usa notas al pie numeradas [1], [2], [3]... al final del texto, no interrumpas la lectura con (Fuente: X) en cada frase
+- Citas: cada dato o afirmacion con (Fuente: nombre del medio). Puedes agrupar al final de un parrafo: "...dato X, dato Y (Fuentes: medio1, medio2)."
 
 ESTRUCTURA (solo estas secciones, en este orden, usa ##):
 
