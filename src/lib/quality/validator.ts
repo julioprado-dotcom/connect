@@ -28,29 +28,29 @@ interface ValidationRule {
 
 const RULES_BY_TYPE: Record<TipoBoletin, ValidationRule> = {
   EL_TERMOMETRO: {
-    minPalabras: 250,
-    maxPalabras: 450,
+    minPalabras: 500,
+    maxPalabras: 850,
     requiereSecciones: false,
     prohibidoContenido: ['lo siento', 'no puedo', 'como ia', 'i am', 'as an ai', 'N/A', 'en conclusion', 'se recomienda'],
     requeridoContenido: ['##'],
   },
   SALDO_DEL_DIA: {
-    minPalabras: 300,
-    maxPalabras: 600,
+    minPalabras: 350,
+    maxPalabras: 550,
     requiereSecciones: false,
     prohibidoContenido: ['lo siento', 'no puedo', 'como ia', 'i am', 'as an ai', 'N/A', 'Hits', 'Miss', 'en conclusion'],
     requeridoContenido: ['##'],
   },
   EL_FOCO: {
     minPalabras: 600,
-    maxPalabras: 1000,
+    maxPalabras: 1000,  // prompt pide ~800
     requiereSecciones: true,
     prohibidoContenido: ['lo siento', 'no puedo', 'como ia', 'i am', 'as an ai', 'N/A', 'en conclusion', 'se recomienda'],
     requeridoContenido: ['##'],
   },
   EL_ESPECIALIZADO: {
     minPalabras: 1200,
-    maxPalabras: 2500,
+    maxPalabras: 2200,
     requiereSecciones: true,
     prohibidoContenido: ['lo siento', 'no puedo', 'como ia', 'i am', 'as an ai', 'se recomienda', 'es necesario', 'se debe', 'en conclusion'],
     requeridoContenido: ['##', 'hallazgo'],
@@ -92,13 +92,13 @@ const RULES_BY_TYPE: Record<TipoBoletin, ValidationRule> = {
   },
   EL_HILO: {
     minPalabras: 500,
-    maxPalabras: 900,
+    maxPalabras: 850,
     requiereSecciones: false,
     prohibidoContenido: ['lo siento', 'no puedo', 'como ia', 'i am', 'as an ai', 'N/A', 'en conclusion'],
     requeridoContenido: [],
   },
   FOCO_DE_LA_SEMANA: {
-    minPalabras: 400,
+    minPalabras: 500,
     maxPalabras: 800,
     requiereSecciones: false,
     prohibidoContenido: ['lo siento', 'no puedo', 'como ia', 'i am', 'as an ai', 'N/A', 'en conclusion'],

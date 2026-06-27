@@ -26,9 +26,9 @@ const MAX_REINTENTOS = 2;
 const TEMPERATURA_BOOST = 0.05;
 
 // Maximo seguro de caracteres para el user prompt antes de truncar.
-// GLM-4.5-Flash soporta 128K tokens, pero el SDK puede tener limites menores.
-// 30,000 chars ≈ 8,000 tokens (espanol ~3.8 chars/token). Dejamos margen.
-const MAX_USER_PROMPT_CHARS = 30000;
+// GLM-4.5-Flash soporta 128K tokens (~480K chars en espanol).
+// 60,000 chars ≈ 16,000 tokens. Dejamos margen para system prompt + output.
+const MAX_USER_PROMPT_CHARS = 60000;
 
 // ============================================
 // Mensajes de retroalimentacion para reintentos

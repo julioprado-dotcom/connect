@@ -46,6 +46,7 @@ REGLAS ESTRICTAS:
 3. Verifica concordancia de genero: "ministra" (femenino) vs "ministro" (masculino), "la" vs "el", "la diputada" vs "el diputado"
 4. NO cambies la estructura del texto, solo corrige nombres/cargos/datos erroneos.
 5. Si el texto esta correcto, devuélvelo tal cual sin cambios.
+6. PROHIBIDO: NUNCA reemplaces un nombre con "N/A", "No disponible" o similar. Si no puedes verificar un nombre, déjalo TAL CUAL.
 
 RESPUESTA EN FORMATO JSON:
 {
@@ -155,6 +156,14 @@ Verifica que los nombres, cargos y generos en el texto coincidan EXACTAMENTE con
       alertas: parsed.alertas || [],
       tokensUsados: completion.usage?.total_tokens,
     };
+
+    // Safety net: si las correcciones introducen N/A, rechazar todo
+    const originalNA = (textoGenerado.match(/N\/A/g) || []).length;
+    const correctedNA = (result.textoCorregido.match(/N\/A/g) || []).length;
+    if (correctedNA > originalNA) {
+      console.warn(`[verify-factual] Rechazadas correcciones: introducen ${correctedNA - originalNA} N/A nuevos en ${tipoProducto}`);
+      return { ...resultadoVacio, alertas: ['Correcciones rechazadas: introducían N/A'] };
+    }
 
     // Log correcciones
     if (result.corrected && result.correcciones.length > 0) {

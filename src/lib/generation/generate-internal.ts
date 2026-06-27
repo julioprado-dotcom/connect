@@ -96,13 +96,33 @@ export async function generateProductoInterno(params: GenerateInternalParams): P
     }
   }
 
-  const { menciones, fechaInicio, fechaFin, totalMenciones } = await getMencionesForBulletin(
+  let { menciones, fechaInicio, fechaFin, totalMenciones } = await getMencionesForBulletin(
     tipoBoletin,
     {
       personaId,
       ejesTematicos: ejesParaFiltrar,
     },
   )
+
+  // 2b. BOLETIN_DEL_GRANO: filtrar menciones por lente cafetero
+  if (tipoBoletin === 'BOLETIN_DEL_GRANO') {
+    try {
+      const coffeeLente = await db.lente.findFirst({ where: { slug: 'cafe-economicas-regionales' } })
+      if (coffeeLente) {
+        const coffeeIds = await db.mencionLente.findMany({
+          where: { lenteId: coffeeLente.id },
+          select: { mencionId: true },
+        })
+        const coffeeSet = new Set(coffeeIds.map(c => c.mencionId))
+        const antes = menciones.length
+        menciones = menciones.filter((m: any) => coffeeSet.has(m.id))
+        totalMenciones = menciones.length
+        console.log(`[generate-internal] BOLETIN_DEL_GRANO: filtro lente cafetero ${antes} → ${menciones.length} menciones`)
+      }
+    } catch (err) {
+      console.warn('[generate-internal] BOLETIN_DEL_GRANO: no se pudo filtrar por lente:', err)
+    }
+  }
 
   // 3. Zero menciones → abortar
   if (totalMenciones === 0) {
