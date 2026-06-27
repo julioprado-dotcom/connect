@@ -256,6 +256,7 @@ export async function generateProductoInterno(params: GenerateInternalParams): P
     tokensUsados: genResult.tokensUsados,
     modeloIA: genResult.modelo,
     totalMenciones,
+    puntuacionCalidad,
     metadata: JSON.stringify({
       origen: 'llm_inline',
       path: 'internal',

@@ -888,6 +888,7 @@ export async function registrarReporte(params: {
   tokensUsados?: number;
   modeloIA?: string;
   metadata?: string;
+  puntuacionCalidad?: number;
   clienteId?: string;
   totalMenciones?: number;
 }): Promise<string> {
@@ -907,6 +908,9 @@ export async function registrarReporte(params: {
         totalMenciones: params.totalMenciones ?? 0,
         sentimientoPromedio: 0,
         temasPrincipales: '',
+        clasificadores: params.puntuacionCalidad != null
+          ? JSON.stringify({ puntuacionCalidad: params.puntuacionCalidad, evaluadoEn: new Date().toISOString() })
+          : '',
       },
     });
 
