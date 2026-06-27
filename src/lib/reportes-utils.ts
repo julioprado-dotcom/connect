@@ -18,6 +18,38 @@ import { boliviaNow, boliviaStartOfDay, boliviaStartOfWeek, boliviaEndOfDay, bol
 export { formatFechaBolivia } from '@/lib/date-bolivia';
 import { getIndicadoresParaEje, getIndicadoresParaEjes, formatearIndicadoresPrompt } from '@/lib/indicadores/injector';
 
+// ─── Nombres legibles por tipo de producto (para identidad) ───
+const NOMBRE_PRODUCTO: Record<TipoBoletin, string> = {
+  EL_TERMOMETRO: 'El Termómetro',
+  SALDO_DEL_DIA: 'El Saldo del Día',
+  EL_FOCO: 'El Foco',
+  EL_ESPECIALIZADO: 'El Especializado',
+  EL_INFORME_CERRADO: 'El Informe Cerrado',
+  EL_RADAR: 'El Radar',
+  VOZ_Y_VOTO: 'Voz y Voto',
+  EL_HILO: 'El Hilo',
+  FOCO_DE_LA_SEMANA: 'Foco de la Semana',
+  ALERTA_TEMPRANA: 'Alerta Temprana',
+  FICHA_LEGISLADOR: 'Ficha del Legislador',
+  BOLETIN_DEL_GRANO: 'Boletín del Grano',
+};
+
+// ─── Descripción tipo de producto (para identidad Regla 17) ───
+const TIPO_PRODUCTO: Record<TipoBoletin, string> = {
+  EL_TERMOMETRO: 'boletín matutino de clima mediático',
+  SALDO_DEL_DIA: 'boletín de cierre de jornada',
+  EL_FOCO: 'análisis profundo diario de un eje temático',
+  EL_ESPECIALIZADO: 'informe experto sectorial',
+  EL_INFORME_CERRADO: 'informe semanal de tendencias y escenarios prospectivos',
+  EL_RADAR: 'escaneo semanal de la agenda mediática',
+  VOZ_Y_VOTO: 'resumen semanal de actividad legislativa e institucional',
+  EL_HILO: 'recuento semanal temático de la agenda mediática',
+  FOCO_DE_LA_SEMANA: 'radar temático semanal rotativo',
+  ALERTA_TEMPRANA: 'alerta inmediata de medios',
+  FICHA_LEGISLADOR: 'informe de presencia mediática individual de un legislador',
+  BOLETIN_DEL_GRANO: 'reporte semanal del sector cafetero boliviano',
+};
+
 // ============================================
 // Tipos exportados para reportes
 // ============================================
@@ -471,6 +503,7 @@ export function construirPrompt(
   indicadores: string,
   datosExtra?: string,
   contextoHistorico?: string,
+  totalDisponibles?: number,
 ): string {
   const partes: string[] = [
     `## Datos de Menciones\n${menciones}`,
@@ -497,11 +530,47 @@ export function construirPrompt(
     partes.push(`## Informacion Adicional\n${datosExtra}`);
   }
 
+  // ═══ IDENTIDAD DEL PRODUCTO + TRANSPARENCIA DE DATOS ═══
+  const mLineas = menciones.split('\n')
+  const mCount = mLineas.filter(l => l.includes('MEDIO:')).length
+  const mMediosSet = new Set(
+    mLineas
+      .filter(l => l.includes('MEDIO:'))
+      .map(l => { const m = l.match(/MEDIO:\s*(.+)/); return m ? m[1].trim() : null; })
+      .filter(Boolean),
+  )
+
+  // ═══ SUJETOS OBLIGATORIOS — Anti Ghost Subjects ═══
+  // Extraer todos los nombres de persona de las menciones para forzar
+  // que el LLM los use como sujetos explicitos en lugar de omitirlos.
+  const personaNames = new Set<string>()
+  for (const linea of mLineas) {
+    const personaMatch = linea.match(/Persona:\s*(.+)/)
+    if (personaMatch) {
+      const nombre = personaMatch[1].trim()
+      if (nombre && nombre !== 'null' && nombre !== 'undefined') {
+        personaNames.add(nombre)
+      }
+    }
+  }
+  const sujetosObligatorios = [...personaNames]
+
   partes.push(
-    `\nGenera el producto "${tipo}" siguiendo las instrucciones del sistema.`,
+    `\nIDENTIDAD DEL PRODUCTO: ${NOMBRE_PRODUCTO[tipo]} es un ${TIPO_PRODUCTO[tipo]} de DECODEX Bolivia. DECODEX es un observatorio de medios que monitorea, clasifica y analiza menciones de fuentes de informacion bolivianas en tiempo real, utilizando inteligencia artificial y el marco epistemologico ONION200.`,
+    `TRANSPARENCIA: Este producto se generó con ${mCount} menciones de ${mMediosSet.size} medios distintos en el periodo indicado${totalDisponibles && totalDisponibles > mCount ? ` (de ${totalDisponibles} menciones disponibles; ${totalDisponibles - mCount} no se incluyeron por seleccion epistemologica ONION200)` : ''}. El sistema monitorea 53 fuentes de informacion bolivianas; ${mMediosSet.size} de 53 (${Math.round((mMediosSet.size / 53) * 100)}%) reportaron en este periodo.`,
+    `Genera ${NOMBRE_PRODUCTO[tipo]} siguiendo las instrucciones del sistema.`,
     `Fecha de referencia: ${formatFechaBolivia(new Date())}.`,
     `Semana del ano: ${getSemanaAnho()}.`
   );
+
+  // Inyectar SUJETOS OBLIGATORIOS si hay personas identificadas
+  if (sujetosObligatorios.length > 0) {
+    partes.push(
+      `\nSUJETOS OBLIGATORIOS — Las siguientes personas aparecen en las menciones y DEBEN ser nombradas con sujeto explicito (nombre + cargo) en cada accion, declaracion o evento que les corresponda. NUNCA inicies una oracion con un verbo sin sujeto cuando una de estas personas realizo la accion:`,
+      sujetosObligatorios.map((n, i) => `  ${i + 1}. ${n}`).join('\n'),
+      `Si una persona de esta lista realizo una accion pero el LLM la reporta sin nombrarla (ej: "Se aprobo el proyecto..." en vez de "El diputado X aprobo el proyecto..."), es un ERROR DE SUJETO FANTASMA y debe corregirse.`
+    );
+  }
 
   // ═══ REFUERZO FINAL — REGLAS DE GENERACIÓN ═══
   // Se repiten al FINAL del user prompt para combatir el recency bias del LLM.

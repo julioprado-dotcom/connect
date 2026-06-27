@@ -20,7 +20,7 @@ import { formatearMencionesPrompt, formatearContextoHistorico, construirPrompt, 
 import { regenerateWithRetry } from '@/lib/quality/regeneration'
 import { validateContent } from '@/lib/quality/validator'
 import { verifyProduct } from '@/lib/verification/verify-product'
-import { limpiarPlaceholders, filtrarSeccionesFuenteUnica } from '@/lib/verification/verify-postprocess'
+import { limpiarPlaceholders, filtrarSeccionesFuenteUnica, detectarSujetosFantasma, eliminarSeccionesVacias, eliminarVocalEditorialCierre } from '@/lib/verification/verify-postprocess'
 import { loadMarcoConceptual, formatMarcoForPrompt } from '@/lib/reporte-sectorial.alerts'
 import db from '@/lib/db'
 
@@ -200,6 +200,17 @@ export async function generateProductoInterno(params: GenerateInternalParams): P
   // NOTA: Se ejecuta DESPUÉS de verifyFactualWithLLM porque ese paso
   // puede re-introducir "N/A" al corregir nombres no encontrados.
   textoFinal = limpiarPlaceholders(textoFinal)
+
+  // 8b. Eliminar secciones vacías con texto filler (TODOS los productos)
+  textoFinal = eliminarSeccionesVacias(textoFinal)
+
+  // 8c. Detectar y corregir sujetos fantasma (TODOS los productos)
+  textoFinal = detectarSujetosFantasma(textoFinal)
+
+  // 8d. Eliminar vocal editorial de cierre: "En conclusión", "Se recomienda", etc.
+  textoFinal = eliminarVocalEditorialCierre(textoFinal)
+
+  // 8e. Filtrado específico por producto
   if (tipoBoletin === 'EL_RADAR') {
     textoFinal = filtrarSeccionesFuenteUnica(textoFinal, 2)
   }
@@ -547,7 +558,40 @@ async function buildPromptForProduct(params: BuildPromptParams): Promise<{
       break
     }
 
-    // ═══ Genérico: EL_TERMOMETRO, FICHA_LEGISLADOR, otros ═══
+    // ═══ FICHA_LEGISLADOR: inyectar datos Persona de DB ═══
+    case 'FICHA_LEGISLADOR': {
+      let personaData = ''
+      if (personaId) {
+        try {
+          const persona = await db.persona.findUnique({ where: { id: personaId } })
+          if (persona) {
+            personaData = `
+DATOS DEL LEGISLADOR (de la base de datos DECODEX):
+- Nombre: ${persona.nombre}
+- Camara: ${persona.camara}
+- Departamento: ${persona.departamento}
+- Partido: ${persona.partido} (${persona.partidoSigla})
+- Tipo: ${persona.tipo}
+- Cargo en directiva: ${persona.cargoDirectiva || 'Sin cargo directivo'}
+- Periodo: ${persona.periodo}
+`
+          }
+        } catch (err) {
+          console.warn('[generate-internal] FICHA_LEGISLADOR: no se pudo obtener Persona:', err)
+        }
+      }
+
+      mencionesPrompt = formatearMencionesPrompt(menciones, tipoBoletin)
+      datosExtra = [
+        `Tipo de producto: ${config.nombre}`,
+        `Periodo: ${ventanaLabel}`,
+        `Total menciones: ${totalMenciones}`,
+        personaData || `Persona ID: ${personaId || 'No proporcionado'}`,
+      ].join('\n')
+      break
+    }
+
+    // ═══ Genérico: EL_TERMOMETRO, otros ═══
     default: {
       mencionesPrompt = formatearMencionesPrompt(menciones, tipoBoletin)
       datosExtra = [
@@ -567,6 +611,7 @@ async function buildPromptForProduct(params: BuildPromptParams): Promise<{
     indicadoresPrompt || 'Sin indicadores disponibles para este periodo.',
     datosExtra,
     contextoHistorico || undefined,
+    totalMenciones,
   )
 
   // ─── System prompt + Marco Conceptual ───
