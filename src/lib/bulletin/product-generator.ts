@@ -12,6 +12,7 @@ import {
   boliviaDaysAgo,
   boliviaStartOfWeek,
 } from '@/lib/date-bolivia'
+import { normalizarNombrePersona } from '@/lib/reportes-utils'
 
 // Obtener config de un producto por tipo
 export function getProductConfig(tipo: TipoBoletin): ProductoConfig | null {
@@ -105,7 +106,7 @@ export async function getMencionesForBulletin(
     fechaPublicacion: m.fechaPublicacion,
     fechaCaptura: m.fechaCaptura,
     tipoMencion: m.tipoMencion,
-    persona: m.Persona?.nombre ?? null,
+    persona: normalizarNombrePersona(m.Persona?.nombre ?? null),
     personaId: m.personaId,
     partidoSigla: m.Persona?.partidoSigla ?? null,
     camara: m.Persona?.camara ?? null,
@@ -184,7 +185,7 @@ export async function getContextMenciones(
   return rows.map(r => ({
     titulo: r.titulo,
     medio: r.medio ?? 'Desconocido',
-    persona: r.persona ?? null,
+    persona: normalizarNombrePersona(r.persona as string | null),
     partidoSigla: r.partidoSigla ?? null,
     sentimiento: (r.tratamientoPeriodistico as string) || (r.sentimiento as string) || null,
     temas: temaMap[r.id as string] ?? [],

@@ -9,6 +9,7 @@
 
 import db from '@/lib/db';
 import { type IndicadorFormateado, type IndicadorConStats, type IndicadorProtocol } from '@/types/bulletin';
+import { INDICADOR_META } from '@/lib/services/indicadores.constants';
 
 // ============================================
 // Obtencion de Indicadores
@@ -46,9 +47,9 @@ export async function getIndicadoresParaEje(
 
       return {
         nombre: ind.nombre,
-        valor: ultimo ? `${ultimo.valor} ${ind.unidad ?? ''}`.trim() : 'N/D',
+        unidad: ind.unidad || INDICADOR_META[ind.slug as keyof typeof INDICADOR_META]?.unidad || '',
+        valor: ultimo ? `${ultimo.valor} ${ind.unidad || INDICADOR_META[ind.slug as keyof typeof INDICADOR_META]?.unidad || ''}`.trim() : 'N/D',
         tendencia,
-        unidad: ind.unidad,
       };
     });
   } catch (error) {
@@ -207,11 +208,12 @@ export async function getIndicadoresConStats(
         const fechaActual = ind.IndicadorValor[0]?.fecha?.toISOString().split('T')[0] ?? '';
         const formato = ind.formatoNumero ?? 2;
 
+        const unidadEfectiva = ind.unidad || INDICADOR_META[ind.slug as keyof typeof INDICADOR_META]?.unidad || '';
         return {
           nombre: ind.nombre,
-          valor: `${actual.toFixed(formato)} ${ind.unidad ?? ''}`.trim(),
+          valor: `${actual.toFixed(formato)} ${unidadEfectiva}`.trim(),
           tendencia,
-          unidad: ind.unidad,
+          unidad: unidadEfectiva,
           slug: ind.slug,
           categoria: ind.categoria,
           actual,

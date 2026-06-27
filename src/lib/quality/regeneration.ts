@@ -25,6 +25,23 @@ import { validateContent, RULES_BY_TYPE } from './validator';
 const MAX_REINTENTOS = 2;
 const TEMPERATURA_BOOST = 0.05;
 
+// Max tokens de salida por tipo de producto.
+// Productos largos necesitan mas tokens para no truncarse.
+const MAX_TOKENS_BY_TYPE: Record<string, number> = {
+  EL_TERMOMETRO: 2048,
+  SALDO_DEL_DIA: 2048,
+  EL_FOCO: 3072,
+  EL_ESPECIALIZADO: 6144,
+  EL_INFORME_CERRADO: 8192,
+  EL_RADAR: 3072,
+  VOZ_Y_VOTO: 4096,
+  EL_HILO: 4096,
+  FICHA_LEGISLADOR: 4096,
+  FOCO_DE_LA_SEMANA: 3072,
+  ALERTA_TEMPRANA: 1024,
+  BOLETIN_DEL_GRANO: 6144,
+};
+
 // Maximo seguro de caracteres para el user prompt antes de truncar.
 // GLM-4.5-Flash soporta 128K tokens (~480K chars en espanol).
 // 60,000 chars ≈ 16,000 tokens. Dejamos margen para system prompt + output.
@@ -132,10 +149,12 @@ export async function regenerateWithRetry(params: {
           { role: 'user', content: cleanUser },
         ],
         temperature: Math.round(Math.min(temperatura, 0.8) * 100) / 100,
+        max_tokens: MAX_TOKENS_BY_TYPE[params.tipo] ?? 4096,
       }));
 
       const contenido = completion.choices[0]?.message?.content ?? '';
       const tokensUsados = completion.usage?.total_tokens;
+      const finishReason = completion.choices[0]?.finish_reason;
 
       // Registrar uso IA
       registrarLlamadaLLM({
@@ -150,6 +169,24 @@ export async function regenerateWithRetry(params: {
           error: `La IA no genero contenido (intento ${intento + 1}/${MAX_REINTENTOS + 1})`,
         };
         lastValidation = validateContent('', { tipo: params.tipo });
+        continue;
+      }
+
+      // FIX 9: Detectar truncamiento por max_tokens.
+      // Si finish_reason === 'length', el LLM fue cortado por limite de tokens.
+      // Forzar reintento con feedback especifico de truncamiento.
+      if (finishReason === 'length') {
+        console.warn(`[regeneration] TRUNCAMIENTO detectado para ${params.tipo} (intento ${intento + 1}): finish_reason=length`);
+        lastValidation = {
+          valido: false,
+          puntuacion: 20,
+          errores: ['El contenido fue truncado por limite de tokens — se genero incompleto. Reduce la extension o condensa el contenido.'],
+          advertencias: ['Truncamiento por max_tokens'],
+          estadisticas: { palabras: contenido.split(/\s+/).filter(w => w.length > 0).length, caracteres: contenido.length, oraciones: contenido.split(/[.!?]+/).filter(s => s.trim().length > 0).length },
+        };
+        if (params.onRetry && intento < MAX_REINTENTOS) {
+          params.onRetry(intento + 1, 'Contenido truncado por limite de tokens');
+        }
         continue;
       }
 

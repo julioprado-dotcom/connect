@@ -302,6 +302,43 @@ export async function extraerMencionesDeTexto(
       ? textoLimpio.substring(0, 12000) + '...'
       : textoLimpio;
 
+    // 7c. FIX 8: Filtro geografico PRE-LLM para medios no bolivianos.
+    // Si el medio no es de Bolivia, verificar que el texto menciona Bolivia
+    // antes de gastar tokens del LLM. Fuentes pan-LATAM como "Resumen Latinoamericano"
+    // generan muchas noticias de otros paises que el LLM ya filtra, pero esto
+    // ahorra tokens y reduce falsos positivos.
+    try {
+      const medioData = await db.medio.findUnique({
+        where: { id: medioId },
+        select: { pais: true, nombre: true },
+      });
+      if (medioData && medioData.pais && medioData.pais !== 'Bolivia') {
+        const textoLower = textoLimpio.toLowerCase();
+        // Keywords minimas que indican conexion con Bolivia
+        const boliviaKeywords = [
+          'bolivia', 'boliviano', 'boliviana', 'bolivianos', 'bolivianas',
+          'la paz', 'santa cruz', 'cochabamba', 'oruro', 'potosi', 'sucre',
+          'tarija', 'beni', 'pando', 'trinidad', 'cobija',
+          'evo morales', 'luis arce', 'mesa', 'choquehuanca',
+          'yacimientos del litio', 'ypfb', 'yacimientos petroliferos',
+          'gas del sur', 'gobierno boliviano', 'estado plurinacional',
+          'asamblea legislativa', 'parlamento boliviano',
+          'boliviano ', ' boliviano', 'boliviana ', ' boliviana',
+          'en bolivia', 'de bolivia', 'en bolivia',
+        ];
+        const tieneKeywordBolivia = boliviaKeywords.some(kw => textoLower.includes(kw));
+        if (!tieneKeywordBolivia) {
+          debugWrite(`FILTRO GEOGRAFICO: medio "${medioData.nombre}" (${medioData.pais}) sin keywords de Bolivia — saltando LLM`);
+          console.log(`[GEO-FILTER] Saltando LLM: medio="${medioData.nombre}" pais=${medioData.pais} sin keywords Bolivia`);
+          await persistDebugLog(debugLog);
+          return emptyResult;
+        }
+      }
+    } catch (geoErr) {
+      // No bloquear pipeline si falla el filtro geografico
+      debugWrite(`FILTRO GEOGRAFICO: error al consultar medio — continuando sin filtro`);
+    }
+
     // 8. Construir prompt del usuario
     let userContent = `LEGISLADORES MONITOREADOS:\n${listaLegisladores}\n\n`;
     userContent += `EJES TEMÁTICOS:\n${listaEjes}\n\n`;
