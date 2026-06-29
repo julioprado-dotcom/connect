@@ -17,6 +17,7 @@ import {
   Eye,
   Mail,
   FileText,
+  Trash2,
 } from 'lucide-react';
 import { KPICard } from '@/components/shared/KPICard';
 import { GeneratorPreviewModal } from '@/components/views/GeneratorPreviewModal';
@@ -393,6 +394,25 @@ export function GeneradoresView() {
                 Genera, previsualiza y entrega productos ONION200
               </CardDescription>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={async () => {
+                if (!confirm('Eliminar todos los reportes generados?')) return;
+                try {
+                  const res = await fetch('/api/reportes?all=true', { method: 'DELETE' });
+                  const json = await res.json();
+                  if (json.eliminados > 0) {
+                    await loadGenStats();
+                    setReloadTrigger(t => t + 1);
+                  }
+                } catch { /* silent */ }
+              }}
+              className="text-xs gap-1 text-muted-foreground hover:text-destructive"
+              title="Borrar todos los reportes"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="p-4 pt-0">

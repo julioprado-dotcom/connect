@@ -180,3 +180,237 @@
 .animate-scan {
   animation: scan-line 8s linear infinite;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   DECODEX Producto Rich Content — Typography & Layout
+   ═══════════════════════════════════════════════════════════════ */
+
+.producto-rich-content {
+  font-family: 'Roboto', 'Arial', 'Calibri', sans-serif;
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--foreground);
+}
+
+/* ── Headings ── */
+
+.producto-h1 {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 1.5rem 0 0.75rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.producto-h2 {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 1.5rem 0 0.6rem 0;
+  padding-left: 0.75rem;
+  border-left: 3px solid;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+}
+
+.producto-h3 {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 1.2rem 0 0.4rem 0;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+/* ── Body text ── */
+
+.producto-p {
+  margin: 0 0 0.85rem 0;
+  text-align: justify;
+  hyphens: auto;
+}
+
+.producto-strong {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.producto-em {
+  font-style: italic;
+  opacity: 0.85;
+}
+
+/* ── Lists ── */
+
+.producto-ul,
+.producto-ol {
+  margin: 0.5rem 0 0.85rem 0;
+  padding-left: 1.5rem;
+}
+
+.producto-li {
+  margin-bottom: 0.3rem;
+  padding-left: 0.25rem;
+}
+
+.producto-ul .producto-li::marker {
+  color: var(--primary);
+}
+
+.producto-ol .producto-li::marker {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* ── Blockquotes (Highlights / Notas) ── */
+
+.producto-blockquote {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid;
+  background: var(--muted);
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+}
+
+.producto-blockquote p {
+  margin: 0;
+  text-align: left;
+}
+
+/* ── Horizontal Rule ── */
+
+.producto-hr {
+  border: none;
+  border-top: 1px solid;
+  margin: 1.5rem 0;
+  opacity: 0.5;
+}
+
+/* ── Tables ── */
+
+.producto-table-wrap {
+  overflow-x: auto;
+  margin: 1rem 0;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.producto-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.producto-th {
+  padding: 8px 12px;
+  text-align: left;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #FFFFFF;
+}
+
+.producto-td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--foreground);
+}
+
+.producto-table tr:nth-child(even) .producto-td {
+  background: var(--muted);
+}
+
+.producto-table tr:last-child .producto-td {
+  border-bottom: none;
+}
+
+/* ── Links ── */
+
+.producto-link {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  transition: opacity 0.15s;
+}
+
+.producto-link:hover {
+  opacity: 0.7;
+}
+
+/* ── Code ── */
+
+.producto-code-inline {
+  background: var(--muted);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: 'Geist Mono', monospace;
+}
+
+.producto-code-block {
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+  font-size: 12px;
+  margin: 1rem 0;
+}
+
+.producto-code-block code {
+  font-family: 'Geist Mono', monospace;
+}
+
+/* ── Dark mode overrides ── */
+
+.dark .producto-h1 {
+  border-bottom-color: var(--primary);
+}
+
+.dark .producto-h2 {
+  border-left-color: var(--primary);
+}
+
+.dark .producto-h3 {
+  color: var(--primary);
+}
+
+.dark .producto-blockquote {
+  background: rgba(0, 255, 136, 0.04);
+  border-left-color: var(--primary);
+}
+
+.dark .producto-table-wrap {
+  border-color: var(--border);
+}
+
+.dark .producto-td {
+  border-bottom-color: var(--border);
+}
+
+.dark .producto-table tr:nth-child(even) .producto-td {
+  background: rgba(0, 255, 136, 0.02);
+}
+
+/* ── Print styles ── */
+
+@media print {
+  .producto-rich-content {
+    font-size: 12pt;
+    line-height: 1.6;
+    color: #000;
+  }
+  .producto-h1 { font-size: 16pt; page-break-after: avoid; }
+  .producto-h2 { font-size: 13pt; page-break-after: avoid; }
+  .producto-h3 { font-size: 11pt; page-break-after: avoid; }
+  .producto-blockquote { page-break-inside: avoid; }
+  .producto-table-wrap { page-break-inside: avoid; }
+}

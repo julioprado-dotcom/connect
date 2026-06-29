@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { reporteCreateSchema } from '@/lib/validations';
 import { guardedParse, RATE, guardError } from '@/lib/rate-guard';
+import { withAuth } from '@/lib/auth-helpers';
 
 export async function GET(request: NextRequest) {
   try {
@@ -69,5 +70,34 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(reporte, { status: 201 });
   } catch (error: unknown) {
     return NextResponse.json({ error: guardError(error, 'reportes') }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const { error: authError } = await withAuth();
+  if (authError) return authError;
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const tipo = searchParams.get('tipo');
+    const all = searchParams.get('all') === 'true';
+
+    const where: Record<string, unknown> = {};
+    if (!all && tipo) where.tipo = tipo;
+
+    const count = await db.reporte.count({ where });
+    if (count === 0) {
+      return NextResponse.json({ eliminados: 0, mensaje: 'No hay reportes para eliminar' });
+    }
+
+    const result = await db.reporte.deleteMany({ where });
+
+    return NextResponse.json({
+      eliminados: result.count,
+      filtro: tipo || (all ? 'todos' : 'ninguno'),
+      mensaje: `${result.count} reportes eliminados`,
+    });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: guardError(error, 'reportes/DELETE') }, { status: 500 });
   }
 }
