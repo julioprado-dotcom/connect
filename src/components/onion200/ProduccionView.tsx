@@ -4,9 +4,10 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 import { PanelShell } from './PanelShell';
 import { ExportMenu } from './ExportMenu';
+import { GeneratorPreviewModal } from '@/components/views/GeneratorPreviewModal';
 import {
-  FileText, TrendingUp, Clock, Loader2, Play, ChevronDown, ChevronUp,
-  Eye, Zap, Package,
+  FileText, TrendingUp, Clock, Loader2, Play,
+  Eye, Zap, Package, Trash2,
 } from 'lucide-react';
 import { ALL_PRODUCTS } from '@/constants/nav';
 import { statusColor, statusGlow, normalizeStatus } from '@/constants/colors';
@@ -16,7 +17,6 @@ import type {
   CatalogProduct,
   EjeItem,
   PersonaItem,
-  UltimoProduct,
   Notification,
 } from './ProduccionView.types';
 import {
@@ -28,7 +28,6 @@ import {
   InlineToast,
   ProductMiniCard,
   ParamModal,
-  ContentPreview,
 } from './ProduccionView.subcomponents';
 
 // ═══════════════════════════════════════════════════════════════
@@ -59,10 +58,8 @@ export function ProduccionView() {
   const [selectedEje, setSelectedEje] = useState('');
   const [selectedPersona, setSelectedPersona] = useState('');
 
-  // ── Preview state ──
-  const [expandedPreviewTipo, setExpandedPreviewTipo] = useState<string | null>(null);
-  const [previewData, setPreviewData] = useState<UltimoProduct | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
+  // ── Preview state (branded modal) ──
+  const [previewReporte, setPreviewReporte] = useState<Record<string, unknown> | null>(null);
 
   // Auto-dismiss notifications
   const notifTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -386,50 +383,21 @@ export function ProduccionView() {
   }, [paramModalTipo, selectedEje, selectedPersona, executeGenerate]);
   // confirmParamModal logic is correct — types already uppercase
 
-  // ── Toggle preview ──
-  const togglePreview = useCallback(async (tipo: string) => {
-    if (expandedPreviewTipo === tipo) {
-      setExpandedPreviewTipo(null);
-      setPreviewData(null);
-      return;
-    }
-
-    setExpandedPreviewTipo(tipo);
-    setPreviewLoading(true);
-    setPreviewData(null);
-
+  // ── Open branded preview modal by reporte ID ──
+  const openPreviewModal = useCallback(async (reporteId: string) => {
     try {
-      // Mapear tipo (UPPERCASE or lowercase) a slug URL para /api/productos/[tipo]/ultimo
-      const tipoLower = tipo.toLowerCase();
-      const tipoMap: Record<string, string> = {
-        'el_termometro': 'termometro',
-        'saldo_del_dia': 'saldo_del_dia',
-        'el_foco': 'el_foco',
-        'el_especializado': 'el_especializado',
-        'el_informe_cerrado': 'el_informe_cerrado',
-        'ficha_legislador': 'ficha_legislador',
-        'el_radar': 'el_radar',
-        'voz_y_voto': 'el_radar',
-        'el_hilo': 'el_hilo',
-        'foco_de_la_semana': 'foco_de_la_semana',
-        'alerta_temprana': 'alerta_temprana',
-        'boletin_del_grano': 'boletin_del_grano',
-      };
-      const tipoUrl = tipoMap[tipoLower] || tipoLower;
-      const res = await fetchWithTimeout(`/api/productos/${tipoUrl}/ultimo`, { timeoutMs: 10000 });
+      setPreviewReporte({ _loading: true } as Record<string, unknown>);
+      const res = await fetchWithTimeout(`/api/reportes/${reporteId}`, { timeoutMs: 10000 });
       if (res.ok) {
         const json = await res.json();
-        // Solo asignar si hay reporte real encontrado
-        setPreviewData(json.encontrado ? json : null);
+        setPreviewReporte(json);
       } else {
-        setPreviewData(null);
+        setPreviewReporte(null);
       }
     } catch {
-      setPreviewData(null);
-    } finally {
-      setPreviewLoading(false);
+      setPreviewReporte(null);
     }
-  }, [expandedPreviewTipo]);
+  }, []);
 
   // ── Derived ──
   const prod = data?.productos;
@@ -638,7 +606,27 @@ export function ProduccionView() {
       <PanelShell
         title="Productos Recientes"
         icon={<TrendingUp className="w-4 h-4" />}
-        extra={<ExportMenu targetRef={recientesRef} filename={`productos-decodex-${new Date().toISOString().slice(0, 10)}`} title="Productos Recientes" />}
+        extra={
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={async () => {
+                if (!confirm('¿Eliminar todos los productos generados?')) return;
+                try {
+                  const res = await fetch('/api/reportes?all=true', { method: 'DELETE' });
+                  const json = await res.json();
+                  if (json.eliminados > 0) {
+                    fetchData();
+                  }
+                } catch { /* silent */ }
+              }}
+              className="p-1.5 rounded-md text-slate-500 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+              title="Borrar todos los productos"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+            <ExportMenu targetRef={recientesRef} filename={`productos-decodex-${new Date().toISOString().slice(0, 10)}`} title="Productos Recientes" />
+          </div>
+        }
       >
         <div ref={recientesRef} className="min-h-[60px]">
         {loading ? (
@@ -656,15 +644,14 @@ export function ProduccionView() {
               const pTipo = p.tipo || '';
               const pId = (p as Record<string, unknown>).id as string || String(i);
               const { icon: ProductIcon, color: pColor } = getProductMeta(pTipo);
-              const isExpanded = expandedPreviewTipo === pTipo && expandedPreviewTipo !== null;
 
               return (
                 <div
                   key={pId}
                   className="rounded-md transition-all duration-200"
                   style={{
-                    background: isExpanded ? 'rgba(6,182,212,0.04)' : i === 0 ? 'rgba(6,182,212,0.02)' : 'rgba(255,255,255,0.01)',
-                    border: `1px solid ${isExpanded ? 'rgba(6,182,212,0.12)' : i === 0 ? 'rgba(6,182,212,0.06)' : 'rgba(255,255,255,0.03)'}`,
+                    background: i === 0 ? 'rgba(6,182,212,0.02)' : 'rgba(255,255,255,0.01)',
+                    border: `1px solid ${i === 0 ? 'rgba(6,182,212,0.06)' : 'rgba(255,255,255,0.03)'}`,
                   }}
                 >
                   <div className="px-3 py-2.5">
@@ -693,31 +680,26 @@ export function ProduccionView() {
                           {p.estado}
                         </span>
                       )}
-                      {/* VER CONTENIDO button */}
+                      {/* VER CONTENIDO button — opens branded modal */}
                       <button
-                        onClick={() => togglePreview(pTipo)}
+                        onClick={() => openPreviewModal(pId)}
                         className="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase font-mono transition-all duration-150 shrink-0"
                         style={{
-                          color: isExpanded ? '#06b6d4' : '#64748b',
-                          backgroundColor: isExpanded ? 'rgba(6,182,212,0.08)' : 'transparent',
-                          border: `1px solid ${isExpanded ? 'rgba(6,182,212,0.15)' : 'rgba(255,255,255,0.06)'}`,
+                          color: '#64748b',
+                          backgroundColor: 'transparent',
+                          border: '1px solid rgba(255,255,255,0.06)',
                         }}
                         onMouseEnter={(e) => {
-                          if (!isExpanded) {
-                            e.currentTarget.style.color = '#06b6d4';
-                            e.currentTarget.style.borderColor = 'rgba(6,182,212,0.15)';
-                          }
+                          e.currentTarget.style.color = '#06b6d4';
+                          e.currentTarget.style.borderColor = 'rgba(6,182,212,0.15)';
                         }}
                         onMouseLeave={(e) => {
-                          if (!isExpanded) {
-                            e.currentTarget.style.color = '#64748b';
-                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
-                          }
+                          e.currentTarget.style.color = '#64748b';
+                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
                         }}
                       >
                         <Eye className="w-2.5 h-2.5" />
                         Ver contenido
-                        {isExpanded ? <ChevronUp className="w-2.5 h-2.5" /> : <ChevronDown className="w-2.5 h-2.5" />}
                       </button>
                     </div>
                     <p className="text-[11px] text-slate-300 leading-snug line-clamp-2">
@@ -731,15 +713,7 @@ export function ProduccionView() {
                     )}
                   </div>
 
-                  {/* Content preview (expanded) */}
-                  {isExpanded && (
-                    <div className="px-3 pb-3">
-                      <ContentPreview
-                        data={previewData}
-                        loading={previewLoading}
-                      />
-                    </div>
-                  )}
+
                 </div>
               );
             })}
@@ -747,6 +721,13 @@ export function ProduccionView() {
         )}
         </div>
       </PanelShell>
+
+      {/* ── Preview Modal (branded) ── */}
+      <GeneratorPreviewModal
+        open={!!previewReporte}
+        onClose={() => setPreviewReporte(null)}
+        reporte={previewReporte}
+      />
 
       {/* ── Param Modal ── */}
       {paramModalTipo && (
