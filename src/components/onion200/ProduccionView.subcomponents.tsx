@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { ALL_PRODUCTS } from '@/constants/nav';
 import { statusColor, statusBg, statusBorder, statusToken } from '@/constants/colors';
+import { ProductoRichContent } from '@/components/producto/ProductoRichContent';
 import type { LucideIcon } from 'lucide-react';
 import type {
   CatalogProduct,
@@ -515,10 +516,12 @@ export function ContentPreview({
       {/* Contenido principal */}
       {contenidoText && (
         <div
-          className="text-[10px] font-mono text-slate-400 leading-relaxed max-h-80 overflow-y-auto custom-scrollbar whitespace-pre-wrap"
-          style={{ backgroundColor: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '4px' }}
+          className="max-h-96 overflow-y-auto custom-scrollbar"
+          style={{ border: '1px solid rgba(255,255,255,0.03)', borderRadius: '4px' }}
         >
-          <pre className="p-3 text-[9px] leading-relaxed">{contenidoText}</pre>
+          <div className="p-3">
+            <ProductoRichContent contenido={contenidoText} tipo={data.tipo} />
+          </div>
         </div>
       )}
 

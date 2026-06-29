@@ -720,8 +720,8 @@ export function ProduccionView() {
                         {isExpanded ? <ChevronUp className="w-2.5 h-2.5" /> : <ChevronDown className="w-2.5 h-2.5" />}
                       </button>
                     </div>
-                    <p className="text-[11px] text-slate-300 font-mono leading-snug line-clamp-2">
-                      {p.titulo || 'Sin titulo'}
+                    <p className="text-[11px] text-slate-300 leading-snug line-clamp-2">
+                      {(p.titulo || 'Sin titulo').replace(/^#{1,3}\s+/gm, '').replace(/\*\*/g, '').replace(/__/g, '')}
                     </p>
                     {p.fechaCreacion && (
                       <p className="text-[9px] font-mono text-slate-700 mt-1 flex items-center gap-1">
