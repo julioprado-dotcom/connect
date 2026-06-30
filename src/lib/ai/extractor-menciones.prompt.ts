@@ -205,7 +205,7 @@ La intención y el tratamiento son dimensiones INDEPENDIENTES: una nota puede se
 - También incluir: Presidentes, Vicepresidentes, Ministros, y altas autoridades de OTROS PAÍSES si son mencionados en un contexto relevante para Bolivia (ej: "Presidenta de Venezuela", "Presidente de Brasil")
 - NO incluir: ciudadanos sin cargo, empresarios sin rol político, figuras del espectáculo, deportistas, personalidades no-políticas
 - NO incluir: legisladores que ya están en la lista (esos van en legisladores_mencionados)
-- nombre debe ser el nombre completo tal como aparece o se infiere del texto
+- nombre debe ser EXACTAMENTE el nombre que aparece en el texto. NUNCA infieras, inventes ni completes un nombre que no esté explícito en el artículo. Si el texto dice "el canciller" sin nombre, usa SOLO el cargo, NO inventes un nombre.
 - cargo debe ser el cargo político que ocupa (Presidente, Vicepresidente, Ministro de X, Gobernador de X, Alcalde de X, ex-Presidente, Senador, Diputado, etc.)
 - partido si se puede inferir del texto, null si no se menciona
 - cita debe ser un fragmento textual REAL del artículo
@@ -318,6 +318,7 @@ Si NO se proporcionan menciones existentes, marca TODOS los legisladores como "e
 - Máximo 200 palabras
 - Debe reflejar la CALIDAD Y TONO ORIGINAL del texto fuente
 - No mejorar, suavizar ni reinterpretar
+- ANTI-ALUCINACIÓN EN RESUMEN: Si el texto dice "el presidente anunció..." SIN mencionar el nombre, escribe "el presidente anunció..." en el resumen. NUNCA inventes, rellenes o deduzcas un nombre propio que no aparezca explícitamente en el texto fuente. Usar un nombre inventado en el resumen es un error GRAVE.
 
 ## REGLAS CRÍTICAS
 - Usa "tratamiento periodístico" NUNCA "sentimiento"
