@@ -21,6 +21,7 @@ import { regenerateWithRetry } from '@/lib/quality/regeneration'
 import { validateContent } from '@/lib/quality/validator'
 import { verifyProduct } from '@/lib/verification/verify-product'
 import { limpiarPlaceholders, filtrarSeccionesFuenteUnica, detectarSujetosFantasma, eliminarSeccionesVacias, eliminarVocalEditorialCierre, asegurarCierreObligatorio, limpiarUndefinedLiterales, detectarNombresInventados } from '@/lib/verification/verify-postprocess'
+import { construirDirectorioEntidades, validarCargosEntidades } from '@/lib/verification/validar-entidades'
 import { corregirOrtografiaGramatica } from '@/lib/verification/corregir-gramatica'
 import { loadMarcoConceptual, formatMarcoForPrompt } from '@/lib/reporte-sectorial.alerts'
 import db from '@/lib/db'
@@ -245,6 +246,22 @@ export async function generateProductoInterno(params: GenerateInternalParams): P
     texto: (m.texto as string) ?? '',
     persona: (m.persona as string) ?? '',
   })))
+
+  // 8g-bis. VALIDACIÓN DE ENTIDADES: Verificar cargos contra DB Persona
+  try {
+    const entidadResult = await validarCargosEntidades(textoFinal, menciones.map(m => ({
+      persona: (m.persona as string) ?? null,
+    })))
+    if (entidadResult.correcciones.length > 0) {
+      textoFinal = entidadResult.texto
+      console.log(`[generate-internal] Validacion entidades: ${entidadResult.correcciones.length} correcciones de cargo`)
+      for (const c of entidadResult.correcciones) {
+        console.log(`[generate-internal]   → ${c}`)
+      }
+    }
+  } catch {
+    // No bloquear
+  }
 
   // 8h. Asegurar cierre obligatorio si la LLM no lo generó
   textoFinal = asegurarCierreObligatorio(textoFinal, totalMenciones)
@@ -593,6 +610,9 @@ async function buildPromptForProduct(params: BuildPromptParams): Promise<{
         })
         .join('\n    ')
 
+      // 5. Construir directorio verificado de entidades (contra DB Persona)
+      const directorioEntidades = await construirDirectorioEntidades(mencionesFinales)
+
       datosExtra = [
         `Tipo de producto: Voz y Voto`,
         `Periodo: ${ventanaLabel}`,
@@ -600,8 +620,14 @@ async function buildPromptForProduct(params: BuildPromptParams): Promise<{
         `Medios que reportaron: ${mediosUnicos}`,
         `Clasificación por nivel institucional: ${nivelesSummary}`,
         `Actores legislativos/institucionales más mencionados:\n    ${actoresTop || 'Sin actores identificados'}`,
-        `Regla: si una mención no pertenece a ningun nivel legislativo/institucional, no la uses`,
+        `Regla: si una mención no pertenece a ningun nivel legislativo/institucional, no la usa`,
       ].join('\n')
+
+      // Agregar directorio de entidades al prompt si hay datos
+      if (directorioEntidades) {
+        datosExtra += '\n' + directorioEntidades
+        console.log(`[generate-internal] VOZ_Y_VOTO: directorio de entidades injectado (${directorioEntidades.split('\n').length} lineas)`)
+      }
       break
     }
 

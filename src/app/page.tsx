@@ -13,6 +13,7 @@ import { InteligenciaView } from '@/components/onion200/InteligenciaView';
 import { IndicadoresView } from '@/components/onion200/IndicadoresView';
 import { CalidadView } from '@/components/onion200/CalidadView';
 import { AlertasPanel } from '@/components/dashboard/panels/AlertasPanel';
+import { EntidadesView } from '@/components/onion200/EntidadesView';
 import Image from 'next/image';
 import {
   Crosshair,
@@ -38,6 +39,7 @@ import {
   Bot,
   ChevronDown,
   ShieldCheck,
+  Users,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { useTheme } from '@/components/theme-provider';
@@ -66,7 +68,7 @@ interface PipelineKPIs {
   };
 }
 
-type TabKey = 'resumen' | 'alertas' | 'indicadores' | 'fuentes' | 'captura' | 'clasificacion' | 'calidad' | 'inteligencia' | 'produccion' | 'distribucion';
+type TabKey = 'resumen' | 'alertas' | 'indicadores' | 'fuentes' | 'captura' | 'clasificacion' | 'calidad' | 'inteligencia' | 'produccion' | 'distribucion' | 'entidades';
 
 interface TabConfig {
   key: TabKey;
@@ -84,6 +86,7 @@ const TABS: TabConfig[] = [
   { key: 'clasificacion', label: 'CLASIFICACION', icon: <Crosshair className="w-3.5 h-3.5" />, statusKey: 'clasificacion' },
   { key: 'calidad', label: 'CALIDAD', icon: <ShieldCheck className="w-3.5 h-3.5" /> },
   { key: 'inteligencia', label: 'INTELIGENCIA', icon: <Sparkles className="w-3.5 h-3.5" /> },
+  { key: 'entidades', label: 'ENTIDADES', icon: <Users className="w-3.5 h-3.5" /> },
   { key: 'produccion', label: 'PRODUCCION', icon: <FileText className="w-3.5 h-3.5" />, statusKey: 'produccion' },
   { key: 'distribucion', label: 'DISTRIBUCION', icon: <Send className="w-3.5 h-3.5" />, statusKey: 'distribucion' },
 ];
@@ -697,6 +700,7 @@ export default function ONION200Dashboard() {
           {activeTab === 'inteligencia' && <InteligenciaView />}
           {activeTab === 'produccion' && <ProduccionView />}
           {activeTab === 'distribucion' && <DistribucionView />}
+          {activeTab === 'entidades' && <EntidadesView />}
         </div>
       </div>
 
