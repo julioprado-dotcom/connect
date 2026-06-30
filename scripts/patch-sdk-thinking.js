@@ -8,8 +8,6 @@
  */
 const fs = require('fs');
 const path = require('path');
-const glob = require('glob') || { sync: () => [] };
-
 const chunksDir = path.join(__dirname, '..', '.next', 'server', 'chunks');
 let patched = 0;
 
