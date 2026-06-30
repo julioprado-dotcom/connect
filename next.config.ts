@@ -20,6 +20,19 @@ const nextConfig: NextConfig = {
 
   serverExternalPackages: ['@prisma/client', 'better-sqlite3', 'node-cron', 'z-ai-web-dev-sdk'],
 
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        'fs/promises': false,
+        path: false,
+        os: false,
+      };
+    }
+    return config;
+  },
+
   experimental: {
     optimizePackageImports: [
       'lucide-react',
