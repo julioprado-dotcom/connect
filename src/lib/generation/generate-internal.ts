@@ -21,6 +21,7 @@ import { regenerateWithRetry } from '@/lib/quality/regeneration'
 import { validateContent } from '@/lib/quality/validator'
 import { verifyProduct } from '@/lib/verification/verify-product'
 import { limpiarPlaceholders, filtrarSeccionesFuenteUnica, detectarSujetosFantasma, eliminarSeccionesVacias, eliminarVocalEditorialCierre, asegurarCierreObligatorio, limpiarUndefinedLiterales } from '@/lib/verification/verify-postprocess'
+import { corregirOrtografiaGramatica } from '@/lib/verification/corregir-gramatica'
 import { loadMarcoConceptual, formatMarcoForPrompt } from '@/lib/reporte-sectorial.alerts'
 import db from '@/lib/db'
 
@@ -241,7 +242,19 @@ export async function generateProductoInterno(params: GenerateInternalParams): P
   // 8g. Asegurar cierre obligatorio si la LLM no lo generó
   textoFinal = asegurarCierreObligatorio(textoFinal, totalMenciones)
 
-  // 9. Validación de calidad
+  // 8h. Corrección ortográfica y gramatical (paso final, texto limpio)
+  try {
+    const gramResult = await corregirOrtografiaGramatica(textoFinal, tipoBoletin)
+    if (gramResult.corrected) {
+      textoFinal = gramResult.textoCorregido
+      console.log(`[generate-internal] Correccion gramatical: ${gramResult.correcciones.length} correcciones`)
+    }
+  } catch {
+    // No bloquear — si falla la corrección, el texto se guarda igual
+    console.warn(`[generate-internal] Correccion gramatical fallida para ${tipoBoletin}, guardando sin correccion`)
+  }
+
+  // 9. Validación de calidad (sobre texto ya corregido ortográficamente)
   let puntuacionCalidad = 0
   try {
     const validation = validateContent(textoFinal, { tipo: tipoBoletin })
@@ -253,7 +266,7 @@ export async function generateProductoInterno(params: GenerateInternalParams): P
     // No bloquear
   }
 
-  // 10. Título y resumen
+  // 10. Título y resumen (sobre texto corregido ortográficamente)
   const titulo = generarTituloProducto(tipoBoletin, undefined, ejeSlug)
   const ventanaLabel = `${formatFechaBolivia(fechaInicio)} — ${formatFechaBolivia(fechaFin)}`
 
