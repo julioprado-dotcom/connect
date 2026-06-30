@@ -310,3 +310,139 @@ export function limpiarUndefinedLiterales(texto: string): string {
     .replace(/\n{3,}/g, '\n\n')
     .trim()
 }
+
+/**
+ * FILTRO DETERMINÍSTICO: Detecta y elimina nombres inventados por la LLM.
+ * 
+ * Principio: Si un nombre propio aparece en el producto PERO NO en ninguna
+ * mención fuente (ni en persona, ni en titulo, ni en texto del artículo),
+ * es probablemente inventado por la LLM usando su conocimiento previo.
+ * 
+ * Casos que atrapa:
+ * - "el presidente Rodrigo Paz anunció..." (las menciones solo dicen "el presidente")
+ * - "la canciller Pamela Aramayo declaró..." (las menciones solo dicen "el canciller")
+ * 
+ * No elimina nombres que SÍ aparecen en las menciones.
+ */
+export function detectarNombresInventados(texto: string, menciones: Array<{ titulo?: string; texto?: string; persona?: string }>): string {
+  if (!texto || !menciones || menciones.length === 0) return texto
+
+  // 1. Construir set de nombres válidos de las menciones fuente
+  const nombresValidos = new Set<string>()
+
+  for (const m of menciones) {
+    // Campo persona
+    if (m.persona) {
+      for (const nombre of extraerNombresPropios(m.persona)) {
+        nombresValidos.add(nombre)
+        // Also add just apellido
+        const partes = nombre.split(' ')
+        if (partes.length > 1) nombresValidos.add(partes[partes.length - 1])
+      }
+    }
+    // Campo titulo (headline)
+    if (m.titulo) {
+      for (const nombre of extraerNombresPropios(m.titulo)) {
+        nombresValidos.add(nombre)
+        const partes = nombre.split(' ')
+        if (partes.length > 1) nombresValidos.add(partes[partes.length - 1])
+      }
+    }
+    // Campo texto (cuerpo del artículo) — buscar nombres
+    if (m.texto) {
+      for (const nombre of extraerNombresPropios(m.texto)) {
+        nombresValidos.add(nombre)
+        const partes = nombre.split(' ')
+        if (partes.length > 1) nombresValidos.add(partes[partes.length - 1])
+      }
+    }
+  }
+
+  if (nombresValidos.size === 0) return texto
+
+  console.log(`[detectarNombresInventados] ${nombresValidos.size} nombres válidos en menciones: ${Array.from(nombresValidos).join(', ')}`)
+
+  // 2. Extraer nombres propios del texto generado
+  const nombresEnProducto = extraerNombresPropios(texto)
+  
+  // 3. Detectar nombres inventados (en producto pero NO en menciones)
+  const inventados: string[] = []
+  for (const nombre of nombresEnProducto) {
+    // Check if this name (or its parts) appear in valid names
+    const partes = nombre.split(' ')
+    const apellido = partes.length > 1 ? partes[partes.length - 1] : nombre
+    
+    let esValido = nombresValidos.has(nombre)
+    if (!esValido && partes.length > 1) {
+      // Check apellido match
+      esValido = nombresValidos.has(apellido)
+    }
+    if (!esValido) {
+      // Check if any valid name contains this apellido
+      for (const valido of nombresValidos) {
+        if (valido.includes(apellido) || apellido.includes(valido.split(' ').pop() || '')) {
+          esValido = true
+          break
+        }
+      }
+    }
+    
+    if (!esValido) {
+      inventados.push(nombre)
+    }
+  }
+
+  if (inventados.length === 0) return texto
+
+  console.log(`[detectarNombresInventados] Nombres sospechosos de invención: ${inventados.join(', ')}`)
+
+  // 4. Para nombres inventados asociados a cargos, eliminar solo el nombre
+  let textoCorregido = texto
+  for (const nombreInventado of inventados) {
+    // Pattern: "el [cargo] NombreInventado" → "el [cargo]"
+    // Pattern: "la [cargo] NombreInventado" → "la [cargo]"
+    const partesNombre = nombreInventado.split(' ').filter(p => p.length > 2)
+    
+    // Try full name first, then just apellido
+    for (const intento of [nombreInventado, partesNombre.length > 1 ? partesNombre[partesNombre.length - 1] : '']) {
+      if (!intento) continue
+      
+      // Escape regex special chars
+      const escaped = intento.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      
+      // Pattern: article+cargo + Nombre (with optional comma after)
+      const patron1 = new RegExp(`(\\b(?:el|la|los|las)\\s+(?:presidente|vicepresidente|ministr[oa]|canciller|gobernador|alcalde|senador[a]?|diputad[oa]|fiscal|defensor[a]?|general|comandante|dirigente|líder|lider|secretari[oa]|viceministr[oa]|ex\\s*(?:presidente|ministro))\\b[^,.\\n]*?)\\b${escaped}\\b`, 'gi')
+      
+      const match1 = patron1.exec(textoCorregido)
+      if (match1) {
+        textoCorregido = textoCorregido.replace(match1[0], match1[1].trim())
+        console.log(`[detectarNombresInventados] ELIMINADO: "${match1[0].trim()}" → "${match1[1].trim()}"`)
+      }
+    }
+  }
+
+  // Cleanup
+  textoCorregido = textoCorregido.replace(/  +/g, ' ').replace(/\bde\. de\b/g, 'de')
+  
+  return textoCorregido
+}
+
+/**
+ * Extrae nombres propios (2+ palabras con mayúscula inicial) de un texto.
+ * Incluye apellidos compuestos y nombres con tildes.
+ */
+function extraerNombresPropios(texto: string): string[] {
+  if (!texto) return []
+  const nombres: string[] = []
+  // Pattern: "Nombre Apellido" (2+ palabras, each starting with uppercase)
+  const pattern = /\b([A-ZÁÉÍÓÚÑÜ][a-záéíóúñü]+(?:\s+(?:de\s+|del\s+|la\s+|las\s+|los\s+)?[A-ZÁÉÍÓÚÑÜ][a-záéíóúñü]+){1,4})\b/g
+  let match
+  while ((match = pattern.exec(texto)) !== null) {
+    const nombre = match[1].trim()
+    // Filter out common non-name patterns
+    if (nombre.length > 4 && nombre.length < 60 && !/^E[ln]\s/.test(nombre)) {
+      nombres.push(nombre)
+    }
+  }
+  return [...new Set(nombres)]
+}

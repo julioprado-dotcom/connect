@@ -20,7 +20,7 @@ import { formatearMencionesPrompt, formatearContextoHistorico, construirPrompt, 
 import { regenerateWithRetry } from '@/lib/quality/regeneration'
 import { validateContent } from '@/lib/quality/validator'
 import { verifyProduct } from '@/lib/verification/verify-product'
-import { limpiarPlaceholders, filtrarSeccionesFuenteUnica, detectarSujetosFantasma, eliminarSeccionesVacias, eliminarVocalEditorialCierre, asegurarCierreObligatorio, limpiarUndefinedLiterales } from '@/lib/verification/verify-postprocess'
+import { limpiarPlaceholders, filtrarSeccionesFuenteUnica, detectarSujetosFantasma, eliminarSeccionesVacias, eliminarVocalEditorialCierre, asegurarCierreObligatorio, limpiarUndefinedLiterales, detectarNombresInventados } from '@/lib/verification/verify-postprocess'
 import { corregirOrtografiaGramatica } from '@/lib/verification/corregir-gramatica'
 import { loadMarcoConceptual, formatMarcoForPrompt } from '@/lib/reporte-sectorial.alerts'
 import db from '@/lib/db'
@@ -239,10 +239,17 @@ export async function generateProductoInterno(params: GenerateInternalParams): P
   // 8f. Limpiar literales "undefined" que la LLM copió del prompt
   textoFinal = limpiarUndefinedLiterales(textoFinal)
 
-  // 8g. Asegurar cierre obligatorio si la LLM no lo generó
+  // 8g. FILTRO DETERMINÍSTICO: Eliminar nombres inventados (no en menciones fuente)
+  textoFinal = detectarNombresInventados(textoFinal, menciones.map(m => ({
+    titulo: (m.titulo as string) ?? '',
+    texto: (m.texto as string) ?? '',
+    persona: (m.persona as string) ?? '',
+  })))
+
+  // 8h. Asegurar cierre obligatorio si la LLM no lo generó
   textoFinal = asegurarCierreObligatorio(textoFinal, totalMenciones)
 
-  // 8h. Corrección ortográfica y gramatical (paso final, texto limpio)
+  // 8i. Corrección ortográfica y gramatical (paso final, texto limpio)
   try {
     const gramResult = await corregirOrtografiaGramatica(textoFinal, tipoBoletin)
     if (gramResult.corrected) {
