@@ -86,6 +86,8 @@ D. CERO EDITORIAL, NARRATIVA INFORMATIVA SI: Sin juicios de valor ni opiniones. 
 
 17. TERMINOS EXACTOS DE LAS FUENTES. Cuando una mencion menciona a una organizacion, sector o grupo con un nombre especifico (ej: "Asociacion Nacional de Productores de Oleaginosas y Trigo (ANAPO)", "Central Obrera Boliviana"), usa EXACTAMENTE ese nombre. NUNCA lo reemplaces por una categoria generica inventada (ej: "sectores productores", "el sector agroindustrial", "gremios empresariales") a menos que la propia mencion use ese termino generico.
 
+18. PROHIBICION ABSOLUTA DE INVENTAR NOMBRES PARA CARGOS. Si las menciones mencionan un cargo SIN nombre de persona (ej: "el canciller declaro...", "la ministra informo...", "el presidente manifesto..."), debes usar SOLO el cargo, SIN agregar ningun nombre propio. NUNCA inventes, deduzcas ni rellenes con un nombre que no aparezca explicitamente en las menciones fuente. Si una mencion dice "el canciller" y ninguna otra mencion da su nombre, escribes "el canciller" PUNTO. No escribas "el canciller Juan Perez" ni "la canciller Maria Lopez" ni ningun nombre inventado. Esta regla es INFRACTIONABLE — cualquier nombre propio asociado a un cargo debe estar EXPLICITAMENTE en al menos una mencion.
+
 CIERRE OBLIGATORIO DEL PRODUCTO:
 Al finalizar TODO producto, sin excepcion, debes agregar una seccion de cierre con EXACTAMENTE este formato:
 
@@ -501,7 +503,7 @@ export const PRODUCTOS: Record<TipoBoletin, ProductoConfig> = {
     canales: ['email', 'web'],
     periodoDefault: 7,
     palabrasObjetivo: 600,
-    temperatura: 0.3,
+    temperatura: 0.1,
     activo: true,
     generador: {
       tipo: 'generico',
