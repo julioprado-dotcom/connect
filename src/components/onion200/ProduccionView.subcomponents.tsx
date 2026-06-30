@@ -1,10 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   FileText, Clock, Loader2, Play, X, CheckCircle2, AlertTriangle, Zap,
 } from 'lucide-react';
 import { ALL_PRODUCTS } from '@/constants/nav';
+import { INDICADOR_PROTOCOL } from '@/constants/products';
+import { IndicadorChartList } from '@/components/producto/IndicadorChart';
 import { statusColor, statusBg, statusBorder, statusToken } from '@/constants/colors';
 import { ProductoRichContent } from '@/components/producto/ProductoRichContent';
 import type { LucideIcon } from 'lucide-react';
@@ -390,6 +392,41 @@ export function ParamModal({
 // ═══════════════════════════════════════════════════════════════
 
 /**
+ * Indicadores ONION200 con charts para el preview del producto.
+ * Carga los indicadores asociados al tipo de producto y los muestra
+ * con gráficos de tendencia estilo dashboard.
+ */
+function ProductoIndicadores({ tipo }: { tipo: string }) {
+  const [indicadores, setIndicadores] = useState<Array<{ slug: string; nombre: string; unidad: string }>>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!tipo) return;
+    const protocol = INDICADOR_PROTOCOL[tipo as keyof typeof INDICADOR_PROTOCOL];
+    if (!protocol || !protocol.activo) return;
+
+    setLoading(true);
+    fetch(`/api/productos/${tipo}/indicadores?dias=7`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.indicadores && Array.isArray(data.indicadores)) {
+          setIndicadores(data.indicadores.map((ind: { slug: string; nombre: string; unidad: string }) => ({
+            slug: ind.slug,
+            nombre: ind.nombre,
+            unidad: ind.unidad,
+          })));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [tipo]);
+
+  if (loading || indicadores.length === 0) return null;
+
+  return <IndicadorChartList indicadores={indicadores} defaultDays={7} />;
+}
+
+/**
  * Extrae texto legible del campo `contenido` de un Reporte.
  * El campo puede ser: string plano, objeto JSON con textoCompleto, o null.
  */
@@ -524,6 +561,9 @@ export function ContentPreview({
           </div>
         </div>
       )}
+
+      {/* Indicadores ONION200 con chart */}
+      <ProductoIndicadores tipo={data.tipo} />
 
       {/* Si no hay contenido pero sí hay reporte (vacío) */}
       {!contenidoText && !data.resumen && (
