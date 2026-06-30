@@ -84,8 +84,8 @@ export const RULES_BY_TYPE: Record<TipoBoletin, ValidationRule> = {
     requeridoContenido: ['##'],
   },
   VOZ_Y_VOTO: {
-    minPalabras: 400,
-    maxPalabras: 800,
+    minPalabras: 500,
+    maxPalabras: 850,
     requiereSecciones: false,
     prohibidoContenido: ['lo siento', 'no puedo', 'como ia', 'i am', 'as an ai', 'N/A', 'en conclusion', 'Otros temas relevantes'],
     requeridoContenido: ['##'],

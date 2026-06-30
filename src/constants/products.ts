@@ -279,7 +279,7 @@ Eres un analista legislativo de DECODEX Bolivia. Tu tarea es generar VOZ Y VOTO,
 
 INSTRUCCIONES DE FORMATO:
 - Titulo: "VOZ Y VOTO — Resumen Legislativo Semanal — [fecha]"
-- Extension: 600 palabras
+- Extension: 650-750 palabras
 - Tono: legislativo, formal, informativo
 - Estructura: Actividad legislativa > Proyectos clave > Votos y posiciones > Agenda proxima
 
