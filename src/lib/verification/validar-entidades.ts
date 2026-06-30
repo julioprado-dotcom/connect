@@ -103,21 +103,14 @@ export async function construirDirectorioEntidades(
 
     if (nombresMencionados.size === 0) return ''
 
-    // Buscar cada nombre mencionado en la DB
+    // Buscar cada nombre mencionado en la DB (solo por nombre completo)
     const directorio: string[] = []
     for (const nombreMencion of nombresMencionados) {
       const nombreLower = nombreMencion.toLowerCase()
 
-      // Buscar por nombre completo o por apellido
+      // Solo búsqueda por nombre completo — NO por apellido
+      // Apellidos compartidos causan falsos positivos
       let encontrada = personasDB.find(p => p.nombre.toLowerCase() === nombreLower)
-      if (!encontrada) {
-        // Buscar por apellido (última palabra del nombre)
-        const apellido = nombreMencion.split(' ').pop()?.toLowerCase() || ''
-        encontrada = personasDB.find(p => {
-          const pApellidos = p.nombre.split(' ').slice(1).join(' ').toLowerCase()
-          return pApellidos === apellido || pApellidos.includes(apellido)
-        })
-      }
 
       if (encontrada && encontrada.cargoDirectiva) {
         directorio.push(`- ${encontrada.nombre}: ${encontrada.cargoDirectiva} (${encontrada.tipo})`)
@@ -166,17 +159,13 @@ export async function validarCargosEntidades(
       return { texto, correcciones: [] }
     }
 
-    // Construir mapa: apellido_lower → { nombre, cargoDirectiva, tipo }
+    // Construir mapa: nombre_completo_lower → { nombre, cargoDirectiva, tipo }
+    // IMPORTANTE: Solo indexar por nombre completo. NO por apellido solo.
+    // Apellidos compartidos entre personas distintas causan falsos positivos:
+    // Pamela Aramayo (Médica) ≠ Fernando Aramayo (Canciller)
     const entidadMap = new Map<string, { nombre: string; cargo: string; tipo: string }>()
     for (const p of personasDB) {
       if (!p.cargoDirectiva) continue
-      const apellidos = p.nombre.split(' ').slice(1).join(' ').toLowerCase()
-      entidadMap.set(apellidos, {
-        nombre: p.nombre,
-        cargo: p.cargoDirectiva,
-        tipo: p.tipo,
-      })
-      // También por nombre completo
       entidadMap.set(p.nombre.toLowerCase(), {
         nombre: p.nombre,
         cargo: p.cargoDirectiva,
@@ -199,13 +188,18 @@ export async function validarCargosEntidades(
       const cargoTexto = match[2].toLowerCase()
       const nombreTexto = match[3]
 
-      // Verificar si este nombre está en la DB
+      // Verificar si este nombre está en la DB (solo por nombre completo)
       const nombreLower = nombreTexto.toLowerCase()
-      const apellido = nombreTexto.split(' ').pop()?.toLowerCase() || ''
       
-      const entidad = entidadMap.get(nombreLower) || entidadMap.get(apellido)
+      const entidad = entidadMap.get(nombreLower)
       
       if (!entidad) continue
+
+      // Safety: verificar que el nombre del texto coincide al menos por primer nombre
+      // para evitar coincidencias falsas con apellidos compartidos
+      const primerNombreTexto = nombreTexto.split(' ')[0].toLowerCase()
+      const primerNombreDB = entidad.nombre.split(' ')[0].toLowerCase()
+      if (primerNombreTexto !== primerNombreDB) continue
 
       // El cargo en el texto coincide con el de la DB?
       const cargoDBLower = entidad.cargo.toLowerCase()
