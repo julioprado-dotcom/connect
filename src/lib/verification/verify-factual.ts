@@ -43,11 +43,12 @@ const VERIFY_SYSTEM_PROMPT = `Eres un verificador factual de textos periodistico
 REGLAS ESTRICTAS:
 1. Si el texto dice "el ministro René García" pero las menciones dicen "la ministra Beatriz García", esto es ERROR CORREGIR a "la ministra Beatriz García"
 2. NOMBRES INVENTADOS (REGLA CRITICA): Si el texto asocia un NOMBRE PROPIO a un cargo (ej: "el canciller Pamela Aramayo", "la ministra Maria Lopez") y ese NOMBRE NO aparece en NINGUNA mencion fuente, es un ERROR GRAVE. Debes ELIMINAR el nombre inventado y dejar solo el cargo: "el canciller declaro..." (sin nombre). Esta es la regla mas importante.
-3. NOMBRES DEFORMADOS: Si el texto dice "Pamela Aramayo" pero las menciones dicen "Carlos Aramayo" (cambio de nombre o genero), es ERROR. Corregir al nombre EXACTO de las menciones.
-4. Verifica concordancia de genero: "ministra" (femenino) vs "ministro" (masculino), "la" vs "el", "la diputada" vs "el diputado"
-5. NO cambies la estructura del texto, solo corrige nombres/cargos/datos erroneos.
-6. Si el texto esta correcto, devuélvelo tal cual sin cambios.
-7. PROHIBIDO: NUNCA reemplaces un nombre con "N/A", "No disponible" o similar. Si no puedes verificar un nombre, déjalo TAL CUAL.
+3. NOMBRES EXISTENTES EN MENCIONES: Si un nombre propio en el texto APARECE en las menciones fuente (busca en persona, titulo y texto de cada mencion), ese nombre es VALIDO y NO debe eliminarse ni modificarse. Solo corrige nombres que sean claramente inventados o deformados.
+4. NOMBRES DEFORMADOS: Si el texto dice "Pamela Aramayo" pero las menciones dicen "Carlos Aramayo" (cambio de nombre o genero), es ERROR. Corregir al nombre EXACTO de las menciones.
+5. Verifica concordancia de genero: "ministra" (femenino) vs "ministro" (masculino), "la" vs "el", "la diputada" vs "el diputado"
+6. NO cambies la estructura del texto, solo corrige nombres/cargos/datos erroneos.
+7. Si el texto esta correcto, devuélvelo tal cual sin cambios.
+8. PROHIBIDO: NUNCA reemplaces un nombre con "N/A", "No disponible" o similar. NUNCA elimines un nombre propio si aparece en las menciones. Si no puedes verificar un nombre, déjalo TAL CUAL.
 
 RESPUESTA EN FORMATO JSON:
 {
@@ -98,10 +99,21 @@ export async function verifyFactualWithLLM(
     // Construir lista de nombres/cargos extraidos de menciones para referencia
     const nombresYcargos = extractNamesAndPositions(mencionesUsadas);
     
-    // Construir resumen compacto de menciones (max 4000 chars para no explotar token)
+    // Construir resumen compacto de menciones (max 6000 chars para no explotar token)
+    // Incluir texto de la mención para que el verificador pueda encontrar nombres en el cuerpo
     const mencionesCompactas = mencionesUsadas
       .slice(0, 30) // max 30 menciones para no pasarse de tokens
-      .map((m, i) => `${i + 1}. ${m.titulo}${m.persona ? ` — Persona: ${m.persona}` : ''}${m.medio ? ` (${m.medio})` : ''}`)
+      .map((m, i) => {
+        let linea = `${i + 1}. ${m.titulo}`;
+        if (m.persona) linea += ` — Persona: ${m.persona}`;
+        // Include first 200 chars of texto so verifier can find names in body
+        if (m.texto && m.texto.length > 0) {
+          const fragmento = m.texto.substring(0, 200).replace(/\n/g, ' ');
+          linea += ` — Texto: ${fragmento}`;
+        }
+        if (m.medio) linea += ` (${m.medio})`;
+        return linea;
+      })
       .join('\n');
 
     const userPrompt = `TEXTO A VERIFICAR:
@@ -119,7 +131,9 @@ MENCIONES FUENTE:
 ${mencionesCompactas}
 ---
 
-Verifica que los nombres, cargos y generos en el texto coincidan EXACTAMENTE con las menciones fuente. Devuelve el JSON.`;
+Verifica que los nombres, cargos y generos en el texto coincidan EXACTAMENTE con las menciones fuente.
+IMPORTANTE: Busca cada nombre propio del texto en el campo "Texto:" de cada mencion fuente. Si un nombre aparece en el texto de cualquier mencion, es VALIDO.
+Devuelve el JSON.`;
 
     const zai = await ZAI.create();
     
