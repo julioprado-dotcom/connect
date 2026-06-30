@@ -1,9 +1,11 @@
 'use client';
 
+import React, { useState, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { TipoBoletin } from '@/types/bulletin';
 import { ALL_PRODUCTS } from '@/constants/nav';
+import { Copy, Check } from 'lucide-react';
 
 // ─── Props ──────────────────────────────────────────────────────────
 
@@ -27,9 +29,53 @@ function getProductStyle(tipo?: string) {
 
 export function ProductoRichContent({ contenido, tipo, className = '' }: ProductoRichContentProps) {
   const style = getProductStyle(tipo);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    try {
+      // Strip markdown formatting for clean copy
+      const plainText = contenido
+        .replace(/#{1,6}\s+/g, '')
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/\*(.+?)\*/g, '$1')
+        .replace(/\[(.+?)\]\(.+?\)/g, '$1')
+        .replace(/^\s*---\s*$/gm, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+      await navigator.clipboard.writeText(plainText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for non-HTTPS contexts
+      const ta = document.createElement('textarea');
+      ta.value = contenido;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }, [contenido]);
 
   return (
     <div className={`producto-rich-content ${className}`}>
+      {/* Copy button */}
+      <div className="flex justify-end mb-2">
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium transition-all duration-200 cursor-pointer"
+          style={{
+            color: copied ? '#10b981' : style.color,
+            backgroundColor: copied ? 'rgba(16,185,129,0.08)' : 'rgba(148,163,184,0.06)',
+            border: `1px solid ${copied ? 'rgba(16,185,129,0.2)' : 'rgba(148,163,184,0.12)'}`,
+          }}
+          title="Copiar contenido"
+        >
+          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+          {copied ? 'Copiado' : 'Copiar'}
+        </button>
+      </div>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{

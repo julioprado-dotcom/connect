@@ -199,7 +199,7 @@
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--foreground);
-  margin: 1.5rem 0 0.75rem 0;
+  margin: 1.75rem 0 0.85rem 0;
   padding-bottom: 0.5rem;
   border-bottom: 2px solid;
   letter-spacing: -0.02em;
@@ -211,7 +211,7 @@
   font-size: 1.15rem;
   font-weight: 600;
   color: var(--foreground);
-  margin: 1.5rem 0 0.6rem 0;
+  margin: 1.6rem 0 0.65rem 0;
   padding-left: 0.75rem;
   border-left: 3px solid;
   letter-spacing: -0.01em;
@@ -222,7 +222,7 @@
   font-family: 'Montserrat', sans-serif;
   font-size: 0.95rem;
   font-weight: 600;
-  margin: 1.2rem 0 0.4rem 0;
+  margin: 1.4rem 0 0.5rem 0;
   letter-spacing: 0.01em;
   text-transform: uppercase;
 }
@@ -230,7 +230,7 @@
 /* ── Body text ── */
 
 .producto-p {
-  margin: 0 0 0.85rem 0;
+  margin: 0 0 1rem 0;
   text-align: justify;
   hyphens: auto;
 }
