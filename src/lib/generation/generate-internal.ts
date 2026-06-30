@@ -279,19 +279,34 @@ export async function generateProductoInterno(params: GenerateInternalParams): P
   }
 
   // 9. Validación de calidad (sobre texto ya corregido ortográficamente)
+  // FIX v0.17.1: Umbral de calidad — rechazar productos con puntuación < 50
+  // Antes solo se logueaba; ahora se bloquea la entrega al cliente.
   let puntuacionCalidad = 0
   try {
     const validation = validateContent(textoFinal, { tipo: tipoBoletin })
     puntuacionCalidad = validation.puntuacion
+    if (puntuacionCalidad < 50) {
+      console.error(`[generate-internal] PRODUCTO RECHAZADO ${tipoBoletin}: puntuacion ${puntuacionCalidad}/100 (umbral: 50)`)
+      console.error(`[generate-internal] Errores: ${validation.errores.join('; ')}`)
+      console.error(`[generate-internal] Advertencias: ${validation.advertencias.join('; ')}`)
+      return {
+        exito: false,
+        error: `CALIDAD_INSUFICIENTE:${tipoBoletin}:puntuacion=${puntuacionCalidad}`,
+        totalMenciones,
+        responseTimeMs: Date.now() - startTime,
+      }
+    }
     if (!validation.valido) {
-      console.warn(`[generate-internal] Calidad baja ${tipoBoletin}: ${validation.puntuacion}`)
+      console.warn(`[generate-internal] Calidad con advertencias ${tipoBoletin}: ${validation.puntuacion} — ${validation.errores.join('; ')}`)
     }
   } catch {
-    // No bloquear
+    // No bloquear si falla el validador mismo
   }
 
   // 10. Título y resumen (sobre texto corregido ortográficamente)
-  const titulo = generarTituloProducto(tipoBoletin, undefined, ejeSlug)
+  // FIX v0.17.1: evitar que ejeSlug undefined se copie al título/resumen
+  const ejeSeguro = ejeSlug || undefined
+  const titulo = generarTituloProducto(tipoBoletin, undefined, ejeSeguro)
   const ventanaLabel = `${formatFechaBolivia(fechaInicio)} — ${formatFechaBolivia(fechaFin)}`
 
   let resumen = await getDedicatedResumen(tipoBoletin, {
@@ -458,9 +473,11 @@ async function buildPromptForProduct(params: BuildPromptParams): Promise<{
       }
 
       mencionesPrompt = formatearMencionesPrompt(menciones, tipoBoletin)
+      // FIX v0.17.1: evitar "Eje tematico: undefined" en el prompt
+      const ejeLabel = ejeSlug ? `${ejeSlug}${ejeDescripcion ? ` (${ejeDescripcion})` : ''}` : 'General'
       datosExtra = [
         `Tipo de producto: ${config.nombre}`,
-        `Eje tematico: ${ejeSlug}${ejeDescripcion ? ` (${ejeDescripcion})` : ''}`,
+        `Eje tematico: ${ejeLabel}`,
         `Periodo: ${ventanaLabel}`,
         `Total menciones: ${totalMenciones}`,
       ].join('\n')

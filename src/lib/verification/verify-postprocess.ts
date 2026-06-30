@@ -81,38 +81,21 @@ export function limpiarPlaceholders(texto: string): string {
 }
 
 /**
- * Detecta y corrige oraciones con sujeto fantasma ("Se aprobó...", "Se informó...")
- * reemplazándolas con marcadores que el LLM de verificación factual pueda corregir.
- * NOTA: Esta función es un Safety Net. La corrección real se hace en el prompt
- * con el bloque SUJETOS OBLIGATORIOS en construirPrompt().
+ * FIX v0.17.1: DESACTIVADA — detectarSujetosFantasma (no-op).
+ *
+ * Esta función insertaba "[ACTOR REQUERIDO]" y luego lo eliminaba,
+ * dejando oraciones sin sujeto: "Se aprobó la ley" → "[ACTOR REQUERIDO] aprobó la ley"
+ * → "aprobó la ley" (sin sujeto, gramaticalmente roto).
+ *
+ * La corrección real de sujetos fantasma se hace EN EL PROMPT con el bloque
+ * SUJETOS OBLIGATORIOS en construirPrompt(). Esa es la solución correcta:
+ * que la LLM genere el texto con sujetos identificados desde el inicio.
+ *
+ * El validator.ts sigue penalizando sujetos fantasma en la puntuación de calidad,
+ * lo que incentiva a la LLM (via regenerateWithRetry) a generar texto correcto.
  */
 export function detectarSujetosFantasma(texto: string): string {
-  let corregido = texto
-
-  // Patrones de "se" impersonal que ocultan al actor
-  // Solo marcamos, no inventamos nombres — eso lo hace verifyFactualWithLLM
-  const patrones = [
-    { regex: /\bSe aprobo\b/gi, replacement: '[ACTOR REQUERIDO] aprobo' },
-    { regex: /\bSe rechazo\b/gi, replacement: '[ACTOR REQUERIDO] rechazo' },
-    { regex: /\bSe sanciono\b/gi, replacement: '[ACTOR REQUERIDO] sanciono' },
-    { regex: /\bSe promulgo\b/gi, replacement: '[ACTOR REQUERIDO] promulgo' },
-    { regex: /\bSe presento\b/gi, replacement: '[ACTOR REQUERIDO] presento' },
-    { regex: /\bSe informo\b/gi, replacement: '[ACTOR REQUERIDO] informo' },
-    { regex: /\bSe declaro\b/gi, replacement: '[ACTOR REQUERIDO] declaro' },
-    { regex: /\bSe discutio\b/gi, replacement: '[ACTOR REQUERIDO] discutio' },
-    { regex: /\bSe voto\b/gi, replacement: '[ACTOR REQUERIDO] voto' },
-    { regex: /\bSe nego\b/gi, replacement: '[ACTOR REQUERIDO] nego' },
-  ]
-
-  for (const { regex, replacement } of patrones) {
-    corregido = corregido.replace(regex, replacement)
-  }
-
-  // Si se marcaron sujetos, limpiar los marcadores al final
-  // (se dejan como pista para log, pero no aparecen en el producto final)
-  corregido = corregido.replace(/\[ACTOR REQUERIDO\]\s*/gi, '')
-
-  return corregido.trim()
+  return texto
 }
 
 /**

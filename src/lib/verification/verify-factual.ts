@@ -99,16 +99,18 @@ export async function verifyFactualWithLLM(
     // Construir lista de nombres/cargos extraidos de menciones para referencia
     const nombresYcargos = extractNamesAndPositions(mencionesUsadas);
     
-    // Construir resumen compacto de menciones (max 6000 chars para no explotar token)
-    // Incluir texto de la mención para que el verificador pueda encontrar nombres en el cuerpo
+    // Construir resumen compacto de menciones
+    // FIX v0.17.1: NO truncar menciones — el verificador necesita TODAS las menciones
+    // y texto suficiente para encontrar nombres reales. Los límites anteriores
+    // (30 menciones × 200 chars) causaban eliminación de nombres válidos como
+    // Paz Pereira, ministros, senadores que estaban en la mención #31+ o después del char 200.
     const mencionesCompactas = mencionesUsadas
-      .slice(0, 30) // max 30 menciones para no pasarse de tokens
       .map((m, i) => {
         let linea = `${i + 1}. ${m.titulo}`;
         if (m.persona) linea += ` — Persona: ${m.persona}`;
-        // Include first 200 chars of texto so verifier can find names in body
+        // Include first 500 chars of texto so verifier can find names in body
         if (m.texto && m.texto.length > 0) {
-          const fragmento = m.texto.substring(0, 200).replace(/\n/g, ' ');
+          const fragmento = m.texto.substring(0, 500).replace(/\n/g, ' ');
           linea += ` — Texto: ${fragmento}`;
         }
         if (m.medio) linea += ` (${m.medio})`;
@@ -116,9 +118,19 @@ export async function verifyFactualWithLLM(
       })
       .join('\n');
 
+    // Truncar menciones compactas a 12000 chars si es muy largo (para no explotar tokens)
+    // pero NUNCA menos de eso — es mejor pasar mas datos que perder nombres
+    const mencionesParaPrompt = mencionesCompactas.length > 12000
+      ? mencionesCompactas.substring(0, 12000) + '\n... (truncado, pero todos los nombres ya están en la sección anterior)'
+      : mencionesCompactas;
+
+    // Pasar texto COMPLETO a verificar — nunca truncar
+    // Si se trunca, nombres al final del producto son tratados como "inventados" y eliminados
+    const textoParaVerificar = textoGenerado;
+
     const userPrompt = `TEXTO A VERIFICAR:
 ---
-${textoGenerado.substring(0, 6000)}
+${textoParaVerificar}
 ---
 
 NOMBRES Y CARGOS EN MENCIONES FUENTE (usa estos como referencia EXACTA):
@@ -128,7 +140,7 @@ ${nombresYcargos}
 
 MENCIONES FUENTE:
 ---
-${mencionesCompactas}
+${mencionesParaPrompt}
 ---
 
 Verifica que los nombres, cargos y generos en el texto coincidan EXACTAMENTE con las menciones fuente.
