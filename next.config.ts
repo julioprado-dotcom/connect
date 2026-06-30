@@ -20,25 +20,6 @@ const nextConfig: NextConfig = {
 
   serverExternalPackages: ['@prisma/client', 'better-sqlite3', 'node-cron', 'z-ai-web-dev-sdk'],
 
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      // Force z-ai-web-dev-sdk as external — serverExternalPackages not enough for webpack
-      config.externals = [
-        ...(Array.isArray(config.externals) ? config.externals : []),
-        { 'z-ai-web-dev-sdk': 'commonjs z-ai-web-dev-sdk' },
-      ];
-    } else {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        'fs/promises': false,
-        path: false,
-        os: false,
-      };
-    }
-    return config;
-  },
-
   experimental: {
     optimizePackageImports: [
       'lucide-react',
