@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Users, ChevronLeft, ChevronRight, Search, Eye } from 'lucide-react';
+import { Loader2, Users, ChevronLeft, ChevronRight, Search, Eye, Trash2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -23,7 +23,6 @@ interface PersonaRow {
   partidoSigla: string;
   camara: string;
   departamento: string;
-  fechaActualizacion: string;
 }
 
 export function EntidadesView() {
@@ -34,9 +33,22 @@ export function EntidadesView() {
   const [search, setSearch] = useState('');
   const [filtroTipo, setFiltroTipo] = useState<string>('TODOS');
   const [stats, setStats] = useState<{ titular: number; figura: number; total: number } | null>(null);
+  const [eliminando, setEliminando] = useState<string | null>(null);
 
   const PAGE_SIZE = 25;
 
+  // Fetch stats (una sola vez)
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/personas?stats=1');
+        const json = await res.json();
+        setStats({ titular: json.titular || 0, figura: json.figura || 0, total: json.total || 0 });
+      } catch { /* silent */ }
+    })();
+  }, []);
+
+  // Fetch personas (cambia con page, search, filtroTipo)
   const fetchPersonas = useCallback(async () => {
     setLoading(true);
     try {
@@ -45,39 +57,36 @@ export function EntidadesView() {
         limit: String(PAGE_SIZE),
       });
       if (search) params.set('search', search);
+      if (filtroTipo !== 'TODOS') params.set('tipo', filtroTipo);
 
       const res = await fetch(`/api/personas?${params}`);
       const json = await res.json();
 
-      // Si hay filtro de tipo, filtramos en cliente
-      let items = json.personas || [];
-      if (filtroTipo !== 'TODOS') {
-        items = items.filter((p: PersonaRow) => p.tipo === filtroTipo);
-      }
-
-      setPersonas(items);
+      setPersonas(json.personas || []);
       setTotal(json.total || 0);
-
-      // Obtener resumen por tipo
-      if (!stats) {
-        const resStats = await fetch('/api/personas?limit=1&page=1');
-        const jsonStats = await resStats.json();
-        // Contar tipos directamente
-        const todas = await fetch('/api/personas?limit=2000&page=1');
-        const todasJson = await todas.json();
-        const all = todasJson.personas || [];
-        const titular = all.filter((p: PersonaRow) => p.tipo === 'Titular').length;
-        const figura = all.filter((p: PersonaRow) => p.tipo === 'FIGURA_DETECTADA').length;
-        setStats({ titular, figura, total: all.length });
-      }
-    } catch {
-      // silent
-    } finally {
-      setLoading(false);
-    }
-  }, [page, search, filtroTipo, stats]);
+    } catch { /* silent */ }
+    finally { setLoading(false); }
+  }, [page, search, filtroTipo]);
 
   useEffect(() => { fetchPersonas(); }, [fetchPersonas]);
+
+  // Eliminar persona
+  const eliminarPersona = async (id: string, nombre: string) => {
+    if (!confirm(`Eliminar "${nombre}"? Se desvinculara de las menciones asociadas.`)) return;
+    setEliminando(id);
+    try {
+      const res = await fetch(`/api/personas/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setPersonas(prev => prev.filter(p => p.id !== id));
+        setTotal(prev => prev - 1);
+        // Refrescar stats
+        const resStats = await fetch('/api/personas?stats=1');
+        const jsonStats = await resStats.json();
+        setStats({ titular: jsonStats.titular || 0, figura: jsonStats.figura || 0, total: jsonStats.total || 0 });
+      }
+    } catch { /* silent */ }
+    finally { setEliminando(null); }
+  };
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -90,8 +99,6 @@ export function EntidadesView() {
     }
     return <Badge variant="secondary" className="text-[10px] bg-gray-100 text-gray-700">{tipo}</Badge>;
   };
-
-
 
   return (
     <div className="space-y-4">
@@ -174,6 +181,7 @@ export function EntidadesView() {
                     <TableHead className="text-xs font-semibold hidden sm:table-cell">Camara</TableHead>
                     <TableHead className="text-xs font-semibold hidden md:table-cell">Depto</TableHead>
                     <TableHead className="text-xs font-semibold hidden lg:table-cell">Partido</TableHead>
+                    <TableHead className="text-xs font-semibold w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -207,6 +215,22 @@ export function EntidadesView() {
                             {p.partidoSigla}
                           </Badge>
                         ) : '—'}
+                      </TableCell>
+                      <TableCell className="py-2.5">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 opacity-0 group-hover:opacity-100 transition-opacity"
+                          disabled={eliminando === p.id}
+                          onClick={() => eliminarPersona(p.id, p.nombre)}
+                          title="Eliminar entidad"
+                        >
+                          {eliminando === p.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

@@ -4,6 +4,37 @@ import { guardError } from '@/lib/rate-guard';
 import { SENTIMENT_SCORES } from '@/constants/colors';
 import { boliviaStartOfWeek, boliviaStartOfMonth } from '@/lib/date-bolivia';
 
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    // Verificar que existe
+    const persona = await db.persona.findUnique({ where: { id } });
+    if (!persona) {
+      return NextResponse.json({ error: 'Persona no encontrada' }, { status: 404 });
+    }
+
+    // Desvincular menciones (set personaId to null) antes de eliminar
+    await db.mencion.updateMany({
+      where: { personaId: id },
+      data: { personaId: null },
+    });
+
+    // Eliminar la persona (soft delete: marcar como inactiva)
+    await db.persona.update({
+      where: { id },
+      data: { activa: false },
+    });
+
+    return NextResponse.json({ success: true, message: `Persona "${persona.nombre}" eliminada` });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: guardError(error, 'personas/[id] DELETE') }, { status: 500 });
+  }
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

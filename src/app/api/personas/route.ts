@@ -10,14 +10,27 @@ export async function GET(request: NextRequest) {
     const partido = searchParams.get('partido');
     const departamento = searchParams.get('departamento');
     const search = searchParams.get('search');
+    const tipo = searchParams.get('tipo');
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50')));
+    const statsOnly = searchParams.get('stats') === '1';
 
     const where: Record<string, unknown> = { activa: true };
     if (camara) where.camara = camara;
     if (partido) where.partidoSigla = partido;
     if (departamento) where.departamento = departamento;
     if (search) where.nombre = { contains: search };
+    if (tipo) where.tipo = tipo;
+
+    // Si solo piden stats, devolver conteos por tipo sin paginación
+    if (statsOnly) {
+      const [total, titular, figura] = await Promise.all([
+        db.persona.count({ where: { activa: true } }),
+        db.persona.count({ where: { activa: true, tipo: 'Titular' } }),
+        db.persona.count({ where: { activa: true, tipo: 'FIGURA_DETECTADA' } }),
+      ]);
+      return NextResponse.json({ total, titular, figura });
+    }
 
     const [personas, total] = await Promise.all([
       db.persona.findMany({
