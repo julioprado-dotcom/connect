@@ -300,7 +300,7 @@ export async function GET() {
   try {
     // Fuentes activas por fase
     const todasFuentes = await db.fuenteEstado.findMany({
-      where: { activo: true, Medio: { isNot: null } },
+      where: { activo: true },
       include: { Medio: { select: { nombre: true, nivel: true, departamento: true } } },
       orderBy: { Medio: { nivel: 'asc' } },
     })
