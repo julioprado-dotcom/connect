@@ -271,3 +271,42 @@ export function filtrarSeccionesFuenteUnica(texto: string, minFuentes: number = 
 
   return seccionesFiltradas.join('')
 }
+/**
+ * Verifica que el cierre obligatorio esté presente y lo agrega si falta.
+ * El cierre debe contener "Fuentes consultadas" o "DECODEX".
+ */
+export function asegurarCierreObligatorio(texto: string, totalMenciones: number): string {
+  if (!texto) return texto
+
+  const tieneCierre = /Fuentes consultadas|DECODEX Bolivia/i.test(texto)
+  if (tieneCierre) return texto
+
+  const fuentesMatch = texto.matchAll(/\(Fuente:\s*([^)]+)\)/gi)
+  const fuentesUnicas = new Set<string>()
+  for (const m of fuentesMatch) {
+    const fuente = m[1].trim()
+    if (fuente) fuentesUnicas.add(fuente.charAt(0).toUpperCase() + fuente.slice(1))
+  }
+
+  const fuentesStr = fuentesUnicas.size > 0
+    ? Array.from(fuentesUnicas).join(', ')
+    : 'No especificadas'
+
+  const cierre = `\n\n---\n**Fuentes consultadas:** ${fuentesStr}\n**Total menciones analizadas:** ${totalMenciones}\n\n*DECODEX Bolivia — Inteligencia de Medios*\n*Monitoreo continuo de medios nacionales e internacionales.*`
+
+  return texto.trim() + cierre
+}
+
+/**
+ * Limpia valores "undefined" que la LLM pueda haber copiado como literal.
+ */
+export function limpiarUndefinedLiterales(texto: string): string {
+  if (!texto) return texto
+  return texto
+    .replace(/Semana undefined/gi, 'Semana actual')
+    .replace(/Eje tematico: undefined/gi, '')
+    .replace(/undefined/g, '')
+    .replace(/  +/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}

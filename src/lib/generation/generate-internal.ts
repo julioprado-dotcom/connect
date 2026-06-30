@@ -20,7 +20,7 @@ import { formatearMencionesPrompt, formatearContextoHistorico, construirPrompt, 
 import { regenerateWithRetry } from '@/lib/quality/regeneration'
 import { validateContent } from '@/lib/quality/validator'
 import { verifyProduct } from '@/lib/verification/verify-product'
-import { limpiarPlaceholders, filtrarSeccionesFuenteUnica, detectarSujetosFantasma, eliminarSeccionesVacias, eliminarVocalEditorialCierre } from '@/lib/verification/verify-postprocess'
+import { limpiarPlaceholders, filtrarSeccionesFuenteUnica, detectarSujetosFantasma, eliminarSeccionesVacias, eliminarVocalEditorialCierre, asegurarCierreObligatorio, limpiarUndefinedLiterales } from '@/lib/verification/verify-postprocess'
 import { loadMarcoConceptual, formatMarcoForPrompt } from '@/lib/reporte-sectorial.alerts'
 import db from '@/lib/db'
 
@@ -234,6 +234,12 @@ export async function generateProductoInterno(params: GenerateInternalParams): P
   if (tipoBoletin === 'EL_RADAR') {
     textoFinal = filtrarSeccionesFuenteUnica(textoFinal, 2)
   }
+
+  // 8f. Limpiar literales "undefined" que la LLM copió del prompt
+  textoFinal = limpiarUndefinedLiterales(textoFinal)
+
+  // 8g. Asegurar cierre obligatorio si la LLM no lo generó
+  textoFinal = asegurarCierreObligatorio(textoFinal, totalMenciones)
 
   // 9. Validación de calidad
   let puntuacionCalidad = 0
