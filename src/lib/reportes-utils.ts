@@ -900,7 +900,9 @@ export function formatearMencionesPrompt(
         : textoArticulo;
       parts.push(`   - Texto: ${textoCorto}`);
     }
-    if (m.resumen) parts.push(`   - Resumen: ${m.resumen}`);
+    // NO incluir resumen LLM-generated — puede contener nombres alucinados
+    // por el extractor. Solo usar texto real del artículo como contexto.
+    // if (m.resumen) parts.push(`   - Resumen: ${m.resumen}`);
     if (m.temas && m.temas.length > 0) parts.push(`   - Ejes: ${m.temas.join(', ')}`);
     if (m.relevancia) parts.push(`   - Relevancia: ${m.relevancia}/10`);
     return parts.join('\n');
