@@ -199,6 +199,8 @@ export function EntidadesView() {
                       <TableCell className="py-2.5">
                         {p.cargoDirectiva ? (
                           <span className="text-xs text-foreground font-medium">{p.cargoDirectiva}</span>
+                        ) : p.tipo === 'Titular' && p.camara ? (
+                          <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">{p.camara === 'Diputados' ? 'Diputado/a' : p.camara === 'Senadores' ? 'Senador/a' : p.camara}</span>
                         ) : (
                           <span className="text-xs text-muted-foreground italic">Sin cargo registrado</span>
                         )}
@@ -220,10 +222,10 @@ export function EntidadesView() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className={`h-7 w-7 p-0 ${p.tipo === 'Titular' ? 'text-amber-500 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30' : 'text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30'} opacity-0 group-hover:opacity-100 transition-opacity`}
                           disabled={eliminando === p.id}
                           onClick={() => eliminarPersona(p.id, p.nombre)}
-                          title="Eliminar entidad"
+                          title={p.tipo === 'Titular' ? 'Desactivar legislador' : 'Eliminar entidad'}
                         >
                           {eliminando === p.id ? (
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
