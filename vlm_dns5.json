@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "This is an **\"Add Record\" form** in Alibaba Cloud DNS (as indicated by the title \"Add Record\" at the top). Here’s a detailed breakdown of the visible fields, dropdowns, and filled values:  \n\n\n### 1. Form Title & Header  \n- Title: *\"Add Record\"* (confirms it is an \"Add Record\" form).  \n- Close button: An \"X\" icon in the top-right corner to close the form.  \n\n\n### 2. Record Type (Dropdown)  \n- Label: *\"Record Type\"*  \n- Dropdown: Open (shows the selected option).  \n- Selected value: *\"CNAME\"* (with a description: *\"Points the domain name to another domain name\"*).  \n\n\n### 3. Hostname (Text Field)  \n- Label: *\"* Hostname\"* (required field, marked with `*`).  \n- Filled value: *\"mail\"*  \n- Domain context: The domain is *\"decodex-bolivia.net\"* (displayed to the right of the field, indicating the record belongs to this domain).  \n\n\n### 4. Query Source (Dropdown)  \n- Label: *\"* Query Source\"* (required field, marked with `*`).  \n- Dropdown: Open (shows the selected option).  \n- Selected value: *\"Default / Default\"*.  \n\n\n### 5. TTL (Time-to-Live) Section  \n- Label: *\"TTL | Record Value Load Balancing Policy (Default Value)\"* (with a dropdown arrow to expand/collapse).  \n- TTL field:  \n  - Label: *\"TTL\"* (with a help icon `ⓘ`).  \n  - Filled value: *\"10 (Recommendation)\"* (a recommended TTL value).  \n  - Unit dropdown: Open, showing *\"Minutes\"* (selected unit for TTL).  \n\n\n### 6. Record Value Load Balancing Policy (Dropdown)  \n- Label: *\"Record Value Load Balancing Policy\"* (with a help icon `ⓘ`).  \n- Dropdown: Open (shows the selected option).  \n- Selected value: *\"Ratio\"* (a load balancing policy type).  \n\n\n### 7. Record Values (Table)  \nA table with columns: *\"Record Value\"*, *\"Weight\"*, *\"Status\"*, *\"Remarks\"*, *\"Actions\"*.  \n- **Row 1 (only visible row)**:  \n  - Record Value: *\"decodex-bolivia-net.brand.brevosend.com\"* (the CNAME target domain).  \n  - Weight: *\"1\"* (numeric value for load balancing).  \n  - Status: A green toggle switch (enabled, indicating the record is active).  \n  - Remarks: Placeholder text *\"Enter a description\"* (empty, no description filled).  \n  - Actions: *\"0/50\"* (likely a limit for entries) and a *\"Delete\"* button (to remove the row).  \n- **Add Entry button**: A blue \"+\" button to add more record values (e.g., for multi-value load balancing).  \n\n\n### 8. Health Check Section  \n- Label: *\"Health Check\"* (with a help icon `ⓘ`).  \n- Toggle switch: Green (enabled, indicating health check is active).  \n- Options: *\"Anomaly Detection\"*, *\"Automatic Alert\"*, *\"Switchover\"* (features related to health check, all visible but not selected via checkboxes—likely part of the health check configuration).  \n\n\n### 9. Action Buttons (Bottom)  \n- *\"OK\"*: Blue button (to save the record).  \n- *\"Add and Continue\"*: Blue button (to save and open another \"Add Record\" form).  \n- *\"Cancel\"*: Button (to discard changes and close the form).  \n\n\n### Summary  \nThis is an **\"Add Record\" form** for creating a **CNAME record** in Alibaba Cloud DNS. Key details:  \n- Record type: CNAME (points to another domain).  \n- Hostname: `mail` (for the domain `decodex-bolivia.net`).  \n- Query source: Default.  \n- TTL: 10 minutes (recommended).  \n- Load balancing policy: Ratio.  \n- Record value: `decodex-bolivia-net.brand.brevosend.com` (with weight 1, status enabled).  \n- Health check: Enabled (with anomaly detection, automatic alert, and switchover options).  \n\nAll required fields (marked with `*`) are filled, and the form is ready for submission (via \"OK\" or \"Add and Continue\").",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1783356640,
+  "id": "202607070050236460cb02b8a540ad",
+  "model": "glm-4.6v",
+  "object": "chat.completion",
+  "request_id": "202607070050236460cb02b8a540ad",
+  "usage": {
+    "completion_tokens": 936,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 449,
+    "prompt_tokens_details": {
+      "cached_tokens": 4
+    },
+    "total_tokens": 1385
+  }
+}
