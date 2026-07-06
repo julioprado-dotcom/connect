@@ -1,7 +1,7 @@
 // POST /api/dashboard/distribucion/canales/testear — Test conexión de canales
 //
 // Recibe: { canal: 'email' | 'telegram' | 'whatsapp' }
-// Retorna resultados simulados de conexión.
+// Retorna resultados reales de conexión basados en variables de entorno.
 
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -15,30 +15,53 @@ interface CanalTestResult {
   detalles?: Record<string, unknown>;
 }
 
-// Simulated channel test results
-// In production, these would make real connections to SMTP, Telegram API, etc.
 function testEmailCanal(): CanalTestResult {
+  // Prioridad: Brevo > Resend > SMTP genérico
+  const brevoApiKey = process.env.BREVO_API_KEY;
   const smtpHost = process.env.SMTP_HOST;
-  const smtpUser = process.env.SMTP_USER;
+  const resendKey = process.env.RESEND_API_KEY;
 
-  if (smtpHost && smtpUser) {
+  if (brevoApiKey) {
     return {
       conectado: true,
-      mensaje: 'SMTP configurado',
+      mensaje: 'Email (Brevo) configurado',
       detalles: {
+        proveedor: 'Brevo',
+        apiKeyPrefijo: brevoApiKey.substring(0, 12) + '...',
+        smtp: smtpHost || 'smtp-relay.brevo.com:587',
+      },
+    };
+  }
+
+  if (resendKey && resendKey.startsWith('re_')) {
+    return {
+      conectado: true,
+      mensaje: 'Email (Resend) configurado',
+      detalles: {
+        proveedor: 'Resend',
+        apiKeyPrefijo: resendKey.substring(0, 8) + '...',
+      },
+    };
+  }
+
+  if (smtpHost) {
+    return {
+      conectado: true,
+      mensaje: 'Email (SMTP) configurado',
+      detalles: {
+        proveedor: 'SMTP genérico',
         host: smtpHost,
-        usuario: smtpUser,
         puerto: process.env.SMTP_PORT || '587',
-        seguro: process.env.SMTP_SECURE === 'true' ? 'TLS' : 'STARTTLS',
+        usuario: process.env.SMTP_USER || 'N/A',
       },
     };
   }
 
   return {
     conectado: false,
-    error: 'SMTP no configurado',
+    error: 'Email no configurado',
     detalles: {
-      sugerencia: 'Configurar SMTP_HOST, SMTP_USER, SMTP_PASS en variables de entorno',
+      sugerencia: 'Configurar BREVO_API_KEY o RESEND_API_KEY o SMTP_HOST en variables de entorno',
     },
   };
 }
@@ -118,7 +141,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Run the test
     const resultado = tester();
 
     return NextResponse.json({

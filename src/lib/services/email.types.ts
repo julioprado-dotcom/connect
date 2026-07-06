@@ -62,8 +62,8 @@ export type EmailType = 'boletin' | 'alerta' | 'notificacion' | 'personalizado';
 export interface EmailServiceStatus {
   /** `true` si las credenciales están configuradas */
   configured: boolean;
-  /** Proveedor activo: 'resend' con credenciales, 'mock' sin ellas */
-  provider: 'resend' | 'mock';
+  /** Proveedor activo: 'brevo', 'resend' o 'mock' */
+  provider: 'brevo' | 'resend' | 'mock';
   /** Dirección remitente (from address) */
   fromAddress: string;
   /** Nombre remitente para mostrar */
@@ -98,7 +98,9 @@ export interface EmailValidationResult {
 export interface EmailServiceConfig {
   /** API Key de Resend */
   apiKey: string;
-  /** Dirección remitente verificado en Resend */
+  /** API Key de Brevo */
+  brevoApiKey: string;
+  /** Dirección remitente verificado */
   fromAddress: string;
   /** Nombre del remitente */
   fromName: string;
@@ -106,6 +108,8 @@ export interface EmailServiceConfig {
   replyTo?: string;
   /** URL base de la API de Resend */
   apiBaseUrl: string;
+  /** URL base de la API de Brevo */
+  brevoApiBaseUrl: string;
   /** Cantidad máxima de reintentos */
   maxRetries: number;
   /** Base del backoff exponencial en milisegundos */

@@ -180,11 +180,14 @@ export async function checkChannelStatus(canal: 'whatsapp' | 'email' | 'pdf'): P
         };
       }
       case 'email': {
-        const available = !!process.env.RESEND_API_KEY;
+        const hasBrevo = !!process.env.BREVO_API_KEY && process.env.BREVO_API_KEY.startsWith('xkeysib-');
+        const hasResend = !!process.env.RESEND_API_KEY;
+        const available = hasBrevo || hasResend;
+        const provider = hasBrevo ? 'Brevo' : hasResend ? 'Resend' : 'mock';
         return {
           disponible: available,
           latenciaMs: Date.now() - start,
-          mensaje: available ? 'Email (Resend) conectado' : 'Email en modo mock (sin RESEND_API_KEY)',
+          mensaje: available ? `Email (${provider}) conectado` : `Email en modo mock (sin BREVO_API_KEY ni RESEND_API_KEY)`,
         };
       }
       case 'pdf': {

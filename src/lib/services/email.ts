@@ -35,6 +35,7 @@ import type {
 const DEFAULT_FROM_ADDRESS = 'onboarding@resend.dev';
 const DEFAULT_FROM_NAME = 'DECODEX Bolivia';
 const RESEND_API_BASE = 'https://api.resend.com/emails';
+const BREVO_API_BASE = 'https://api.brevo.com/v3/smtp/email';
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 2000;
 
@@ -129,10 +130,12 @@ function stylesToString(styles: Record<string, string>): string {
 function loadConfig(): EmailServiceConfig {
   return {
     apiKey: process.env.RESEND_API_KEY ?? '',
+    brevoApiKey: process.env.BREVO_API_KEY ?? '',
     fromAddress: process.env.EMAIL_FROM ?? DEFAULT_FROM_ADDRESS,
     fromName: process.env.EMAIL_FROM_NAME ?? DEFAULT_FROM_NAME,
     replyTo: process.env.EMAIL_REPLY_TO,
     apiBaseUrl: RESEND_API_BASE,
+    brevoApiBaseUrl: BREVO_API_BASE,
     maxRetries: MAX_RETRIES,
     retryBaseDelayMs: RETRY_BASE_DELAY_MS,
   };
@@ -257,11 +260,21 @@ export function inlineStyles(html: string): string {
  */
 export function getServiceStatus(): EmailServiceStatus {
   const config = loadConfig();
-  const isConfigured = config.apiKey.length > 0 && config.apiKey.startsWith('re_');
+  const hasBrevo = config.brevoApiKey.length > 0 && config.brevoApiKey.startsWith('xkeysib-');
+  const hasResend = config.apiKey.length > 0 && config.apiKey.startsWith('re_');
+
+  if (hasBrevo) {
+    return {
+      configured: true,
+      provider: 'brevo',
+      fromAddress: config.fromAddress,
+      fromName: config.fromName,
+    };
+  }
 
   return {
-    configured: isConfigured,
-    provider: isConfigured ? 'resend' : 'mock',
+    configured: hasResend,
+    provider: hasResend ? 'resend' : 'mock',
     fromAddress: config.fromAddress,
     fromName: config.fromName,
   };
@@ -388,15 +401,21 @@ export async function sendEmail(
   }
 
   const config = loadConfig();
-  const isMock = config.apiKey.length === 0 || !config.apiKey.startsWith('re_');
+  const hasBrevo = config.brevoApiKey.length > 0 && config.brevoApiKey.startsWith('xkeysib-');
+  const hasResend = config.apiKey.length > 0 && config.apiKey.startsWith('re_');
 
-  // ── Modo Mock ─────────────────────────────────────────────────────
-  if (isMock) {
-    return mockSend(destinatario, asunto, htmlContent, opciones, config);
+  // ── Brevo primero (prioridad) ─────────────────────────────────────
+  if (hasBrevo) {
+    return brevoSend(destinatario, asunto, htmlContent, opciones, config);
   }
 
-  // ── Envío real con Resend ─────────────────────────────────────────
-  return resendSend(destinatario, asunto, htmlContent, opciones, config);
+  // ── Resend segundo ────────────────────────────────────────────────
+  if (hasResend) {
+    return resendSend(destinatario, asunto, htmlContent, opciones, config);
+  }
+
+  // ── Modo Mock ─────────────────────────────────────────────────────
+  return mockSend(destinatario, asunto, htmlContent, opciones, config);
 }
 
 /**
@@ -452,6 +471,111 @@ export async function sendBulk(
 }
 
 // ─── Implementaciones Internas ────────────────────────────────────────────────
+
+/**
+ * Envía un email real a través de la API REST de Brevo (ex-Sendinblue).
+ * Implementa reintentos con backoff exponencial ante errores transitorios.
+ *
+ * Brevo API: POST https://api.brevo.com/v3/smtp/email
+ * Headers: api-key: <BREVO_API_KEY>, Content-Type: application/json
+ */
+async function brevoSend(
+  destinatario: string,
+  asunto: string,
+  htmlContent: string,
+  opciones: EmailOptions | undefined,
+  config: EmailServiceConfig
+): Promise<EmailDeliveryResult> {
+  const processedHtml = inlineStyles(htmlContent);
+
+  const payload: Record<string, unknown> = {
+    sender: { name: config.fromName, email: config.fromAddress },
+    to: [{ email: destinatario }],
+    subject: asunto,
+    html: processedHtml,
+  };
+
+  if (opciones?.replyTo ?? config.replyTo) {
+    payload.replyTo = { email: opciones?.replyTo ?? config.replyTo };
+  }
+
+  if (opciones?.cc && opciones.cc.length > 0) {
+    payload.cc = opciones.cc.map(email => ({ email }));
+  }
+
+  if (opciones?.bcc && opciones.bcc.length > 0) {
+    payload.bcc = opciones.bcc.map(email => ({ email }));
+  }
+
+  let lastError: EmailDeliveryResult | undefined;
+
+  for (let attempt = 1; attempt <= config.maxRetries; attempt++) {
+    try {
+      const response = await fetch(config.brevoApiBaseUrl, {
+        method: 'POST',
+        headers: {
+          'api-key': config.brevoApiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        const data = await response.json() as { messageId?: string };
+        return {
+          success: true,
+          messageId: data.messageId || `brevo_${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          previewUrl: `https://app.brevo.com/sent`,
+        };
+      }
+
+      const errorBody = await response.json().catch(() => ({ message: `HTTP ${response.status}` })) as { message?: string; code?: string };
+
+      // Errores no reintentables: fallar inmediatamente
+      if (!isRetryableError(response.status)) {
+        return {
+          success: false,
+          timestamp: new Date().toISOString(),
+          errorCode: `BREVO_${response.status}`,
+          errorMessage: errorBody.message || `HTTP ${response.status}`,
+        };
+      }
+
+      lastError = {
+        success: false,
+        timestamp: new Date().toISOString(),
+        errorCode: `BREVO_${response.status}`,
+        errorMessage: errorBody.message || `HTTP ${response.status}`,
+      };
+
+      if (attempt >= config.maxRetries) break;
+
+      const delayMs = config.retryBaseDelayMs * Math.pow(3, attempt - 1);
+      await delay(delayMs);
+    } catch (networkError: unknown) {
+      const errorMessage = networkError instanceof Error ? networkError.message : 'Error de red desconocido';
+      lastError = {
+        success: false,
+        timestamp: new Date().toISOString(),
+        errorCode: 'BREVO_NETWORK_ERROR',
+        errorMessage,
+      };
+
+      if (attempt >= config.maxRetries) break;
+
+      const delayMs = config.retryBaseDelayMs * Math.pow(3, attempt - 1);
+      await delay(delayMs);
+    }
+  }
+
+  return lastError ?? {
+    success: false,
+    timestamp: new Date().toISOString(),
+    errorCode: 'BREVO_UNKNOWN_ERROR',
+    errorMessage: 'No se pudo enviar el email por Brevo después de múltiples intentos.',
+  };
+}
 
 /**
  * Simula el envío de un email en modo mock.

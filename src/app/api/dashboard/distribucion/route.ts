@@ -2,6 +2,8 @@
  * /api/dashboard/distribucion — Distribución REAL
  * Datos derivados de SuscriptorGratuito, Entrega, EnvioReporte.
  * Muestra el estado real de la distribución.
+ *
+ * Formato compatible con DistribucionPanel (onion200).
  */
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
@@ -12,27 +14,82 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    // ── Canales — detectar por variables de entorno ─────────
+    const brevoConfigured = !!(
+      process.env.BREVO_API_KEY ||
+      (process.env.SMTP_HOST && process.env.SMTP_HOST.includes('brevo'))
+    );
+    const resendConfigured = !!(
+      process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith('re_')
+    );
+    const whatsappConfigured = !!(
+      process.env.WHATSAPP_API_URL &&
+      process.env.WHATSAPP_ACCESS_TOKEN &&
+      process.env.WHATSAPP_PHONE_NUMBER_ID
+    );
+    const telegramConfigured = !!(
+      process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID
+    );
+
+    const canales = [
+      {
+        canal: 'email' as const,
+        conectado: brevoConfigured || resendConfigured,
+        descripcion: brevoConfigured
+          ? 'Email (Brevo)'
+          : resendConfigured
+            ? 'Email (Resend)'
+            : 'Email — no configurado',
+      },
+      {
+        canal: 'whatsapp' as const,
+        conectado: whatsappConfigured,
+        descripcion: whatsappConfigured
+          ? 'WhatsApp Business API'
+          : 'WhatsApp — no configurado',
+      },
+      {
+        canal: 'telegram' as const,
+        conectado: telegramConfigured,
+        descripcion: telegramConfigured
+          ? 'Telegram Bot'
+          : 'Telegram — no configurado',
+      },
+    ];
+
     // ── Suscriptores ────────────────────────────────────────
     let totalSuscriptores = 0;
     let suscriptoresActivos = 0;
+    let suscriptoresList: Array<{
+      id: string;
+      producto: string;
+      canal: string;
+      destinatario: string;
+      activo: boolean;
+    }> = [];
 
     try {
       totalSuscriptores = await db.suscriptorGratuito.count();
       suscriptoresActivos = await db.suscriptorGratuito.count({ where: { activo: true } });
 
-      // Suscriptores con email verificado vs sin verificar
-      const verificados = await db.suscriptorGratuito.count({ where: { activo: true, emailVerificado: true } });
-      const sinVerificar = suscriptoresActivos - verificados;
+      const suscriptoresDb = await db.suscriptorGratuito.findMany({
+        where: { activo: true },
+        orderBy: { fechaSuscripcion: 'desc' },
+        take: 20,
+      });
+
+      suscriptoresList = suscriptoresDb.map(s => ({
+        id: s.id,
+        producto: (() => {
+          try { return JSON.parse(s.boletines).join(', '); } catch { return s.boletines; }
+        })(),
+        canal: s.canal || 'email',
+        destinatario: s.email || s.whatsapp || 'N/A',
+        activo: s.activo,
+      }));
     } catch {
       console.log('[API /dashboard/distribucion] SuscriptorGratuito query failed');
     }
-
-    // ── Canales ────────────────────────────────────────────
-    const canales = [
-      { canal: 'email' as const, conectado: false, descripcion: 'Email (Resend/SendGrid)' },
-      { canal: 'whatsapp' as const, conectado: false, descripcion: 'WhatsApp Business API' },
-      { canal: 'telegram' as const, conectado: false, descripcion: 'Telegram Bot' },
-    ];
 
     // ── Entregas ────────────────────────────────────────────
     let totalEntregas = 0;
@@ -61,7 +118,12 @@ export async function GET() {
       ultimosEnvios = ultimasEntregas.map(e => ({
         id: e.id,
         producto: e.tipoBoletin || 'Desconocido',
-        destinatario: e.destinatario || 'Sin destinatario',
+        destinatario: (() => {
+          try {
+            const dests = JSON.parse(e.destinatarios);
+            return Array.isArray(dests) ? dests[0] : String(dests);
+          } catch { return e.destinatarios || 'Sin destinatario'; }
+        })(),
         canal: e.canal || 'email',
         timestamp: e.fechaEnvio?.toISOString() || e.fechaCreacion.toISOString(),
         estado: e.estado || 'desconocido',
@@ -83,37 +145,27 @@ export async function GET() {
       console.log('[API /dashboard/distribucion] Reporte query failed');
     }
 
-    // ── Canales configurados (basado en si hay envíos por canal) ──
-    if (ultimosEnvios.length > 0) {
-      const emailEnviados = ultimosEnvios.filter(e => e.canal === 'email').length;
-      const waEnviados = ultimosEnvios.filter(e => e.canal === 'whatsapp').length;
-      const tgEnviados = ultimosEnvios.filter(e => e.canal === 'telegram').length;
-      if (emailEnviados > 0) canales[0].conectado = true;
-      if (waEnviados > 0) canales[1].conectado = true;
-      if (tgEnviados > 0) canales[2].conectado = true;
-    }
-
     return NextResponse.json({
-      // ── KPIs principales ───────────────────────────────
-      totalSuscriptores,
-      suscriptoresActivos,
-      canalesConectados: canales.filter(c => c.conectado).length,
-
-      // ── Canales ───────────────────────────────────────────
+      // ── Formato compatible con DistribucionPanel ─────────
+      suscriptores: suscriptoresList,
       canales,
+      ultimosEnvios,
+      resumen: {
+        totalSuscriptores,
+        suscriptoresActivos,
+        canalesConectados: canales.filter(c => c.conectado).length,
+        enviosTotales: totalEntregas,
+        enviosExitosos: entregasExitosas,
+        enviosFallidos: entregasFallidas,
+      },
 
-      // ── Envíos ────────────────────────────────────────────
+      // ── Datos extra para otros consumidores ─────────────
       envios: {
         total: totalEntregas,
         exitosos: entregasExitosas,
         fallidos: entregasFallidas,
         tasaExito: totalEntregas > 0 ? Math.round((entregasExitosas / totalEntregas) * 100) : 0,
       },
-
-      // ── Últimos envíos ───────────────────────────────────
-      ultimosEnvios,
-
-      // ── Reportes listos para distribuir ────────────────────
       listosParaDistribuir: reportesConMenciones,
       pendientesDistribucion: totalReportes - reportesConMenciones,
     });
