@@ -205,7 +205,7 @@ export function DistribucionView() {
         setSubForm({ nombre: '', destinatario: '', canal: 'email', producto: '' });
         fetchData();
       } else {
-        setSubResult({ ok: false, mensaje: json.mensaje || 'Error al agregar suscriptor' });
+        setSubResult({ ok: false, mensaje: json.error || json.mensaje || 'Error al agregar suscriptor' });
       }
     } catch {
       setSubResult({ ok: false, mensaje: 'Error de conexion' });

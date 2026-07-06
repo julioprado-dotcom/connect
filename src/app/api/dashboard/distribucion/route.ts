@@ -146,7 +146,7 @@ export async function GET() {
     }
 
     return NextResponse.json({
-      // ── Formato compatible con DistribucionPanel ─────────
+      // ── Formato compatible con DistribucionPanel (onion200) ──
       suscriptores: suscriptoresList,
       canales,
       ultimosEnvios,
@@ -158,6 +158,9 @@ export async function GET() {
         enviosExitosos: entregasExitosas,
         enviosFallidos: entregasFallidas,
       },
+
+      // ── Formato compatible con DistribucionView (ONION200 v2) ─
+      recientes: ultimosEnvios,
 
       // ── Datos extra para otros consumidores ─────────────
       envios: {
