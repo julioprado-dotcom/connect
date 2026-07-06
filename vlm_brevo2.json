@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "The Brevo DNS verification page displays three key DNS records for domain authentication, with status indicators (errors or success) for each. Here’s a detailed breakdown:\n\n\n### **1. Brevo Code (TXT Record)**\n- **Type**: TXT  \n- **Record Name**: (Blank, with a note: *\"Some email domain providers don’t support ‘@’. In that case, try entering (domainName) or leave the field blank while adding this DNS record.\"*)  \n- **Value**: `brevo-code-5eb8ae84440d40a80c37eacf21704`  \n- **Status**: **Error**  \n  - **Error Message**: *\"The Brevo code values in Brevo and in your domain provider account mismatch. Add the Brevo code value to your domain provider account to authenticate this domain.\"*  \n\n\n### **2. DKIM 1 Record (CNAME Record)**\n- **Type**: CNAME  \n- **Name**: `brevo1._domainkey`  \n- **Value**: `bt1.dec-bolivia-net.dkim.brevo.com`  \n- **Status**: **Success**  \n  - **Success Message**: *\"The DKIM 1 record values in Brevo and your domain provider account match.\"*  \n\n\n### **3. DKIM 2 Record (CNAME Record)**\n- **Type**: CNAME  \n- **Name**: `brevo2._domainkey`  \n- **Value**: `bt2.dec-bolivia-net.dkim.brevo.com`  \n- **Status**: **Success** (partial text visible: *\"The DKIM 2 record values in Brevo and your domain provider...\"*)  \n\n\n### Summary of Errors/Success:\n- **Error**: Brevo Code (TXT record) – Mismatch between Brevo’s code and the domain provider’s record.  \n- **Success**: DKIM 1 and DKIM 2 (CNAME records) – Values match between Brevo and the domain provider.  \n\n\nThis page is used to verify that the domain is properly configured to send emails via Brevo, with the TXT record (Brevo Code) being the critical step for authentication. The DKIM records (for email signing) are already correctly set up.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1783358613,
+  "id": "202607070123251806e2ca23c3411d",
+  "model": "glm-4.6v",
+  "object": "chat.completion",
+  "request_id": "202607070123251806e2ca23c3411d",
+  "usage": {
+    "completion_tokens": 465,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 330,
+    "prompt_tokens_details": {
+      "cached_tokens": 5
+    },
+    "total_tokens": 795
+  }
+}

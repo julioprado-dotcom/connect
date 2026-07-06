@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "The Brevo DNS verification page displays three DNS records for domain authentication, with their current status and validation details:\n\n### 1. DMARC Record\n- **Type**: TXT\n- **Name**: `_dmarc`\n- **Value**: `v=DMARC1; p=none; rua=mailto:rua@dmarc.brevo.com`\n- **Status**: ✅ **Success**  \n  *Message*: \"The DMARC record values in Brevo and your domain provider account match.\"\n\n### 2. Image Redirection Record\n- **Type**: CNAME\n- **Name**: `img.mail`\n- **Value**: `mail-decodex-bolivia-net.img.brand.brevo.send.com`\n- **Status**: ❌ **Error**  \n  *Message*: \"The Image Redirection Record values in Brevo and in your domain provider account do not match. Add this Image Redirection Record value to your domain provider account to authenticate this domain.\"\n\n### 3. Redirection Record\n- **Type**: CNAME\n- **Name**: `r.mail`\n- **Value**: `mail-decodex-bolivia-net.r.brand.brevo.send.com`\n- **Status**: ❌ **Error**  \n  *Message*: \"The Redirection Record values in Brevo and in your domain provider account do not match. Add this Redirection Record value to your domain provider account to authenticate this domain.\"\n\n### Summary of Errors:\n- **Image Redirection Record** and **Redirection Record** both show mismatches between Brevo's required values and the domain provider's current records.  \n- The DMARC record is correctly configured and matches.  \n\nThe page includes action buttons: \"Cancel\", \"Previous\", \"Verify records\", and \"Authenticate domain\" (to proceed with fixing errors).",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1783358598,
+  "id": "20260707012309ce4f9a1528534f92",
+  "model": "glm-4.6v",
+  "object": "chat.completion",
+  "request_id": "20260707012309ce4f9a1528534f92",
+  "usage": {
+    "completion_tokens": 373,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 482,
+    "prompt_tokens_details": {
+      "cached_tokens": 5
+    },
+    "total_tokens": 855
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "The page displays a DNS configuration interface for domain authentication, specifically for a service called \"Brevo\" (formerly Sendinblue). It shows three DNS record sections with their details, validation statuses, and associated error messages (where applicable).\n\n\n### **1. Brevo Code Section**\n- **Type**: TXT (Text record)\n- **Record name**: Empty input field (with a note: *\"Some email domain providers do not support '@' in that case, try entering '(domainName)' or leave the field blank while adding this DNS record.\"*)\n- **Value**: `brevo-code-5eb8ae84440d40ad8c37eacf21704` (with a \"Copy\" button)\n- **Status**: **Error** (red exclamation icon)\n- **Error message**: *\"The Brevo code values in Brevo and in your domain provider account mismatch. Add the Brevo code value to your domain provider account to authenticate this domain.\"*\n\n\n### **2. DKIM 1 Record Section**\n- **Type**: CNAME (Canonical Name record)\n- **Name**: `brevo1._domainkey` (with a \"Copy\" button)\n- **Value**: `bt1.decoded-bolivia-net.dkim.brevo.com` (with a \"Copy\" button)\n- **Status**: **Success** (green checkmark icon)\n- **Message**: *\"The DKIM 1 record values in Brevo and your domain provider account match.\"*\n\n\n### **3. DKIM 2 Record Section**\n- **Type**: CNAME (Canonical Name record)\n- **Name**: `brevo2._domainkey` (with a \"Copy\" button)\n- **Value**: `bt2.decoded-bolivia-net.dkim.brevo.com` (with a \"Copy\" button)\n- **Status**: **Success** (green checkmark icon, partially visible due to a black overlay at the bottom of the image)\n- **Message**: *\"The DKIM 2 record values in Brevo and your domain provider account match.\"* (partially visible, but inferred from the green checkmark and consistency with DKIM 1)\n\n\n### **Summary of Errors**\n- Only the **Brevo Code (TXT record)** has an error, indicating a mismatch between the Brevo-provided code and the domain provider’s configuration. The DKIM 1 and DKIM 2 records are correctly configured (no errors).",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1783358777,
+  "id": "202607070126080ccbce2c60164bf4",
+  "model": "glm-4.6v",
+  "object": "chat.completion",
+  "request_id": "202607070126080ccbce2c60164bf4",
+  "usage": {
+    "completion_tokens": 505,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 329,
+    "prompt_tokens_details": {
+      "cached_tokens": 5
+    },
+    "total_tokens": 834
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "This page displays a **DNS record configuration interface** (likely from a service like Brevo, given the domain references) with three distinct DNS record sections, each showing record type, name, value, and status/validation messages. Here’s a detailed breakdown:  \n\n\n### 1. DMARC Record  \n- **Type**: `TXT` (TXT record for DMARC policy).  \n- **Name**: `_dmarc` (standard DMARC record name).  \n- **Value**: `v=DMARC1; p=none; rua=mailto:rua@dmarc.brevo.com` (DMARC policy with “none” enforcement and a reporting email).  \n- **Status**: A green checkmark with the message: *“The DMARC record values in Brevo and your domain provider account match.”*  \n  - This indicates the DMARC record is **correctly configured** (no errors here).  \n\n\n### 2. Image Redirection Record  \n- **Type**: `CNAME` (CNAME record for image redirection).  \n- **Name**: `img.mail` (subdomain for image redirection).  \n- **Value**: `mail-decodex-bolivia-net.img.brand.brevo.send.com` (CNAME target).  \n- **Status**: A red warning icon with the message: *“The Image Redirection Record values in Brevo and in your domain provider account do not match. Add this Image Redirection Record value to your domain provider account to authenticate this domain.”*  \n  - This indicates an **error/mismatch**: The CNAME record is not properly set in the domain provider, so the domain is not authenticated for image redirection.  \n\n\n### 3. Redirection Record  \n- **Type**: `CNAME` (CNAME record for email redirection).  \n- **Name**: `r.mail` (subdomain for email redirection).  \n- **Value**: `mail-decodex-bolivia-net.r.brand.brevo.send.com` (CNAME target).  \n- **Status**: A red warning icon with the message: *“The Redirection Record values in Brevo and in your domain provider account do not match. Add this Redirection Record value to your domain provider account to authenticate this domain.”*  \n  - This indicates an **error/mismatch**: The CNAME record is not properly set in the domain provider, so the domain is not authenticated for email redirection.  \n\n\n### Overall Status & Actions  \n- **Errors**: Two errors (Image Redirection and Redirection Records) due to mismatched CNAME values between Brevo and the domain provider.  \n- **Valid Record**: The DMARC record is correctly configured (no errors).  \n- **Buttons**: At the bottom, there are options to *“Cancel”*, *“Previous”*, *“Verify records”*, and *“Authenticate domain”* (to resolve the mismatches).  \n\n\nIn summary, the page shows DNS records for DMARC, image redirection, and email redirection—with the DMARC record valid, but the two CNAME records (for image/email redirection) having configuration errors that need to be fixed in the domain provider to authenticate the domain.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1783358788,
+  "id": "2026070701261715a0394b73c94e6a",
+  "model": "glm-4.6v",
+  "object": "chat.completion",
+  "request_id": "2026070701261715a0394b73c94e6a",
+  "usage": {
+    "completion_tokens": 647,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 472,
+    "prompt_tokens_details": {
+      "cached_tokens": 5
+    },
+    "total_tokens": 1119
+  }
+}

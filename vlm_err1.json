@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "This page is a **DNS records setup interface** for the domain `decodex-bolivia.net`, specifically in the \"Records\" step (step 4) of a domain configuration process. The page is designed to guide users through adding DNS records to their domain provider to complete a setup (likely for email or branding, given the \"Branded record\" section).\n\n\n### Key Page Elements:\n- **Header**: A step indicator shows the user is on step 4 (\"Records\") of a multi-step process (steps: Domain → Branded subdomain → Setup method → Records).  \n- **Title**: \"Add records for decodex-bolivia.net\"  \n- **Instructions**:  \n  - \"Copy each record below and add it to your domain provider. Use Verify records to check propagation, then Authenticate domain to complete the setup.\"  \n  - A blue info box warns: \"Copy these records and add them to your **Other account**. If you use a different provider, update it first so the record format matches. After adding these records, it can take up to 48 hours for them to propagate. You can check the status at any time using Verify records.\" (Includes a link to \"Update your email domain provider\").  \n  - A gray info box offers help: \"Need help? Check our help article or contact our support! We’re here to help.\"  \n- **Error Alert**: A red warning box states: \"Your records don’t match yet. Check that the values below are entered correctly in your domain provider, then try again. DNS changes can take up to 48 hours.\"  \n\n\n### DNS Records Listed:\nOnly **one record** is displayed: a **Branded record** (likely for email or subdomain branding).  \n\n| Field   | Value                                                                 |\n|---------|-----------------------------------------------------------------------|\n| Type    | CNAME                                                                 |\n| Name    | `mail`                                                                |\n| Value   | `mail-decodex-bolivia-net.brand.brevo.com`                               |  \n\n\n### Record Status & Errors:\nThe **Branded record** has a **status of \"error\"** (indicated by a red exclamation mark icon next to the value field).  \n\n- **Specific Error Message**:  \n  \"The Branded record values in Brevo and in your domain provider account don’t match. Add this Branded record value to your domain provider account to authenticate this domain.\"  \n\n\n### Summary of Statuses:\n- **Branded record (CNAME)**:  \n  - Status: Error  \n  - Error Text: \"The Branded record values in Brevo and in your domain provider account don’t match. Add this Branded record value to your domain provider account to authenticate this domain.\"  \n\n\nNo other records are listed, and no records show \"verified\" or \"pending\" status—all focus is on the single branded CNAME record with a mismatch error. The page emphasizes that the user must resolve this mismatch in their domain provider to proceed with authentication.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1783358767,
+  "id": "2026070701255686a50f438fd14d8f",
+  "model": "glm-4.6v",
+  "object": "chat.completion",
+  "request_id": "2026070701255686a50f438fd14d8f",
+  "usage": {
+    "completion_tokens": 611,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 465,
+    "prompt_tokens_details": {
+      "cached_tokens": 5
+    },
+    "total_tokens": 1076
+  }
+}
