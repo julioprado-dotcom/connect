@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "postbuild": "node scripts/patch-sdk-thinking.js",
+    "build:services": "bash scripts/build-services.sh",
+    "postbuild": "node scripts/patch-sdk-thinking.js && npm run build:services",
     "start": "next start",
     "lint": "eslint",
     "db:push": "prisma db push",

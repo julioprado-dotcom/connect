@@ -8,6 +8,9 @@
 //   pm2 logs decodex
 //   pm2 monit
 
+const fs = require('fs');
+const useCompiled = fs.existsSync('./dist-services/worker-service.js');
+
 module.exports = {
   apps: [
     // ═══════════════════════════════════════════════════
@@ -22,7 +25,7 @@ module.exports = {
       instances: 1,
       autorestart: true,
       watch: false,
-      max_memory_restart: '900M',
+      max_memory_restart: '500M',
       env: {
         NODE_ENV: 'production',
       },
@@ -34,23 +37,26 @@ module.exports = {
 
     // ═══════════════════════════════════════════════════
     // 2. WORKER — Proceso dedicado de ejecución de jobs
-    // FIX: Usa ./node_modules/.bin/tsx directo en vez de npx
-    // para evitar que npx descargue tsx on-the-fly si no está
-    // en node_modules (tsx ahora es dependency, no devDependency)
+    // Si existe dist-services/worker-service.js (compilado),
+    // usa node puro. Si no, fallback a tsx.
     // ═══════════════════════════════════════════════════
     {
       name: 'decodex-worker',
-      script: './node_modules/.bin/tsx',
-      args: 'worker-service.ts',
+      script: useCompiled
+        ? './dist-services/worker-service.js'
+        : './node_modules/.bin/tsx',
+      args: useCompiled ? '' : 'worker-service.ts',
       cwd: __dirname,
       exec_mode: 'fork',
       instances: 1,
       autorestart: true,
       watch: false,
-      max_memory_restart: '768M',
+      max_memory_restart: '400M',
       env: {
         NODE_ENV: 'production',
-        NODE_OPTIONS: '--max-old-space-size=768',
+        NODE_OPTIONS: useCompiled
+          ? '--max-old-space-size=384'
+          : '--max-old-space-size=384',
       },
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       error_file: './logs/worker-error.log',
@@ -60,18 +66,19 @@ module.exports = {
 
     // ═══════════════════════════════════════════════════
     // 3. SCHEDULER — Proceso dedicado de programación
-    // FIX: Usa ./node_modules/.bin/tsx directo (ver worker)
     // ═══════════════════════════════════════════════════
     {
       name: 'decodex-scheduler',
-      script: './node_modules/.bin/tsx',
-      args: 'scheduler-service.ts',
+      script: useCompiled
+        ? './dist-services/scheduler-service.js'
+        : './node_modules/.bin/tsx',
+      args: useCompiled ? '' : 'scheduler-service.ts',
       cwd: __dirname,
       exec_mode: 'fork',
       instances: 1,
       autorestart: true,
       watch: false,
-      max_memory_restart: '256M',
+      max_memory_restart: '200M',
       env: {
         NODE_ENV: 'production',
       },
