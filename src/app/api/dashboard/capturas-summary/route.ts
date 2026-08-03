@@ -54,7 +54,7 @@ export async function GET() {
     const weekStart = weekStartBolivia();
 
     // ── Consultas paralelas a la BD ──────────────────────
-    const [
+    let [
       mencionesHoy,
       menciones24h,
       totalMenciones,
@@ -164,6 +164,24 @@ export async function GET() {
         ? g.fechaCaptura.toISOString().split('T')[0]
         : String(g.fechaCaptura).split('T')[0];
       tendencia.push({ fecha, total: g._count.id });
+    }
+
+
+    // ── RAW SQL FALLBACK: Prisma DateTime/integer comparison bug ──
+    if (safeNum(mencionesHoy) >= safeNum(totalMenciones) * 0.5) {
+      try {
+        const hoyISO = hoyStart.toISOString();
+        const h24ISO = last24h.toISOString();
+        const weekISO = weekStart.toISOString();
+        const [rHoy, r24, rWeek] = await Promise.all([
+          db.$queryRawUnsafe<{ c: bigint }[]>(`SELECT COUNT(*) as c FROM Mencion WHERE esDuplicado = 0 AND fechaCaptura >= '${hoyISO}'`),
+          db.$queryRawUnsafe<{ c: bigint }[]>(`SELECT COUNT(*) as c FROM Mencion WHERE esDuplicado = 0 AND fechaCaptura >= '${h24ISO}'`),
+          db.$queryRawUnsafe<{ c: bigint }[]>(`SELECT COUNT(*) as c FROM Mencion WHERE esDuplicado = 0 AND fechaCaptura >= '${weekISO}'`),
+        ]);
+        mencionesHoy = Number(rHoy[0]?.c || 0);
+        menciones24h = Number(r24[0]?.c || 0);
+        mencionesSemana = Number(rWeek[0]?.c || 0);
+      } catch (e) { console.error('[capturas-summary] Raw SQL fallback:', e); }
     }
 
     return NextResponse.json({

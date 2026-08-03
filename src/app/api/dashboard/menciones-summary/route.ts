@@ -49,7 +49,7 @@ export async function GET() {
     }
 
     // If all counts are 0, try raw SQL as fallback
-    if (total === 0) {
+    if (hoyCount === 0 && total > 0) {
       try {
         const rawTotal = await db.$queryRawUnsafe<{ c: bigint }[]>('SELECT COUNT(*) as c FROM Mencion');
         total = Number(rawTotal[0]?.c || 0);

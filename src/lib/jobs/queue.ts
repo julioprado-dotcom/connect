@@ -118,16 +118,16 @@ export async function dequeue(): Promise<Record<string, unknown> | null> {
     return null
   }
 
-  const job = await db.job.findFirst({
-    where: {
-      estado: 'pendiente',
-      proximaEjecucion: { lte: new Date() },
-    },
-    orderBy: [
-      { prioridad: 'asc' },
-      { fechaCreacion: 'asc' },
-    ],
-  })
+  // FIX: Prisma INTEGER vs TEXT - raw SQL with ISO string
+  const nowISO = new Date().toISOString()
+  const rawJobs = await db.$queryRawUnsafe<Array<{
+    id: string; tipo: string; prioridad: number; payload: string;
+    maxIntentos: number; intentos: number; programa: string;
+    proximaEjecucion: string | null; fechaCreacion: string;
+  }>>(
+    `SELECT * FROM Job WHERE estado='pendiente' AND proximaEjecucion IS NOT NULL AND proximaEjecucion <= '${nowISO}' ORDER BY prioridad ASC, fechaCreacion ASC LIMIT 1`
+  )
+  const job = rawJobs.length > 0 ? rawJobs[0] : null
 
   if (!job) {
     // Debug: por qué no hay jobs? Verificar si hay pendientes con fecha futura

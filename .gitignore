@@ -129,3 +129,16 @@ data/electos_2025_text.txt
 backups/archives/
 logs/
 tool-results/
+
+# Generated Prisma client
+prisma/generated-client/
+
+# Build outputs
+dist-services/
+Build/
+
+# Temp scripts
+*.bak-*
+ver_*.js
+apply_*.js
+generar_*.sh
