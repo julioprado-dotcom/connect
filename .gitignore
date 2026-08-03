@@ -142,3 +142,7 @@ Build/
 ver_*.js
 apply_*.js
 generar_*.sh
+
+# Local backups (suben a repo separado)
+backups/
+.backup-*
