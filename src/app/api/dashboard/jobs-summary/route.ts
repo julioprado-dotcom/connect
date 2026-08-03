@@ -16,9 +16,12 @@ export async function GET() {
     const startOfDay = boliviaStartOfDay();
     const last24h = new Date(now.getTime() - 24 * 3600000);
 
+    const startOfDayISO = boliviaStartOfDay().toISOString();
+    const last24hISO = new Date(now.getTime() - 24 * 3600000).toISOString();
+
     const [completadosHoy, fallidosHoy, enProgreso, pendientes, cancelados, recentJobs] = await Promise.all([
-      db.job.count({ where: { estado: 'completado', fechaFin: { gte: startOfDay } } }),
-      db.job.count({ where: { estado: 'fallido', fechaFin: { gte: last24h } } }),
+      db.$queryRawUnsafe<{ c: bigint }[]>(`SELECT COUNT(*) as c FROM Job WHERE estado = 'completado' AND fechaFin IS NOT NULL AND fechaFin >= '${startOfDayISO}'`).then(r => Number(r[0]?.c || 0)),
+      db.$queryRawUnsafe<{ c: bigint }[]>(`SELECT COUNT(*) as c FROM Job WHERE estado = 'fallido' AND fechaFin IS NOT NULL AND fechaFin >= '${last24hISO}'`).then(r => Number(r[0]?.c || 0)),
       db.job.count({ where: { estado: 'en_progreso' } }),
       db.job.count({ where: { estado: 'pendiente' } }),
       db.job.count({ where: { estado: 'cancelado' } }),

@@ -528,12 +528,17 @@ export async function GET() {
         db.notaRaw.count({ where: { procesada: false, descartada: false } }),
         db.notaRaw.count({ where: { procesada: true } }),
         db.job.findMany({
-          where: { estado: 'completado', fechaFin: { gte: new Date(Date.now() - 30 * 60 * 1000) } },
+          where: { estado: 'completado' },
           select: { tipo: true, fechaFin: true, resultado: true },
           orderBy: { fechaFin: 'desc' },
           take: 15,
+        }).then(jobs => {
+          const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+          return jobs.filter(j => j.fechaFin && j.fechaFin >= cutoff);
         }),
-        db.mencion.count({ where: { fechaCaptura: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } } }),
+        db.$queryRawUnsafe<{ c: bigint }[]>(
+          `SELECT COUNT(*) as c FROM Mencion WHERE esDuplicado = 0 AND fechaCaptura >= '${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()}'`
+        ).then(r => Number(r[0]?.c || 0)),
       ]);
 
       // Generar logs legibles de jobs recientes

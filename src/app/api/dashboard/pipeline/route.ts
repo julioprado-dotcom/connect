@@ -84,20 +84,10 @@ export async function GET() {
       entregasPendientes,
     ] = await Promise.all([
       // Jobs completados (últimos 20)
-      db.job.findMany({
-        where: { estado: 'completado', fechaFin: { gte: new Date(now.getTime() - 24 * 3600000) } },
-        orderBy: { fechaFin: 'desc' },
-        take: 20,
-        select: { id: true, tipo: true, prioridad: true, fechaCreacion: true, fechaInicio: true, fechaFin: true, resultado: true, intentos: true },
-      }),
+      db.$queryRawUnsafe<Array<{ id: string; tipo: string; prioridad: number; fechaCreacion: string; fechaInicio: string; fechaFin: string; resultado: string; intentos: number }>>(`SELECT id, tipo, prioridad, fechaCreacion, fechaInicio, fechaFin, resultado, intentos FROM Job WHERE estado = 'completado' AND fechaFin IS NOT NULL AND fechaFin >= '${new Date(now.getTime() - 24 * 3600000).toISOString()}' ORDER BY fechaFin DESC LIMIT 20`),
 
       // Jobs fallidos (últimos 20)
-      db.job.findMany({
-        where: { estado: 'fallido', fechaFin: { gte: new Date(now.getTime() - 24 * 3600000) } },
-        orderBy: { fechaFin: 'desc' },
-        take: 20,
-        select: { id: true, tipo: true, prioridad: true, fechaCreacion: true, fechaInicio: true, fechaFin: true, error: true, intentos: true, maxIntentos: true, payload: true },
-      }),
+      db.$queryRawUnsafe<Array<{ id: string; tipo: string; prioridad: number; fechaCreacion: string; fechaInicio: string; fechaFin: string; error: string; intentos: number; maxIntentos: number; payload: string }>>(`SELECT id, tipo, prioridad, fechaCreacion, fechaInicio, fechaFin, error, intentos, maxIntentos, payload FROM Job WHERE estado = 'fallido' AND fechaFin IS NOT NULL AND fechaFin >= '${new Date(now.getTime() - 24 * 3600000).toISOString()}' ORDER BY fechaFin DESC LIMIT 20`),
 
       // Jobs en progreso ahora
       db.job.findMany({
@@ -164,20 +154,19 @@ export async function GET() {
 
     // Jobs completados con duración
     const pasado_completados = jobsCompletados.map(j => {
-      const duracion = j.fechaInicio && j.fechaFin
-        ? Math.round((j.fechaFin.getTime() - j.fechaInicio.getTime()) / 1000)
-        : null;
+      const fi = j.fechaInicio ? new Date(j.fechaInicio) : null;
+      const ff = j.fechaFin ? new Date(j.fechaFin) : null;
+      const duracion = fi && ff ? Math.round((ff.getTime() - fi.getTime()) / 1000) : null;
       let payloadParsed: Record<string, unknown> = {};
-      try { payloadParsed = JSON.parse('{}'); } catch { /* empty */ }
-      try { payloadParsed = JSON.parse((j as unknown as { resultado: string }).resultado || '{}'); } catch { /* empty */ }
+      try { payloadParsed = JSON.parse(j.resultado || '{}'); } catch { /* empty */ }
       return {
         id: j.id,
         tipo: j.tipo,
         prioridad: j.prioridad,
         duracionSegundos: duracion,
-        hace: timeAgo(j.fechaFin || j.fechaCreacion),
+        hace: timeAgo(ff || new Date(j.fechaCreacion)),
         resultado: payloadParsed,
-        fecha: j.fechaFin?.toISOString() ?? j.fechaCreacion.toISOString(),
+        fecha: j.fechaFin || j.fechaCreacion,
       };
     });
 
@@ -185,9 +174,9 @@ export async function GET() {
     const pasado_fallidos = jobsFallidos.map(j => {
       let payloadParsed: Record<string, unknown> = {};
       try { payloadParsed = JSON.parse(j.payload || '{}'); } catch { /* empty */ }
-      const duracion = j.fechaInicio && j.fechaFin
-        ? Math.round((j.fechaFin.getTime() - j.fechaInicio.getTime()) / 1000)
-        : null;
+      const fi = j.fechaInicio ? new Date(j.fechaInicio) : null;
+      const ff = j.fechaFin ? new Date(j.fechaFin) : null;
+      const duracion = fi && ff ? Math.round((ff.getTime() - fi.getTime()) / 1000) : null;
       return {
         id: j.id,
         tipo: j.tipo,
@@ -197,9 +186,8 @@ export async function GET() {
         maxIntentos: j.maxIntentos,
         puedeReintentar: j.intentos < j.maxIntentos,
         duracionSegundos: duracion,
-        hace: timeAgo(j.fechaFin || j.fechaCreacion),
-        fecha: j.fechaFin?.toISOString() ?? j.fechaCreacion.toISOString(),
-        // Extraer contexto del payload
+        hace: timeAgo(ff || new Date(j.fechaCreacion)),
+        fecha: j.fechaFin || j.fechaCreacion,
         fuente: (payloadParsed.medioNombre as string) || (payloadParsed.fuenteId as string) || null,
         cliente: (payloadParsed.clienteNombre as string) || null,
         canal: (payloadParsed.canal as string) || null,
