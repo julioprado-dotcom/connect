@@ -52,7 +52,7 @@ export async function GET() {
           'X-Z-AI-From': 'Z',
         },
         body: JSON.stringify({
-          model: 'glm-4-flash',
+          model: 'glm-4.5-flash',
           messages: [{ role: 'user', content: 'ping' }],
           max_tokens: 1,
         }),
@@ -139,7 +139,7 @@ export async function PUT(request: NextRequest) {
           'X-Z-AI-From': 'Z',
         },
         body: JSON.stringify({
-          model: 'glm-4-flash',
+          model: 'glm-4.5-flash',
           messages: [{ role: 'user', content: 'ping' }],
           max_tokens: 1,
         }),

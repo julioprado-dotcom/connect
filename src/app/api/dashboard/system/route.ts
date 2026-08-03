@@ -319,7 +319,7 @@ async function diagnoseZaiKey(): Promise<Diagnosis> {
           'Authorization': `Bearer ${config.apiKey}`,
           'X-Z-AI-From': 'Z',
         },
-        body: JSON.stringify({ model: 'glm-4-flash', messages: [{ role: 'user', content: 'ping' }], max_tokens: 1 }),
+        body: JSON.stringify({ model: 'glm-4.5-flash', messages: [{ role: 'user', content: 'ping' }], max_tokens: 1 }),
         signal: controller.signal,
       });
       clearTimeout(timeout);
