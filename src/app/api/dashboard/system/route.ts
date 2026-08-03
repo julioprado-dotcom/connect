@@ -285,6 +285,67 @@ function diagnoseScheduler(stats: ReturnType<typeof safeSchedulerStats>): Diagno
   }
 }
 
+// ─── Diagnóstico: Z.ai API Key ───────────────────────────────────
+
+async function diagnoseZaiKey(): Promise<Diagnosis> {
+  try {
+    const configPaths = [
+      path.join(process.cwd(), '.z-ai-config'),
+      path.join(os.homedir(), '.z-ai-config'),
+      '/etc/.z-ai-config',
+    ];
+    const configPath = configPaths.find(p => {
+      try { return fs.existsSync(p); } catch { return false; }
+    });
+
+    if (!configPath) {
+      return { id: 'zai-key', severity: 'critical', message: 'API Key Z.ai no configurada', detail: 'No se encontro .z-ai-config. La IA no funciona.' };
+    }
+
+    const raw = fs.readFileSync(configPath, 'utf-8');
+    const config = JSON.parse(raw);
+    if (!config.apiKey || !config.baseUrl) {
+      return { id: 'zai-key', severity: 'critical', message: 'API Key Z.ai incompleta', detail: 'Falta apiKey o baseUrl en .z-ai-config.' };
+    }
+
+    // Validar haciendo un request de prueba (timeout corto para no bloquear el health)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    try {
+      const res = await fetch(`${config.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.apiKey}`,
+          'X-Z-AI-From': 'Z',
+        },
+        body: JSON.stringify({ model: 'glm-4-flash', messages: [{ role: 'user', content: 'ping' }], max_tokens: 1 }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (res.ok) {
+        return { id: 'zai-key', severity: 'ok', message: 'API Key Z.ai valida', detail: 'Clasificacion y generacion operativos.' };
+      }
+
+      const status = res.status;
+      if (status === 401 || status === 403) {
+        return { id: 'zai-key', severity: 'critical', message: 'API Key Z.ai expirada o invalida', detail: `HTTP ${status} — Actualizar desde el dashboard o .z-ai-config.` };
+      }
+      if (status === 429) {
+        return { id: 'zai-key', severity: 'warning', message: 'API Key Z.ai rate-limited', detail: 'Demasiadas requests. Esperar unos minutos.' };
+      }
+      return { id: 'zai-key', severity: 'warning', message: 'API Key Z.ai con error', detail: `HTTP ${status} — Verificar estado.` };
+    } catch (e: any) {
+      clearTimeout(timeout);
+      // Timeout o error de red — no es culpa de la key
+      return { id: 'zai-key', severity: 'ok', message: 'API Key Z.ai configurada', detail: 'No se pudo validar (timeout de red).' };
+    }
+  } catch {
+    return { id: 'zai-key', severity: 'ok', message: 'API Key Z.ai', detail: 'Datos no disponibles.' };
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Endpoint principal — NUNCA 500
 // ═══════════════════════════════════════════════════════════════
@@ -324,6 +385,7 @@ export async function GET() {
       diagnoseUptime(uptimeSeconds),
       diagnoseDevOverhead(),
       diagnoseAuth(),
+      await diagnoseZaiKey(),
     ];
 
     const devModePattern = /next dev|hot reload|development|dev server|compilation|fast refresh|hmr/i;

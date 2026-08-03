@@ -10,6 +10,7 @@ import { CommandCenter } from '@/components/onion200/CommandCenter';
 import { MiniCharts } from '@/components/onion200/MiniCharts';
 import { AiUsagePanel } from '@/components/onion200/AiUsagePanel';
 import { PanelShell } from '@/components/onion200/PanelShell';
+import { ZaiConfigPanel } from '@/components/onion200/ZaiConfigPanel';
 import { UserCircle, Send, Users, ChevronRight, LayoutGrid } from 'lucide-react';
 
 type TabKey = 'resumen' | 'alertas' | 'fuentes' | 'captura' | 'clasificacion' | 'inteligencia' | 'produccion' | 'distribucion';
@@ -121,6 +122,11 @@ export function ResumenView({ onNavigateTab }: ResumenViewProps) {
       {/* AI Usage — LLM consumption, cost tracking, source breakdown */}
       <div className="lg:col-span-3">
         <AiUsagePanel />
+      </div>
+
+      {/* Z.ai API Key — Status, validation, and key management */}
+      <div className="lg:col-span-3">
+        <ZaiConfigPanel />
       </div>
 
       {/* Mini Charts — Capture analytics: sentiment ring, level bars */}
