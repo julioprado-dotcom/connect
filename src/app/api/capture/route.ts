@@ -527,18 +527,23 @@ export async function GET() {
         db.job.count({ where: { estado: 'pendiente' } }),
         db.notaRaw.count({ where: { procesada: false, descartada: false } }),
         db.notaRaw.count({ where: { procesada: true } }),
-        db.job.findMany({
-          where: { estado: 'completado' },
-          select: { tipo: true, fechaFin: true, resultado: true },
-          orderBy: { fechaFin: 'desc' },
-          take: 15,
-        }).then(jobs => {
-          const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-          return jobs.filter(j => j.fechaFin && j.fechaFin >= cutoff);
-        }),
-        db.$queryRawUnsafe<{ c: bigint }[]>(
-          `SELECT COUNT(*) as c FROM Mencion WHERE esDuplicado = 0 AND fechaCaptura >= '${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()}'`
-        ).then(r => Number(r[0]?.c || 0)),
+        // FIX: Prisma INTEGER vs TEXT bug - raw SQL with ISO string
+        (() => {
+          const min30ISO = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+          return db.$queryRawUnsafe<Array<{ id: string; tipo: string; fechaFin: string; resultado: string | null }>>(
+            `SELECT id, tipo, fechaFin, resultado FROM Job WHERE estado='completado' AND fechaFin IS NOT NULL AND fechaFin >= '${min30ISO}' ORDER BY fechaFin DESC LIMIT 15`
+          ).then(rows => rows.map(r => ({
+            ...r,
+            resultado: r.resultado ? (typeof r.resultado === 'string' ? JSON.parse(r.resultado) : r.resultado) : null,
+          })));
+        })(),
+        // FIX: Prisma INTEGER vs TEXT bug - raw SQL with ISO string
+        (() => {
+          const h24ISO = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+          return db.$queryRawUnsafe<{ c: bigint }[]>(
+            `SELECT COUNT(*) as c FROM Mencion WHERE esDuplicado = 0 AND fechaCaptura >= '${h24ISO}'`
+          ).then(r => Number(r[0]?.c || 0));
+        })(),
       ]);
 
       // Generar logs legibles de jobs recientes

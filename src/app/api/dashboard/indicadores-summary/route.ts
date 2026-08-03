@@ -18,17 +18,6 @@ export const revalidate = 0;
 
 // ─── Helpers: Bolivia timezone ──────────────────────────────────
 
-/**
- * FIX: Prisma 6.x sends Date as Unix INTEGER to SQLite.
- * When DB column is TEXT (ISO strings), TEXT >= INTEGER always returns true → counts ALL rows.
- * This helper uses raw SQL with ISO string literals for TEXT-to-TEXT comparison.
- */
-async function countSince(table: string, col: string, dateISO: string, extraWhere: string = ''): Promise<number> {
-  const sql = `SELECT COUNT(*) as c FROM ${table} WHERE ${col} IS NOT NULL AND ${col} >= '${dateISO}'${extraWhere ? ' AND ' + extraWhere : ''}`;
-  const rows = await db.$queryRawUnsafe<{ c: bigint }[]>(sql);
-  return Number(rows[0]?.c || 0);
-}
-
 /** Medianoche de hoy en hora Bolivia (UTC-4) */
 function boStartOfDay(): Date {
   const now = new Date();
@@ -66,6 +55,14 @@ function haceTexto(fecha: Date): string {
   if (horas < 24) return `hace ${horas}h`;
   const dias = Math.floor(horas / 24);
   return `hace ${dias}d`;
+}
+
+
+// FIX: Helper para counts con fecha (Prisma INTEGER vs TEXT bug)
+async function countSince(table: string, col: string, dateISO: string, extraWhere: string = ''): Promise<number> {
+  const sql = `SELECT COUNT(*) as c FROM ${table} WHERE ${col} IS NOT NULL AND ${col} >= '${dateISO}'${extraWhere ? ' AND ' + extraWhere : ''}`;
+  const rows = await db.$queryRawUnsafe<{ c: bigint }[]>(sql);
+  return Number(rows[0]?.c || 0);
 }
 
 export async function GET() {
@@ -131,8 +128,8 @@ export async function GET() {
     ] = await Promise.all([
       // ── CAPTURA (Menciones = datos ya procesados por LLM) ──
       db.mencion.count(),
-      countSince('Mencion', 'fechaCaptura', hoyBo.toISOString()),
-      countSince('Mencion', 'fechaCaptura', semanaAgoBo.toISOString()),
+      countSince("Mencion", "fechaCaptura", hoyBo.toISOString()),
+      countSince("Mencion", "fechaCaptura", semanaAgoBo.toISOString()),
       db.medio.count(),
       db.fuenteEstado.count({ where: { activo: true } }),
       db.fuenteEstado.count({ where: {
@@ -177,9 +174,9 @@ export async function GET() {
       // BLINDAJE: .catch(() => 0) — si la tabla NotaRaw no existe,
       // no rompe todo el Promise.all (cascade → todos "INACTIVO")
       db.notaRaw.count().catch(() => 0),
-      countSince('NotaRaw', 'fechaCaptura', hoyBo.toISOString()).catch(() => 0),
+      countSince("NotaRaw", "fechaCaptura", hoyBo.toISOString()).catch(() => 0),
       db.notaRaw.count({ where: { procesada: false, descartada: false } }).catch(() => 0),
-      countSince('NotaRaw', 'fechaProcesada', hoyBo.toISOString(), 'procesada = 1').catch(() => 0),
+      countSince("NotaRaw", "fechaProcesada", hoyBo.toISOString(), "procesada = 1").catch(() => 0),
 
       // ── CLASIFICACIÓN global ──
       db.lente.count(),
@@ -194,8 +191,8 @@ export async function GET() {
 
       // ── PRODUCCIÓN (Reporte = productos generados) ──
       db.reporte.count(),
-      countSince('Reporte', 'fechaCreacion', hoyBo.toISOString()),
-      countSince('Reporte', 'fechaCreacion', semanaAgoBo.toISOString()),
+      countSince("Reporte", "fechaCreacion", hoyBo.toISOString()),
+      countSince("Reporte", "fechaCreacion", semanaAgoBo.toISOString()),
       db.reporte.groupBy({ by: ['tipo'], _count: true }),
       db.reporte.count({ where: { enviado: true } }),
       db.reporte.findFirst({ orderBy: { fechaCreacion: 'desc' }, select: { fechaCreacion: true, tipo: true } }),
@@ -205,13 +202,13 @@ export async function GET() {
       db.entrega.count({ where: { estado: 'enviado' } }),
       db.entrega.count({ where: { estado: 'fallido' } }),
       db.entrega.count(),
-      countSince('Entrega', 'fechaEnvio', hoyBo.toISOString()),
+      countSince("Entrega", "fechaEnvio", hoyBo.toISOString()),
       db.suscriptorGratuito.count(),
       db.entrega.findFirst({ orderBy: { fechaEnvio: 'desc' } }),
 
       // ── JOBS ──
-      countSince('Job', 'fechaCreacion', _24hAgo.toISOString(), "estado = 'completado'"),
-      countSince('Job', 'fechaCreacion', _24hAgo.toISOString(), "estado = 'fallido'"),
+      countSince('Job', 'fechaCreacion', _24hAgo.toISOString(), "estado='completado'"),
+      countSince('Job', 'fechaCreacion', _24hAgo.toISOString(), "estado='fallido'"),
 
       // ── ALERTAS criticas (ultimas 24h) ──
       db.systemLog.findMany({
