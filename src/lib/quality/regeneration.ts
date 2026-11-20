@@ -28,8 +28,8 @@ const TEMPERATURA_BOOST = 0.05;
 // Max tokens de salida por tipo de producto.
 // Productos largos necesitan mas tokens para no truncarse.
 const MAX_TOKENS_BY_TYPE: Record<string, number> = {
-  EL_TERMOMETRO: 2048,
-  SALDO_DEL_DIA: 2048,
+  EL_TERMOMETRO: 4096,
+  SALDO_DEL_DIA: 4096,
   EL_FOCO: 3072,
   EL_ESPECIALIZADO: 6144,
   EL_INFORME_CERRADO: 8192,

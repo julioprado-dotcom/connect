@@ -34,17 +34,18 @@ export async function getMencionesForBulletin(
   // Obtener menciones por rango de fechas.
   // Prisma 6.x tiene bug con filtros OR + fecha en SQLite que devuelve 0.
   // Workaround: obtener IDs con raw SQL y luego findMany con id IN.
-  // FIX: SQLite almacena DateTime como integer (Unix ms), NO como ISO string.
-  // Pasar timestamps numéricos para que la comparación integer >= integer funcione.
-  const inicioMs = fechaInicio.getTime();
-  const finMs = fechaFin.getTime();
+  // FIX ISO: la BD guarda DateTime como ISO texto (Prisma 6.19): '2026-11-16T14:00:00.000Z'.
+  // Comparar con ISO strings (lexicografico = cronologico). Parametros enteros NUNCA
+  // matchean (en SQLite TEXT > INTEGER: >= inicio verdadero pero < fin falso => 0 filas).
+  const inicioISO = fechaInicio.toISOString();
+  const finISO = fechaFin.toISOString();
   const sql = Prisma.sql`
     SELECT DISTINCT m.id FROM Mencion m
     WHERE m.esDuplicado = 0
       AND (
-        (m.fechaPublicacion IS NOT NULL AND m.fechaPublicacion >= ${inicioMs} AND m.fechaPublicacion < ${finMs})
+        (m.fechaPublicacion IS NOT NULL AND m.fechaPublicacion >= ${inicioISO} AND m.fechaPublicacion < ${finISO})
         OR
-        (m.fechaPublicacion IS NULL AND m.fechaCaptura >= ${inicioMs} AND m.fechaCaptura < ${finMs})
+        (m.fechaPublicacion IS NULL AND m.fechaCaptura >= ${inicioISO} AND m.fechaCaptura < ${finISO})
       )
       ${options.personaId ? Prisma.sql`AND m.personaId = ${options.personaId}` : Prisma.sql``}
   `;
@@ -147,8 +148,8 @@ export async function getContextMenciones(
   const inicio = boliviaDaysAgo(dias)
   const fin = excludeAfter ?? hoy
 
-  const inicioMs = inicio.getTime()
-  const finMs = fin.getTime()
+  const inicioISO = inicio.toISOString()
+  const finISO = fin.toISOString()
 
   const sql = Prisma.sql`
     SELECT m.id, m.titulo, m.fechaCaptura,
@@ -160,9 +161,9 @@ export async function getContextMenciones(
     LEFT JOIN Medio md ON m.medioId = md.id
     WHERE m.esDuplicado = 0
       AND (
-        (m.fechaPublicacion IS NOT NULL AND m.fechaPublicacion >= ${inicioMs} AND m.fechaPublicacion < ${finMs})
+        (m.fechaPublicacion IS NOT NULL AND m.fechaPublicacion >= ${inicioISO} AND m.fechaPublicacion < ${finISO})
         OR
-        (m.fechaPublicacion IS NULL AND m.fechaCaptura >= ${inicioMs} AND m.fechaCaptura < ${finMs})
+        (m.fechaPublicacion IS NULL AND m.fechaCaptura >= ${inicioISO} AND m.fechaCaptura < ${finISO})
       )
     ORDER BY m.fechaCaptura DESC
     LIMIT 200

@@ -146,3 +146,10 @@ generar_*.sh
 # Local backups (suben a repo separado)
 backups/
 .backup-*
+
+# Temp files
+Build
+*.bak.*
+evaluacion_paso*.json
+parches/
+scripts/auto-backup-db.sh.new
