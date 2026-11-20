@@ -34,17 +34,33 @@ function normalize(s: string): string {
 // ─── Load data from DB ─────────────────────────────────────────
 
 async function loadEjes(): Promise<EjeData[]> {
+  // ONION200: solo los ejes raíz (parentId null) compiten como ejes;
+  // los sub-ejes son sub-clasificaciones y su vocabulario se consolida en la raíz.
   const rows = await db.ejeTematico.findMany({
-    where: { tipo: 'estructural', activo: true },
+    where: { tipo: 'estructural', activo: true, parentId: null },
     include: { Keyword: { where: { activo: true }, select: { termino: true } } },
     orderBy: { orden: 'asc' },
   });
+  const subs = await db.ejeTematico.findMany({
+    where: { tipo: 'estructural', activo: true, parentId: { not: null } },
+    include: { Keyword: { where: { activo: true }, select: { termino: true } } },
+  });
+  const keywordsSubPorPadre = new Map<string, string[]>();
+  for (const s of subs as any[]) {
+    const previa = keywordsSubPorPadre.get(s.parentId as string) ?? [];
+    keywordsSubPorPadre.set(
+      s.parentId as string,
+      previa.concat((s.Keyword ?? []).map((k: any) => k.termino.toLowerCase().trim()))
+    );
+  }
 
   return rows.map((r: any) => ({
     id: r.id,
     nombre: r.nombre,
     slug: r.slug,
-    keywords: r.Keyword?.map((k: any) => k.termino.toLowerCase().trim()) || [],
+    keywords: (r.Keyword?.map((k: any) => k.termino.toLowerCase().trim()) || []).concat(
+      keywordsSubPorPadre.get(r.id) ?? []
+    ),
   }));
 }
 
