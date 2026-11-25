@@ -153,3 +153,10 @@ Build
 evaluacion_paso*.json
 parches/
 scripts/auto-backup-db.sh.new
+
+# Temp files
+Build
+*.bak.*
+evaluacion_paso*.json
+parches/
+scripts/auto-backup-db.sh.new
