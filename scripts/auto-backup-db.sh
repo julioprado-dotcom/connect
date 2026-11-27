@@ -16,13 +16,17 @@ WEEKLY_KEEP=4
 log_info() { echo -e "$(date '+%Y-%m-%d %H:%M:%S') [auto-backup] $1"; }
 log_warn() { echo -e "$(date '+%Y-%m-%d %H:%M:%S') [auto-backup] WARN: $1"; }
 
+# BLINDAJE 1: abortar si el disco tiene menos de 3GB libres
+AVAIL=$(df -BG /root | awk 'NR==2 {gsub("G","",$4); print $4}')
+if [ "${AVAIL:-0}" -lt 3 ]; then echo "ERROR: solo ${AVAIL}GB libres. Backup abortado para proteger la app." >&2; exit 1; fi
+
 if [ -f "$LOCK_FILE" ]; then
   LP=$(cat "$LOCK_FILE" 2>/dev/null || echo 0)
   if kill -0 "$LP" 2>/dev/null; then log_warn "Ya corriendo"; exit 0; fi
   rm -f "$LOCK_FILE"
 fi
 echo $$ > "$LOCK_FILE"
-trap "rm -f "$LOCK_FILE"" EXIT
+trap 'rm -f "$LOCK_FILE"' EXIT
 mkdir -p "$LOG_DIR" "$LOCAL_BACKUP_DIR"
 if [ ! -f "$DB_PATH" ] || [ ! -s "$DB_PATH" ]; then echo "ERROR: DB no encontrada" >&2; exit 1; fi
 FORCE=false; [ "${1:-}" = "--force" ] && FORCE=true
@@ -57,17 +61,43 @@ log_info "Subiendo a GitHub..."
 if [ -d "$BACKUP_REPO_DIR/.git" ]; then cd "$BACKUP_REPO_DIR"; git pull origin main --no-rebase 2>/dev/null || true
 else git clone "$GITHUB_REPO" "$BACKUP_REPO_DIR" 2>/dev/null; cd "$BACKUP_REPO_DIR"; git branch -M main; fi
 mkdir -p "$BACKUP_REPO_DIR/daily"; cp "$GF" "$BACKUP_REPO_DIR/daily/"
+
+# BLINDAJE 2: rotar snapshots viejos DENTRO del repo (espejo de la rotacion local)
+T=$(ls -1 "$BACKUP_REPO_DIR"/daily/snapshot-*.db.gz 2>/dev/null | wc -l)
+if [ "$T" -gt $((DAILY_KEEP + WEEKLY_KEEP)) ]; then
+  ls -t "$BACKUP_REPO_DIR"/daily/snapshot-*.db.gz 2>/dev/null | tail -n +$((DAILY_KEEP + WEEKLY_KEEP + 1)) | while read f; do rm -f "$f"; log_info "Rotado del repo: $(basename "$f")"; done
+fi
+
 cd "$BACKUP_REPO_DIR"; git config user.email "ai-agent@z.ai" 2>/dev/null || true; git config user.name "AI Agent" 2>/dev/null || true
-git add daily/
+git add -A daily/
 if git diff --cached --quiet; then log_info "Sin cambios para commit"
 else git commit -m "backup: snapshot ${DT} ($GSZ)"; git push origin main 2>/dev/null && log_info "Push OK" || log_warn "Push fallo"; fi
+
+# BLINDAJE 3: aplanar historial git si supera 6 commits (evita crecimiento infinito)
+CC=$(git rev-list --count HEAD 2>/dev/null || echo 0)
+if [ "$CC" -gt 6 ]; then
+  log_info "Aplanando historial git ($CC commits)..."
+  git checkout main >/dev/null 2>&1 || true
+  git branch -D tmp-squash 2>/dev/null || true
+  git checkout --orphan tmp-squash >/dev/null 2>&1
+  git add -A >/dev/null 2>&1
+  git commit -m "backup: consolidado $(date '+%Y-%m-%d %H:%M')" >/dev/null
+  git branch -M main
+  git push --force origin main >/dev/null 2>&1 && log_info "Historial consolidado en GitHub" || log_warn "Force push fallo"
+  git gc --prune=now --quiet >/dev/null 2>&1
+  log_info "Repo aplanado. Commits actuales: $(git rev-list --count HEAD 2>/dev/null || echo '?')"
+fi
 
 cd "$LOCAL_BACKUP_DIR"
 T=$(ls -1 snapshot-*.db.gz 2>/dev/null | wc -l)
 if [ "$T" -gt $((DAILY_KEEP + WEEKLY_KEEP)) ]; then
-  ls -t snapshot-*.db.gz 2>/dev/null | tail -n +$((DAILY_KEEP + 1)) | head -n -1 | while read f; do rm -f "$LOCAL_BACKUP_DIR/$f"; log_info "Rotado: $f"; done
+  ls -t snapshot-*.db.gz 2>/dev/null | tail -n +$((DAILY_KEEP + WEEKLY_KEEP + 1)) | while read f; do rm -f "$LOCAL_BACKUP_DIR/$f"; log_info "Rotado: $f"; done
 fi
 TL=$(ls -1 "$LOCAL_BACKUP_DIR"/snapshot-*.db.gz 2>/dev/null | wc -l)
 TSZ=$(du -sh "$LOCAL_BACKUP_DIR" 2>/dev/null | cut -f1)
 TG=$(ls -1 "$BACKUP_REPO_DIR"/daily/*.gz 2>/dev/null | wc -l)
-log_info "Resumen: $GSZ comprimido | Local: $TL ($TSZ) | GitHub: $TG"
+GS=$(du -sh "$BACKUP_REPO_DIR" 2>/dev/null | cut -f1)
+log_info "Resumen: $GSZ comprimido | Local: $TL ($TSZ) | GitHub: $TG snapshots | Repo: $GS"
+
+# BLINDAJE 4: purga orphans .db sin comprimir (gzip fallido o version vieja)
+find "$LOCAL_BACKUP_DIR" -maxdepth 1 -name 'snapshot-*.db' -mtime +2 -delete 2>/dev/null || true

@@ -144,19 +144,41 @@ export function ZaiConfigPanel() {
       {/* Estado configurado — Vista normal */}
       {status && status.configurado && !isEditing && !isSaving && (
         <div className="space-y-2.5">
-          {/* Indicador de estado */}
+          {/* Indicador de estado — clasificado por estado del proveedor */}
           <div className="flex items-center gap-2">
-            {status.keyValida ? (
-              <>
-                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-[10px] font-mono text-emerald-400/80">Key valida y operativa</span>
-              </>
-            ) : (
-              <>
-                <XCircle className="w-3.5 h-3.5 text-red-400" />
-                <span className="text-[10px] font-mono text-red-400/80">Key invalida o con error</span>
-              </>
-            )}
+            {(() => {
+              const est = (status as any).estado as string | undefined
+              const MAPA_ESTADO: Record<string, { icon: any; iconCls: string; txtCls: string; txt: string }> = {
+                operativa:            { icon: CheckCircle,   iconCls: 'w-3.5 h-3.5 text-emerald-400',  txtCls: 'text-[10px] font-mono text-emerald-400/80', txt: 'Key valida y operativa' },
+                sobrecarga_proveedor: { icon: AlertTriangle, iconCls: 'w-3.5 h-3.5 text-amber-400/80', txtCls: 'text-[10px] font-mono text-amber-400/80',  txt: 'Sobrecarga del proveedor (temporal) — key valida' },
+                limite_tasa:          { icon: AlertTriangle, iconCls: 'w-3.5 h-3.5 text-amber-400/80', txtCls: 'text-[10px] font-mono text-amber-400/80',  txt: 'Limite de tasa de tu cuenta — key valida' },
+                sin_saldo:            { icon: AlertTriangle, iconCls: 'w-3.5 h-3.5 text-amber-400/80', txtCls: 'text-[10px] font-mono text-amber-400/80',  txt: 'Cuenta sin saldo — recargar en bigmodel.cn' },
+                key_invalida:         { icon: XCircle,       iconCls: 'w-3.5 h-3.5 text-red-400',      txtCls: 'text-[10px] font-mono text-red-400/80',    txt: 'Key invalida o sin permisos' },
+                error_proveedor:      { icon: AlertTriangle, iconCls: 'w-3.5 h-3.5 text-amber-400/80', txtCls: 'text-[10px] font-mono text-amber-400/80',  txt: 'Error del proveedor — no es tu key' },
+                sin_conexion:         { icon: AlertTriangle, iconCls: 'w-3.5 h-3.5 text-amber-400/80', txtCls: 'text-[10px] font-mono text-amber-400/80',  txt: 'Sin conexion con el proveedor' },
+              }
+              const info = est ? MAPA_ESTADO[est] : undefined
+              if (info) {
+                const Icono = info.icon
+                return (
+                  <>
+                    <Icono className={info.iconCls} />
+                    <span className={info.txtCls}>{info.txt}</span>
+                  </>
+                )
+              }
+              return status.keyValida ? (
+                <>
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-[10px] font-mono text-emerald-400/80">Key valida y operativa</span>
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-3.5 h-3.5 text-red-400" />
+                  <span className="text-[10px] font-mono text-red-400/80">Key invalida o con error</span>
+                </>
+              )
+            })()}
           </div>
 
           {/* Key enmascarada */}

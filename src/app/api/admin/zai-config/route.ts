@@ -41,6 +41,8 @@ export async function GET() {
     // Validar la key haciendo un request de prueba al endpoint del SDK
     let keyValida = false
     let keyError: string | null = null
+    let estado = 'desconocido'
+    let codigoNegocio: string | null = null
     let respuestaTimeMs: number | null = null
     try {
       const startTime = Date.now()
@@ -62,12 +64,31 @@ export async function GET() {
 
       if (testRes.ok) {
         keyValida = true
+        estado = 'operativa'
       } else {
         const errBody = await testRes.text()
         keyError = `HTTP ${testRes.status}: ${errBody.slice(0, 200)}`
+        try { codigoNegocio = (JSON.parse(errBody) as any)?.error?.code ?? null } catch { /* cuerpo no JSON */ }
+        if (testRes.status === 401 || testRes.status === 403) {
+          keyValida = false
+          estado = 'key_invalida'
+        } else if (testRes.status === 429) {
+          // auth PASO: el rechazo es de cuota/carga, no de la key
+          keyValida = true
+          estado = codigoNegocio === '1113' ? 'sin_saldo'
+                 : codigoNegocio === '1302' ? 'limite_tasa'
+                 : 'sobrecarga_proveedor'
+        } else if (testRes.status >= 500) {
+          keyValida = false
+          estado = 'error_proveedor'
+        } else {
+          keyValida = false
+          estado = 'error_desconocido'
+        }
       }
     } catch (e: any) {
       keyError = e.message || 'Error de conexion al validar key'
+      estado = 'sin_conexion'
     }
 
     return NextResponse.json({
@@ -76,6 +97,8 @@ export async function GET() {
       baseUrl: config.baseUrl || '',
       apiKeyMasked: maskedKey,
       keyValida,
+      estado,
+      codigoNegocio,
       keyError,
       respuestaTimeMs,
       timestamp: new Date().toISOString(),
@@ -147,6 +170,9 @@ export async function PUT(request: NextRequest) {
       })
       if (testRes.ok) {
         keyValida = true
+      } else if (testRes.status === 429) {
+        keyValida = true // auth paso: rechazo temporal de carga/cuota
+        validationError = `HTTP ${testRes.status}: Key guardada; el test fallo por carga del proveedor (temporal).`
       } else {
         validationError = `HTTP ${testRes.status}: La nueva key fue guardada pero fallo la validacion. Los procesos necesitan restart.`
       }
