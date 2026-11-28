@@ -84,6 +84,7 @@ if [ "$CC" -gt 6 ]; then
   git commit -m "backup: consolidado $(date '+%Y-%m-%d %H:%M')" >/dev/null
   git branch -M main
   git push --force origin main >/dev/null 2>&1 && log_info "Historial consolidado en GitHub" || log_warn "Force push fallo"
+  git reflog expire --expire=now --all >/dev/null 2>&1
   git gc --prune=now --quiet >/dev/null 2>&1
   log_info "Repo aplanado. Commits actuales: $(git rev-list --count HEAD 2>/dev/null || echo '?')"
 fi
